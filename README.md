@@ -1,7 +1,7 @@
 # RBQL Description
 RBQL is a powerful but minimalistic SQL-like language that supports select queries with python expressions.
 RBQL works with tsv and csv files, so you don't need a database to use it.
-RBQL is similar to awk unix tool.
+RBQL is similar to "awk" unix tool.
 
 ## Main Features
 * Use python expressions inside "select", "where" and "order by" statements
@@ -17,10 +17,10 @@ RBQL is similar to awk unix tool.
 * distinct
 
 ## Special variables
-* "c1", "c2", ... , "cN" - column names
-* "*" - whole line/entry
-* "lnum" - line number (1-based)
-* "flen" - number of columns in current line/entry
+* `c1`, `c2`, ... , `cN` - column names
+* `*` - whole line/entry
+* `lnum` - line number (1-based)
+* `flen` - number of columns in current line/entry
 
 ## Query examples
 
