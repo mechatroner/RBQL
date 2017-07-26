@@ -27,16 +27,11 @@ def dynamic_import(module_name):
     return importlib.import_module(module_name)
 
 
-#TODO Description of features
-# * varying number of column for where queries or when column is not in result
-# * lnum feature
-
-
 sp4 = '    '
 sp8 = sp4 + sp4
 sp12 = sp4 + sp4 + sp4
 
-column_var_regex = re.compile(r'^c([1-9][0-9]*)$')
+column_var_regex = re.compile(r'^a([1-9][0-9]*)$')
 
 class RBParsingError(Exception):
     pass
@@ -258,6 +253,35 @@ import re #for regexes
 spart_1 = r'''
 DLM = '{}'
 
+class Flike:
+    def __init__(self):
+        self._cache = dict()
+
+    def _like_to_regex(self, pattern):
+        p = 0
+        i = 0
+        converted = ''
+        while i < len(pattern):
+            if pattern[i] in ['_', '%']:
+                converted += re.escape(pattern[p:i])
+                p = i + 1
+                if pattern[i] == '_':
+                    converted += '.'
+                else:
+                    converted += '.*'
+            i += 1
+        converted += re.escape(pattern[p:i])
+        return '^' + converted + '$'
+
+    def __call__(self, text, pattern):
+        if pattern not in self._cache:
+            rgx = self._like_to_regex(pattern)
+            self._cache[pattern] = re.compile(rgx)
+        return self._cache[pattern].match(text) is not None
+
+flike = Flike()
+
+
 class SimpleWriter:
     def __init__(self, dst):
         self.dst = dst
@@ -333,6 +357,8 @@ def normalize_delim(delim):
         return r'\t'
     return delim
 
+#TODO you need to have access to join rhs table B in this function
+#It is either in rbql_lines or should be passed as a parameter
 def parse_to_py(rbql_lines, py_dst, delim, import_modules=None):
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
@@ -531,7 +557,7 @@ class TestEverything(unittest.TestCase):
         self.assertEqual(canonic_table, test_table)
 
     def test_run1(self):
-        query = 'select lnum, c1, len(c3) where int(c1) > 5'
+        query = 'select lnum, a1, len(a3) where int(a1) > 5'
 
         input_table = list()
         input_table.append(['5', 'haha', 'hoho'])
@@ -547,7 +573,7 @@ class TestEverything(unittest.TestCase):
         self.compare_tables(canonic_table, test_table)
 
     def test_run2(self):
-        query = 'select distinct c2 where int(c1) > 10'
+        query = 'select distinct a2 where int(a1) > 10'
 
         input_table = list()
         input_table.append(['5', 'haha', 'hoho'])
@@ -568,7 +594,7 @@ class TestEverything(unittest.TestCase):
         self.compare_tables(canonic_table, test_table)
 
     def test_run3(self):
-        query = 'select * order by int(c1) desc'
+        query = 'select * where flike(a2, "%a_a") order by int(a1) desc'
         input_table = list()
         input_table.append(['5', 'haha', 'hoho'])
         input_table.append(['-20', 'haha', 'hioho'])
@@ -582,8 +608,6 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['50', 'haha', 'dfdf'])
         canonic_table.append(['20', 'haha', ''])
         canonic_table.append(['13', 'haha', ''])
-        canonic_table.append(['11', 'hoho', ''])
-        canonic_table.append(['10', 'hihi', ''])
         canonic_table.append(['5', 'haha', 'hoho'])
         canonic_table.append(['-20', 'haha', 'hioho'])
 
@@ -592,7 +616,7 @@ class TestEverything(unittest.TestCase):
         self.compare_tables(canonic_table, test_table)
 
     def test_run4(self):
-        query = 'select int(math.sqrt(int(c1)))'
+        query = 'select int(math.sqrt(int(a1)))'
         input_table = list()
         input_table.append(['0', 'haha', 'hoho'])
         input_table.append(['9'])
@@ -610,7 +634,7 @@ class TestEverything(unittest.TestCase):
 
 
     def test_run5(self):
-        query = 'select c2'
+        query = 'select a2'
         input_table = list()
         input_table.append(['0', 'haha', 'hoho'])
         input_table.append(['9'])
