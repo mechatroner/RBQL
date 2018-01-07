@@ -85,7 +85,12 @@ def smart_split(src, dlm, policy):
     if policy == 'simple':
         return src.split(dlm)
     else:
-        return rbql_utils.split_quoted_str(src, dlm)[0]
+        res = rbql_utils.split_quoted_str(src, dlm)[0]
+        res_preserved = rbql_utils.split_quoted_str(src, dlm, True)[0]
+        assert dlm.join(res_preserved) == src
+        assert res == rbql_utils.unquote_fields(res_preserved)
+        return res
+
 
 
 def table_to_string(array2d, delim, policy):
@@ -1264,6 +1269,7 @@ def randomly_csv_escape(fields):
     efields = list()
     for field in fields:
         efields.append(stochastic_quote_field(field, ','))
+    assert rbql_utils.unquote_fields(efields) == fields
     return ','.join(efields)
 
 
@@ -1302,10 +1308,16 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('"aaa,bbb",ccc,ddd', (['aaa,bbb','ccc', 'ddd'], False)))
         test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['a"aa" a,bbb','ccc', 'ddd'], True)))
         test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc','ccc"', 'ddd'], True)))
+        test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc','ccc"', 'ddd'], True)))
+        test_cases.append(('hello,world,"', (['hello','world', '"'], True)))
         for tc in test_cases:
             src = tc[0]
             canonic_dst = tc[1]
             test_dst = rbql_utils.split_quoted_str(tc[0], ',')
+            test_dst_preserved = rbql_utils.split_quoted_str(tc[0], ',', True)
+            self.assertEqual(test_dst[1], test_dst_preserved[1])
+            self.assertEqual(','.join(test_dst_preserved[0]), tc[0], 'preserved split failure')
+            self.assertEqual(test_dst[0], rbql_utils.unquote_fields(test_dst_preserved[0]))
             self.assertEqual(canonic_dst, canonic_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
 
 
@@ -1315,8 +1327,13 @@ class TestSplitMethods(unittest.TestCase):
             canonic_fields = rec[0]
             escaped_entry = rec[1]
             canonic_warning = rec[2]
+            #FIXME compare with preserving split method
             test_fields, test_warning = rbql_utils.split_quoted_str(escaped_entry, ',')
+            test_fields_preserved, test_warning_preserved = rbql_utils.split_quoted_str(escaped_entry, ',', True)
+            self.assertEqual(','.join(test_fields_preserved), escaped_entry)
             self.assertEqual(canonic_warning, test_warning)
+            self.assertEqual(test_warning_preserved, test_warning)
+            self.assertEqual(test_fields, rbql_utils.unquote_fields(test_fields_preserved))
             if not canonic_warning:
                 self.assertEqual(canonic_fields, test_fields)
 
@@ -1341,6 +1358,9 @@ def test_random_csv_table(src_path):
             canonic_warning = int(rec[1])
             canonic_fields = rec[2].split(';')
             test_fields, test_warning = rbql_utils.split_quoted_str(escaped_entry, ',')
+            test_fields_preserved, test_warning = rbql_utils.split_quoted_str(escaped_entry, ',', True)
+            assert ','.join(test_fields_preserved) == test_fields
+            assert rbql.unquote_fields(test_fields_preserved) == test_fields
             assert int(test_warning) == canonic_warning
             if not test_warning and (test_fields != canonic_fields):
                 print( "Errror", file=sys.stderr) #FOR_DEBUG

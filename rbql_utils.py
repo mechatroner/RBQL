@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-def split_quoted_str(src, dlm):
+def split_quoted_str(src, dlm, preserve_quotes=False):
     assert dlm != '"'
     if src.find('"') == -1: #optimization for majority of lines
         return (src.split(dlm), False)
@@ -13,10 +13,16 @@ def split_quoted_str(src, dlm):
             while True:
                 uidx = src.find('"', uidx)
                 if uidx == -1:
-                    result.append(src[cidx+1:].replace('""', '"'))
+                    if preserve_quotes:
+                        result.append(src[cidx:])
+                    else:
+                        result.append(src[cidx + 1:].replace('""', '"'))
                     return (result, True)
-                elif uidx + 1 >= len(src) or src[uidx + 1] == dlm:
-                    result.append(src[cidx+1:uidx].replace('""', '"'))
+                elif uidx + 1 == len(src) or src[uidx + 1] == dlm:
+                    if preserve_quotes:
+                        result.append(src[cidx:uidx + 1])
+                    else:
+                        result.append(src[cidx + 1:uidx].replace('""', '"'))
                     cidx = uidx + 2
                     break
                 elif src[uidx + 1] == '"':
@@ -38,7 +44,19 @@ def split_quoted_str(src, dlm):
     if src[-1] == dlm:
         result.append('')
     return (result, warning)
-            
+
+
+def unquote_field(field):
+    if len(field) < 2:
+        return field
+    if field[0] == '"' and field[-1] == '"':
+        return field[1:-1].replace('""', '"')
+    return field
+
+
+def unquote_fields(fields):
+    return [unquote_field(f) for f in fields]
+
 
 def rows(f, chunksize=1024, sep='\n'):
     incomplete_row = None
