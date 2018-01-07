@@ -5,7 +5,6 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
     if src.find('"') == -1: #optimization for majority of lines
         return (src.split(dlm), False)
     result = list()
-    warning = False
     cidx = 0
     while cidx < len(src):
         if src[cidx] == '"':
@@ -13,10 +12,7 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
             while True:
                 uidx = src.find('"', uidx)
                 if uidx == -1:
-                    if preserve_quotes:
-                        result.append(src[cidx:])
-                    else:
-                        result.append(src[cidx + 1:].replace('""', '"'))
+                    result.append(src[cidx:])
                     return (result, True)
                 elif uidx + 1 == len(src) or src[uidx + 1] == dlm:
                     if preserve_quotes:
@@ -29,28 +25,30 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
                     uidx += 2
                     continue
                 else:
-                    warning = True
-                    uidx += 1
-                    continue
+                    result.append(src[cidx:])
+                    return (result, True)
         else:
             uidx = src.find(dlm, cidx)
             if uidx == -1:
                 uidx = len(src)
             field = src[cidx:uidx]
             if field.find('"') != -1:
-                warning = True
+                result.append(src[cidx:])
+                return (result, True)
             result.append(field)
             cidx = uidx + 1
     if src[-1] == dlm:
         result.append('')
-    return (result, warning)
+    return (result, False)
 
 
 def unquote_field(field):
     if len(field) < 2:
         return field
     if field[0] == '"' and field[-1] == '"':
-        return field[1:-1].replace('""', '"')
+        candidate = field[1:-1]
+        if candidate.count('"') == candidate.count('""') * 2:
+            return candidate.replace('""', '"')
     return field
 
 
