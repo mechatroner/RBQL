@@ -1308,7 +1308,6 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('"aaa,bbb",ccc,ddd', (['aaa,bbb','ccc', 'ddd'], False)))
         test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['a"aa" a,bbb','ccc', 'ddd'], True)))
         test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc','ccc"', 'ddd'], True)))
-        test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc','ccc"', 'ddd'], True)))
         test_cases.append(('hello,world,"', (['hello','world', '"'], True)))
         for tc in test_cases:
             src = tc[0]
