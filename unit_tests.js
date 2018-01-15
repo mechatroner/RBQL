@@ -38,6 +38,12 @@ function process_line(line) {
     var split_result = rbql_utils.split_quoted_str(escaped_entry, ',');
     var test_dst = split_result[0];
     var test_warning = split_result[1];
+
+    var split_result_preserved = rbql_utils.split_quoted_str(escaped_entry, ',', true);
+    assert(test_warning === split_result_preserved[1]);
+    assert(split_result_preserved[0].join(',') === escaped_entry);
+    assert(arrays_are_equal(test_dst, rbql_utils.unquote_fields(split_result_preserved[0])));
+
     compare_splits(escaped_entry, test_dst, canonic_dst, test_warning, canonic_warning);
 }
 
@@ -60,6 +66,7 @@ function test_split() {
     test_cases.push(['"aaa,bbb",ccc,ddd', ['aaa,bbb','ccc', 'ddd'], false])
     test_cases.push(['"a"aa" a,bbb",ccc,ddd', ['a"aa" a,bbb','ccc', 'ddd'], true])
     test_cases.push(['"aa, bb, cc",ccc",ddd', ['aa, bb, cc','ccc"', 'ddd'], true])
+    test_cases.push(['hello,world,"', ['hello','world', '"'], true])
     for (var i = 0; i < test_cases.length; i++) {
         var src = test_cases[i][0];
         var canonic_dst = test_cases[i][1];
@@ -67,6 +74,12 @@ function test_split() {
         var split_result = rbql_utils.split_quoted_str(src, ',');
         var test_dst = split_result[0];
         var test_warning = split_result[1];
+
+        var split_result_preserved = rbql_utils.split_quoted_str(src, ',', true);
+        assert(test_warning === split_result_preserved[1], 'warnings do not match');
+        assert(split_result_preserved[0].join(',') === src, 'preserved restore do not match');
+        assert(arrays_are_equal(test_dst, rbql_utils.unquote_fields(split_result_preserved[0])), 'unquoted do not match');
+
         compare_splits(src, test_dst, canonic_dst, test_warning, canonic_warning);
     }
     var random_csv_table_path = process.argv[2];

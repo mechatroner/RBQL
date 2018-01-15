@@ -1,14 +1,7 @@
-//function debug_dump(data) {
-//    fs = require('fs');
-//    fs.appendFile('./last_run.log', data);
-//}
-
-
-function split_quoted_str(src, dlm) {
+function split_quoted_str(src, dlm, preserve_quotes=false) {
     if (src.indexOf('"') == -1)
         return [src.split(dlm), false];
     var result = [];
-    var warning = false;
     var cidx = 0;
     while (cidx < src.length) {
         if (src.charAt(cidx) === '"') {
@@ -16,19 +9,22 @@ function split_quoted_str(src, dlm) {
             while (true) {
                 uidx = src.indexOf('"', uidx);
                 if (uidx == -1) {
-                    result.push(src.substring(cidx + 1).replace(/""/g, '"'));
+                    result.push(src.substring(cidx));
                     return [result, true];
-                } else if (uidx + 1 >= src.length || src.charAt(uidx + 1) == dlm) {
-                    result.push(src.substring(cidx + 1, uidx).replace(/""/g, '"'));
+                } else if (uidx + 1 == src.length || src.charAt(uidx + 1) == dlm) {
+                    if (preserve_quotes) {
+                        result.push(src.substring(cidx, uidx + 1));
+                    } else {
+                        result.push(src.substring(cidx + 1, uidx).replace(/""/g, '"'));
+                    }
                     cidx = uidx + 2;
                     break;
                 } else if (src.charAt(uidx + 1) == '"') {
                     uidx += 2; 
                     continue;
                 } else {
-                    warning = true;
-                    uidx += 1;
-                    continue;
+                    result.push(src.substring(cidx));
+                    return [result, true];
                 }
             }
         } else {
@@ -36,15 +32,57 @@ function split_quoted_str(src, dlm) {
             if (uidx == -1)
                 uidx = src.length;
             var field = src.substring(cidx, uidx);
-            if (field.indexOf('"') != -1)
-                warning = true;
+            if (field.indexOf('"') != -1) {
+                result.push(src.substring(cidx));
+                return [result, true];
+            }
             result.push(field);
             cidx = uidx + 1;
         }
     }
     if (src.charAt(src.length - 1) == dlm)
         result.push('');
-    return [result, warning];
+    return [result, false];
+}
+
+
+function occurrences(string, subString, allowOverlapping=false) {
+    // @author Vitim.us https://gist.github.com/victornpb/7736865
+
+    string += "";
+    subString += "";
+    if (subString.length <= 0) return (string.length + 1);
+
+    var n = 0,
+        pos = 0,
+        step = allowOverlapping ? 1 : subString.length;
+
+    while (true) {
+        pos = string.indexOf(subString, pos);
+        if (pos >= 0) {
+            ++n;
+            pos += step;
+        } else break;
+    }
+    return n;
+}
+
+
+function unquote_field(field) {
+    if (field.length < 2)
+        return field;
+    if (field.charAt(0) === '"' && field.charAt(field.length - 1) == '"') {
+        var candidate = field.substring(1, field.length - 1);
+        if (occurrences(candidate, '"') == occurrences(candidate, '""') * 2) {
+            return candidate.replace(/""/g, '"');
+        }
+    }
+    return field;
+}
+
+
+function unquote_fields(fields) {
+    return fields.map(unquote_field);
 }
 
 
@@ -236,6 +274,7 @@ function SubkeyChecker() {
 
 
 module.exports.split_quoted_str = split_quoted_str;
+module.exports.unquote_fields = unquote_fields;
 
 module.exports.MinAggregator = MinAggregator;
 module.exports.MaxAggregator = MaxAggregator;
