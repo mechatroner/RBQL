@@ -902,6 +902,37 @@ class TestEverything(unittest.TestCase):
             compare_warnings(self, None, warnings)
 
 
+    def test_run18b(self):
+        test_name = 'test18b'
+
+        input_table = list()
+        input_table.append(['cde', '1234'])
+        input_table.append(['abc', '1234'])
+        input_table.append(['abc', '1234'])
+        input_table.append(['efg', '100'])
+        input_table.append(['abc', '100'])
+        input_table.append(['cde', '12999'])
+        input_table.append(['aaa', '2000'])
+        input_table.append(['abc', '100'])
+
+        canonic_table = list()
+        canonic_table.append(['1', 'efg'])
+        canonic_table.append(['4', 'abc'])
+
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+
+        query = r'select distinct count a1 where int(a2) > 10 order by int(a2) asc limit   2  '
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            query = r'select distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc limit 2'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
+
     def test_run19(self):
         test_name = 'test19'
 

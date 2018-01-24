@@ -16,6 +16,7 @@ RBQL is a technology which provides SQL-like language that supports _SELECT_ and
 * ORDER BY ... [ DESC | ASC ]
 * [ [ STRICT ] LEFT | INNER ] JOIN
 * GROUP BY
+* LIMIT _N_
 
 #### Keywords rules
 All keywords have the same meaning as in SQL queries. You can check them [online](https://www.w3schools.com/sql/default.asp)
@@ -27,6 +28,7 @@ Some other rules:
 * _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify the source table.
 * _UPDATE_ has the same semantic as in SQL, but it is actually a special type of _SELECT_ query.
 * _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_
+* _TOP_ and _LIMIT_ have identical semantic.
 
 ### Special variables
 
@@ -82,6 +84,7 @@ Python module rbql.py parses RBQL query, creates a new python worker module, the
 #### With Python expressions
 
 * `select top 20 len(a1) / 10, a2 where a2 in ["car", "plane", "boat"]` - use Python's "in" to emulate SQL's "in"
+* `select len(a1) / 10, a2 where a2 in ["car", "plane", "boat"] limit 20`
 * `update set a3 = 'US' where a3.find('of America') != -1`
 * `select * where NR <= 10` - this is an equivalent of bash command "head -n 10", NR is 1-based')
 * `select a1, a4` - this is an equivalent of bash command "cut -f 1,4"
@@ -95,6 +98,7 @@ Python module rbql.py parses RBQL query, creates a new python worker module, the
 #### With JavaScript expressions
 
 * `select top 20 a1.length / 10, a2 where ["car", "plane", "boat"].indexOf(a2) > -1`
+* `select a1.length / 10, a2 where ["car", "plane", "boat"].indexOf(a2) > -1 limit 20`
 * `update set a3 = 'US' where a3.indexOf('of America') != -1`
 * `select * where NR <= 10` - this is an equivalent of bash command "head -n 10", NR is 1-based')
 * `select a1, a4` - this is an equivalent of bash command "cut -f 1,4"

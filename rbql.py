@@ -24,14 +24,13 @@ import io
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
-SELECT_TOP = 'SELECT TOP'
-SELECT_DISTINCT = 'SELECT DISTINCT'
 JOIN = 'JOIN'
 INNER_JOIN = 'INNER JOIN'
 LEFT_JOIN = 'LEFT JOIN'
 STRICT_LEFT_JOIN = 'STRICT LEFT JOIN'
 ORDER_BY = 'ORDER BY'
 WHERE = 'WHERE'
+LIMIT = 'LIMIT'
 
 
 default_csv_encoding = 'latin-1'
@@ -272,6 +271,7 @@ def locate_statements(rbql_expression):
     statement_groups.append([WHERE])
     statement_groups.append([UPDATE])
     statement_groups.append([GROUP_BY])
+    statement_groups.append([LIMIT])
 
     result = list()
     for st_group in statement_groups:
@@ -345,6 +345,15 @@ def separate_actions(rbql_expression):
         raise RBParsingError('Query must contain either SELECT or UPDATE statement')
     assert (SELECT in result) != (UPDATE in result)
     return result
+
+
+def find_top(rb_actions):
+    if LIMIT in rb_actions:
+        try:
+            return int(rb_actions[LIMIT]['text'])
+        except ValueError:
+            raise RBParsingError('LIMIT keyword must be followed by an integer')
+    return rb_actions[SELECT].get('top', None)
 
 
 def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, join_csv_encoding, import_modules):
@@ -427,7 +436,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
         py_meta_params['top_count'] = 'None'
 
     if SELECT in rb_actions:
-        top_count = rb_actions[SELECT].get('top', None)
+        top_count = find_top(rb_actions)
         py_meta_params['top_count'] = str(top_count) if top_count is not None else 'None'
         if 'distinct_count' in rb_actions[SELECT]:
             py_meta_params['writer_type'] = 'UniqCountWriter'
@@ -525,7 +534,7 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
         js_meta_params['top_count'] = 'null'
 
     if SELECT in rb_actions:
-        top_count = rb_actions[SELECT].get('top', None)
+        top_count = find_top(rb_actions)
         js_meta_params['top_count'] = str(top_count) if top_count is not None else 'null'
         if 'distinct_count' in rb_actions[SELECT]:
             js_meta_params['writer_type'] = 'UniqCountWriter'
