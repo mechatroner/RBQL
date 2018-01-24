@@ -6,6 +6,7 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
         return (src.split(dlm), False)
     result = list()
     cidx = 0
+    warning = False
     while cidx < len(src):
         if src[cidx] == '"':
             uidx = cidx + 1
@@ -33,13 +34,12 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
                 uidx = len(src)
             field = src[cidx:uidx]
             if field.find('"') != -1:
-                result.append(src[cidx:])
-                return (result, True)
+                warning = True
             result.append(field)
             cidx = uidx + 1
     if src[-1] == dlm:
         result.append('')
-    return (result, False)
+    return (result, warning)
 
 
 def unquote_field(field):

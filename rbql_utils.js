@@ -3,6 +3,7 @@ function split_quoted_str(src, dlm, preserve_quotes=false) {
         return [src.split(dlm), false];
     var result = [];
     var cidx = 0;
+    var warning = false;
     while (cidx < src.length) {
         if (src.charAt(cidx) === '"') {
             var uidx = cidx + 1;
@@ -33,8 +34,7 @@ function split_quoted_str(src, dlm, preserve_quotes=false) {
                 uidx = src.length;
             var field = src.substring(cidx, uidx);
             if (field.indexOf('"') != -1) {
-                result.push(src.substring(cidx));
-                return [result, true];
+                warning = true;
             }
             result.push(field);
             cidx = uidx + 1;
@@ -42,7 +42,7 @@ function split_quoted_str(src, dlm, preserve_quotes=false) {
     }
     if (src.charAt(src.length - 1) == dlm)
         result.push('');
-    return [result, false];
+    return [result, warning];
 }
 
 
