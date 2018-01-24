@@ -21,6 +21,9 @@ import io
 # This module must be both python2 and python3 compatible
 
 
+__version__ = '0.1.0'
+
+
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'

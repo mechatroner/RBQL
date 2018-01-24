@@ -159,10 +159,16 @@ def main():
     parser.add_argument('--input_table_path', metavar='FILE', help='Read csv table from FILE instead of stdin')
     parser.add_argument('--output_table_path', metavar='FILE', help='Write output table to FILE instead of stdout')
     parser.add_argument('--meta_language', metavar='LANG', help='script language to use in query', default='python', choices=['python', 'js'])
+    parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     #parser.add_argument('--convert_only', action='store_true', help='Only generate script do not run query on csv table')
     parser.add_argument('--csv_encoding', help='Manually set csv table encoding', default=rbql.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('-I', dest='libs', action='append', help='Import module to use in the result conversion script')
     args = parser.parse_args()
+
+    if args.version:
+        print(rbql.__version__)
+        return
+
     if args.meta_language == 'python':
         run_with_python(args)
     else:
