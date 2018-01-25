@@ -612,6 +612,8 @@ def make_warnings_human_readable(warnings):
     for warning_type, warning_value in warnings.items():
         if warning_type == 'null_value_in_output':
             result.append('None/null values in output were replaced by empty strings.')
+        elif warning_type == 'utf8_bom_removed':
+            result.append('UTF-8 Byte Order Mark BOM was found and removed.')
         elif warning_type == 'defective_csv_line_in_input':
             result.append('Defective double quote escaping in input table. E.g. at line {}.'.format(warning_value))
         elif warning_type == 'defective_csv_line_in_join':

@@ -121,6 +121,7 @@ var NR = 0;
 var join_fields_info = new Object();
 var input_fields_info = new Object();
 var null_value_in_output = false;
+var utf8_bom_removed = false;
 var defective_csv_line_in_input = 0
 var defective_csv_line_in_join = 0
 
@@ -364,6 +365,8 @@ function generate_warnings() {
 
     if (null_value_in_output)
         warnings['null_value_in_output'] = true;
+    if (utf8_bom_removed)
+        warnings['utf8_bom_removed'] = true;
     if (defective_csv_line_in_input)
         warnings['defective_csv_line_in_input'] = defective_csv_line_in_input;
     if (defective_csv_line_in_join)
@@ -518,7 +521,22 @@ function process_select(NF, afields, rhs_records) {
 }
 
 
+function remove_utf8_bom(line) {
+    if (line.length >= 3 && line.charCodeAt(0) === 0xEF && line.charCodeAt(1) === 0xBB && line.charCodeAt(2) === 0xBF) {
+        return line.substring(3);
+    }
+    return line;
+}
+
+
 function process_line(line) {
+    if (NR === 0 && csv_encoding === 'binary') {
+        var clean_line = remove_utf8_bom(line);
+        if (clean_line != line) {
+            line = clean_line;
+            utf8_bom_removed = true;
+        }
+    }
     NR += 1;
     // readline strips last '\r'
     var split_result = input_split(line);
