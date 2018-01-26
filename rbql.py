@@ -167,8 +167,9 @@ def parse_join_expression(src):
 
 
 def find_table_path(table_id):
-    if os.path.exists(table_id):
-        return table_id
+    candidate_path = os.path.expanduser(table_id)
+    if os.path.exists(candidate_path):
+        return candidate_path
     name_record = get_index_record(table_names_settings_path, table_id)
     if name_record is not None and len(name_record) > 1 and os.path.exists(name_record[1]):
         return name_record[1]
