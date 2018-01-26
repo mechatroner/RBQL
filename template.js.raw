@@ -329,7 +329,15 @@ function read_join_table(table_path) {
     var lines = content.split('\n');
     var result = new Map();
     for (var i = 0; i < lines.length; i++) {
-        var line = strip_cr(lines[i]);
+        var line = lines[i];
+        if (i === 0) {
+            var clean_line = remove_utf8_bom(line, csv_encoding);
+            if (clean_line != line) {
+                line = clean_line;
+                utf8_bom_removed = true;
+            }
+        }
+        line = strip_cr(line);
         if (i + 1 == lines.length && line.length == 0)
             break;
         var split_result = join_split(line);
