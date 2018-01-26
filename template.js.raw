@@ -521,17 +521,20 @@ function process_select(NF, afields, rhs_records) {
 }
 
 
-function remove_utf8_bom(line) {
-    if (line.length >= 3 && line.charCodeAt(0) === 0xEF && line.charCodeAt(1) === 0xBB && line.charCodeAt(2) === 0xBF) {
+function remove_utf8_bom(line, assumed_source_encoding) {
+    if (assumed_source_encoding == 'binary' && line.length >= 3 && line.charCodeAt(0) === 0xEF && line.charCodeAt(1) === 0xBB && line.charCodeAt(2) === 0xBF) {
         return line.substring(3);
+    }
+    if (assumed_source_encoding == 'utf-8' && line.length >= 1 && line.charCodeAt(0) === 0xFEFF) {
+        return line.substring(1);
     }
     return line;
 }
 
 
 function process_line(line) {
-    if (NR === 0 && csv_encoding === 'binary') {
-        var clean_line = remove_utf8_bom(line);
+    if (NR === 0) {
+        var clean_line = remove_utf8_bom(line, csv_encoding);
         if (clean_line != line) {
             line = clean_line;
             utf8_bom_removed = true;
