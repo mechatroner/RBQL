@@ -360,7 +360,7 @@ def find_top(rb_actions):
     return rb_actions[SELECT].get('top', None)
 
 
-def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, join_csv_encoding, import_modules):
+def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules):
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
 
@@ -383,7 +383,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
     py_meta_params['import_expression'] = import_expression
     py_meta_params['input_delim'] = py_source_escape(input_delim)
     py_meta_params['input_policy'] = input_policy
-    py_meta_params['join_encoding'] = join_csv_encoding
+    py_meta_params['csv_encoding'] = csv_encoding
     py_meta_params['output_delim'] = py_source_escape(out_delim)
     py_meta_params['output_policy'] = out_policy
 

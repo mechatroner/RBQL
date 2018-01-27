@@ -37,6 +37,7 @@ def str6(obj):
 input_delim = '__RBQLMP__input_delim'
 join_delim = '__RBQLMP__join_delim'
 output_delim = '__RBQLMP__output_delim'
+csv_encoding='__RBQLMP__csv_encoding'
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -70,6 +71,7 @@ module_was_used_failsafe = False
 join_fields_info = dict()
 input_fields_info = dict()
 null_value_in_output = False
+utf8_bom_removed = False
 defective_csv_line_in_input = 0
 defective_csv_line_in_join = 0
 
@@ -283,15 +285,29 @@ class AggregateWriter(object):
         self.subwriter.finish()
 
 
+def remove_utf8_bom(line, assumed_source_encoding):
+    if assumed_source_encoding == 'latin-1' and len(line) >= 3 and line[:3] == '\xef\xbb\xbf':
+        return line[3:]
+    if assumed_source_encoding == 'utf-8' and len(line) >= 1 and line[0] == u'\ufeff':
+        return line[1:]
+    return line
+
+
 def read_join_table(join_table_path):
     global join_fields_info
     global defective_csv_line_in_join
+    global utf8_bom_removed
     fields_max_len = 0
     if not os.path.isfile(join_table_path):
         raise RbqlRuntimeError('Table B: ' + join_table_path + ' is not accessible')
     result = defaultdict(list)
-    with codecs.open(join_table_path, encoding='__RBQLMP__join_encoding') as src_text:
+    with codecs.open(join_table_path, encoding=csv_encoding) as src_text:
         for il, line in enumerate(rbql_utils.rows(src_text), 1):
+            if il == 1:
+                clean_line = remove_utf8_bom(line, csv_encoding)
+                if clean_line != line:
+                    line = clean_line
+                    utf8_bom_removed = True
             line = line.rstrip('\r\n')
             bfields, warning = join_split(line)
             if warning and not defective_csv_line_in_join:
@@ -359,6 +375,8 @@ def create_warnings_report():
         warnings['defective_csv_line_in_input'] = defective_csv_line_in_input
     if null_value_in_output:
         warnings['null_value_in_output'] = True
+    if utf8_bom_removed:
+        warnings['utf8_bom_removed'] = True
     if len(input_fields_info) > 1:
         warnings['input_fields_info'] = input_fields_info
     if len(join_fields_info) > 1:
@@ -452,12 +470,18 @@ def rb_transform(source, destination):
 
     global input_fields_info
     global defective_csv_line_in_input
+    global utf8_bom_removed
     global writer
     writer = __RBQLMP__writer_type(destination)
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
     joiner = __RBQLMP__joiner_type('__RBQLMP__rhs_table_path')
     for NR, line in enumerate(rbql_utils.rows(source), 1):
+        if NR == 1:
+            clean_line = remove_utf8_bom(line, csv_encoding)
+            if clean_line != line:
+                line = clean_line
+                utf8_bom_removed = True
         line = line.rstrip('\r\n')
         afields, warning = input_split(line)
         if warning and not defective_csv_line_in_input:
