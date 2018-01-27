@@ -875,7 +875,7 @@ class TestEverything(unittest.TestCase):
         test_name = 'test18'
 
         input_table = list()
-        input_table.append(['cde', '1234'])
+        input_table.append(['\xef\xbb\xbfcde', '1234'])
         input_table.append(['abc', '1234'])
         input_table.append(['abc', '1234'])
         input_table.append(['efg', '100'])
@@ -888,18 +888,18 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['1', 'efg'])
         canonic_table.append(['4', 'abc'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        input_delim, input_policy, output_delim, output_policy = ['\t', 'simple', '\t', 'simple']
 
         query = r'select top 2 distinct count a1 where int(a2) > 10 order by int(a2) asc'
         test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
         self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        compare_warnings(self, ['utf8_bom_removed'], warnings)
 
         if TEST_JS:
             query = r'select top 2 distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc'
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+            compare_warnings(self, ['utf8_bom_removed'], warnings)
 
 
     def test_run18b(self):
@@ -983,10 +983,10 @@ class TestEverything(unittest.TestCase):
         input_table.append(['10', 'boat', 'yacht'])
         input_table.append(['200', 'plane', 'boeing 737'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        input_delim, input_policy, output_delim, output_policy = ['\t', 'simple', '\t', 'simple']
 
         join_table = list()
-        join_table.append(['bicycle', 'legs'])
+        join_table.append(['\xef\xbb\xbfbicycle', 'legs'])
         join_table.append(['car', 'gas'])
         join_table.append(['plane', 'wings'])
         join_table.append(['rocket', 'some stuff'])
@@ -1006,13 +1006,13 @@ class TestEverything(unittest.TestCase):
         query = r'update set a3 = b2 left join ' + join_table_path + ' on a2 == b1 where b2 != "wings"'
         test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
         self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['null_value_in_output'], warnings)
+        compare_warnings(self, ['utf8_bom_removed', 'null_value_in_output'], warnings)
 
         if TEST_JS:
             query = r'update set a3 = b2 left join ' + join_table_path + ' on a2 == b1 where b2 != "wings"'
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['null_value_in_output'], warnings)
+            compare_warnings(self, ['utf8_bom_removed', 'null_value_in_output'], warnings)
 
 
     def test_run21(self):
