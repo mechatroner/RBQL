@@ -590,3 +590,4 @@ function finish_processing() {
 lineReader.on('line', process_line);
 lineReader.on('close', finish_processing);
 
+// FIXME implement and export rb_transform() 
