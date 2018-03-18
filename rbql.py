@@ -239,7 +239,7 @@ def separate_string_literals_js(rbql_expression):
 
 
 def do_separate_string_literals(rbql_expression, string_literals_regex):
-    # regex is improved expression from here: https://stackoverflow.com/a/14366904/2898283
+    # The regex is improved expression from here: https://stackoverflow.com/a/14366904/2898283
     matches = list(re.finditer(string_literals_regex, rbql_expression))
     string_literals = list()
     format_parts = list()
@@ -264,7 +264,6 @@ def combine_string_literals(host_expression, string_literals):
 
 def locate_statements(rbql_expression):
     statement_groups = list()
-    #'(?i)(?:^| )(?:(?:(?:STRICT *)?LEFT *)|(?:INNER *))?JOIN ' - you can use this regex for joins
     statement_groups.append([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN])
     statement_groups.append([SELECT])
     statement_groups.append([ORDER_BY])
@@ -286,7 +285,7 @@ def locate_statements(rbql_expression):
             assert len(matches) == 1
             match = matches[0]
             result.append((match.start(), match.end(), statement))
-            break #there must be only one statement maximum in each group
+            break # There must be only one statement maximum in each group
     return sorted(result)
 
 
