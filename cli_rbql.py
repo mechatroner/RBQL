@@ -55,42 +55,36 @@ def run_with_python(args):
         assert query_path is None
         rbql_lines = [query]
 
-    tmp_dir = tempfile.gettempdir()
-
-    module_name = 'rbconvert_{}'.format(time.time()).replace('.', '_')
-    module_filename = '{}.py'.format(module_name)
-    tmp_path = os.path.join(tmp_dir, module_filename)
-    sys.path.insert(0, tmp_dir)
-    try:
-        rbql.parse_to_py(rbql_lines, tmp_path, delim, policy, output_delim, output_policy, csv_encoding, import_modules)
-    except rbql.RBParsingError as e:
-        print_error_and_exit('RBQL Parsing Error: \t{}'.format(e))
-    if not os.path.isfile(tmp_path) or not os.access(tmp_path, os.R_OK):
-        print_error_and_exit('Error: Unable to find generated python module at {}.'.format(tmp_path))
-    try:
-        rbconvert = rbql.dynamic_import(module_name)
-        src = None
-        if input_path:
-            src = codecs.open(input_path, encoding=csv_encoding)
-        else:
-            src = rbql.get_encoded_stdin(csv_encoding)
-        warnings = None
-        if output_path:
-            with codecs.open(output_path, 'w', encoding=csv_encoding) as dst:
+    with rbql.RbqlPyEnv() as worker_env:
+        tmp_path = worker_env.module_path
+        try:
+            rbql.parse_to_py(rbql_lines, tmp_path, delim, policy, output_delim, output_policy, csv_encoding, import_modules)
+        except rbql.RBParsingError as e:
+            print_error_and_exit('RBQL Parsing Error: \t{}'.format(e))
+        try:
+            rbconvert = worker_env.import_worker()
+            src = None
+            if input_path:
+                src = codecs.open(input_path, encoding=csv_encoding)
+            else:
+                src = rbql.get_encoded_stdin(csv_encoding)
+            warnings = None
+            if output_path:
+                with codecs.open(output_path, 'w', encoding=csv_encoding) as dst:
+                    warnings = rbconvert.rb_transform(src, dst)
+            else:
+                dst = rbql.get_encoded_stdout(csv_encoding)
                 warnings = rbconvert.rb_transform(src, dst)
-        else:
-            dst = rbql.get_encoded_stdout(csv_encoding)
-            warnings = rbconvert.rb_transform(src, dst)
-        if warnings is not None:
-            hr_warnings = rbql.make_warnings_human_readable(warnings)
-            for warning in hr_warnings:
-                eprint('Warning: {}'.format(warning))
-        rbql.remove_if_possible(tmp_path)
-    except Exception as e:
-        error_msg = 'Error: Unable to use generated python module.\n'
-        error_msg += 'Location of the generated module: {}\n\n'.format(tmp_path)
-        error_msg += 'Original python exception:\n{}\n'.format(str(e))
-        print_error_and_exit(error_msg)
+            if warnings is not None:
+                hr_warnings = rbql.make_warnings_human_readable(warnings)
+                for warning in hr_warnings:
+                    eprint('Warning: {}'.format(warning))
+            worker_env.remove_env_dir()
+        except Exception as e:
+            error_msg = 'Error: Unable to use generated python module.\n'
+            error_msg += 'Location of the generated module: {}\n\n'.format(tmp_path)
+            error_msg += 'Original python exception:\n{}\n'.format(str(e))
+            print_error_and_exit(error_msg)
 
 
 def run_with_js(args):
@@ -143,8 +137,6 @@ def run_with_js(args):
         for warning in hr_warnings:
             eprint('Warning: {}'.format(warning))
     rbql.remove_if_possible(tmp_path)
-
-
 
 
 

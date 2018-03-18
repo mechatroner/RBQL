@@ -9,6 +9,10 @@ import re
 import importlib
 import codecs
 import io
+import tempfile
+import random
+import shutil
+import time
 
 ##########################################################################
 #
@@ -78,14 +82,6 @@ def normalize_delim(delim):
     if delim == r'\t':
         return '\t'
     return delim
-
-
-def dynamic_import(module_name):
-    try:
-        importlib.invalidate_caches()
-    except AttributeError:
-        pass
-    return importlib.import_module(module_name)
 
 
 def get_encoded_stdin(encoding_name):
@@ -379,7 +375,6 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
             import_expression += 'import {}\n'.format(mdl)
 
     py_meta_params = dict()
-    py_meta_params['rbql_home_dir'] = py_source_escape(rbql_home_dir)
     py_meta_params['import_expression'] = import_expression
     py_meta_params['input_delim'] = py_source_escape(input_delim)
     py_meta_params['input_policy'] = input_policy
@@ -629,4 +624,42 @@ def make_warnings_human_readable(warnings):
         assert w.find('\n') == -1
     return result
 
+
+class RbqlPyEnv:
+    def __init__(self):
+        self.env_dir_name = None
+        self.env_dir = None
+        self.module_path = None
+        self.module_name = None
+
+    def __enter__(self):
+        tmp_dir = tempfile.gettempdir()
+        self.env_dir_name = 'rbql_{}_{}'.format(time.time(), random.randint(1, 100000000)).replace('.', '_')
+        self.env_dir = os.path.join(tmp_dir, self.env_dir_name)
+        self.module_name = 'worker_{}'.format(self.env_dir_name)
+        module_filename = '{}.py'.format(self.module_name)
+        self.module_path = os.path.join(self.env_dir, module_filename)
+        os.mkdir(self.env_dir)
+        shutil.copy(os.path.join(rbql_home_dir, 'rbql_utils.py'), self.env_dir)
+        return self
+
+    def import_worker(self):
+        # We need to add env_dir to sys.path after worker module has been generated to avoid calling `importlib.invalidate_caches()`
+        # Description of the problem: http://ballingt.com/import-invalidate-caches/
+        assert os.path.exists(self.module_path), 'Unable to find generated module at {}'.format(sys.module_path)
+        sys.path.append(self.env_dir)
+        return importlib.import_module(self.module_name)
+
+    def remove_env_dir(self):
+        # Should be called on success only: do not put in __exit__. In case of error we may need to have the generated module
+        try:
+            shutil.rmtree(self.env_dir)
+        except Exception:
+            pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            sys.path.remove(self.env_dir)
+        except ValueError:
+            pass
 

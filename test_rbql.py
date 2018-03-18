@@ -117,21 +117,19 @@ rainbow_ut_prefix = 'ut_rbconvert_'
 
 def run_file_query_test_py(query, input_path, testname, delim, policy, csv_encoding):
     tmp_dir = tempfile.gettempdir()
-    if not len(sys.path) or sys.path[0] != tmp_dir:
-        sys.path.insert(0, tmp_dir)
-    module_name = '{}{}_{}_{}'.format(rainbow_ut_prefix, time.time(), testname, random.randint(1, 100000000)).replace('.', '_')
-    module_filename = '{}.py'.format(module_name)
-    tmp_path = os.path.join(tmp_dir, module_filename)
-    dst_table_filename = '{}.tsv'.format(module_name)
+    dst_table_filename = '{}.{}.{}.tsv'.format(testname, time.time(), random.randint(1, 1000000))
     output_path = os.path.join(tmp_dir, dst_table_filename)
-    rbql.parse_to_py([query], tmp_path, delim, policy, '\t', 'simple', csv_encoding, None)
-    rbconvert = rbql.dynamic_import(module_name)
-    warnings = None
-    with codecs.open(input_path, encoding=csv_encoding) as src, codecs.open(output_path, 'w', encoding=csv_encoding) as dst:
-        warnings = rbconvert.rb_transform(src, dst)
-    assert os.path.exists(tmp_path)
-    rbql.remove_if_possible(tmp_path)
-    assert not os.path.exists(tmp_path)
+    with rbql.RbqlPyEnv() as worker_env:
+        tmp_path = worker_env.module_path
+        rbql.parse_to_py([query], tmp_path, delim, policy, '\t', 'simple', csv_encoding, None)
+        rbconvert = worker_env.import_worker()
+        warnings = None
+        with codecs.open(input_path, encoding=csv_encoding) as src, codecs.open(output_path, 'w', encoding=csv_encoding) as dst:
+            warnings = rbconvert.rb_transform(src, dst)
+
+        assert os.path.exists(tmp_path)
+        worker_env.remove_env_dir()
+        assert not os.path.exists(tmp_path)
     return (output_path, warnings)
 
 
@@ -155,29 +153,24 @@ def table_has_delim(array2d, delim):
 
 
 def run_conversion_test_py(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, join_csv_encoding=default_csv_encoding):
-    tmp_dir = tempfile.gettempdir()
-    if not len(sys.path) or sys.path[0] != tmp_dir:
-        sys.path.insert(0, tmp_dir)
-    module_name = '{}{}_{}_{}'.format(rainbow_ut_prefix, time.time(), testname, random.randint(1, 100000000)).replace('.', '_')
-    module_filename = '{}.py'.format(module_name)
-    tmp_path = os.path.join(tmp_dir, module_filename)
-    #print( "tmp_path:", tmp_path) #FOR_DEBUG
-    src = table_to_stream(input_table, input_delim, input_policy)
-    dst = io.StringIO()
-    rbql.parse_to_py([query], tmp_path, input_delim, input_policy, output_delim, output_policy, join_csv_encoding, import_modules)
-    assert os.path.isfile(tmp_path) and os.access(tmp_path, os.R_OK)
-    rbconvert = rbql.dynamic_import(module_name)
-    warnings = rbconvert.rb_transform(src, dst)
-    out_data = dst.getvalue()
-    if len(out_data):
-        out_lines = out_data[:-1].split('\n')
-        out_table = [smart_split(ln, output_delim, output_policy) for ln in out_lines]
-    else:
-        out_table = []
-    assert os.path.exists(tmp_path)
-    rbql.remove_if_possible(tmp_path)
-    assert not os.path.exists(tmp_path)
-    return (out_table, warnings)
+    with rbql.RbqlPyEnv() as worker_env:
+        tmp_path = worker_env.module_path
+        src = table_to_stream(input_table, input_delim, input_policy)
+        dst = io.StringIO()
+        rbql.parse_to_py([query], tmp_path, input_delim, input_policy, output_delim, output_policy, join_csv_encoding, import_modules)
+        assert os.path.isfile(tmp_path) and os.access(tmp_path, os.R_OK)
+        rbconvert = worker_env.import_worker()
+        warnings = rbconvert.rb_transform(src, dst)
+        out_data = dst.getvalue()
+        if len(out_data):
+            out_lines = out_data[:-1].split('\n')
+            out_table = [smart_split(ln, output_delim, output_policy) for ln in out_lines]
+        else:
+            out_table = []
+        assert os.path.exists(tmp_path)
+        worker_env.remove_env_dir()
+        assert not os.path.exists(tmp_path)
+        return (out_table, warnings)
 
 
 def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encoding):
