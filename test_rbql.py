@@ -1181,6 +1181,39 @@ class TestEverything(unittest.TestCase):
             compare_warnings(self, None, warnings)
 
 
+    def test_run26(self):
+        test_name = 'test26'
+
+        input_table = list()
+        input_table.append(['5', 'haha', 'hoho'])
+        input_table.append(['-20', 'haha', 'hioho'])
+        input_table.append(['50', 'haha', 'dfdf'])
+        input_table.append(['20', 'haha', ''])
+
+        canonic_table = list()
+        canonic_table.append(['haha;', '5'])
+        canonic_table.append(['haha', '', '-20'])
+        canonic_table.append(['haha;', '50'])
+        canonic_table.append(['haha', '', '20'])
+
+        input_delim = ','
+        input_policy = 'simple'
+        output_delim = ','
+        output_policy = 'simple'
+
+        query = 'select a2 + "," if NR % 2 == 0 else a2 + ";", a1'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, ['delim_in_simple_output'], warnings)
+
+        if TEST_JS:
+            query = 'select NR % 2 == 0 ? a2 + "," : a2 + ";", a1'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, ['delim_in_simple_output'], warnings)
+
+
+
 def calc_file_md5(fname):
     import hashlib
     hash_md5 = hashlib.md5()

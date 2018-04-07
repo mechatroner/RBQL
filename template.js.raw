@@ -42,12 +42,27 @@ function quoted_join(fields, delim) {
 }
 
 
+var NR = 0;
+
+// For warnings:
+var join_fields_info = new Object();
+var input_fields_info = new Object();
+var null_value_in_output = false;
+var delim_in_simple_output = false;
+var utf8_bom_removed = false;
+var defective_csv_line_in_input = 0
+var defective_csv_line_in_join = 0
+
+// Aggregators:
+var aggregation_stage = 0;
+var aggr_init_counter = 0;
+var functional_aggregators = [];
+
+
 function simple_join(fields, delim) {
     var res = fields.join(delim);
     if (fields.join('').indexOf(delim) != -1) {
-        var error_msg = 'Some result set fields already contain output delim. Use different output format e.g. "csv"\n';
-        error_msg += 'Example of defective output line: ' + res;
-        exit_with_error_msg(error_msg);
+        delim_in_simple_output = true;
     }
     return res;
 }
@@ -113,22 +128,6 @@ if (dst_table_path != null) {
     process.stdout.setDefaultEncoding(csv_encoding);
     dst_stream = process.stdout;
 }
-
-
-var NR = 0;
-
-// For warnings:
-var join_fields_info = new Object();
-var input_fields_info = new Object();
-var null_value_in_output = false;
-var utf8_bom_removed = false;
-var defective_csv_line_in_input = 0
-var defective_csv_line_in_join = 0
-
-// Aggregators:
-var aggregation_stage = 0;
-var aggr_init_counter = 0;
-var functional_aggregators = [];
 
 
 function Marker(marker_id, value) {
@@ -373,6 +372,8 @@ function generate_warnings() {
 
     if (null_value_in_output)
         warnings['null_value_in_output'] = true;
+    if (delim_in_simple_output)
+        warnings['delim_in_simple_output'] = true;
     if (utf8_bom_removed)
         warnings['utf8_bom_removed'] = true;
     if (defective_csv_line_in_input)

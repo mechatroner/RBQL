@@ -70,6 +70,7 @@ module_was_used_failsafe = False
 join_fields_info = dict()
 input_fields_info = dict()
 null_value_in_output = False
+delim_in_simple_output = False # Need refactoring to detect line number
 utf8_bom_removed = False
 defective_csv_line_in_input = 0
 defective_csv_line_in_join = 0
@@ -80,6 +81,13 @@ aggr_init_counter = 0
 functional_aggregators = list()
 
 writer = None
+
+# FIXME implement monocolumn output
+
+#NW = 0 # "Num Where". This is NOT "Num Written" because records could be sorted afterwards and could be uniq. NAW - Num Actually Written
+# We don't need NW, we need NU - Num Updated, no use case for generic NW.
+
+#FIXME implement NU = 0 # Num Updated
 
 
 class Marker(object):
@@ -146,9 +154,8 @@ def simple_join(fields, delim):
     res = delim.join([str6(f) for f in fields])
     num_fields = res.count(delim)
     if num_fields + 1 != len(fields):
-        error_msg = 'Some result set fields already contain output delim. Use different output format e.g. "csv"\n'
-        error_msg += 'Example of defective output line: {}'.format(res)
-        raise RbqlRuntimeError(error_msg)
+        global delim_in_simple_output
+        delim_in_simple_output = True
     return res
 
 
@@ -374,6 +381,8 @@ def create_warnings_report():
         warnings['defective_csv_line_in_input'] = defective_csv_line_in_input
     if null_value_in_output:
         warnings['null_value_in_output'] = True
+    if delim_in_simple_output:
+        warnings['delim_in_simple_output'] = True
     if utf8_bom_removed:
         warnings['utf8_bom_removed'] = True
     if len(input_fields_info) > 1:
@@ -399,6 +408,8 @@ def process_update(NR, NF, afields, rhs_records):
     if rhs_records is not None and len(rhs_records) == 1:
         bfields = rhs_records[0]
     if (rhs_records is None or len(rhs_records) == 1) and (__RBQLMP__where_expression):
+        #global NU
+        #NU += 1
         __RBQLMP__update_statements
     out_fields = afields
     replace_none_values(out_fields)

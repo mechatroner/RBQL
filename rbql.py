@@ -607,6 +607,8 @@ def make_warnings_human_readable(warnings):
     for warning_type, warning_value in warnings.items():
         if warning_type == 'null_value_in_output':
             result.append('None/null values in output were replaced by empty strings.')
+        if warning_type == 'delim_in_simple_output':
+            result.append('Some result set fields contain output separator.')
         elif warning_type == 'utf8_bom_removed':
             result.append('UTF-8 Byte Order Mark BOM was found and removed.')
         elif warning_type == 'defective_csv_line_in_input':
