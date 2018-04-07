@@ -1222,11 +1222,11 @@ class TestFiles(unittest.TestCase):
                     delim = '\t'
                 default_policy = 'quoted' if delim in [';', ','] else 'simple'
                 policy = config.get('policy', default_policy)
-                meta_language = config.get('meta_language', 'python')
+                host_language = config.get('host_language', 'python')
                 canonic_path = None if canonic_table is None else os.path.abspath(canonic_table)
                 canonic_md5 = calc_file_md5(canonic_table)
 
-                if meta_language == 'python':
+                if host_language == 'python':
                     warnings = None
                     try:
                         result_table, warnings = run_file_query_test_py(query, src_path, str(test_no), delim, policy, encoding)
@@ -1240,7 +1240,7 @@ class TestFiles(unittest.TestCase):
                     compare_warnings(self, canonic_warnings, warnings)
                 
                 elif TEST_JS:
-                    assert meta_language == 'js'
+                    assert host_language == 'js'
                     try:
                         result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding)
                     except Exception as e:
