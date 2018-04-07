@@ -129,6 +129,9 @@ Result set of the original query (`SELECT a3, int(a4) + 100, len(a2) WHERE a1 !=
 It is clear that this simplified version can only work with tab-separated files.
 
 
+#### Is this technology reliable?
+It should be: RBQL scripts have only 1000 - 2000 lines combined (depending on how you count them) and there are no external dependencies.
+There is no complex logic, even query parsing functions are very simple. If something goes wrong RBQL will show an error instead of producing incorrect output, also there are currently 5 different warning types.
 
 
 ### cli_rbql.py script
