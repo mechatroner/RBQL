@@ -82,10 +82,59 @@ _COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_
 * `select MAX(a1), MIN(a1) where a2 != 'US' group by a2, a3`
 
 
+### FAQ
 
-# Other
+#### How does RBQL work?
+Python module rbql.py parses RBQL query, creates a new python worker module, then imports and executes it.
+
+Explanation of simplified Python version of RBQL algorithm by example.
+1. User enters the following query, which is stored as a string _Q_:
+```
+    SELECT a3, int(a4) + 100, len(a2) WHERE a1 != 'SELL'
+```
+2. RBQL replaces all `a{i}` substrings in the query string _Q_ with `a[{i - 1}]` substrings. The result is the following string:
+```
+    Q = "SELECT a[2], int(a[3]) + 100, len(a[1]) WHERE a[0] != 'SELL'"
+```
+
+3. RBQL searches for "SELECT" and "WHERE" keywords in the query string _Q_, throws the keywords away, and puts everything after these keywords into two variables _S_ - select part and _W_ - where part, so we will get:
+```
+    S = "a[2], int(a[3]) + 100, len(a[1])"
+    W = "a[0] != 'SELL'"
+```
+
+4. RBQL has static template script which looks like this:
+```
+    for line in sys.stdin:
+        a = line.rstrip('\n').split('\t')
+        if %%%W_Expression%%%:
+            out_fields = [%%%S_Expression%%%]
+            print '\t'.join([str(v) for v in out_fields])
+```
+
+5. RBQL replaces `%%%W_Expression%%%` with _W_ and `%%%S_Expression%%%` with _S_ so we get the following script:
+```
+    for line in sys.stdin:
+        a = line.rstrip('\n').split('\t')
+        if a[0] != 'SELL':
+            out_fields = [a[2], int(a[3]) + 100, len(a[1])]
+            print '\t'.join([str(v) for v in out_fields])
+```
+
+6. RBQL runs the patched script against user's data file: 
+```
+    ./tmp_script.py < data.tsv > result.tsv
+```
+Result set of the original query (`SELECT a3, int(a4) + 100, len(a2) WHERE a1 != 'SELL'`) is in the "result.tsv" file.
+It is clear that this simplified version can only work with tab-separated files.
+
+
+
 
 ### cli_rbql.py script
+
+RBQL comes with cli_rbql.py script.
+Use it as standalone program to execute RBQL queries from command line.
 
 Usage example:
 
