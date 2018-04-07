@@ -1213,6 +1213,37 @@ class TestEverything(unittest.TestCase):
             compare_warnings(self, ['delim_in_simple_output'], warnings)
 
 
+    def test_run27(self):
+        test_name = 'test27'
+
+        input_table = list()
+        input_table.append(['5', 'haha   asdf', 'hoho'])
+        input_table.append(['50', 'haha  asdf', 'dfdf'])
+        input_table.append(['20', 'haha    asdf', ''])
+        input_table.append(['-20', 'haha   asdf', 'hioho'])
+        input_table.append(['40', 'lol', 'hioho'])
+
+        canonic_table = list()
+        canonic_table.append(['5', 'haha   asdf', 'hoho'])
+        canonic_table.append(['100', 'haha  asdf 1', 'dfdf'])
+        canonic_table.append(['100', 'haha    asdf 2', ''])
+        canonic_table.append(['-20', 'haha   asdf', 'hioho'])
+        canonic_table.append(['100', 'lol 3', 'hioho'])
+
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+
+        query = r'update a2 = "{} {}".format(a2, NU) , a1 = 100 where int(a1) > 10'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            query = r'update a2 = a2 + " " + NU, a1 = 100 where parseInt(a1) > 10'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
+
 
 def calc_file_md5(fname):
     import hashlib

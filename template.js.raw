@@ -43,6 +43,7 @@ function quoted_join(fields, delim) {
 
 
 var NR = 0;
+var NU = 0; // NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
 
 // For warnings:
 var join_fields_info = new Object();
@@ -453,6 +454,7 @@ function process_update(NF, afields, rhs_records) {
     if (rhs_records != null && rhs_records.length == 1)
         bfields = rhs_records[0];
     if ((rhs_records == null || rhs_records.length == 1) && (__RBQLMP__where_expression)) {
+        NU += 1;
         __RBQLMP__update_statements
     }
     var out_fields = afields;

@@ -84,10 +84,7 @@ writer = None
 
 # FIXME implement monocolumn output
 
-#NW = 0 # "Num Where". This is NOT "Num Written" because records could be sorted afterwards and could be uniq. NAW - Num Actually Written
-# We don't need NW, we need NU - Num Updated, no use case for generic NW.
-
-#FIXME implement NU = 0 # Num Updated
+NU = 0 # NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
 
 
 class Marker(object):
@@ -408,8 +405,8 @@ def process_update(NR, NF, afields, rhs_records):
     if rhs_records is not None and len(rhs_records) == 1:
         bfields = rhs_records[0]
     if (rhs_records is None or len(rhs_records) == 1) and (__RBQLMP__where_expression):
-        #global NU
-        #NU += 1
+        global NU
+        NU += 1
         __RBQLMP__update_statements
     out_fields = afields
     replace_none_values(out_fields)
