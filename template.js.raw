@@ -35,12 +35,7 @@ function quote_field(src, delim) {
     return src;
 }
 
-
-function quoted_join(fields, delim) {
-    var quoted_fields = fields.map(function(v) { return quote_field(String(v), delim); });
-    return quoted_fields.join(delim);
-}
-
+var enable_monocolumn_csv_ux_optimization_hack = true;
 
 var NR = 0;
 var NU = 0; // NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
@@ -50,6 +45,7 @@ var join_fields_info = new Object();
 var input_fields_info = new Object();
 var null_value_in_output = false;
 var delim_in_simple_output = false;
+var output_switch_to_csv = null; // Need this as warning because user could use TSV files and CSV would be unexpected. Also this is a marker for editor to use CSV syntax for output instead of  monocolumn.
 var utf8_bom_removed = false;
 var defective_csv_line_in_input = 0
 var defective_csv_line_in_join = 0
@@ -58,6 +54,31 @@ var defective_csv_line_in_join = 0
 var aggregation_stage = 0;
 var aggr_init_counter = 0;
 var functional_aggregators = [];
+
+
+function quoted_join(fields, delim) {
+    var quoted_fields = fields.map(function(v) { return quote_field(String(v), delim); });
+    return quoted_fields.join(delim);
+}
+
+
+function mono_join(fields, delim) {
+    if (enable_monocolumn_csv_ux_optimization_hack && '__RBQLMP__input_policy' == 'monocolumn') {
+        if (output_switch_to_csv === null) {
+            output_switch_to_csv = fields.length > 1;
+        }
+        assert(output_switch_to_csv === fields.length > 1, 'Monocolumn optimization logic failure');
+        if (output_switch_to_csv) {
+            return quoted_join(fields, ',');
+        } else {
+            return fields[0];
+        }
+    }
+    if (fields.length > 1) {
+        exit_with_error_msg('Unable to use "Monocolumn" output format: some records have more than one field');
+    }
+    return fields[0];
+}
 
 
 function simple_join(fields, delim) {
@@ -74,6 +95,8 @@ if ('__RBQLMP__output_policy' == 'simple') {
     output_join = simple_join;
 } else if ('__RBQLMP__output_policy' == 'quoted') {
     output_join = quoted_join;
+} else if ('__RBQLMP__output_policy' == 'monocolumn') {
+    output_join = mono_join;
 } else {
     exit_with_error_msg('unknown output csv policy');
 }
@@ -375,6 +398,8 @@ function generate_warnings() {
         warnings['null_value_in_output'] = true;
     if (delim_in_simple_output)
         warnings['delim_in_simple_output'] = true;
+    if (output_switch_to_csv)
+        warnings['output_switch_to_csv'] = true;
     if (utf8_bom_removed)
         warnings['utf8_bom_removed'] = true;
     if (defective_csv_line_in_input)

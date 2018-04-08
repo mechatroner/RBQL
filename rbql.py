@@ -609,6 +609,8 @@ def make_warnings_human_readable(warnings):
             result.append('None/null values in output were replaced by empty strings.')
         if warning_type == 'delim_in_simple_output':
             result.append('Some result set fields contain output separator.')
+        if warning_type == 'output_switch_to_csv':
+            result.append('Output has multiple fields, using "CSV" output format instead of "Monocolumn"')
         elif warning_type == 'utf8_bom_removed':
             result.append('UTF-8 Byte Order Mark BOM was found and removed.')
         elif warning_type == 'defective_csv_line_in_input':

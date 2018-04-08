@@ -22,11 +22,12 @@ def print_error_and_exit(error_msg):
 
 
 def interpret_format(format_name):
-    assert format_name in ['csv', 'tsv'], 'unknown format'
+    assert format_name in ['csv', 'tsv', 'monocolumn'], 'unknown format'
+    if format_name == 'monocolumn':
+        return ('', 'monocolumn')
     if format_name == 'csv':
         return (',', 'quoted')
-    else:
-        return ('\t', 'simple')
+    return ('\t', 'simple')
 
 
 def run_with_python(args):
@@ -145,7 +146,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--delim', help='Delimiter', default='\t')
     parser.add_argument('--policy', help='csv split policy', choices=['simple', 'quoted', 'monocolumn'])
-    parser.add_argument('--out_format', help='output format', default='tsv', choices=['csv', 'tsv'])
+    parser.add_argument('--out_format', help='output format', default='tsv', choices=['csv', 'tsv', 'monocolumn'])
     parser.add_argument('--query', help='Query string in rbql')
     parser.add_argument('--query_file', metavar='FILE', help='Read rbql query from FILE')
     parser.add_argument('--input_table_path', metavar='FILE', help='Read csv table from FILE instead of stdin')

@@ -82,14 +82,16 @@ def smart_join(fields, dlm, policy):
 
 
 def smart_split(src, dlm, policy):
+    if policy == 'monocolumn':
+        return [src]
     if policy == 'simple':
         return src.split(dlm)
-    else:
-        res = rbql_utils.split_quoted_str(src, dlm)[0]
-        res_preserved = rbql_utils.split_quoted_str(src, dlm, True)[0]
-        assert dlm.join(res_preserved) == src
-        assert res == rbql_utils.unquote_fields(res_preserved)
-        return res
+    assert policy == 'quoted'
+    res = rbql_utils.split_quoted_str(src, dlm)[0]
+    res_preserved = rbql_utils.split_quoted_str(src, dlm, True)[0]
+    assert dlm.join(res_preserved) == src
+    assert res == rbql_utils.unquote_fields(res_preserved)
+    return res
 
 
 
@@ -1242,6 +1244,38 @@ class TestEverything(unittest.TestCase):
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)
+
+
+    def test_run28(self):
+        test_name = 'test28'
+
+        input_table = list()
+        input_table.append(['cde'])
+        input_table.append(['abc'])
+        input_table.append(['a,bc'])
+        input_table.append(['efg'])
+
+        canonic_table = list()
+        canonic_table.append(['cde,cde2'])
+        canonic_table.append(['abc,abc2'])
+        canonic_table.append(['"a,bc","a,bc2"'])
+        canonic_table.append(['efg,efg2'])
+
+        input_delim = ''
+        input_policy = 'monocolumn'
+        output_delim = ''
+        output_policy = 'monocolumn'
+
+        query = r'select a1, a1 + "2"'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, ['output_switch_to_csv'], warnings)
+
+        if TEST_JS:
+            query = r'select a1, a1 + "2"'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, ['output_switch_to_csv'], warnings)
 
 
 
