@@ -1,5 +1,7 @@
 # RBQL (RainBow Query Language) Description
-RBQL is a technology which provides SQL-like language that supports _SELECT_ and _UPDATE_ queries with Python or JavaScript expressions.
+RBQL is a technology which provides SQL-like language that supports _SELECT_ and _UPDATE_ queries with Python or JavaScript expressions.  
+
+[Official Site](https://rbql.org/)
 
 ### Main Features
 * Use Python or Java Script expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
