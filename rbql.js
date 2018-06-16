@@ -28,6 +28,22 @@ function RBParsingError(msg) {
 }
 
 
+function AssertionError(msg) {
+    this.msg = msg;
+    this.name = 'AssertionError';
+}
+
+
+function assert(condition, message=null) {
+    if (!condition) {
+        if (!message) {
+            message = 'Assertion error';
+        }
+        throw new AssertionError(message);
+    }
+}
+
+
 function strip_js_comments(cline) {
     cline = cline.trim();
     if (cline.startsWith('//'))
@@ -36,13 +52,79 @@ function strip_js_comments(cline) {
 }
 
 
+function replace_all(src, search, replacement) {
+    return src.split(search).join(replacement);
+}
+
+
 function separate_string_literals_js(rbql_expression) {
-    // the regex consists of 3 almost identicall parts, the only difference is quote type
+    // The regex consists of 3 almost identicall parts, the only difference is quote type
     var rgx = /('(\\(\\\\)*'|[^'])*')|("(\\(\\\\)*"|[^"])*")|(`(\\(\\\\)*`|[^`])*`)/g;
     var match_obj = null;
+    var format_parts = [];
+    var string_literals = [];
+    var idx_before = 0;
     while((match_obj = rgx.exec(rbql_expression)) !== null) {
-        console.log(match_obj[0]);
-        //FIXME do something
+        var literal_id = string_literals.length;
+        var string_literal = match_obj[0];
+        var start_index = match_obj.index;
+        format_parts.push(rbql_expression.substring(idx_before, start_index));
+        format_parts.push(`###RBQL_STRING_LITERAL###${literal_id}`);
+        idx_before = rgx.lastIndex;
+    }
+    format_parts.push(idx_before, rbql_expression.length);
+    var format_expression = format_parts.join('');
+    return [format_expression, string_literals];
+}
+
+
+function get_all_matches(regex, text) {
+    result = [];
+    while((match_obj = rgx.exec(rbql_expression)) !== null) {
+        result.push(match_obj);
+    }
+    return result;
+}
+
+
+function locate_statements(rbql_expression) {
+    statement_groups = [];
+    statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
+    statement_groups.push([SELECT]);
+    statement_groups.push([ORDER_BY]);
+    statement_groups.push([WHERE]);
+    statement_groups.push([UPDATE]);
+    statement_groups.push([GROUP_BY]);
+    statement_groups.push([LIMIT]);
+    result = [];
+    for (var ig = 0; ig < statement_groups.length; ig++) {
+        for (var is = 0; is < statement_groups[ig].length; is++) {
+            var rgxp = new RegExp('(?:^| )' + replace_all(statement, ' ', ' *') + ' ', 'ig');
+            var matches = get_all_matches(rgxp, rbql_expression);
+            if (!matches.length)
+                continue;
+            if (matches.length > 1)
+                throw new RBParsingError(`More than one ${statement} statements found`);
+            assert(matches.length == 1);
+            var match = matches[0];
+            var match_str = match[0];
+            result.push([match.index, match.index + match_str.length, match_str]);
+        }
+    }
+    result.sort(function(a, b) { return a[0] - b[0]; });
+    return result;
+}
+
+
+function separate_actions(rbql_expression) {
+    rbql_expression = rbql_expression.strip();
+    var ordered_statements = locate_statements(rbql_expression);
+    var result = {};
+    for (var i = 0; i < ordered_statements.length; i++) {
+        var statement_start = ordered_statements[i][0];
+        var span_start = ordered_statements[i][1];
+        var statement = ordered_statements[i][2];
+        var span_end = i + 1 < ordered_statements.length ? ordered_statements[i + 1][0] : rbql_expression.length;
     }
 }
 
@@ -57,4 +139,5 @@ function parse_to_js(rbql_lines, js_dst, input_delim, input_policy, out_delim, o
     var separation_result = separate_string_literals_js(full_rbql_expression);
     var format_expression = separation_result[0];
     var string_literals = separation_result[1];
+    var rb_actions = separate_actions(format_expression);
 }
