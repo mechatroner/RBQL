@@ -275,7 +275,6 @@ def locate_statements(rbql_expression):
     result = list()
     for st_group in statement_groups:
         for statement in st_group:
-            rgxp = None
             rgxp = r'(?i)(?:^| ){} '.format(statement.replace(' ', ' *'))
             matches = list(re.finditer(rgxp, rbql_expression))
             if not len(matches):
