@@ -125,6 +125,50 @@ function separate_actions(rbql_expression) {
         var span_start = ordered_statements[i][1];
         var statement = ordered_statements[i][2];
         var span_end = i + 1 < ordered_statements.length ? ordered_statements[i + 1][0] : rbql_expression.length;
+        assert(statement_start < span_start);
+        assert(span_start <= span_end);
+        var span = rbql_expression.substring(span_start, span_end);
+        var statement_params = {};
+        if ([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN].indexOf(statement) != -1) {
+            statement_params['join_subtype'] = statement;
+            statement = JOIN;
+        }
+
+        if (statement == UPDATE) {
+            if (statement_start != 0)
+                throw new RBParsingError('UPDATE keyword must be at the beginning of the query');
+            span = span.replace(/^ *SET/i, '');
+        }
+
+        if (statement == ORDER_BY) {
+            span = span.replace(/ ASC *$/i, '');
+            var new_span = span.replace('/ DESC *$/i', '');
+            if (new_span != span) {
+                span = new_span;
+                statement_params['reverse'] = true;
+            } else {
+                statement_params['reverse'] = false;
+            }
+        }
+
+        if (statement == SELECT) {
+            if (statement_start != 0)
+                throw new RBParsingError('SELECT keyword must be at the beginning of the query');
+            var match = /^ *TOP *([0-9]+) /i.exec(span);
+            if (match !== null) {
+                statement_params['top'] = parseInt(match[1]);
+                span = span.substr(match.index + match[0].length);
+            }
+            match = /^ *DISTINCT *(COUNT)? /i.exec(span);
+            if (match !== null) {
+                statement_params['distinct'] = true;
+                if (match[1]) {
+                    statement_params['distinct_count'] = true;
+                }
+                span = span.substr(match.index + match[0].length);
+            }
+        }
+
     }
 }
 
