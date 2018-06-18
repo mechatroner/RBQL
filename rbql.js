@@ -52,6 +52,11 @@ function strip_js_comments(cline) {
 }
 
 
+function str_strip(src) {
+    return src.replace(/^ +| +$/g, '');
+}
+
+
 function replace_all(src, search, replacement) {
     return src.split(search).join(replacement);
 }
@@ -74,6 +79,7 @@ function separate_string_literals_js(rbql_expression) {
     }
     format_parts.push(idx_before, rbql_expression.length);
     var format_expression = format_parts.join('');
+    format_expression = format_expression.replace(/\t/g, ' ');
     return [format_expression, string_literals];
 }
 
@@ -117,7 +123,7 @@ function locate_statements(rbql_expression) {
 
 
 function separate_actions(rbql_expression) {
-    rbql_expression = rbql_expression.strip();
+    rbql_expression = str_strip(rbql_expression);
     var ordered_statements = locate_statements(rbql_expression);
     var result = {};
     for (var i = 0; i < ordered_statements.length; i++) {
@@ -168,8 +174,14 @@ function separate_actions(rbql_expression) {
                 span = span.substr(match.index + match[0].length);
             }
         }
-
+        statement_params['text'] = str_strip(span);
+        result[statement] = statement_params;
     }
+    if (!result.hasOwnProperty(SELECT) && !result.hasOwnProperty(UPDATE)) {
+        throw new RBParsingError('Query must contain either SELECT or UPDATE statement');
+    }
+    assert(result.hasOwnProperty(SELECT) != result.hasOwnProperty(UPDATE));
+    return result;
 }
 
 
