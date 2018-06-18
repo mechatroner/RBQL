@@ -62,6 +62,20 @@ function replace_all(src, search, replacement) {
 }
 
 
+function escape_string_literal(src) {
+    src = replace_all(src, '\\', '\\\\');
+    src = replace_all(src, '\t', '\\t');
+    src = replace_all(src, "'", "\\'");
+    return src;
+}
+
+
+function replace_column_vars(rbql_expression) {
+    var rgx = /(^|[^_a-zA-Z0-9])([ab])([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))/g;
+    return rbql_expression.replace(rgx, '$1safe_get($2fields, $3)');
+}
+
+
 function separate_string_literals_js(rbql_expression) {
     // The regex consists of 3 almost identicall parts, the only difference is quote type
     var rgx = /('(\\(\\\\)*'|[^'])*')|("(\\(\\\\)*"|[^"])*")|(`(\\(\\\\)*`|[^`])*`)/g;
@@ -186,7 +200,8 @@ function separate_actions(rbql_expression) {
 
 
 // FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
-function parse_to_js(rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules) {
+// Or even record fetcher callbacks.
+function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
     rbql_lines = rbql_lines.map(strip_js_comments);
@@ -196,4 +211,18 @@ function parse_to_js(rbql_lines, js_dst, input_delim, input_policy, out_delim, o
     var format_expression = separation_result[0];
     var string_literals = separation_result[1];
     var rb_actions = separate_actions(format_expression);
+    var js_meta_params = {};
+    js_meta_params['rbql_home_dir'] = escape_string_literal(rbql_home_dir);
+    js_meta_params['input_delim'] = escape_string_literal(input_delim);
+    js_meta_params['input_policy'] = input_policy;
+    js_meta_params['csv_encoding'] = csv_encoding == 'latin-1' ? 'binary' : csv_encoding;
+    js_meta_params['src_table_path'] = src_table_path === null ? "null" : "'" + escape_string_literal(src_table_path) + "'";
+    js_meta_params['dst_table_path'] = dst_table_path === null ? "null" : "'" + escape_string_literal(dst_table_path) + "'";
+    js_meta_params['output_delim'] = escape_string_literal(out_delim);
+    js_meta_params['output_policy'] = out_policy;
+    if (rb_actions.hasOwnProperty(GROUP_BY)) {
+        if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
+            throw new RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
+        var aggregation_key_expression = replace_column_vars(rb_actions[GROUP_BY]['text']);
+    }
 }
