@@ -139,7 +139,7 @@ def strip_js_comments(cline):
     return cline
 
 
-def py_source_escape(src):
+def escape_string_literal(src):
     result = src.replace('\\', '\\\\')
     result = result.replace('\t', '\\t')
     result = result.replace("'", r"\'")
@@ -374,10 +374,10 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
 
     py_meta_params = dict()
     py_meta_params['import_expression'] = import_expression
-    py_meta_params['input_delim'] = py_source_escape(input_delim)
+    py_meta_params['input_delim'] = escape_string_literal(input_delim)
     py_meta_params['input_policy'] = input_policy
     py_meta_params['csv_encoding'] = csv_encoding
-    py_meta_params['output_delim'] = py_source_escape(out_delim)
+    py_meta_params['output_delim'] = escape_string_literal(out_delim)
     py_meta_params['output_policy'] = out_policy
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
@@ -405,10 +405,10 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
 
         joiners = {JOIN: 'InnerJoiner', INNER_JOIN: 'InnerJoiner', LEFT_JOIN: 'LeftJoiner', STRICT_LEFT_JOIN: 'StrictLeftJoiner'}
         py_meta_params['joiner_type'] = joiners[rb_actions[JOIN]['join_subtype']]
-        py_meta_params['rhs_table_path'] = py_source_escape(rhs_table_path)
+        py_meta_params['rhs_table_path'] = escape_string_literal(rhs_table_path)
         py_meta_params['lhs_join_var'] = lhs_join_var
         py_meta_params['rhs_join_var'] = rhs_join_var
-        py_meta_params['join_delim'] = py_source_escape(join_delim)
+        py_meta_params['join_delim'] = escape_string_literal(join_delim)
         py_meta_params['join_policy'] = join_policy
     else:
         py_meta_params['joiner_type'] = 'none_joiner'
@@ -472,13 +472,13 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
 
     js_meta_params = dict()
     # TODO add require modules feature
-    js_meta_params['rbql_home_dir'] = py_source_escape(rbql_home_dir)
-    js_meta_params['input_delim'] = py_source_escape(input_delim)
+    js_meta_params['rbql_home_dir'] = escape_string_literal(rbql_home_dir)
+    js_meta_params['input_delim'] = escape_string_literal(input_delim)
     js_meta_params['input_policy'] = input_policy
     js_meta_params['csv_encoding'] = 'binary' if csv_encoding == 'latin-1' else csv_encoding
-    js_meta_params['src_table_path'] = "null" if src_table_path is None else "'{}'".format(py_source_escape(src_table_path))
-    js_meta_params['dst_table_path'] = "null" if dst_table_path is None else "'{}'".format(py_source_escape(dst_table_path))
-    js_meta_params['output_delim'] = py_source_escape(out_delim)
+    js_meta_params['src_table_path'] = "null" if src_table_path is None else "'{}'".format(escape_string_literal(src_table_path))
+    js_meta_params['dst_table_path'] = "null" if dst_table_path is None else "'{}'".format(escape_string_literal(dst_table_path))
+    js_meta_params['output_delim'] = escape_string_literal(out_delim)
     js_meta_params['output_policy'] = out_policy
 
     if GROUP_BY in rb_actions:
@@ -503,10 +503,10 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
 
         join_funcs = {JOIN: 'inner_join', INNER_JOIN: 'inner_join', LEFT_JOIN: 'left_join', STRICT_LEFT_JOIN: 'strict_left_join'}
         js_meta_params['join_function'] = join_funcs[rb_actions[JOIN]['join_subtype']]
-        js_meta_params['rhs_table_path'] ="'{}'".format(py_source_escape(rhs_table_path))
+        js_meta_params['rhs_table_path'] ="'{}'".format(escape_string_literal(rhs_table_path))
         js_meta_params['lhs_join_var'] = lhs_join_var
         js_meta_params['rhs_join_var'] = rhs_join_var
-        js_meta_params['join_delim'] = py_source_escape(join_delim)
+        js_meta_params['join_delim'] = escape_string_literal(join_delim)
         js_meta_params['join_policy'] = join_policy
     else:
         js_meta_params['join_function'] = 'null_join'
