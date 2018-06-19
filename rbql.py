@@ -256,10 +256,10 @@ def do_separate_string_literals(rbql_expression, string_literals_regex):
     return (format_expression, string_literals)
 
 
-def combine_string_literals(host_expression, string_literals):
+def combine_string_literals(backend_expression, string_literals):
     for i in range(len(string_literals)):
-        host_expression = host_expression.replace('###RBQL_STRING_LITERAL###{}'.format(i), string_literals[i])
-    return host_expression
+        backend_expression = backend_expression.replace('###RBQL_STRING_LITERAL###{}'.format(i), string_literals[i])
+    return backend_expression
 
 
 def locate_statements(rbql_expression):
