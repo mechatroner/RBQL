@@ -76,6 +76,14 @@ function replace_column_vars(rbql_expression) {
 }
 
 
+function combine_string_literals(backend_expression, string_literals) {
+    for (var i = 0; i < string_literals.length; i++) {
+        backend_expression = backend_expression.replace(`###RBQL_STRING_LITERAL###${i}`, string_literals[i]);
+    }
+    return backend_expression;
+}
+
+
 function separate_string_literals_js(rbql_expression) {
     // The regex consists of 3 almost identicall parts, the only difference is quote type
     var rgx = /('(\\(\\\\)*'|[^'])*')|("(\\(\\\\)*"|[^"])*")|(`(\\(\\\\)*`|[^`])*`)/g;
@@ -133,6 +141,29 @@ function locate_statements(rbql_expression) {
     }
     result.sort(function(a, b) { return a[0] - b[0]; });
     return result;
+}
+
+
+function parse_join_expression(src) {
+    var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
+    var match = rgx.exec(src);
+    if (match === null) {
+        throw new RBParsingError('Incorrect join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
+    }
+    var table_id = match[1];
+    var avar = match[2];
+    var bvar = match[3];
+    if (avar.charAt(0) == 'b') {
+        [avar, bvar] = [bvar, avar];
+    }
+    if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
+        throw new RBParsingError('Incorrect join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
+    }
+    avar = avar.substr(1);
+    bvar = bvar.substr(1);
+    var lhs_join_var = `safe_get(afields, ${avar})`;
+    var rhs_join_var = `safe_get(bfields, ${bvar})`;
+    return [table_id, lhs_join_var, rhs_join_var];
 }
 
 
@@ -199,6 +230,32 @@ function separate_actions(rbql_expression) {
 }
 
 
+function expanduser(filepath) {
+    if (filepath.charAt(0) === '~') {
+        return path.join(process.env.HOME, filepath.slice(1));
+    }
+    return filepath;
+}
+
+
+function get_index_record() {
+    //FIXME
+}
+
+
+function find_table_path(table_id) {
+    var candidate_path = expanduser(table_id);
+    if (fs.existsSync(candidate_path)) {
+        return candidate_path;
+    }
+    var name_record = get_index_record(table_names_settings_path, table_id);
+    if (name_record && name_record.length > 1 && fs.existsSync(name_record[1])) {
+        return name_record[1];
+    }
+    return null;
+}
+
+
 // FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
 // Or even record fetcher callbacks.
 function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules) {
@@ -207,9 +264,7 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     rbql_lines = rbql_lines.map(strip_js_comments);
     rbql_lines = rbql_lines.filter(line => line.length);
     var full_rbql_expression = rbql_lines.join(' ');
-    var separation_result = separate_string_literals_js(full_rbql_expression);
-    var format_expression = separation_result[0];
-    var string_literals = separation_result[1];
+    var [format_expression, string_literals] = separate_string_literals_js(full_rbql_expression);
     var rb_actions = separate_actions(format_expression);
     var js_meta_params = {};
     js_meta_params['rbql_home_dir'] = escape_string_literal(rbql_home_dir);
@@ -224,5 +279,15 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
             throw new RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
         var aggregation_key_expression = replace_column_vars(rb_actions[GROUP_BY]['text']);
+        js_meta_params['aggregation_key_expression'] = '[' + combine_string_literals(aggregation_key_expression, string_literals) + ']';
+    } else {
+        js_meta_params['aggregation_key_expression'] = 'null';
+    }
+    if (rb_actions.hasOwnProperty(JOIN)) {
+        var [rhs_table_id, lhs_join_var, rhs_join_var] = parse_join_expression(rb_actions[JOIN]['text']);
+        var rhs_table_path = find_table_path(rhs_table_id);
+        if (!rhs_table_path) {
+            throw new RBParsingError(`Unable to find join B table: ${rhs_table_id}`);
+        }
     }
 }
