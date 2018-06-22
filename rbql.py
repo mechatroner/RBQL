@@ -197,7 +197,7 @@ def translate_update_expression(update_expression, indent):
     translated = re.sub('(?:^|,) *a([1-9][0-9]*) *=(?=[^=])', '\nsafe_set(afields, \\1,', update_expression)
     update_statements = translated.split('\n')
     update_statements = [s.strip() for s in update_statements]
-    if len(update_statements) < 2 or len(update_statements[0]) > 0:
+    if len(update_statements) < 2 or update_statements[0] != '':
         raise RBParsingError('Unable to parse "UPDATE" expression')
     update_statements = update_statements[1:]
     update_statements = ['{})'.format(s) for s in update_statements]
