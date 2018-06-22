@@ -238,8 +238,33 @@ function expanduser(filepath) {
 }
 
 
-function get_index_record() {
-    //FIXME
+function try_read_index(index_path) {
+    var content = null;
+    try {
+        content = fs.readFileSync(index_path, 'utf-8');
+    } catch (e) {
+        return [];
+    }
+    var lines = content.split('\n');
+    var records = [];
+    for (var i = 0; i < lines.length; i++) {
+        if (!lines[i])
+            continue;
+        var record = lines[i].split('\t');
+        records.push(record);
+    }
+    return records;
+}
+
+
+function get_index_record(index_path, key) {
+    var records = try_read_index(index_path);
+    for (var i = 0; i < records.length; i++) {
+        if (records[i].length && records[i][0] == key) {
+            return records[i];
+        }
+    }
+    return null;
 }
 
 
@@ -256,6 +281,13 @@ function find_table_path(table_id) {
 }
 
 
+function normalize_delim(delim) {
+    if (delim == 'TAB')
+        return '\t';
+    return delim;
+}
+
+
 // FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
 // Or even record fetcher callbacks.
 function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules) {
@@ -266,6 +298,7 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     var full_rbql_expression = rbql_lines.join(' ');
     var [format_expression, string_literals] = separate_string_literals_js(full_rbql_expression);
     var rb_actions = separate_actions(format_expression);
+
     var js_meta_params = {};
     js_meta_params['rbql_home_dir'] = escape_string_literal(rbql_home_dir);
     js_meta_params['input_delim'] = escape_string_literal(input_delim);
@@ -275,6 +308,7 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     js_meta_params['dst_table_path'] = dst_table_path === null ? "null" : "'" + escape_string_literal(dst_table_path) + "'";
     js_meta_params['output_delim'] = escape_string_literal(out_delim);
     js_meta_params['output_policy'] = out_policy;
+
     if (rb_actions.hasOwnProperty(GROUP_BY)) {
         if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
             throw new RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
@@ -283,11 +317,32 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     } else {
         js_meta_params['aggregation_key_expression'] = 'null';
     }
+
     if (rb_actions.hasOwnProperty(JOIN)) {
         var [rhs_table_id, lhs_join_var, rhs_join_var] = parse_join_expression(rb_actions[JOIN]['text']);
         var rhs_table_path = find_table_path(rhs_table_id);
         if (!rhs_table_path) {
             throw new RBParsingError(`Unable to find join B table: ${rhs_table_id}`);
         }
+        var [join_delim, join_policy] = [input_delim, input_policy];
+        var join_format_record = get_index_record(table_index_path, rhs_table_path)
+        if (join_format_record && join_format_record.length >= 3) {
+            join_delim = normalize_delim(join_format_record[1]);
+            join_policy = join_format_record[2];
+        }
+        join_funcs = {JOIN: 'inner_join', INNER_JOIN: 'inner_join', LEFT_JOIN: 'left_join', STRICT_LEFT_JOIN: 'strict_left_join'};
+        js_meta_params['join_function'] = join_funcs[rb_actions[JOIN]['join_subtype']];
+        js_meta_params['rhs_table_path'] = "'" + escape_string_literal(rhs_table_path) + "'";
+        js_meta_params['lhs_join_var'] = lhs_join_var;
+        js_meta_params['rhs_join_var'] = rhs_join_var;
+        js_meta_params['join_delim'] = escape_string_literal(join_delim);
+        js_meta_params['join_policy'] = join_policy;
+    } else {
+        js_meta_params['join_function'] = 'null_join'
+        js_meta_params['rhs_table_path'] = 'null'
+        js_meta_params['lhs_join_var'] = 'null'
+        js_meta_params['rhs_join_var'] = 'null'
+        js_meta_params['join_delim'] = ''
+        js_meta_params['join_policy'] = ''
     }
 }
