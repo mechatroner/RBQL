@@ -399,9 +399,9 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
 
         join_delim, join_policy = input_delim, input_policy
         join_format_record = get_index_record(table_index_path, rhs_table_path)
-        if join_format_record is not None:
-            join_delim, join_policy = join_format_record[1:3]
-            join_delim = normalize_delim(join_delim)
+        if join_format_record is not None and len(join_format_record) >= 3:
+            join_delim = normalize_delim(join_format_record[1])
+            join_policy = join_format_record[2]
 
         joiners = {JOIN: 'InnerJoiner', INNER_JOIN: 'InnerJoiner', LEFT_JOIN: 'LeftJoiner', STRICT_LEFT_JOIN: 'StrictLeftJoiner'}
         py_meta_params['joiner_type'] = joiners[rb_actions[JOIN]['join_subtype']]
