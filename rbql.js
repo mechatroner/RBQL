@@ -288,6 +288,29 @@ function normalize_delim(delim) {
 }
 
 
+function translate_update_expression(update_expression, indent) {
+    //FIXME
+    var rgx = /(?:^|,) *a([1-9][0-9]*) *=(?=[^=])/g;
+    var translated = update_expression.replace(rgx, '\nsafe_set(afields, $1,');
+    var update_statements = translated.split('\n');
+    update_statements = update_statements.map(str_strip);
+    if (update_statements.length < 2 || update_statements[0] != '') {
+        throw new RBParsingError('Unable to parse "UPDATE" expression');
+    }
+    update_statements = update_statements.slice(1);
+    for (var i = 0; i < update_statements.length; i++) {
+        update_statements[i] = update_statements[i] + ')';
+    }
+    for (var i = 1; i < update_statements.length; i++) {
+        update_statements[i] = indent + update_statements[i];
+    }
+    var translated = update_statements.join('\n');
+    translated = replace_column_vars(translated);
+    return translated;
+}
+
+
+
 // FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
 // Or even record fetcher callbacks.
 function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules) {
@@ -344,5 +367,16 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         js_meta_params['rhs_join_var'] = 'null'
         js_meta_params['join_delim'] = ''
         js_meta_params['join_policy'] = ''
+    }
+
+    if (rb_actions.hasOwnProperty(WHERE)) {
+        var where_expression = replace_column_vars(rb_actions[WHERE]['text']);
+        js_meta_params['where_expression'] = combine_string_literals(where_expression, string_literals);
+    } else {
+        js_meta_params['where_expression'] = 'true';
+    }
+
+    if (rb_actions.hasOwnProperty(UPDATE)) {
+        var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
     }
 }
