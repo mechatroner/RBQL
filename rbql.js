@@ -289,7 +289,6 @@ function normalize_delim(delim) {
 
 
 function translate_update_expression(update_expression, indent) {
-    //FIXME
     var rgx = /(?:^|,) *a([1-9][0-9]*) *=(?=[^=])/g;
     var translated = update_expression.replace(rgx, '\nsafe_set(afields, $1,');
     var update_statements = translated.split('\n');
@@ -309,6 +308,48 @@ function translate_update_expression(update_expression, indent) {
     return translated;
 }
 
+
+function find_top(rb_actions) {
+    if (rb_actions.hasOwnProperty(LIMIT)) {
+        var result = parseInt(rb_actions[LIMIT]['text']);
+        if isNaN(result) {
+            throw new RBParsingError('LIMIT keyword must be followed by an integer');
+        }
+        return result;
+    }
+    var select_action = rb_actions[SELECT];
+    if (select_action && select_action.hasOwnProperty('top')) {
+        return select_action['top'];
+    }
+    return null;
+}
+
+
+function replace_star_count(aggregate_expression) {
+    var rgx = /(^|,) *COUNT\( *\* *\) *(?:$|(?=,))/g;
+    var result = aggregate_expression.replace(rgx, '$1 COUNT(1)');
+    return str_strip(result);
+}
+
+function replace_star_vars_js(rbql_expression) {
+    var middle_star_rgx = /(?:^|,) *\* *(?=, *\* *($|,))/g;
+    rbql_expression = rbql_expression.replace(middle_star_rgx, ']).concat(star_fields).concat([');
+    var last_star_rgx = /(?:^|,) *\* *(?:$|,)/g;
+    rbql_expression = rbql_expression.replace(last_star_rgx, ']).concat(star_fields).concat([');
+    return rbql_expression;
+}
+
+
+function translate_select_expression_js(select_expression) {
+    var translated = replace_star_count(select_expression);
+    translated = replace_column_vars(translated);
+    translated = replace_star_vars_js(translated);
+    translated = str_strip(translated);
+    if (!translated.length) {
+        throw new RBParsingError('"SELECT" expression is empty');
+    }
+    return `[].concat([${translated}])`;
+}
 
 
 // FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
@@ -361,12 +402,12 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         js_meta_params['join_delim'] = escape_string_literal(join_delim);
         js_meta_params['join_policy'] = join_policy;
     } else {
-        js_meta_params['join_function'] = 'null_join'
-        js_meta_params['rhs_table_path'] = 'null'
-        js_meta_params['lhs_join_var'] = 'null'
-        js_meta_params['rhs_join_var'] = 'null'
-        js_meta_params['join_delim'] = ''
-        js_meta_params['join_policy'] = ''
+        js_meta_params['join_function'] = 'null_join';
+        js_meta_params['rhs_table_path'] = 'null';
+        js_meta_params['lhs_join_var'] = 'null';
+        js_meta_params['rhs_join_var'] = 'null';
+        js_meta_params['join_delim'] = '';
+        js_meta_params['join_policy'] = '';
     }
 
     if (rb_actions.hasOwnProperty(WHERE)) {
@@ -378,5 +419,26 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
 
     if (rb_actions.hasOwnProperty(UPDATE)) {
         var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
+        js_meta_params['writer_type'] = 'SimpleWriter';
+        js_meta_params['select_expression'] = 'null';
+        js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals);
+        js_meta_params['process_function'] = 'process_update';
+        js_meta_params['top_count'] = 'null';
+    }
+
+    if (rb_actions.hasOwnProperty(SELECT)) {
+        var top_count = find_top(rb_actions);
+        js_meta_params['top_count'] = top_count === null ? 'null' : String(top_count);
+        if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
+            js_meta_params['writer_type'] = 'UniqCountWriter';
+        } else if (rb_actions[SELECT].hasOwnProperty('distinct')) {
+            js_meta_params['writer_type'] = 'UniqWriter';
+        } else {
+            js_meta_params['writer_type'] = 'SimpleWriter';
+        }
+        var select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
+        js_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals);
+        js_meta_params['update_statements'] = '';
+        js_meta_params['process_function'] = 'process_select';
     }
 }
