@@ -352,6 +352,20 @@ function translate_select_expression_js(select_expression) {
 }
 
 
+function rbql_meta_format(template_src, meta_params) {
+    for (var k in meta_params) {
+        if (!meta_params.hasOwnProperty(k))
+            continue;
+        var v = meta_params[k];
+        var template_marker = `__RBQLMP__${k}`;
+        var template_src_upd = replace_all(template_marker, v);
+        assert(template_src_upd != template_src);
+        template_src = template_src_upd;
+    }
+    return template_src;
+}
+
+
 // FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
 // Or even record fetcher callbacks.
 function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules) {
@@ -441,4 +455,17 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         js_meta_params['update_statements'] = '';
         js_meta_params['process_function'] = 'process_select';
     }
+
+    if (rb_actions.hasOwnProperty(ORDER_BY)) {
+        var order_expression = replace_column_vars(rb_actions[ORDER_BY]['text']);
+        js_meta_params['sort_key_expression'] = combine_string_literals(order_expression, string_literals);
+        js_meta_params['reverse_flag'] = rb_actions[ORDER_BY]['reverse'] ? 'true' : 'false';
+        js_meta_params['sort_flag'] = 'true';
+    } else {
+        js_meta_params['sort_key_expression'] = 'null';
+        js_meta_params['reverse_flag'] = 'false';
+        js_meta_params['sort_flag'] = 'false';
+    }
+    var js_script_body = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
+    fs.writeFileSync(js_dst, rbql_meta_format(js_script_body, js_meta_params));
 }
