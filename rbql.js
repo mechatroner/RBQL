@@ -1,6 +1,6 @@
 const os = require('os');
 const path = require('path');
-const fs = require('fs')
+const fs = require('fs');
 const readline = require('readline');
 
 const version = '0.1.0';
@@ -20,18 +20,13 @@ const rbql_home_dir = __dirname;
 const user_home_dir = os.homedir();
 const table_names_settings_path = path.join(user_home_dir, '.rbql_table_names');
 const table_index_path = path.join(user_home_dir, '.rbql_table_index');
+const default_csv_encoding = 'latin-1';
 
 
-function RBParsingError(msg) {
-    this.msg = msg;
-    this.name = 'RBParsingError';
-}
+class RBParsingError extends Error {}
 
 
-function AssertionError(msg) {
-    this.msg = msg;
-    this.name = 'AssertionError';
-}
+class AssertionError extends Error {}
 
 
 function assert(condition, message=null) {
@@ -39,7 +34,7 @@ function assert(condition, message=null) {
         if (!message) {
             message = 'Assertion error';
         }
-        throw new AssertionError(message);
+        throw new Error(message);
     }
 }
 
@@ -106,9 +101,9 @@ function separate_string_literals_js(rbql_expression) {
 }
 
 
-function get_all_matches(regex, text) {
+function get_all_matches(regexp, text) {
     result = [];
-    while((match_obj = rgx.exec(rbql_expression)) !== null) {
+    while((match_obj = regexp.exec(text)) !== null) {
         result.push(match_obj);
     }
     return result;
@@ -127,6 +122,7 @@ function locate_statements(rbql_expression) {
     result = [];
     for (var ig = 0; ig < statement_groups.length; ig++) {
         for (var is = 0; is < statement_groups[ig].length; is++) {
+            var statement = statement_groups[ig][is];
             var rgxp = new RegExp('(?:^| )' + replace_all(statement, ' ', ' *') + ' ', 'ig');
             var matches = get_all_matches(rgxp, rbql_expression);
             if (!matches.length)
@@ -312,7 +308,7 @@ function translate_update_expression(update_expression, indent) {
 function find_top(rb_actions) {
     if (rb_actions.hasOwnProperty(LIMIT)) {
         var result = parseInt(rb_actions[LIMIT]['text']);
-        if isNaN(result) {
+        if (isNaN(result)) {
             throw new RBParsingError('LIMIT keyword must be followed by an integer');
         }
         return result;
@@ -368,7 +364,7 @@ function rbql_meta_format(template_src, meta_params) {
 
 // FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
 // Or even record fetcher callbacks.
-function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules) {
+function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
     rbql_lines = rbql_lines.map(strip_js_comments);
@@ -469,3 +465,8 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     var js_script_body = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
     fs.writeFileSync(js_dst, rbql_meta_format(js_script_body, js_meta_params));
 }
+
+module.exports.version = version;
+module.exports.assert = assert;
+module.exports.default_csv_encoding = default_csv_encoding;
+module.exports.parse_to_js = parse_to_js;
