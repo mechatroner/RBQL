@@ -87,6 +87,11 @@ function interpret_format(format_name) {
 }
 
 
+function get_default(src, key, default_val) {
+    return src.hasOwnProperty(key) ? src[key] : default_val;
+}
+
+
 function run_with_js(args) {
     var delim = normalize_delim(args['delim']);
     var policy = args['policy'];
@@ -97,8 +102,8 @@ function run_with_js(args) {
     if (!query) {
         die('RBQL query is empty');
     }
-    var input_path = args['input_table_path'];
-    var output_path = args['output_table_path'];
+    var input_path = get_default(args, 'input_table_path', null);
+    var output_path = get_default(args, 'output_table_path', null);
     var csv_encoding = args['csv_encoding'];
     var [output_delim, output_policy] = interpret_format(args['out_format']);
     var rbql_lines = [query];

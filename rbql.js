@@ -94,7 +94,7 @@ function separate_string_literals_js(rbql_expression) {
         format_parts.push(`###RBQL_STRING_LITERAL###${literal_id}`);
         idx_before = rgx.lastIndex;
     }
-    format_parts.push(idx_before, rbql_expression.length);
+    format_parts.push(rbql_expression.substring(idx_before));
     var format_expression = format_parts.join('');
     format_expression = format_expression.replace(/\t/g, ' ');
     return [format_expression, string_literals];
@@ -102,7 +102,7 @@ function separate_string_literals_js(rbql_expression) {
 
 
 function get_all_matches(regexp, text) {
-    result = [];
+    var result = [];
     while((match_obj = regexp.exec(text)) !== null) {
         result.push(match_obj);
     }
@@ -119,7 +119,7 @@ function locate_statements(rbql_expression) {
     statement_groups.push([UPDATE]);
     statement_groups.push([GROUP_BY]);
     statement_groups.push([LIMIT]);
-    result = [];
+    var result = [];
     for (var ig = 0; ig < statement_groups.length; ig++) {
         for (var is = 0; is < statement_groups[ig].length; is++) {
             var statement = statement_groups[ig][is];
@@ -132,7 +132,7 @@ function locate_statements(rbql_expression) {
             assert(matches.length == 1);
             var match = matches[0];
             var match_str = match[0];
-            result.push([match.index, match.index + match_str.length, match_str]);
+            result.push([match.index, match.index + match_str.length, statement]);
         }
     }
     result.sort(function(a, b) { return a[0] - b[0]; });
