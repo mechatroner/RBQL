@@ -354,7 +354,7 @@ function rbql_meta_format(template_src, meta_params) {
             continue;
         var v = meta_params[k];
         var template_marker = `__RBQLMP__${k}`;
-        var template_src_upd = replace_all(template_marker, v);
+        var template_src_upd = replace_all(template_src, template_marker, v);
         assert(template_src_upd != template_src);
         template_src = template_src_upd;
     }
