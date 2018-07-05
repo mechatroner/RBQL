@@ -10,18 +10,18 @@ var output_delim = '__RBQLMP__output_delim';
 
 var join_table_path = __RBQLMP__rhs_table_path;
 
+var module_was_used_failsafe = false;
 
-function exit_with_error_msg(error_msg) {
-    var report = new Object();
-    report.error = error_msg
-    process.stderr.write(JSON.stringify(report));
-    process.exit(1);
-}
+
+// FIXME make sure that final_error_handler closes the input reader and output stream (if open). Wrap it in reader-closing method
+// FIXME make sure to handle line reader errors
+final_error_handler = null;
+final_success_handler = null;
 
 
 function assert(condition, message) {
     if (!condition) {
-        exit_with_error_msg(message);
+        final_error_handler(message);
     }
 }
 
@@ -75,7 +75,7 @@ function mono_join(fields, delim) {
         }
     }
     if (fields.length > 1) {
-        exit_with_error_msg('Unable to use "Monocolumn" output format: some records have more than one field');
+        final_error_handler('Unable to use "Monocolumn" output format: some records have more than one field');
     }
     return fields[0];
 }
@@ -90,7 +90,7 @@ function simple_join(fields, delim) {
 }
 
 
-output_join = null
+var output_join = null
 if ('__RBQLMP__output_policy' == 'simple') {
     output_join = simple_join;
 } else if ('__RBQLMP__output_policy' == 'quoted') {
@@ -98,7 +98,7 @@ if ('__RBQLMP__output_policy' == 'simple') {
 } else if ('__RBQLMP__output_policy' == 'monocolumn') {
     output_join = mono_join;
 } else {
-    exit_with_error_msg('unknown output csv policy');
+    final_error_handler('unknown output csv policy');
 }
 
 
@@ -110,7 +110,7 @@ if ('__RBQLMP__input_policy' == 'simple') {
 } else if ('__RBQLMP__input_policy' == 'monocolumn') {
     input_split = function(line) { return [[line], false]; }
 } else {
-    exit_with_error_msg('unknown input csv policy');
+    final_error_handler('unknown input csv policy');
 }
 
 join_impl = null
@@ -123,7 +123,7 @@ if ('__RBQLMP__join_policy' == '') {
 } else if ('__RBQLMP__join_policy' == 'monocolumn') {
     join_split = function(line) { return [[line], false]; }
 } else {
-    exit_with_error_msg('unknown join csv policy');
+    final_error_handler('unknown join csv policy');
 }
 
 
@@ -134,31 +134,15 @@ function strip_cr(line) {
     return line;
 }
 
-
-var lineReader = null;
-var src_table_path = __RBQLMP__src_table_path;
-if (src_table_path != null) {
-    lineReader = readline.createInterface({ input: fs.createReadStream(src_table_path, {encoding: csv_encoding}) });
-} else {
-    process.stdin.setEncoding(csv_encoding);
-    lineReader = readline.createInterface({ input: process.stdin });
-}
-
+var line_reader = null;
 var dst_stream = null;
-var dst_table_path = __RBQLMP__dst_table_path;
-if (dst_table_path != null) {
-    dst_stream = fs.createWriteStream(dst_table_path, {defaultEncoding: csv_encoding});
-} else {
-    process.stdout.setDefaultEncoding(csv_encoding);
-    dst_stream = process.stdout;
-}
 
 
 function Marker(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
     this.toString = function() {
-        exit_with_error_msg('Unsupported aggregate expression');
+        final_error_handler('Unsupported aggregate expression');
     }
 }
 
@@ -377,7 +361,7 @@ function read_join_table(table_path) {
             key = __RBQLMP__rhs_join_var;
         } catch (e) {
             if (e instanceof BadFieldError) {
-                exit_with_error_msg('No "b' + (e.idx + 1) + '" column at line: ' + (i + 1) + ' in "B" table')
+                final_error_handler('No "b' + (e.idx + 1) + '" column at line: ' + (i + 1) + ' in "B" table')
             }
         }
         var old_records = result.get(key);
@@ -393,7 +377,6 @@ function read_join_table(table_path) {
 
 function generate_warnings() {
     var warnings = new Object();
-
     if (null_value_in_output)
         warnings['null_value_in_output'] = true;
     if (delim_in_simple_output)
@@ -412,7 +395,7 @@ function generate_warnings() {
         warnings['join_fields_info'] = join_fields_info;
     if (!Object.keys(warnings).length)
         return null;
-    return JSON.stringify({'warnings': warnings});
+    return warnings;
 }
 
 
@@ -451,7 +434,7 @@ function left_join(lhs_key) {
 function strict_left_join(lhs_key) {
     var result = join_map.get(lhs_key);
     if (result == null || result.length != 1) {
-        exit_with_error_msg('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
+        final_error_handler('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
     }
     return result;
 }
@@ -474,7 +457,7 @@ if (__RBQLMP__sort_flag) {
 
 function process_update(NF, afields, rhs_records) {
     if (rhs_records != null && rhs_records.length > 1)
-        exit_with_error_msg('More than one record in UPDATE query matched A-key in join table B at line: ' + NR);
+        final_error_handler('More than one record in UPDATE query matched A-key in join table B at line: ' + NR);
     var bfields = null;
     if (rhs_records != null && rhs_records.length == 1)
         bfields = rhs_records[0];
@@ -511,7 +494,7 @@ function select_aggregated(NF, afields, bfields, transparent_values) {
     }
     if (aggregation_stage === 1) {
         if (!(writer instanceof SimpleWriter)) {
-            exit_with_error_msg('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
+            final_error_handler('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
         }
         writer = new AggregateWriter(writer);
         for (var i = 0; i < transparent_values.length; i++) {
@@ -592,29 +575,83 @@ function process_line(line) {
             rhs_records = __RBQLMP__join_function(__RBQLMP__lhs_join_var);
         // __RBQLMP__process_function below is either "process_select" or "process_update"
         if (!__RBQLMP__process_function(NF, afields, rhs_records)) {
-            lineReader.close();
+            line_reader.close();
             return;
         }
     } catch (e) {
         if (e instanceof BadFieldError) {
-            exit_with_error_msg('No "a' + (e.idx + 1) + '" column at line: ' + NR);
+            final_error_handler('No "a' + (e.idx + 1) + '" column at line: ' + NR);
         }
-        if (typeof e === 'string') {
-            exit_with_error_msg('Error while processing line ' + NR + ': "' + e + '"');
-        }
-        throw(e);
+        final_error_handler('Error while processing line ' + NR + ': "' + e + '"');
     }
 }
 
 
 function finish_processing() {
     writer.finish();
-    var warnings_report = generate_warnings();
-    if (warnings_report)
-        process.stderr.write(warnings_report);
+    var warnings = generate_warnings();
+    final_success_handler(warnings);
 }
 
 
-lineReader.on('line', process_line);
-lineReader.on('close', finish_processing);
+function run_encapsulated(input_reader, output_stream, external_success_cb, external_error_cb) {
+    // This is the future worker interface (it is internal for now)
+    // TODO add join_reader
+    if (module_was_used_failsafe) {
+        external_error_cb('Module can only be used once');
+        return;
+    }
+    module_was_used_failsafe = true;
+    line_reader = input_reader;
+    dst_stream = output_stream;
+    final_success_handler = external_success_cb;
+    final_error_handler = external_error_cb;
+    line_reader.on('line', process_line);
+    line_reader.on('close', finish_processing);
+}
 
+
+function run_on_node(external_success_cb, external_error_cb) {
+    var input_reader = null;
+    var src_table_path = __RBQLMP__src_table_path;
+    if (src_table_path != null) {
+        input_reader = readline.createInterface({ input: fs.createReadStream(src_table_path, {encoding: csv_encoding}) });
+    } else {
+        process.stdin.setEncoding(csv_encoding);
+        input_reader = readline.createInterface({ input: process.stdin });
+    }
+
+    var output_stream = null;
+    var dst_table_path = __RBQLMP__dst_table_path;
+    if (dst_table_path != null) {
+        output_stream = fs.createWriteStream(dst_table_path, {defaultEncoding: csv_encoding});
+    } else {
+        process.stdout.setDefaultEncoding(csv_encoding);
+        output_stream = process.stdout;
+    }
+    run_encapsulated(input_reader, output_stream, external_success_cb, external_error_cb);
+}
+
+
+function cli_success_cb(warnings) {
+    if (warnings !== null) {
+        var warnings_report = JSON.stringify({'warnings': warnings});
+        process.stderr.write(warnings_report);
+    }
+}
+
+
+function cli_error_cb(error_msg) {
+    var report = new Object();
+    report.error = error_msg
+    process.stderr.write(JSON.stringify(report));
+    process.exit(1);
+}
+
+
+if (require.main === module) {
+    run_on_node(cli_success_cb, cli_error_cb);
+}
+
+
+module.exports.run_on_node = run_on_node;
