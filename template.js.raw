@@ -13,15 +13,13 @@ var join_table_path = __RBQLMP__rhs_table_path;
 var module_was_used_failsafe = false;
 
 
-// FIXME make sure that final_error_handler closes the input reader and output stream (if open). Wrap it in reader-closing method
-// FIXME make sure to handle line reader errors
-final_error_handler = null;
-final_success_handler = null;
+external_error_handler = null;
+external_success_handler = null;
 
 
 function assert(condition, message) {
     if (!condition) {
-        final_error_handler(message);
+        finish_processing_error(message);
     }
 }
 
@@ -75,7 +73,7 @@ function mono_join(fields, delim) {
         }
     }
     if (fields.length > 1) {
-        final_error_handler('Unable to use "Monocolumn" output format: some records have more than one field');
+        finish_processing_error('Unable to use "Monocolumn" output format: some records have more than one field');
     }
     return fields[0];
 }
@@ -98,7 +96,7 @@ if ('__RBQLMP__output_policy' == 'simple') {
 } else if ('__RBQLMP__output_policy' == 'monocolumn') {
     output_join = mono_join;
 } else {
-    final_error_handler('unknown output csv policy');
+    finish_processing_error('unknown output csv policy');
 }
 
 
@@ -110,7 +108,7 @@ if ('__RBQLMP__input_policy' == 'simple') {
 } else if ('__RBQLMP__input_policy' == 'monocolumn') {
     input_split = function(line) { return [[line], false]; }
 } else {
-    final_error_handler('unknown input csv policy');
+    finish_processing_error('unknown input csv policy');
 }
 
 join_impl = null
@@ -123,7 +121,7 @@ if ('__RBQLMP__join_policy' == '') {
 } else if ('__RBQLMP__join_policy' == 'monocolumn') {
     join_split = function(line) { return [[line], false]; }
 } else {
-    final_error_handler('unknown join csv policy');
+    finish_processing_error('unknown join csv policy');
 }
 
 
@@ -142,7 +140,7 @@ function Marker(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
     this.toString = function() {
-        final_error_handler('Unsupported aggregate expression');
+        finish_processing_error('Unsupported aggregate expression');
     }
 }
 
@@ -361,7 +359,7 @@ function read_join_table(table_path) {
             key = __RBQLMP__rhs_join_var;
         } catch (e) {
             if (e instanceof BadFieldError) {
-                final_error_handler('No "b' + (e.idx + 1) + '" column at line: ' + (i + 1) + ' in "B" table')
+                finish_processing_error('No "b' + (e.idx + 1) + '" column at line: ' + (i + 1) + ' in "B" table')
             }
         }
         var old_records = result.get(key);
@@ -434,7 +432,7 @@ function left_join(lhs_key) {
 function strict_left_join(lhs_key) {
     var result = join_map.get(lhs_key);
     if (result == null || result.length != 1) {
-        final_error_handler('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
+        finish_processing_error('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
     }
     return result;
 }
@@ -457,7 +455,7 @@ if (__RBQLMP__sort_flag) {
 
 function process_update(NF, afields, rhs_records) {
     if (rhs_records != null && rhs_records.length > 1)
-        final_error_handler('More than one record in UPDATE query matched A-key in join table B at line: ' + NR);
+        finish_processing_error('More than one record in UPDATE query matched A-key in join table B at line: ' + NR);
     var bfields = null;
     if (rhs_records != null && rhs_records.length == 1)
         bfields = rhs_records[0];
@@ -494,7 +492,7 @@ function select_aggregated(NF, afields, bfields, transparent_values) {
     }
     if (aggregation_stage === 1) {
         if (!(writer instanceof SimpleWriter)) {
-            final_error_handler('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
+            finish_processing_error('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
         }
         writer = new AggregateWriter(writer);
         for (var i = 0; i < transparent_values.length; i++) {
@@ -552,6 +550,18 @@ function remove_utf8_bom(line, assumed_source_encoding) {
 
 
 function process_line(line) {
+    try {
+        do_process_line(line);
+    } catch (e) {
+        if (e instanceof BadFieldError) {
+            finish_processing_error('No "a' + (e.idx + 1) + '" column at line: ' + NR);
+        }
+        finish_processing_error('Error while processing line ' + NR + ': "' + e + '"');
+    }
+}
+
+
+function do_process_line(line) {
     if (NR === 0) {
         var clean_line = remove_utf8_bom(line, csv_encoding);
         if (clean_line != line) {
@@ -569,28 +579,27 @@ function process_line(line) {
     var NF = afields.length;
     if (!input_fields_info.hasOwnProperty(NF))
         input_fields_info[NF] = NR;
-    try {
-        rhs_records = null;
-        if (join_map != null)
-            rhs_records = __RBQLMP__join_function(__RBQLMP__lhs_join_var);
-        // __RBQLMP__process_function below is either "process_select" or "process_update"
-        if (!__RBQLMP__process_function(NF, afields, rhs_records)) {
-            line_reader.close();
-            return;
-        }
-    } catch (e) {
-        if (e instanceof BadFieldError) {
-            final_error_handler('No "a' + (e.idx + 1) + '" column at line: ' + NR);
-        }
-        final_error_handler('Error while processing line ' + NR + ': "' + e + '"');
+    rhs_records = null;
+    if (join_map != null)
+        rhs_records = __RBQLMP__join_function(__RBQLMP__lhs_join_var);
+    // __RBQLMP__process_function below is either "process_select" or "process_update". FIXME use more explicit dynamic assignment.
+    if (!__RBQLMP__process_function(NF, afields, rhs_records)) {
+        line_reader.close();
+        return;
     }
 }
 
 
-function finish_processing() {
+function finish_processing_success() {
     writer.finish();
     var warnings = generate_warnings();
-    final_success_handler(warnings);
+    external_success_handler(warnings);
+}
+
+
+function finish_processing_error(error_msg) {
+    writer.finish();
+    external_error_handler(error_msg);
 }
 
 
@@ -604,10 +613,10 @@ function run_encapsulated(input_reader, output_stream, external_success_cb, exte
     module_was_used_failsafe = true;
     line_reader = input_reader;
     dst_stream = output_stream;
-    final_success_handler = external_success_cb;
-    final_error_handler = external_error_cb;
+    external_success_handler = external_success_cb;
+    external_error_handler = external_error_cb;
     line_reader.on('line', process_line);
-    line_reader.on('close', finish_processing);
+    line_reader.on('close', finish_processing_success);
 }
 
 

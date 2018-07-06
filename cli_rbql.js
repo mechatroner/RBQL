@@ -113,8 +113,10 @@ function run_with_js(args) {
     rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_path, delim, policy, output_delim, output_policy, csv_encoding);
     if (args.hasOwnProperty('parse_only')) {
         console.log('Worker module location: ' + tmp_path);
-        process.exit(0);
+        return;
     }
+
+    //js_main(input_reader, output_stream);
 }
 
 

@@ -519,7 +519,7 @@ def rb_transform(source, destination):
             rhs_records = None
             if joiner is not None:
                 rhs_records = joiner.get_rhs(__RBQLMP__lhs_join_var)
-            # __RBQLMP__process_function below is either "process_select" or "process_update"
+            # __RBQLMP__process_function below is either "process_select" or "process_update". FIXME use more explicit dynamic assignment.
             if not __RBQLMP__process_function(NR, NF, afields, rhs_records):
                 break
         except BadFieldError as e:
