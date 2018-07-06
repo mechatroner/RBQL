@@ -429,7 +429,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
         py_meta_params['writer_type'] = 'SimpleWriter'
         py_meta_params['select_expression'] = 'None'
         py_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals)
-        py_meta_params['process_function'] = 'process_update'
+        py_meta_params['is_select_query'] = 'False'
         py_meta_params['top_count'] = 'None'
 
     if SELECT in rb_actions:
@@ -444,7 +444,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
         select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
         py_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals)
         py_meta_params['update_statements'] = 'pass'
-        py_meta_params['process_function'] = 'process_select'
+        py_meta_params['is_select_query'] = 'True'
 
     if ORDER_BY in rb_actions:
         order_expression = replace_column_vars(rb_actions[ORDER_BY]['text'])
@@ -527,7 +527,7 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
         js_meta_params['writer_type'] = 'SimpleWriter'
         js_meta_params['select_expression'] = 'null'
         js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals)
-        js_meta_params['process_function'] = 'process_update'
+        js_meta_params['is_select_query'] = 'false'
         js_meta_params['top_count'] = 'null'
 
     if SELECT in rb_actions:
@@ -542,7 +542,7 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
         select_expression = translate_select_expression_js(rb_actions[SELECT]['text'])
         js_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals)
         js_meta_params['update_statements'] = ''
-        js_meta_params['process_function'] = 'process_select'
+        js_meta_params['is_select_query'] = 'true'
 
     if ORDER_BY in rb_actions:
         order_expression = replace_column_vars(rb_actions[ORDER_BY]['text'])

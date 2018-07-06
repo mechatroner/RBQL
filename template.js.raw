@@ -561,6 +561,9 @@ function process_line(line) {
 }
 
 
+var process_function = __RBQLMP__is_select_query ? process_select : process_update;
+
+
 function do_process_line(line) {
     if (NR === 0) {
         var clean_line = remove_utf8_bom(line, csv_encoding);
@@ -582,8 +585,7 @@ function do_process_line(line) {
     rhs_records = null;
     if (join_map != null)
         rhs_records = __RBQLMP__join_function(__RBQLMP__lhs_join_var);
-    // __RBQLMP__process_function below is either "process_select" or "process_update". FIXME use more explicit dynamic assignment.
-    if (!__RBQLMP__process_function(NF, afields, rhs_records)) {
+    if (!process_function(NF, afields, rhs_records)) {
         line_reader.close();
         return;
     }

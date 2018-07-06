@@ -432,7 +432,7 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         js_meta_params['writer_type'] = 'SimpleWriter';
         js_meta_params['select_expression'] = 'null';
         js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals);
-        js_meta_params['process_function'] = 'process_update';
+        js_meta_params['is_select_query'] = 'false';
         js_meta_params['top_count'] = 'null';
     }
 
@@ -449,7 +449,7 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         var select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
         js_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals);
         js_meta_params['update_statements'] = '';
-        js_meta_params['process_function'] = 'process_select';
+        js_meta_params['is_select_query'] = 'true';
     }
 
     if (rb_actions.hasOwnProperty(ORDER_BY)) {

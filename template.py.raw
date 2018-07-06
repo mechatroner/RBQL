@@ -489,6 +489,9 @@ def process_select(NR, NF, afields, rhs_records):
     return True
 
 
+process_function = process_select if __RBQLMP__is_select_query else process_update
+
+
 def rb_transform(source, destination):
     global module_was_used_failsafe
     assert not module_was_used_failsafe
@@ -519,8 +522,7 @@ def rb_transform(source, destination):
             rhs_records = None
             if joiner is not None:
                 rhs_records = joiner.get_rhs(__RBQLMP__lhs_join_var)
-            # __RBQLMP__process_function below is either "process_select" or "process_update". FIXME use more explicit dynamic assignment.
-            if not __RBQLMP__process_function(NR, NF, afields, rhs_records):
+            if not process_function(NR, NF, afields, rhs_records):
                 break
         except BadFieldError as e:
             bad_idx = e.bad_idx
