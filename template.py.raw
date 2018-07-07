@@ -501,10 +501,11 @@ def rb_transform(source, destination):
     global defective_csv_line_in_input
     global utf8_bom_removed
     global writer
-    writer = __RBQLMP__writer_type(destination)
+    writer_type = {'simple': SimpleWriter, 'uniq': UniqWriter, 'uniq_count': UniqCountWriter}['__RBQLMP__writer_type']
+    writer = writer_type(destination)
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
-    joiner = __RBQLMP__joiner_type('__RBQLMP__rhs_table_path')
+    joiner = __RBQLMP__joiner_type('__RBQLMP__rhs_table_path') # FIXME make more explicit
     for NR, line in enumerate(rbql_utils.rows(source), 1):
         if NR == 1:
             clean_line = remove_utf8_bom(line, csv_encoding)

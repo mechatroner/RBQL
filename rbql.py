@@ -426,7 +426,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
 
     if UPDATE in rb_actions:
         update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
-        py_meta_params['writer_type'] = 'SimpleWriter'
+        py_meta_params['writer_type'] = 'simple'
         py_meta_params['select_expression'] = 'None'
         py_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals)
         py_meta_params['is_select_query'] = 'False'
@@ -436,11 +436,11 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
         top_count = find_top(rb_actions)
         py_meta_params['top_count'] = str(top_count) if top_count is not None else 'None'
         if 'distinct_count' in rb_actions[SELECT]:
-            py_meta_params['writer_type'] = 'UniqCountWriter'
+            py_meta_params['writer_type'] = 'uniq_count'
         elif 'distinct' in rb_actions[SELECT]:
-            py_meta_params['writer_type'] = 'UniqWriter'
+            py_meta_params['writer_type'] = 'uniq'
         else:
-            py_meta_params['writer_type'] = 'SimpleWriter'
+            py_meta_params['writer_type'] = 'simple'
         select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
         py_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals)
         py_meta_params['update_statements'] = 'pass'
@@ -524,7 +524,7 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
 
     if UPDATE in rb_actions:
         update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
-        js_meta_params['writer_type'] = 'SimpleWriter'
+        js_meta_params['writer_type'] = 'simple'
         js_meta_params['select_expression'] = 'null'
         js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals)
         js_meta_params['is_select_query'] = 'false'
@@ -534,11 +534,11 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
         top_count = find_top(rb_actions)
         js_meta_params['top_count'] = str(top_count) if top_count is not None else 'null'
         if 'distinct_count' in rb_actions[SELECT]:
-            js_meta_params['writer_type'] = 'UniqCountWriter'
+            js_meta_params['writer_type'] = 'uniq_count'
         elif 'distinct' in rb_actions[SELECT]:
-            js_meta_params['writer_type'] = 'UniqWriter'
+            js_meta_params['writer_type'] = 'uniq'
         else:
-            js_meta_params['writer_type'] = 'SimpleWriter'
+            js_meta_params['writer_type'] = 'simple'
         select_expression = translate_select_expression_js(rb_actions[SELECT]['text'])
         js_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals)
         js_meta_params['update_statements'] = ''
