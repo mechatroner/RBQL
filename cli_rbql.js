@@ -11,6 +11,9 @@ function die(error_msg) {
 }
 
 
+var tmp_worker_module_path = null;
+
+
 function show_help(scheme) {
     console.log('Options:\n');
     for (var k in scheme) {
@@ -92,6 +95,39 @@ function get_default(src, key, default_val) {
 }
 
 
+function cleanup_tmp() {
+    if (fs.existsSync(tmp_worker_module_path)) {
+        fs.unlinkSync(tmp_worker_module_path);
+    }
+}
+
+
+function cli_success_cb(warnings) {
+    if (warnings !== null) {
+        var warnings_report = JSON.stringify({'warnings': warnings});
+        process.stderr.write(warnings_report);
+    }
+}
+
+
+function handle_worker_success(warnings) {
+    cleanup_tmp();
+    cli_success_cb(warnings);
+}
+
+
+function handle_worker_failure(error_msg) {
+    //cleanup_tmp();
+    var report = new Object();
+    report.error = error_msg
+    process.stderr.write(JSON.stringify(report));
+    if (fs.existsSync(tmp_worker_module_path)) {
+        console.log('\nGenerated module was saved here: ' + tmp_worker_module_path);
+    }
+    process.exit(1);
+}
+
+
 function run_with_js(args) {
     var delim = normalize_delim(args['delim']);
     var policy = args['policy'];
@@ -109,14 +145,14 @@ function run_with_js(args) {
     var rbql_lines = [query];
     var tmp_dir = os.tmpdir();
     var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
-    var tmp_path = path.join(tmp_dir, script_filename);
-    rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_path, delim, policy, output_delim, output_policy, csv_encoding);
+    tmp_worker_module_path = path.join(tmp_dir, script_filename);
+    rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding);
     if (args.hasOwnProperty('parse_only')) {
-        console.log('Worker module location: ' + tmp_path);
+        console.log('Worker module location: ' + tmp_worker_module_path);
         return;
     }
-
-    //js_main(input_reader, output_stream);
+    var worker_module = require(tmp_worker_module_path);
+    worker_module.run_on_node(handle_worker_success, handle_worker_failure);
 }
 
 

@@ -362,8 +362,6 @@ function rbql_meta_format(template_src, meta_params) {
 }
 
 
-// FIXME template.js.raw must export rb_transform() function, which accepts streams instead of file names
-// Or even record fetcher callbacks.
 function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
@@ -404,15 +402,14 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
             join_delim = normalize_delim(join_format_record[1]);
             join_policy = join_format_record[2];
         }
-        join_funcs = {JOIN: 'inner_join', INNER_JOIN: 'inner_join', LEFT_JOIN: 'left_join', STRICT_LEFT_JOIN: 'strict_left_join'};
-        js_meta_params['join_function'] = join_funcs[rb_actions[JOIN]['join_subtype']];
+        js_meta_params['join_operation'] = rb_actions[JOIN]['join_subtype'];
         js_meta_params['rhs_table_path'] = "'" + escape_string_literal(rhs_table_path) + "'";
         js_meta_params['lhs_join_var'] = lhs_join_var;
         js_meta_params['rhs_join_var'] = rhs_join_var;
         js_meta_params['join_delim'] = escape_string_literal(join_delim);
         js_meta_params['join_policy'] = join_policy;
     } else {
-        js_meta_params['join_function'] = 'null_join';
+        js_meta_params['join_operation'] = 'VOID';
         js_meta_params['rhs_table_path'] = 'null';
         js_meta_params['lhs_join_var'] = 'null';
         js_meta_params['rhs_join_var'] = 'null';
@@ -429,7 +426,7 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
 
     if (rb_actions.hasOwnProperty(UPDATE)) {
         var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
-        js_meta_params['writer_type'] = 'SimpleWriter';
+        js_meta_params['writer_type'] = 'simple';
         js_meta_params['select_expression'] = 'null';
         js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['is_select_query'] = 'false';
@@ -440,11 +437,11 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         var top_count = find_top(rb_actions);
         js_meta_params['top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
-            js_meta_params['writer_type'] = 'UniqCountWriter';
+            js_meta_params['writer_type'] = 'uniq_count';
         } else if (rb_actions[SELECT].hasOwnProperty('distinct')) {
-            js_meta_params['writer_type'] = 'UniqWriter';
+            js_meta_params['writer_type'] = 'uniq';
         } else {
-            js_meta_params['writer_type'] = 'SimpleWriter';
+            js_meta_params['writer_type'] = 'simple';
         }
         var select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
         js_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals);
