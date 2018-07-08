@@ -25,7 +25,7 @@ import rbql_utils
 default_csv_encoding = rbql.default_csv_encoding
 
 TEST_JS = True
-#TEST_JS = False #DBG
+TEST_JS = False #DBG
 
 #FIXME add monocolumn unit test
 
@@ -1320,11 +1320,11 @@ class TestFiles(unittest.TestCase):
                     delim = '\t'
                 default_policy = 'quoted' if delim in [';', ','] else 'simple'
                 policy = config.get('policy', default_policy)
-                host_language = config.get('host_language', 'python')
+                backend_language = config.get('backend_language', 'python')
                 canonic_path = None if canonic_table is None else os.path.abspath(canonic_table)
                 canonic_md5 = calc_file_md5(canonic_table)
 
-                if host_language == 'python':
+                if backend_language == 'python':
                     warnings = None
                     try:
                         result_table, warnings = run_file_query_test_py(query, src_path, str(test_no), delim, policy, encoding)
@@ -1338,7 +1338,7 @@ class TestFiles(unittest.TestCase):
                     compare_warnings(self, canonic_warnings, warnings)
                 
                 elif TEST_JS:
-                    assert host_language == 'js'
+                    assert backend_language == 'js'
                     try:
                         result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding)
                     except Exception as e:
