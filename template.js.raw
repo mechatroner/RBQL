@@ -44,13 +44,16 @@ var join_function = {'VOID': null_join, 'JOIN': inner_join, 'INNER JOIN': inner_
 
 var output_join = null;
 var input_split = null;
-var join_impl = null;
+var join_split = null;
 
 var join_map = null;
 var max_join_fields = null;
 var null_record = null;
 
 var finished_with_error = false;
+
+// TODO run linter against ready template
+// FIXME fix tests to use rbql.js
 
 function finish_processing_error(error_msg) {
     finished_with_error = true;
@@ -592,18 +595,6 @@ function do_run_encapsulated(input_reader, output_stream) {
 
     line_reader = input_reader;
     dst_stream = output_stream;
-    if (join_table_path !== null) {
-        var join_params = read_join_table(join_table_path);
-        join_map = join_params[0];
-        max_join_fields = join_params[1];
-        null_record = [Array(max_join_fields).fill(null)];
-    }
-
-    var writer_type = {'simple': SimpleWriter, 'uniq': UniqWriter, 'uniq_count': UniqCountWriter}['__RBQLMP__writer_type'];
-    writer = new writer_type(dst_stream);
-    if (__RBQLMP__sort_flag) {
-        writer = new SortedWriter(writer);
-    }
 
     if ('__RBQLMP__output_policy' == 'simple') {
         output_join = simple_join;
@@ -636,6 +627,19 @@ function do_run_encapsulated(input_reader, output_stream) {
         join_split = function(line) { return [[line], false]; }
     } else {
         throw new RbqlError('unknown join csv policy');
+    }
+
+    if (join_table_path !== null) {
+        var join_params = read_join_table(join_table_path);
+        join_map = join_params[0];
+        max_join_fields = join_params[1];
+        null_record = [Array(max_join_fields).fill(null)];
+    }
+
+    var writer_type = {'simple': SimpleWriter, 'uniq': UniqWriter, 'uniq_count': UniqCountWriter}['__RBQLMP__writer_type'];
+    writer = new writer_type(dst_stream);
+    if (__RBQLMP__sort_flag) {
+        writer = new SortedWriter(writer);
     }
 
     line_reader.on('line', process_line);

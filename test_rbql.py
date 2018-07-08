@@ -25,7 +25,7 @@ import rbql_utils
 default_csv_encoding = rbql.default_csv_encoding
 
 TEST_JS = True
-TEST_JS = False #DBG
+#TEST_JS = False #DBG
 
 #FIXME add monocolumn unit test
 
