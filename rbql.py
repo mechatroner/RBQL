@@ -403,16 +403,15 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
             join_delim = normalize_delim(join_format_record[1])
             join_policy = join_format_record[2]
 
-        joiners = {JOIN: 'InnerJoiner', INNER_JOIN: 'InnerJoiner', LEFT_JOIN: 'LeftJoiner', STRICT_LEFT_JOIN: 'StrictLeftJoiner'}
-        py_meta_params['joiner_type'] = joiners[rb_actions[JOIN]['join_subtype']]
+        py_meta_params['join_operation'] = rb_actions[JOIN]['join_subtype']
         py_meta_params['rhs_table_path'] = escape_string_literal(rhs_table_path)
         py_meta_params['lhs_join_var'] = lhs_join_var
         py_meta_params['rhs_join_var'] = rhs_join_var
         py_meta_params['join_delim'] = escape_string_literal(join_delim)
         py_meta_params['join_policy'] = join_policy
     else:
-        py_meta_params['joiner_type'] = 'none_joiner'
-        py_meta_params['rhs_table_path'] = 'None'
+        py_meta_params['join_operation'] = 'VOID'
+        py_meta_params['rhs_table_path'] = ''
         py_meta_params['lhs_join_var'] = 'None'
         py_meta_params['rhs_join_var'] = 'None'
         py_meta_params['join_delim'] = ''
@@ -501,15 +500,14 @@ def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim,
             join_delim, join_policy = join_format_record[1:3]
             join_delim = normalize_delim(join_delim)
 
-        join_funcs = {JOIN: 'inner_join', INNER_JOIN: 'inner_join', LEFT_JOIN: 'left_join', STRICT_LEFT_JOIN: 'strict_left_join'}
-        js_meta_params['join_function'] = join_funcs[rb_actions[JOIN]['join_subtype']]
+        js_meta_params['join_operation'] = rb_actions[JOIN]['join_subtype']
         js_meta_params['rhs_table_path'] ="'{}'".format(escape_string_literal(rhs_table_path))
         js_meta_params['lhs_join_var'] = lhs_join_var
         js_meta_params['rhs_join_var'] = rhs_join_var
         js_meta_params['join_delim'] = escape_string_literal(join_delim)
         js_meta_params['join_policy'] = join_policy
     else:
-        js_meta_params['join_function'] = 'null_join'
+        js_meta_params['join_operation'] = 'VOID'
         js_meta_params['rhs_table_path'] = 'null'
         js_meta_params['lhs_join_var'] = 'null'
         js_meta_params['rhs_join_var'] = 'null'
