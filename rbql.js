@@ -189,7 +189,7 @@ function separate_actions(rbql_expression) {
 
         if (statement == ORDER_BY) {
             span = span.replace(/ ASC *$/i, '');
-            var new_span = span.replace('/ DESC *$/i', '');
+            var new_span = span.replace(/ DESC *$/i, '');
             if (new_span != span) {
                 span = new_span;
                 statement_params['reverse'] = true;
