@@ -181,7 +181,7 @@ def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encod
     assert not os.path.exists(output_path)
     cli_rbql_js_path = os.path.join(script_dir, 'cli_rbql.js')
 
-    cmd = ['node', cli_rbql_js_path, '--delim', delim, '--policy', policy, '--input_table_path', input_path, '--csv_encoding', csv_encoding, '--query', query, '--output_table_path', output_path]
+    cmd = ['node', cli_rbql_js_path, '--delim', delim, '--policy', policy, '--input_table_path', input_path, '--csv_encoding', csv_encoding, '--query', query.encode('utf-8'), '--output_table_path', output_path]
     pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out_data, err_data = pobj.communicate()
     exit_code = pobj.returncode

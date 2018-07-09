@@ -73,7 +73,7 @@ function replace_column_vars(rbql_expression) {
 
 function combine_string_literals(backend_expression, string_literals) {
     for (var i = 0; i < string_literals.length; i++) {
-        backend_expression = backend_expression.replace(`###RBQL_STRING_LITERAL###${i}`, string_literals[i]);
+        backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL###${i}`, string_literals[i]);
     }
     return backend_expression;
 }
@@ -89,6 +89,7 @@ function separate_string_literals_js(rbql_expression) {
     while((match_obj = rgx.exec(rbql_expression)) !== null) {
         var literal_id = string_literals.length;
         var string_literal = match_obj[0];
+        string_literals.push(string_literal);
         var start_index = match_obj.index;
         format_parts.push(rbql_expression.substring(idx_before, start_index));
         format_parts.push(`###RBQL_STRING_LITERAL###${literal_id}`);
