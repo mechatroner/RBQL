@@ -560,7 +560,7 @@ function do_process_line(line) {
         input_fields_info[NF] = NR;
     rhs_records = null;
     if (join_map != null)
-        rhs_records = join_function(__RBQLMP__lhs_join_var); // FIXME replace with variable
+        rhs_records = join_function(__RBQLMP__lhs_join_var);
     if (!process_function(NF, afields, rhs_records)) {
         line_reader.close();
         return;
