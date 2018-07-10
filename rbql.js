@@ -112,6 +112,7 @@ function get_all_matches(regexp, text) {
 
 
 function locate_statements(rbql_expression) {
+    // TODO rewrite this function
     statement_groups = [];
     statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
     statement_groups.push([SELECT]);
@@ -134,6 +135,7 @@ function locate_statements(rbql_expression) {
             var match = matches[0];
             var match_str = match[0];
             result.push([match.index, match.index + match_str.length, statement]);
+            break; // There must be only one statement maximum in each group
         }
     }
     result.sort(function(a, b) { return a[0] - b[0]; });

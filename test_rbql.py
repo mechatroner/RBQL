@@ -1352,8 +1352,9 @@ class TestFiles(unittest.TestCase):
                     test_md5 = calc_file_md5(result_table)
                     self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {}; Actual: {}'.format(canonic_path, test_path))
                     compare_warnings(self, canonic_warnings, warnings)
-                
-                elif TEST_JS:
+                else: 
+                    if not TEST_JS:
+                        continue
                     assert backend_language == 'js'
                     try:
                         result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding)
@@ -1366,7 +1367,18 @@ class TestFiles(unittest.TestCase):
                     self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {}; Actual: {}'.format(canonic_path, test_path))
                     compare_warnings(self, canonic_warnings, warnings)
 
-                # FIXME also run in PY-JS mode (rbql.py -> worker.js)
+                    # TODO get rid of the mode and of the tests below:
+                    try:
+                        result_table, warnings = run_file_query_test_py_js(query, src_path, str(test_no), delim, policy, encoding)
+                    except Exception as e:
+                        if canonic_error_msg is None or str(e).find(canonic_error_msg) == -1:
+                            raise
+                        continue
+                    test_path = os.path.abspath(result_table) 
+                    test_md5 = calc_file_md5(result_table)
+                    self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {}; Actual: {}'.format(canonic_path, test_path))
+                    compare_warnings(self, canonic_warnings, warnings)
+
 
 
 
