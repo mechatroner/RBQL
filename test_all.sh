@@ -37,13 +37,13 @@ if [ "$rc" != 0 ] || [ -z "$node_version" ] ; then
     has_node="no"
 fi
 
-# We also need random_ut.csv file in vim unit tests
 python test_rbql.py --create_random_csv_table random_ut.csv
 
 if [ "$has_node" == "yes" ] ; then
     node ./unit_tests.js random_ut.csv
 fi
 
+# FIXME also test cli_rbql.js
 
 # CLI tests:
 md5sum_test=($( ./cli_rbql.py --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test_datasets/movies.tsv | md5sum))

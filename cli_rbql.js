@@ -141,7 +141,11 @@ function run_with_js(args) {
     var input_path = get_default(args, 'input_table_path', null);
     var output_path = get_default(args, 'output_table_path', null);
     var csv_encoding = args['csv_encoding'];
-    var [output_delim, output_policy] = interpret_format(args['out_format']);
+    var output_delim = get_default(args, 'out_delim', null);
+    var output_policy = get_default(args, 'out_policy', null);
+    if (output_delim === null) {
+        [output_delim, output_policy] = interpret_format(args['out_format']);
+    }
     var rbql_lines = [query];
     var tmp_dir = os.tmpdir();
     var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
@@ -161,6 +165,8 @@ function main() {
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
         '--policy': {'help': 'Split policy'},
         '--out_format': {'default': 'tsv', 'help': 'Output format'},
+        '--out_delim': {'help': 'Output delim. Use with "out_policy". Overrides out_format'},
+        '--out_policy': {'help': 'Output policy. Use with "out_delim". Overrides out_format'},
         '--query': {'help': 'Query string in rbql'},
         '--input_table_path': {'help': 'Read csv table from FILE instead of stdin'},
         '--output_table_path': {'help': 'Write output table to FILE instead of stdout'},

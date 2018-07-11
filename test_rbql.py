@@ -218,13 +218,43 @@ def run_file_query_test_py_js(query, input_path, testname, delim, policy, csv_en
     return (output_path, warnings)
 
 
-def run_conversion_test_js(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, csv_encoding=default_csv_encoding):
+def run_conversion_test_js(*args, **kwargs):
+    # TODO get rid of py_js mode
+    if random.choice([True, False]):
+        return do_run_conversion_test_js(*args, **kwargs)
+    else:
+        return do_run_conversion_test_py_js(*args, **kwargs)
+
+
+def do_run_conversion_test_js(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, csv_encoding=default_csv_encoding):
+    cli_rbql_js_path = os.path.join(script_dir, 'cli_rbql.js')
+    src = table_to_string(input_table, input_delim, input_policy)
+    cmd = ['node', cli_rbql_js_path, '--delim', input_delim, '--policy', input_policy, '--csv_encoding', csv_encoding, '--query', query.encode('utf-8'), '--out_delim', output_delim, '--out_policy', output_policy]
+
+    pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    out_data, err_data = pobj.communicate(src.encode(csv_encoding))
+    exit_code = pobj.returncode
+
+    operation_report = rbql.parse_json_report(exit_code, err_data)
+    warnings = operation_report.get('warnings')
+    operation_error = operation_report.get('error')
+    if operation_error is not None:
+        raise RuntimeError("Error in file test: {}.\nError text:\n{}\n".format(testname, operation_error))
+
+    out_table = []
+    out_data = out_data.decode(csv_encoding)
+    if len(out_data):
+        out_lines = out_data[:-1].split('\n')
+        out_table = [smart_split(ln, output_delim, output_policy) for ln in out_lines]
+    return (out_table, warnings)
+
+
+def do_run_conversion_test_py_js(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, csv_encoding=default_csv_encoding):
     script_name = '{}{}_{}_{}'.format(rainbow_ut_prefix, time.time(), testname, random.randint(1, 100000000)).replace('.', '_')
     script_name += '.js'
     tmp_path = os.path.join(tmp_dir, script_name)
     rbql.parse_to_js(None, None, [query], tmp_path, input_delim, input_policy, output_delim, output_policy, csv_encoding, None)
     src = table_to_string(input_table, input_delim, input_policy)
-    # FIXME 
     cmd = ['node', tmp_path]
     pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     out_data, err_data = pobj.communicate(src.encode(csv_encoding))
