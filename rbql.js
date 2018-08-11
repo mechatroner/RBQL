@@ -1,7 +1,6 @@
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
-const readline = require('readline');
 
 const version = '0.1.0';
 
@@ -34,7 +33,7 @@ function assert(condition, message=null) {
         if (!message) {
             message = 'Assertion error';
         }
-        throw new Error(message);
+        throw new AssertionError(message);
     }
 }
 
@@ -104,6 +103,7 @@ function separate_string_literals_js(rbql_expression) {
 
 function get_all_matches(regexp, text) {
     var result = [];
+    let match_obj = null;
     while((match_obj = regexp.exec(text)) !== null) {
         result.push(match_obj);
     }
@@ -113,7 +113,7 @@ function get_all_matches(regexp, text) {
 
 function locate_statements(rbql_expression) {
     // TODO rewrite this function
-    statement_groups = [];
+    let statement_groups = [];
     statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
     statement_groups.push([SELECT]);
     statement_groups.push([ORDER_BY]);
@@ -466,7 +466,62 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     fs.writeFileSync(js_dst, rbql_meta_format(js_script_body, js_meta_params));
 }
 
+
+
+function make_inconsistent_num_fields_hr_warning(table_name, inconsistent_lines_info) {
+    let keys = Object.keys(inconsistent_lines_info);
+    let entries = [];
+    for (let i = 0; i < keys.length; i++) {
+        let key = keys[i];
+        let line_id = inconsistent_lines_info[key];
+        entries.push([line_id, key]);
+    }
+    entries.sort(function(a, b) { return a[0] - b[0]; });
+    assert(entries.length > 1);
+    let [num_fields_1, lnum_1] = entries[0];
+    let [num_fields_2, lnum_2] = entries[1];
+    let warn_msg = `Number of fields in ${table_name} table is not consistent. `;
+    warn_msg += `E.g. there are ${num_fields_1} fields at line ${lnum_1}, and ${num_fields_2} fields at line ${lnum_2}.`;
+    return warn_msg;
+}
+
+
+function make_warnings_human_readable(warnings) {
+    let result = [];
+    let keys = Object.keys(warnings);
+    for (let i = 0; i < keys.length; i++) {
+        let warning_type = keys[i];
+        let warning_value = warnings[warning_type];
+        if (warning_type == 'null_value_in_output') {
+            result.push('None/null values in output were replaced by empty strings.');
+        } else if (warning_type == 'delim_in_simple_output') {
+            result.push('Some result set fields contain output separator.');
+        } else if (warning_type == 'output_switch_to_csv') {
+            // ATTENTION: External tools depend on the exact wording of the following message:
+            result.push('Output has multiple fields: using "CSV" output format instead of "Monocolumn"');
+        } else if (warning_type == 'utf8_bom_removed') {
+            result.push('UTF-8 Byte Order Mark BOM was found and removed.');
+        } else if (warning_type == 'defective_csv_line_in_input') {
+            result.push(`Defective double quote escaping in input table. E.g. at line ${warning_value}.`);
+        } else if (warning_type == 'defective_csv_line_in_join') {
+            result.push(`Defective double quote escaping in join table. E.g. at line ${warning_value}.`);
+        } else if (warning_type == 'input_fields_info') {
+            result.push(make_inconsistent_num_fields_hr_warning('input', warning_value));
+        } else if (warning_type == 'join_fields_info') {
+            result.push(make_inconsistent_num_fields_hr_warning('join', warning_value));
+        } else {
+            throw new Error(`Unknown warning type: ${warning_type}`);
+        }
+    }
+    for (let i = 0; i < result.length; i++) {
+        assert(result[i].indexOf('\n') == -1);
+    }
+    return result;
+}
+
+
 module.exports.version = version;
 module.exports.assert = assert;
 module.exports.default_csv_encoding = default_csv_encoding;
 module.exports.parse_to_js = parse_to_js;
+module.exports.make_warnings_human_readable = make_warnings_human_readable;
