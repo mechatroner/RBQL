@@ -104,8 +104,10 @@ function cleanup_tmp() {
 
 function cli_success_cb(warnings) {
     if (warnings !== null) {
-        var warnings_report = JSON.stringify({'warnings': warnings});
-        process.stderr.write(warnings_report);
+        let hr_warnings = rbql.make_warnings_human_readable(warnings);
+        for (let i = 0; i < hr_warnings.length; i++) {
+            console.error('Warning: ' + hr_warnings[i]);
+        }
     }
 }
 
@@ -117,12 +119,9 @@ function handle_worker_success(warnings) {
 
 
 function handle_worker_failure(error_msg) {
-    //cleanup_tmp();
-    var report = new Object();
-    report.error = error_msg
-    process.stderr.write(JSON.stringify(report));
+    console.error('Error: ' + error_msg);
     if (fs.existsSync(tmp_worker_module_path)) {
-        console.log('\nGenerated module was saved here: ' + tmp_worker_module_path);
+        console.error('Generated module was saved here: ' + tmp_worker_module_path);
     }
     process.exit(1);
 }
