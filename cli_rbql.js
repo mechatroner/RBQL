@@ -12,6 +12,7 @@ function die(error_msg) {
 
 
 var tmp_worker_module_path = null;
+var error_format = 'hr';
 
 
 function show_help(scheme) {
@@ -102,7 +103,7 @@ function cleanup_tmp() {
 }
 
 
-function cli_success_cb(warnings) {
+function report_warnings_hr(warnings) {
     if (warnings !== null) {
         let hr_warnings = rbql.make_warnings_human_readable(warnings);
         for (let i = 0; i < hr_warnings.length; i++) {
@@ -112,16 +113,47 @@ function cli_success_cb(warnings) {
 }
 
 
+function report_warnings_json(warnings) {
+    if (warnings !== null) {
+        var warnings_report = JSON.stringify({'warnings': warnings});
+        process.stderr.write(warnings_report);
+    }
+}
+
+
+function report_error_hr(error_msg) {
+    console.error('Error: ' + error_msg);
+    if (fs.existsSync(tmp_worker_module_path)) {
+        console.error('Generated module was saved here: ' + tmp_worker_module_path);
+    }
+}
+
+
+function report_error_json(error_msg) {
+    let report = new Object();
+    report.error = error_msg
+    process.stderr.write(JSON.stringify(report));
+    if (fs.existsSync(tmp_worker_module_path)) {
+        console.log('\nGenerated module was saved here: ' + tmp_worker_module_path);
+    }
+}
+
+
 function handle_worker_success(warnings) {
     cleanup_tmp();
-    cli_success_cb(warnings);
+    if (error_format == 'hr') {
+        report_warnings_hr(warnings);
+    } else {
+        report_warnings_json(warnings);
+    }
 }
 
 
 function handle_worker_failure(error_msg) {
-    console.error('Error: ' + error_msg);
-    if (fs.existsSync(tmp_worker_module_path)) {
-        console.error('Generated module was saved here: ' + tmp_worker_module_path);
+    if (error_format == 'hr') {
+        report_error_hr(error_msg);
+    } else {
+        report_error_json(error_msg);
     }
     process.exit(1);
 }
@@ -140,6 +172,7 @@ function run_with_js(args) {
     var input_path = get_default(args, 'input_table_path', null);
     var output_path = get_default(args, 'output_table_path', null);
     var csv_encoding = args['csv_encoding'];
+    error_format = args['error_format'];
     var output_delim = get_default(args, 'out_delim', null);
     var output_policy = get_default(args, 'out_policy', null);
     if (output_delim === null) {
@@ -164,6 +197,7 @@ function main() {
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
         '--policy': {'help': 'Split policy'},
         '--out_format': {'default': 'tsv', 'help': 'Output format'},
+        '--error_format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
         '--out_delim': {'help': 'Output delim. Use with "out_policy". Overrides out_format'},
         '--out_policy': {'help': 'Output policy. Use with "out_delim". Overrides out_format'},
         '--query': {'help': 'Query string in rbql'},
