@@ -1488,7 +1488,7 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('"aaa,bbb","ccc"', (['aaa,bbb','ccc'], False)))
         test_cases.append(('"aaa,bbb","ccc,ddd"', (['aaa,bbb','ccc,ddd'], False)))
         test_cases.append(('"aaa,bbb",ccc,ddd', (['aaa,bbb','ccc', 'ddd'], False)))
-        test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['a"aa" a,bbb','ccc', 'ddd'], True)))
+        test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['"a"aa" a,bbb",ccc,ddd'], True)))
         test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc','ccc"', 'ddd'], True)))
         test_cases.append(('hello,world,"', (['hello','world', '"'], True)))
         for tc in test_cases:
@@ -1498,8 +1498,10 @@ class TestSplitMethods(unittest.TestCase):
             test_dst_preserved = rbql_utils.split_quoted_str(tc[0], ',', True)
             self.assertEqual(test_dst[1], test_dst_preserved[1])
             self.assertEqual(','.join(test_dst_preserved[0]), tc[0], 'preserved split failure')
-            self.assertEqual(test_dst[0], rbql_utils.unquote_fields(test_dst_preserved[0]))
-            self.assertEqual(canonic_dst, canonic_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
+            warning_expected = canonic_dst[1]
+            if not warning_expected:
+                self.assertEqual(test_dst[0], rbql_utils.unquote_fields(test_dst_preserved[0]))
+            self.assertEqual(test_dst, canonic_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
 
 
     def test_random(self):
