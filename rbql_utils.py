@@ -2,17 +2,24 @@ from collections import defaultdict
 
 def extract_next_field(src, dlm, preserve_quotes, cidx, result):
     warning = False
+    cidx_pre_whitespace = cidx
+    while cidx + 1 < len(src) and src[cidx] == ' ': # Trailing whitespaces error handling
+        cidx += 1
     if (src[cidx] == '"'):
         uidx = src.find('"', cidx + 1)
         while uidx != -1 and uidx + 1 < len(src) and src[uidx + 1] == '"':
             uidx = src.find('"', uidx + 2)
+        uidx_pre_whitespace = uidx
+        while uidx != -1 and uidx + 1 < len(src) and src[uidx + 1] == ' ': # Trailing whitespaces error handling
+            uidx += 1
         if uidx != -1 and (uidx + 1 == len(src) or src[uidx + 1] == dlm):
             if preserve_quotes:
-                result.append(src[cidx:uidx + 1])
+                result.append(src[cidx_pre_whitespace:uidx + 1])
             else:
-                result.append(src[cidx + 1:uidx].replace('""', '"'))
+                result.append(src[cidx + 1:uidx_pre_whitespace].replace('""', '"'))
             return (uidx + 2, False)
         warning = True
+    cidx = cidx_pre_whitespace
     uidx = src.find(dlm, cidx)
     if uidx == -1:
         uidx = len(src)
