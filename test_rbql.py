@@ -153,6 +153,22 @@ def table_has_delim(array2d, delim):
     return False
 
 
+def parse_json_report(exit_code, err_data):
+    err_data = err_data.decode('latin-1')
+    if not len(err_data) and exit_code == 0:
+        return dict()
+    try:
+        import json
+        report = json.loads(err_data)
+        if exit_code != 0 and 'error' not in report:
+            report['error'] = 'Unknown error'
+        return report
+    except Exception:
+        err_msg = err_data if len(err_data) else 'Unknown error'
+        report = {'error': err_msg}
+        return report
+
+
 def run_conversion_test_py(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, join_csv_encoding=default_csv_encoding):
     with rbql.RbqlPyEnv() as worker_env:
         tmp_path = worker_env.module_path
@@ -186,7 +202,7 @@ def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encod
     out_data, err_data = pobj.communicate()
     exit_code = pobj.returncode
 
-    operation_report = rbql.parse_json_report(exit_code, err_data)
+    operation_report = parse_json_report(exit_code, err_data)
     warnings = operation_report.get('warnings')
     operation_error = operation_report.get('error')
     if operation_error is not None:
@@ -207,7 +223,7 @@ def do_run_conversion_test_js(query, input_table, testname, input_delim, input_p
     out_data, err_data = pobj.communicate(src.encode(csv_encoding))
     exit_code = pobj.returncode
 
-    operation_report = rbql.parse_json_report(exit_code, err_data)
+    operation_report = parse_json_report(exit_code, err_data)
     warnings = operation_report.get('warnings')
     operation_error = operation_report.get('error')
     if operation_error is not None:
@@ -285,6 +301,7 @@ def select_random_formats(input_table):
         input_policy = random.choice(['quoted', 'simple'])
     output_delim, output_policy = get_random_output_format()
     return (input_delim, input_policy, output_delim, output_policy)
+
 
 
 class TestEverything(unittest.TestCase):
@@ -1343,16 +1360,10 @@ class TestFiles(unittest.TestCase):
 
 
 
-
 class TestStringMethods(unittest.TestCase):
     def test_strip4(self):
         a = ''' # a comment  '''
         a_strp = rbql.strip_py_comments(a)
-        self.assertEqual(a_strp, '')
-
-    def test_strip5(self):
-        a = ''' // a comment  '''
-        a_strp = rbql.strip_js_comments(a)
         self.assertEqual(a_strp, '')
 
 
@@ -1513,8 +1524,24 @@ def make_random_bin_table(num_rows, num_cols, key_col1, key_col2, delim, dst_pat
                 f.write('\n')
 
 
+def system_has_node_js():
+    import subprocess
+    exit_code = 0
+    out_data = ''
+    try:
+        cmd = ['node', '--version']
+        pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out_data, err_data = pobj.communicate()
+        exit_code = pobj.returncode
+    except OSError as e:
+        if e.errno == 2:
+            return False
+        raise
+    return exit_code == 0 and len(out_data) and len(err_data) == 0
+
+
 def setUpModule():
-    has_node = rbql.system_has_node_js()
+    has_node = system_has_node_js()
     if not has_node:
         eprint('Warning: Node.js was not found, skipping js unit tests')
         global TEST_JS
@@ -1537,10 +1564,6 @@ class TestParsing(unittest.TestCase):
             canonic_literals = tc[1]
             self.assertEqual(canonic_literals, string_literals)
             self.assertEqual(tc[0], rbql.combine_string_literals(format_expression, string_literals))
-
-        query = r'Select `hello` order by a1'
-        format_expression, string_literals = rbql.separate_string_literals_js(query)
-        self.assertEqual(['`hello`'], string_literals)
 
 
     def test_separate_actions(self):
@@ -1619,36 +1642,6 @@ class TestParsing(unittest.TestCase):
         canonic_dst = '[] + star_fields + [] + star_fields + [] + star_fields + [] + star_fields + []'
         self.assertEqual(canonic_dst, test_dst)
 
-
-        rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * '
-        test_dst = rbql.translate_select_expression_js(rbql_src)
-        canonic_dst = '[].concat([]).concat(star_fields).concat([ safe_get(afields, 1),  safe_get(afields, 2),safe_get(afields, 1)]).concat(star_fields).concat([]).concat(star_fields).concat([safe_get(bfields, 1)]).concat(star_fields).concat([]).concat(star_fields).concat([])'
-        self.assertEqual(canonic_dst, test_dst)
-
-        rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * '
-        test_dst = rbql.translate_select_expression_js(rbql_src)
-        canonic_dst = '[].concat([]).concat(star_fields).concat([ safe_get(afields, 1),  safe_get(afields, 2),safe_get(afields, 1)]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([safe_get(bfields, 1)]).concat(star_fields).concat([]).concat(star_fields).concat([])'
-        self.assertEqual(canonic_dst, test_dst)
-
-        rbql_src = ' * '
-        test_dst = rbql.translate_select_expression_js(rbql_src)
-        canonic_dst = '[].concat([]).concat(star_fields).concat([])'
-        self.assertEqual(canonic_dst, test_dst)
-
-        rbql_src = ' *,* '
-        test_dst = rbql.translate_select_expression_js(rbql_src)
-        canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])'
-        self.assertEqual(canonic_dst, test_dst)
-
-        rbql_src = ' *,*, * '
-        test_dst = rbql.translate_select_expression_js(rbql_src)
-        canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])'
-        self.assertEqual(canonic_dst, test_dst)
-
-        rbql_src = ' *,*, * , *'
-        test_dst = rbql.translate_select_expression_js(rbql_src)
-        canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])'
-        self.assertEqual(canonic_dst, test_dst)
 
 
 def main():

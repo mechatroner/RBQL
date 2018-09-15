@@ -2,7 +2,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
-const version = '0.1.0';
+const version = '0.2.0';
 
 const GROUP_BY = 'GROUP BY';
 const UPDATE = 'UPDATE';
@@ -562,3 +562,6 @@ module.exports.assert = assert;
 module.exports.default_csv_encoding = default_csv_encoding;
 module.exports.parse_to_js = parse_to_js;
 module.exports.make_warnings_human_readable = make_warnings_human_readable;
+module.exports.strip_js_comments = strip_js_comments;
+module.exports.separate_string_literals_js = separate_string_literals_js;
+module.exports.translate_select_expression_js = translate_select_expression_js;

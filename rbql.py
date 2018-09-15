@@ -25,7 +25,7 @@ import time
 # This module must be both python2 and python3 compatible
 
 
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 
 GROUP_BY = 'GROUP BY'
@@ -49,7 +49,6 @@ user_home_dir = os.path.expanduser('~')
 table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
 table_index_path = os.path.join(user_home_dir, '.rbql_table_index')
 
-js_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.js.raw'), encoding='utf-8').read()
 py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py.raw'), encoding='utf-8').read()
 
 
@@ -132,13 +131,6 @@ def strip_py_comments(cline):
     return cline
 
 
-def strip_js_comments(cline):
-    cline = cline.strip()
-    if cline.startswith('//'):
-        return ''
-    return cline
-
-
 def escape_string_literal(src):
     result = src.replace('\\', '\\\\')
     result = result.replace('\t', '\\t')
@@ -187,12 +179,6 @@ def replace_star_vars_py(rbql_expression):
     return rbql_expression
 
 
-def replace_star_vars_js(rbql_expression):
-    rbql_expression = re.sub(r'(?:^|,) *\* *(?=, *\* *($|,))', ']).concat(star_fields).concat([', rbql_expression)
-    rbql_expression = re.sub(r'(?:^|,) *\* *(?:$|,)', ']).concat(star_fields).concat([', rbql_expression)
-    return rbql_expression
-
-
 def translate_update_expression(update_expression, indent):
     translated = re.sub('(?:^|,) *a([1-9][0-9]*) *=(?=[^=])', '\nsafe_set(afields, \\1,', update_expression)
     update_statements = translated.split('\n')
@@ -218,23 +204,8 @@ def translate_select_expression_py(select_expression):
     return '[{}]'.format(translated)
 
 
-def translate_select_expression_js(select_expression):
-    translated = replace_star_count(select_expression)
-    translated = replace_column_vars(translated)
-    translated = replace_star_vars_js(translated)
-    translated = translated.strip()
-    if not len(translated):
-        raise RBParsingError('"SELECT" expression is empty')
-    return '[].concat([{}])'.format(translated)
-
-
 def separate_string_literals_py(rbql_expression):
     string_literals_regex = r'''(\"\"\"|\'\'\'|\"|\')((?<!\\)(\\\\)*\\\1|.)*?\1'''
-    return do_separate_string_literals(rbql_expression, string_literals_regex)
-
-
-def separate_string_literals_js(rbql_expression):
-    string_literals_regex = r'''(`|\"|\')((?<!\\)(\\\\)*\\\1|.)*?\1'''
     return do_separate_string_literals(rbql_expression, string_literals_regex)
 
 
@@ -457,136 +428,6 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
 
     with codecs.open(py_dst, 'w', encoding='utf-8') as dst:
         dst.write(rbql_meta_format(py_script_body, py_meta_params))
-
-
-def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules):
-    # FIXME drop support of js in python
-    if input_delim == '"' and input_policy == 'quoted':
-        raise RBParsingError('Double quote delimiter is incompatible with "quoted" policy')
-
-    rbql_lines = [strip_js_comments(l) for l in rbql_lines]
-    rbql_lines = [l for l in rbql_lines if len(l)]
-    full_rbql_expression = ' '.join(rbql_lines)
-    format_expression, string_literals = separate_string_literals_js(full_rbql_expression)
-    rb_actions = separate_actions(format_expression)
-
-    js_meta_params = dict()
-    # TODO add require modules feature
-    js_meta_params['rbql_home_dir'] = escape_string_literal(rbql_home_dir)
-    js_meta_params['input_delim'] = escape_string_literal(input_delim)
-    js_meta_params['input_policy'] = input_policy
-    js_meta_params['csv_encoding'] = 'binary' if csv_encoding == 'latin-1' else csv_encoding
-    js_meta_params['src_table_path'] = "null" if src_table_path is None else "'{}'".format(escape_string_literal(src_table_path))
-    js_meta_params['dst_table_path'] = "null" if dst_table_path is None else "'{}'".format(escape_string_literal(dst_table_path))
-    js_meta_params['output_delim'] = escape_string_literal(out_delim)
-    js_meta_params['output_policy'] = out_policy
-
-    if GROUP_BY in rb_actions:
-        if ORDER_BY in rb_actions or UPDATE in rb_actions:
-            raise RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
-        aggregation_key_expression = replace_column_vars(rb_actions[GROUP_BY]['text'])
-        js_meta_params['aggregation_key_expression'] = '[{}]'.format(combine_string_literals(aggregation_key_expression, string_literals))
-    else:
-        js_meta_params['aggregation_key_expression'] = 'null'
-
-    if JOIN in rb_actions:
-        rhs_table_id, lhs_join_var, rhs_join_var = parse_join_expression(rb_actions[JOIN]['text'])
-        rhs_table_path = find_table_path(rhs_table_id)
-        if rhs_table_path is None:
-            raise RBParsingError('Unable to find join B table: "{}"'.format(rhs_table_id))
-
-        join_delim, join_policy = input_delim, input_policy
-        join_format_record = get_index_record(table_index_path, rhs_table_path)
-        if join_format_record is not None:
-            join_delim, join_policy = join_format_record[1:3]
-            join_delim = normalize_delim(join_delim)
-
-        js_meta_params['join_operation'] = rb_actions[JOIN]['join_subtype']
-        js_meta_params['rhs_table_path'] ="'{}'".format(escape_string_literal(rhs_table_path))
-        js_meta_params['lhs_join_var'] = lhs_join_var
-        js_meta_params['rhs_join_var'] = rhs_join_var
-        js_meta_params['join_delim'] = escape_string_literal(join_delim)
-        js_meta_params['join_policy'] = join_policy
-    else:
-        js_meta_params['join_operation'] = 'VOID'
-        js_meta_params['rhs_table_path'] = 'null'
-        js_meta_params['lhs_join_var'] = 'null'
-        js_meta_params['rhs_join_var'] = 'null'
-        js_meta_params['join_delim'] = ''
-        js_meta_params['join_policy'] = ''
-
-    if WHERE in rb_actions:
-        where_expression = replace_column_vars(rb_actions[WHERE]['text'])
-        js_meta_params['where_expression'] = combine_string_literals(where_expression, string_literals)
-    else:
-        js_meta_params['where_expression'] = 'true'
-
-    if UPDATE in rb_actions:
-        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
-        js_meta_params['writer_type'] = 'simple'
-        js_meta_params['select_expression'] = 'null'
-        js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals)
-        js_meta_params['is_select_query'] = 'false'
-        js_meta_params['top_count'] = 'null'
-
-    if SELECT in rb_actions:
-        top_count = find_top(rb_actions)
-        js_meta_params['top_count'] = str(top_count) if top_count is not None else 'null'
-        if 'distinct_count' in rb_actions[SELECT]:
-            js_meta_params['writer_type'] = 'uniq_count'
-        elif 'distinct' in rb_actions[SELECT]:
-            js_meta_params['writer_type'] = 'uniq'
-        else:
-            js_meta_params['writer_type'] = 'simple'
-        select_expression = translate_select_expression_js(rb_actions[SELECT]['text'])
-        js_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals)
-        js_meta_params['update_statements'] = ''
-        js_meta_params['is_select_query'] = 'true'
-
-    if ORDER_BY in rb_actions:
-        order_expression = replace_column_vars(rb_actions[ORDER_BY]['text'])
-        js_meta_params['sort_key_expression'] = combine_string_literals(order_expression, string_literals)
-        js_meta_params['reverse_flag'] = 'true' if rb_actions[ORDER_BY]['reverse'] else 'false'
-        js_meta_params['sort_flag'] = 'true'
-    else:
-        js_meta_params['sort_key_expression'] = 'null'
-        js_meta_params['reverse_flag'] = 'false'
-        js_meta_params['sort_flag'] = 'false'
-
-    with codecs.open(js_dst, 'w', encoding='utf-8') as dst:
-        dst.write(rbql_meta_format(js_script_body, js_meta_params))
-
-
-def system_has_node_js():
-    import subprocess
-    exit_code = 0
-    out_data = ''
-    try:
-        cmd = ['node', '--version']
-        pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out_data, err_data = pobj.communicate()
-        exit_code = pobj.returncode
-    except OSError as e:
-        if e.errno == 2:
-            return False
-        raise
-    return exit_code == 0 and len(out_data) and len(err_data) == 0
-
-
-def parse_json_report(exit_code, err_data):
-    err_data = err_data.decode('latin-1')
-    if not len(err_data) and exit_code == 0:
-        return dict()
-    try:
-        import json
-        report = json.loads(err_data)
-        if exit_code != 0 and 'error' not in report:
-            report['error'] = 'Unknown error'
-        return report
-    except Exception:
-        err_msg = err_data if len(err_data) else 'Unknown error'
-        report = {'error': err_msg}
-        return report
 
 
 def make_inconsistent_num_fields_hr_warning(table_name, inconsistent_lines_info):

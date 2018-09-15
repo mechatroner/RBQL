@@ -61,6 +61,8 @@ if [ "$has_node" == "yes" ] ; then
     fi
 fi
 
+# FIXME add version comparison test: versions must be equal!
+
 cleanup_tmp_files
 
 echo "Finished tests"
