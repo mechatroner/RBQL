@@ -89,6 +89,7 @@ def run_with_python(args):
 
 
 def run_with_js(args):
+    # FIXME drop support of js in python
     if not rbql.system_has_node_js():
         print_error_and_exit('Error: Node.js is not found, test command: "node --version"')
     delim = rbql.normalize_delim(args.delim)

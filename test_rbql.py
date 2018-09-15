@@ -194,36 +194,8 @@ def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encod
     return (output_path, warnings)
 
 
-def run_file_query_test_py_js(query, input_path, testname, delim, policy, csv_encoding):
-    rnd_string = '{}{}_{}_{}'.format(rainbow_ut_prefix, time.time(), testname, random.randint(1, 100000000)).replace('.', '_')
-    script_filename = '{}.js'.format(rnd_string)
-    tmp_path = os.path.join(tmp_dir, script_filename)
-    dst_table_filename = '{}.tsv'.format(rnd_string)
-    output_path = os.path.join(tmp_dir, dst_table_filename)
-    rbql.parse_to_js(input_path, output_path, [query], tmp_path, delim, policy, '\t', 'simple', csv_encoding, None)
-    cmd = ['node', tmp_path]
-    pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out_data, err_data = pobj.communicate()
-    exit_code = pobj.returncode
-
-    operation_report = rbql.parse_json_report(exit_code, err_data)
-    warnings = operation_report.get('warnings')
-    operation_error = operation_report.get('error')
-    if operation_error is not None:
-        raise RuntimeError("Error in file test: {}.\nError text:\n{}\n\nScript location: {}".format(testname, operation_error, tmp_path))
-
-    assert os.path.exists(tmp_path)
-    rbql.remove_if_possible(tmp_path)
-    assert not os.path.exists(tmp_path)
-    return (output_path, warnings)
-
-
 def run_conversion_test_js(*args, **kwargs):
-    # TODO get rid of py_js mode
-    if random.choice([True, False]):
-        return do_run_conversion_test_js(*args, **kwargs)
-    else:
-        return do_run_conversion_test_py_js(*args, **kwargs)
+    return do_run_conversion_test_js(*args, **kwargs)
 
 
 def do_run_conversion_test_js(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, csv_encoding=default_csv_encoding):
@@ -246,34 +218,6 @@ def do_run_conversion_test_js(query, input_table, testname, input_delim, input_p
     if len(out_data):
         out_lines = out_data[:-1].split('\n')
         out_table = [smart_split(ln, output_delim, output_policy) for ln in out_lines]
-    return (out_table, warnings)
-
-
-def do_run_conversion_test_py_js(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, csv_encoding=default_csv_encoding):
-    script_name = '{}{}_{}_{}'.format(rainbow_ut_prefix, time.time(), testname, random.randint(1, 100000000)).replace('.', '_')
-    script_name += '.js'
-    tmp_path = os.path.join(tmp_dir, script_name)
-    rbql.parse_to_js(None, None, [query], tmp_path, input_delim, input_policy, output_delim, output_policy, csv_encoding, None)
-    src = table_to_string(input_table, input_delim, input_policy)
-    cmd = ['node', tmp_path]
-    pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-    out_data, err_data = pobj.communicate(src.encode(csv_encoding))
-    exit_code = pobj.returncode
-
-    operation_report = rbql.parse_json_report(exit_code, err_data)
-    warnings = operation_report.get('warnings')
-    operation_error = operation_report.get('error')
-    if operation_error is not None:
-        raise RuntimeError("Error in file test: {}.\nError text:\n{}\n\nScript location: {}".format(testname, operation_error, tmp_path))
-
-    out_table = []
-    out_data = out_data.decode(csv_encoding)
-    if len(out_data):
-        out_lines = out_data[:-1].split('\n')
-        out_table = [smart_split(ln, output_delim, output_policy) for ln in out_lines]
-    assert os.path.exists(tmp_path)
-    rbql.remove_if_possible(tmp_path)
-    assert not os.path.exists(tmp_path)
     return (out_table, warnings)
 
 
@@ -1388,18 +1332,6 @@ class TestFiles(unittest.TestCase):
                     assert backend_language == 'js'
                     try:
                         result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding)
-                    except Exception as e:
-                        if canonic_error_msg is None or str(e).find(canonic_error_msg) == -1:
-                            raise
-                        continue
-                    test_path = os.path.abspath(result_table) 
-                    test_md5 = calc_file_md5(result_table)
-                    self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {}; Actual: {}'.format(canonic_path, test_path))
-                    compare_warnings(self, canonic_warnings, warnings)
-
-                    # TODO get rid of the mode and of the tests below:
-                    try:
-                        result_table, warnings = run_file_query_test_py_js(query, src_path, str(test_no), delim, policy, encoding)
                     except Exception as e:
                         if canonic_error_msg is None or str(e).find(canonic_error_msg) == -1:
                             raise

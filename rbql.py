@@ -460,6 +460,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
 
 
 def parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules):
+    # FIXME drop support of js in python
     if input_delim == '"' and input_policy == 'quoted':
         raise RBParsingError('Double quote delimiter is incompatible with "quoted" policy')
 
