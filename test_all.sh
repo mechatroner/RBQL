@@ -40,9 +40,15 @@ fi
 python test_rbql.py --create_random_csv_table random_ut.csv
 python test_rbql.py --test_random_csv_table random_ut.csv
 
+py_rbql_version=$(python cli_rbql.py --version)
+
 if [ "$has_node" == "yes" ] ; then
     node ./unit_tests.js
     node ./unit_tests.js --test_random_csv_table random_ut.csv
+    js_rbql_version=$(node cli_rbql.js --version)
+    if [ "$py_rbql_version" != "$js_rbql_version" ] ; then
+        echo "Error: version missmatch between rbql.py ($py_rbql_version) and rbql.js ($js_rbql_version)"  1>&2
+    fi
 fi
 
 
@@ -60,8 +66,6 @@ if [ "$has_node" == "yes" ] ; then
         echo "CLI test FAIL!"  1>&2
     fi
 fi
-
-# FIXME add version comparison test: versions must be equal!
 
 cleanup_tmp_files
 

@@ -52,8 +52,6 @@ var null_record = null;
 
 var finished_with_error = false;
 
-// TODO run linter against ready template
-
 function finish_processing_error(error_msg) {
     finished_with_error = true;
     if (line_reader)
