@@ -1291,6 +1291,31 @@ class TestEverything(unittest.TestCase):
             compare_warnings(self, ['output_switch_to_csv'], warnings)
 
 
+    def test_run29(self):
+        test_name = 'test29'
+        if not TEST_JS:
+            # JS inerpolation test
+            return
+
+        input_table = list()
+        input_table.append(['cde', 'hello'])
+        input_table.append(['abc', 'world'])
+        input_table.append(['abc', 'stack'])
+
+        canonic_table = list()
+        canonic_table.append(['mv cde hello1 --opt1 --opt2'])
+        canonic_table.append(['mv abc world2 --opt1 --opt2'])
+        canonic_table.append(['mv abc stack3 --opt1 --opt2'])
+
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+
+        query = r'select `mv ${a1} ${a2 + NR} --opt1 --opt2`'
+        test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+
+
 
 def calc_file_md5(fname):
     import hashlib
