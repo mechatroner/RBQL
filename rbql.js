@@ -360,12 +360,11 @@ function translate_select_expression_js(select_expression) {
 
 
 function rbql_meta_format(template_src, meta_params) {
-    for (var k in meta_params) {
-        if (!meta_params.hasOwnProperty(k))
+    for (var key in meta_params) {
+        if (!meta_params.hasOwnProperty(key))
             continue;
-        var v = meta_params[k];
-        var template_marker = `__RBQLMP__${k}`;
-        var template_src_upd = replace_all(template_src, template_marker, v);
+        var value = meta_params[key];
+        var template_src_upd = replace_all(template_src, key, value);
         assert(template_src_upd != template_src);
         template_src = template_src_upd;
     }
@@ -404,22 +403,22 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
 
     var js_meta_params = {};
     // TODO use params with explicit __RBQLMP__ prefix
-    js_meta_params['rbql_home_dir'] = escape_string_literal(rbql_home_dir);
-    js_meta_params['input_delim'] = escape_string_literal(input_delim);
-    js_meta_params['input_policy'] = input_policy;
-    js_meta_params['csv_encoding'] = csv_encoding == 'latin-1' ? 'binary' : csv_encoding;
-    js_meta_params['src_table_path'] = src_table_path === null ? "null" : "'" + escape_string_literal(src_table_path) + "'";
-    js_meta_params['dst_table_path'] = dst_table_path === null ? "null" : "'" + escape_string_literal(dst_table_path) + "'";
-    js_meta_params['output_delim'] = escape_string_literal(out_delim);
-    js_meta_params['output_policy'] = out_policy;
+    js_meta_params['__RBQLMP__rbql_home_dir'] = escape_string_literal(rbql_home_dir);
+    js_meta_params['__RBQLMP__input_delim'] = escape_string_literal(input_delim);
+    js_meta_params['__RBQLMP__input_policy'] = input_policy;
+    js_meta_params['__RBQLMP__csv_encoding'] = csv_encoding == 'latin-1' ? 'binary' : csv_encoding;
+    js_meta_params['__RBQLMP__src_table_path'] = src_table_path === null ? "null" : "'" + escape_string_literal(src_table_path) + "'";
+    js_meta_params['__RBQLMP__dst_table_path'] = dst_table_path === null ? "null" : "'" + escape_string_literal(dst_table_path) + "'";
+    js_meta_params['__RBQLMP__output_delim'] = escape_string_literal(out_delim);
+    js_meta_params['__RBQLMP__output_policy'] = out_policy;
 
     if (rb_actions.hasOwnProperty(GROUP_BY)) {
         if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
             throw new RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
         var aggregation_key_expression = rb_actions[GROUP_BY]['text'];
-        js_meta_params['aggregation_key_expression'] = '[' + combine_string_literals(aggregation_key_expression, string_literals) + ']';
+        js_meta_params['__RBQLMP__aggregation_key_expression'] = '[' + combine_string_literals(aggregation_key_expression, string_literals) + ']';
     } else {
-        js_meta_params['aggregation_key_expression'] = 'null';
+        js_meta_params['__RBQLMP__aggregation_key_expression'] = 'null';
     }
 
     if (rb_actions.hasOwnProperty(JOIN)) {
@@ -434,66 +433,66 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
             join_delim = normalize_delim(join_format_record[1]);
             join_policy = join_format_record[2];
         }
-        js_meta_params['join_operation'] = rb_actions[JOIN]['join_subtype'];
-        js_meta_params['rhs_table_path'] = "'" + escape_string_literal(rhs_table_path) + "'";
-        js_meta_params['lhs_join_var'] = lhs_join_var;
-        js_meta_params['rhs_join_var'] = rhs_join_var;
-        js_meta_params['join_delim'] = escape_string_literal(join_delim);
-        js_meta_params['join_policy'] = join_policy;
+        js_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype'];
+        js_meta_params['__RBQLMP__rhs_table_path'] = "'" + escape_string_literal(rhs_table_path) + "'";
+        js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
+        js_meta_params['__RBQLMP__rhs_join_var'] = rhs_join_var;
+        js_meta_params['__RBQLMP__join_delim'] = escape_string_literal(join_delim);
+        js_meta_params['__RBQLMP__join_policy'] = join_policy;
     } else {
-        js_meta_params['join_operation'] = 'VOID';
-        js_meta_params['rhs_table_path'] = 'null';
-        js_meta_params['lhs_join_var'] = 'null';
-        js_meta_params['rhs_join_var'] = 'null';
-        js_meta_params['join_delim'] = '';
-        js_meta_params['join_policy'] = '';
+        js_meta_params['__RBQLMP__join_operation'] = 'VOID';
+        js_meta_params['__RBQLMP__rhs_table_path'] = 'null';
+        js_meta_params['__RBQLMP__lhs_join_var'] = 'null';
+        js_meta_params['__RBQLMP__rhs_join_var'] = 'null';
+        js_meta_params['__RBQLMP__join_delim'] = '';
+        js_meta_params['__RBQLMP__join_policy'] = '';
     }
 
     if (rb_actions.hasOwnProperty(WHERE)) {
         var where_expression = rb_actions[WHERE]['text'];
-        js_meta_params['where_expression'] = combine_string_literals(where_expression, string_literals);
+        js_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals);
     } else {
-        js_meta_params['where_expression'] = 'true';
+        js_meta_params['__RBQLMP__where_expression'] = 'true';
     }
 
 
     if (rb_actions.hasOwnProperty(UPDATE)) {
         var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
-        js_meta_params['writer_type'] = 'simple';
-        js_meta_params['select_expression'] = 'null';
-        js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals);
-        js_meta_params['is_select_query'] = 'false';
-        js_meta_params['top_count'] = 'null';
-        js_meta_params['init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(4));
+        js_meta_params['__RBQLMP__writer_type'] = 'simple';
+        js_meta_params['__RBQLMP__select_expression'] = 'null';
+        js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
+        js_meta_params['__RBQLMP__is_select_query'] = 'false';
+        js_meta_params['__RBQLMP__top_count'] = 'null';
+        js_meta_params['__RBQLMP__init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(4));
     } else {
-        js_meta_params['init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(8));
+        js_meta_params['__RBQLMP__init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(8));
     }
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         var top_count = find_top(rb_actions);
-        js_meta_params['top_count'] = top_count === null ? 'null' : String(top_count);
+        js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
-            js_meta_params['writer_type'] = 'uniq_count';
+            js_meta_params['__RBQLMP__writer_type'] = 'uniq_count';
         } else if (rb_actions[SELECT].hasOwnProperty('distinct')) {
-            js_meta_params['writer_type'] = 'uniq';
+            js_meta_params['__RBQLMP__writer_type'] = 'uniq';
         } else {
-            js_meta_params['writer_type'] = 'simple';
+            js_meta_params['__RBQLMP__writer_type'] = 'simple';
         }
         var select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
-        js_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals);
-        js_meta_params['update_statements'] = '';
-        js_meta_params['is_select_query'] = 'true';
+        js_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals);
+        js_meta_params['__RBQLMP__update_statements'] = '';
+        js_meta_params['__RBQLMP__is_select_query'] = 'true';
     }
 
     if (rb_actions.hasOwnProperty(ORDER_BY)) {
         var order_expression = rb_actions[ORDER_BY]['text'];
-        js_meta_params['sort_key_expression'] = combine_string_literals(order_expression, string_literals);
-        js_meta_params['reverse_flag'] = rb_actions[ORDER_BY]['reverse'] ? 'true' : 'false';
-        js_meta_params['sort_flag'] = 'true';
+        js_meta_params['__RBQLMP__sort_key_expression'] = combine_string_literals(order_expression, string_literals);
+        js_meta_params['__RBQLMP__reverse_flag'] = rb_actions[ORDER_BY]['reverse'] ? 'true' : 'false';
+        js_meta_params['__RBQLMP__sort_flag'] = 'true';
     } else {
-        js_meta_params['sort_key_expression'] = 'null';
-        js_meta_params['reverse_flag'] = 'false';
-        js_meta_params['sort_flag'] = 'false';
+        js_meta_params['__RBQLMP__sort_key_expression'] = 'null';
+        js_meta_params['__RBQLMP__reverse_flag'] = 'false';
+        js_meta_params['__RBQLMP__sort_flag'] = 'false';
     }
     var js_script_body = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
     fs.writeFileSync(js_dst, rbql_meta_format(js_script_body, js_meta_params));

@@ -104,10 +104,9 @@ def xrange6(x):
 
 
 def rbql_meta_format(template_src, meta_params):
-    for k, v in meta_params.items():
-        template_marker = '__RBQLMP__{}'.format(k)
+    for key, value in meta_params.items():
         # TODO make special replace for multiple statements, like in update, it should be indent-aware
-        template_src_upd = template_src.replace(template_marker, v)
+        template_src_upd = template_src.replace(key, value)
         assert template_src_upd != template_src
         template_src = template_src_upd
     return template_src
@@ -344,12 +343,12 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
             import_expression += 'import {}\n'.format(mdl)
 
     py_meta_params = dict()
-    py_meta_params['import_expression'] = import_expression
-    py_meta_params['input_delim'] = escape_string_literal(input_delim)
-    py_meta_params['input_policy'] = input_policy
-    py_meta_params['csv_encoding'] = csv_encoding
-    py_meta_params['output_delim'] = escape_string_literal(out_delim)
-    py_meta_params['output_policy'] = out_policy
+    py_meta_params['__RBQLMP__import_expression'] = import_expression
+    py_meta_params['__RBQLMP__input_delim'] = escape_string_literal(input_delim)
+    py_meta_params['__RBQLMP__input_policy'] = input_policy
+    py_meta_params['__RBQLMP__csv_encoding'] = csv_encoding
+    py_meta_params['__RBQLMP__output_delim'] = escape_string_literal(out_delim)
+    py_meta_params['__RBQLMP__output_policy'] = out_policy
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
         raise RBParsingError('"ORDER BY" is not allowed in "UPDATE" queries')
@@ -359,9 +358,9 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
             raise RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
         # TODO use js approach based on extract_column_vars function. Init missing fields with None using safe_get() for compatibility with js version
         aggregation_key_expression = replace_column_vars(rb_actions[GROUP_BY]['text'])
-        py_meta_params['aggregation_key_expression'] = '[{}]'.format(combine_string_literals(aggregation_key_expression, string_literals))
+        py_meta_params['__RBQLMP__aggregation_key_expression'] = '[{}]'.format(combine_string_literals(aggregation_key_expression, string_literals))
     else:
-        py_meta_params['aggregation_key_expression'] = 'None'
+        py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
     if JOIN in rb_actions:
         rhs_table_id, lhs_join_var, rhs_join_var = parse_join_expression(rb_actions[JOIN]['text'])
@@ -375,57 +374,57 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
             join_delim = normalize_delim(join_format_record[1])
             join_policy = join_format_record[2]
 
-        py_meta_params['join_operation'] = rb_actions[JOIN]['join_subtype']
-        py_meta_params['rhs_table_path'] = escape_string_literal(rhs_table_path)
-        py_meta_params['lhs_join_var'] = lhs_join_var
-        py_meta_params['rhs_join_var'] = rhs_join_var
-        py_meta_params['join_delim'] = escape_string_literal(join_delim)
-        py_meta_params['join_policy'] = join_policy
+        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
+        py_meta_params['__RBQLMP__rhs_table_path'] = escape_string_literal(rhs_table_path)
+        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
+        py_meta_params['__RBQLMP__rhs_join_var'] = rhs_join_var
+        py_meta_params['__RBQLMP__join_delim'] = escape_string_literal(join_delim)
+        py_meta_params['__RBQLMP__join_policy'] = join_policy
     else:
-        py_meta_params['join_operation'] = 'VOID'
-        py_meta_params['rhs_table_path'] = ''
-        py_meta_params['lhs_join_var'] = 'None'
-        py_meta_params['rhs_join_var'] = 'None'
-        py_meta_params['join_delim'] = ''
-        py_meta_params['join_policy'] = ''
+        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
+        py_meta_params['__RBQLMP__rhs_table_path'] = ''
+        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
+        py_meta_params['__RBQLMP__rhs_join_var'] = 'None'
+        py_meta_params['__RBQLMP__join_delim'] = ''
+        py_meta_params['__RBQLMP__join_policy'] = ''
 
     if WHERE in rb_actions:
         where_expression = replace_column_vars(rb_actions[WHERE]['text'])
-        py_meta_params['where_expression'] = combine_string_literals(where_expression, string_literals)
+        py_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals)
     else:
-        py_meta_params['where_expression'] = 'True'
+        py_meta_params['__RBQLMP__where_expression'] = 'True'
 
     if UPDATE in rb_actions:
         update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
-        py_meta_params['writer_type'] = 'simple'
-        py_meta_params['select_expression'] = 'None'
-        py_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals)
-        py_meta_params['is_select_query'] = 'False'
-        py_meta_params['top_count'] = 'None'
+        py_meta_params['__RBQLMP__writer_type'] = 'simple'
+        py_meta_params['__RBQLMP__select_expression'] = 'None'
+        py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
+        py_meta_params['__RBQLMP__is_select_query'] = 'False'
+        py_meta_params['__RBQLMP__top_count'] = 'None'
 
     if SELECT in rb_actions:
         top_count = find_top(rb_actions)
-        py_meta_params['top_count'] = str(top_count) if top_count is not None else 'None'
+        py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
         if 'distinct_count' in rb_actions[SELECT]:
-            py_meta_params['writer_type'] = 'uniq_count'
+            py_meta_params['__RBQLMP__writer_type'] = 'uniq_count'
         elif 'distinct' in rb_actions[SELECT]:
-            py_meta_params['writer_type'] = 'uniq'
+            py_meta_params['__RBQLMP__writer_type'] = 'uniq'
         else:
-            py_meta_params['writer_type'] = 'simple'
+            py_meta_params['__RBQLMP__writer_type'] = 'simple'
         select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
-        py_meta_params['select_expression'] = combine_string_literals(select_expression, string_literals)
-        py_meta_params['update_statements'] = 'pass'
-        py_meta_params['is_select_query'] = 'True'
+        py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
+        py_meta_params['__RBQLMP__update_statements'] = 'pass'
+        py_meta_params['__RBQLMP__is_select_query'] = 'True'
 
     if ORDER_BY in rb_actions:
         order_expression = replace_column_vars(rb_actions[ORDER_BY]['text'])
-        py_meta_params['sort_key_expression'] = combine_string_literals(order_expression, string_literals)
-        py_meta_params['reverse_flag'] = 'True' if rb_actions[ORDER_BY]['reverse'] else 'False'
-        py_meta_params['sort_flag'] = 'True'
+        py_meta_params['__RBQLMP__sort_key_expression'] = combine_string_literals(order_expression, string_literals)
+        py_meta_params['__RBQLMP__reverse_flag'] = 'True' if rb_actions[ORDER_BY]['reverse'] else 'False'
+        py_meta_params['__RBQLMP__sort_flag'] = 'True'
     else:
-        py_meta_params['sort_key_expression'] = 'None'
-        py_meta_params['reverse_flag'] = 'False'
-        py_meta_params['sort_flag'] = 'False'
+        py_meta_params['__RBQLMP__sort_key_expression'] = 'None'
+        py_meta_params['__RBQLMP__reverse_flag'] = 'False'
+        py_meta_params['__RBQLMP__sort_flag'] = 'False'
 
     with codecs.open(py_dst, 'w', encoding='utf-8') as dst:
         dst.write(rbql_meta_format(py_script_body, py_meta_params))
