@@ -378,11 +378,11 @@ function generate_init_statements(column_vars, indent) {
     for (var i = 0; i < column_vars.length; i++) {
         var var_name = column_vars[i];
         var var_group = var_name.charAt(0);
-        var var_idx = var_name.substr(1);
+        var zero_based_idx = parseInt(var_name.substr(1)) - 1;
         if (var_group == 'a') {
-            init_statements.push(`var ${var_name} = safe_get(afields, ${var_idx});`);
+            init_statements.push(`var ${var_name} = afields[${zero_based_idx}];`);
         } else {
-            init_statements.push(`var ${var_name} = bfields === null ? undefined : safe_get(bfields, ${var_idx});`);
+            init_statements.push(`var ${var_name} = bfields === null ? undefined : bfields[${zero_based_idx}];`);
         }
     }
     for (var i = 1; i < init_statements.length; i++) {
@@ -398,8 +398,8 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     rbql_lines = rbql_lines.map(strip_js_comments);
     rbql_lines = rbql_lines.filter(line => line.length);
     var full_rbql_expression = rbql_lines.join(' ');
+    var column_vars = extract_column_vars(full_rbql_expression);
     var [format_expression, string_literals] = separate_string_literals_js(full_rbql_expression);
-    var column_vars = extract_column_vars(format_expression);
     var rb_actions = separate_actions(format_expression);
 
     var js_meta_params = {};
@@ -449,17 +449,13 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         js_meta_params['join_policy'] = '';
     }
 
-    var pre_column_vars = {};
     if (rb_actions.hasOwnProperty(WHERE)) {
         var where_expression = rb_actions[WHERE]['text'];
-        pre_column_vars = extract_column_vars(where_expression);
         js_meta_params['where_expression'] = combine_string_literals(where_expression, string_literals);
     } else {
         js_meta_params['where_expression'] = 'true';
     }
 
-    //TODO substract pre_column_vars from column_vars
-    js_meta_params['init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(8));
 
     if (rb_actions.hasOwnProperty(UPDATE)) {
         var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
@@ -468,9 +464,9 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         js_meta_params['update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['is_select_query'] = 'false';
         js_meta_params['top_count'] = 'null';
-        js_meta_params['pre_init_column_vars'] = generate_init_statements(pre_column_vars, ' '.repeat(4));
+        js_meta_params['init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(4));
     } else {
-        js_meta_params['pre_init_column_vars'] = generate_init_statements(pre_column_vars, ' '.repeat(8));
+        js_meta_params['init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(8));
     }
 
     if (rb_actions.hasOwnProperty(SELECT)) {

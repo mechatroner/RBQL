@@ -431,9 +431,8 @@ function process_update(NF, afields, rhs_records) {
     var bfields = null;
     if (rhs_records != null && rhs_records.length == 1)
         bfields = rhs_records[0];
-    __RBQLMP__pre_init_column_vars
+    __RBQLMP__init_column_vars
     if ((rhs_records == null || rhs_records.length == 1) && (__RBQLMP__where_expression)) {
-        __RBQLMP__init_column_vars
         NU += 1;
         __RBQLMP__update_statements
     }
@@ -497,10 +496,9 @@ function process_select(NF, afields, rhs_records) {
         var star_fields = afields;
         if (bfields != null)
             star_fields = afields.concat(bfields);
-        __RBQLMP__pre_init_column_vars
+        __RBQLMP__init_column_vars
         if (!(__RBQLMP__where_expression))
             continue;
-        __RBQLMP__init_column_vars
         // TODO wrap all user expression in try/catch block to improve error reporting
         var out_fields = __RBQLMP__select_expression;
         if (aggregation_stage > 0) {

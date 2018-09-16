@@ -435,6 +435,12 @@ class TestEverything(unittest.TestCase):
         input_table.append(['81', 'haha', 'dfdf'])
         input_table.append(['4', 'haha', 'dfdf', 'asdfa', '111'])
 
+        canonic_table = list()
+        canonic_table.append(['haha'])
+        canonic_table.append([''])
+        canonic_table.append(['haha'])
+        canonic_table.append(['haha'])
+
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         with self.assertRaises(Exception) as cm:
@@ -443,10 +449,9 @@ class TestEverything(unittest.TestCase):
         self.assertTrue(str(e).find('No "a2" column at line: 2') != -1)
 
         if TEST_JS:
-            with self.assertRaises(Exception) as cm:
-                run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            e = cm.exception
-            self.assertTrue(str(e).find('No "a2" column at line: 2') != -1)
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, ['input_fields_info', 'null_value_in_output'], warnings)
 
 
     def test_run6(self):

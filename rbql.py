@@ -357,6 +357,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
             raise RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
+        # TODO use js approach based on extract_column_vars function. Init missing fields with None using safe_get() for compatibility with js version
         aggregation_key_expression = replace_column_vars(rb_actions[GROUP_BY]['text'])
         py_meta_params['aggregation_key_expression'] = '[{}]'.format(combine_string_literals(aggregation_key_expression, string_literals))
     else:
