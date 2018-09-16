@@ -402,7 +402,6 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
     var rb_actions = separate_actions(format_expression);
 
     var js_meta_params = {};
-    // TODO use params with explicit __RBQLMP__ prefix
     js_meta_params['__RBQLMP__rbql_home_dir'] = escape_string_literal(rbql_home_dir);
     js_meta_params['__RBQLMP__input_delim'] = escape_string_literal(input_delim);
     js_meta_params['__RBQLMP__input_policy'] = input_policy;
