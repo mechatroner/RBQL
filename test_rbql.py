@@ -17,7 +17,7 @@ import io
 import subprocess
 
 import rbql
-import rbql_utils
+from rbql import rbql_utils
 
 #This module must be both python2 and python3 compatible
 
