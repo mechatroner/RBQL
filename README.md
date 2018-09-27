@@ -2,7 +2,7 @@
 
 [Official Site](https://rbql.org/)
 
-The current purpose of this repository is features synchronization and testing of different RBQL implementations.
+The current purpose of this repository is feature synchronization and testing of different RBQL implementations.
 
 References:
 * Python-based RBQL: [rbql-py](https://github.com/mechatroner/rbql-py)
