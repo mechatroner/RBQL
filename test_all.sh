@@ -60,12 +60,12 @@ fi
 python test_rbql.py --create_random_csv_table random_ut.csv
 python test_rbql.py --test_random_csv_table random_ut.csv
 
-py_rbql_version=$(python cli_rbql.py --version)
+py_rbql_version=$(python -m rbql --version)
 
 if [ "$has_node" == "yes" ] ; then
     node ./unit_tests.js
     node ./unit_tests.js --test_random_csv_table random_ut.csv
-    js_rbql_version=$(node cli_rbql.js --version)
+    js_rbql_version=$(node rbql-js/cli_rbql.js --version)
     if [ "$py_rbql_version" != "$js_rbql_version" ] ; then
         echo "Error: version missmatch between rbql.py ($py_rbql_version) and rbql.js ($js_rbql_version)"  1>&2
     fi
@@ -73,14 +73,14 @@ fi
 
 
 # CLI tests:
-md5sum_test=($( ./cli_rbql.py --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test_datasets/movies.tsv | md5sum))
+md5sum_test=($(python -m rbql --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test_datasets/movies.tsv | md5sum))
 md5sum_canonic=($( md5sum unit_tests/canonic_result_4.tsv ))
 if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
     echo "CLI test FAIL!"  1>&2
 fi
 
 if [ "$has_node" == "yes" ] ; then
-    md5sum_test=($( node ./cli_rbql.js --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010" < test_datasets/movies.tsv | md5sum))
+    md5sum_test=($( node ./rbql-js/cli_rbql.js --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010" < test_datasets/movies.tsv | md5sum))
     md5sum_canonic=($( md5sum unit_tests/canonic_result_4.tsv ))
     if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
         echo "CLI test FAIL!"  1>&2
