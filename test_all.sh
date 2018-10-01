@@ -2,27 +2,15 @@
 
 cleanup_tmp_files() {
     rm random_ut.csv 2> /dev/null
-    rm -rf rbql 2> /dev/null
-    rm -rf rbql-js 2> /dev/null
 }
 
 skip_python_ut="False"
-py_path=""
-js_path=""
 
 while test ${#} -gt 0
 do
   if [ $1 == "--skip_python_ut" ]; then
       shift
       skip_python_ut="True"
-  elif [ $1 == "--rbqlpy" ]; then
-      shift
-      py_path="$1"
-      shift
-  elif [ $1 == "--rbqljs" ]; then
-      shift
-      js_path="$1"
-      shift
   else
       echo "Error. Unknown parameter: $1" 1>&2
       shift
@@ -31,15 +19,7 @@ do
 done
 
 
-if [ -z "$py_path" ] || [ -z "$js_path" ] ; then
-    echo "Error: python rbql path or js rbql path wasn't provided. Exiting."
-    exit 1
-fi
-
 cleanup_tmp_files
-
-ln -s "$py_path" rbql
-ln -s "$js_path" rbql-js
 
 if [ $skip_python_ut == "False" ]; then
     python -m unittest test_rbql
