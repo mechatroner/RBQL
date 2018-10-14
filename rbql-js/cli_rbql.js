@@ -158,6 +158,7 @@ function handle_worker_failure(error_msg) {
 
 
 function run_with_js(args) {
+    // FIXME handle exceptions and report in CLI-friendly way
     var delim = normalize_delim(args['delim']);
     var policy = args['policy'];
     if (!policy) {
