@@ -4,11 +4,11 @@ RBQL is a technology which provides SQL-like language that supports _SELECT_ and
 [Official Site](https://rbql.org/)
 
 ### Main Features
-* Use Python or Java Script expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
-* Result set of any query immediately becomes a first-class table on it's own.
-* Output entries appear in the same order as in input unless _ORDER BY_ is provided.
-* Input csv/tsv spreadsheet may contain varying number of entries (but select query must be written in a way that prevents output of missing values)
-* Works out of the box, no external dependencies.
+* Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
+* Result set of any query immediately becomes a first-class table on it's own
+* Output entries appear in the same order as in input unless _ORDER BY_ is provided
+* Supports input tables with inconsistent number of fields per record
+* Works out of the box, no external dependencies
 
 ### Supported SQL Keywords (Keywords are case insensitive)
 
