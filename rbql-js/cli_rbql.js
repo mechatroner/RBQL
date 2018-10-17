@@ -156,9 +156,25 @@ function handle_worker_failure(error_msg) {
     process.exit(1);
 }
 
+function get_error_message(error) {
+    if (error && error.message)
+        return error.message;
+    return String(error);
+}
+
+
+function report_parsing_error(error_msg) {
+    if (error_format == 'hr') {
+        console.error('Parsing Error: ' + error_msg);
+    } else {
+        let report = new Object();
+        report.error = error_msg
+        process.stderr.write(JSON.stringify(report));
+    }
+}
+
 
 function run_with_js(args) {
-    // FIXME handle exceptions and report in CLI-friendly way
     var delim = normalize_delim(args['delim']);
     var policy = args['policy'];
     if (!policy) {
@@ -181,7 +197,12 @@ function run_with_js(args) {
     var tmp_dir = os.tmpdir();
     var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
     tmp_worker_module_path = path.join(tmp_dir, script_filename);
-    rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding);
+    try {
+        rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding);
+    } catch (e) {
+        report_parsing_error(get_error_message(e));
+        process.exit(1);
+    }
     if (args.hasOwnProperty('parse_only')) {
         console.log('Worker module location: ' + tmp_worker_module_path);
         return;
