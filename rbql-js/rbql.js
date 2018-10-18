@@ -2,7 +2,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
-const version = '0.2.0';
+const version = '0.3.0';
 
 const GROUP_BY = 'GROUP BY';
 const UPDATE = 'UPDATE';
