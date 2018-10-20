@@ -25,7 +25,7 @@ import time
 # This module must be both python2 and python3 compatible
 
 
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 
 
 GROUP_BY = 'GROUP BY'
@@ -447,7 +447,7 @@ def make_warnings_human_readable(warnings):
     result = list()
     for warning_type, warning_value in warnings.items():
         if warning_type == 'null_value_in_output':
-            result.append('None/null values in output were replaced by empty strings.')
+            result.append('None values in output were replaced by empty strings.')
         elif warning_type == 'delim_in_simple_output':
             result.append('Some result set fields contain output separator.')
         elif warning_type == 'output_switch_to_csv':

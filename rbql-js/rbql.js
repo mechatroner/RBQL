@@ -391,7 +391,7 @@ function generate_init_statements(column_vars, indent) {
 }
 
 
-function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding) {
+function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
     rbql_lines = rbql_lines.map(strip_js_comments);
@@ -496,8 +496,15 @@ function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_d
         js_meta_params['__RBQLMP__reverse_flag'] = 'false';
         js_meta_params['__RBQLMP__sort_flag'] = 'false';
     }
-    var js_script_body = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
-    fs.writeFileSync(js_dst, rbql_meta_format(js_script_body, js_meta_params));
+    var result_script = rbql_meta_format(js_template_text, js_meta_params);
+    return result_script;
+}
+
+
+function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding) {
+    var js_template_text = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
+    var result_script = parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding);
+    fs.writeFileSync(js_dst, result_script);
 }
 
 
@@ -527,7 +534,7 @@ function make_warnings_human_readable(warnings) {
         let warning_type = keys[i];
         let warning_value = warnings[warning_type];
         if (warning_type == 'null_value_in_output') {
-            result.push('None/null values in output were replaced by empty strings.');
+            result.push('undefined/null values in output were replaced by empty strings.');
         } else if (warning_type == 'delim_in_simple_output') {
             result.push('Some result set fields contain output separator.');
         } else if (warning_type == 'output_switch_to_csv') {
@@ -558,6 +565,7 @@ module.exports.version = version;
 module.exports.assert = assert;
 module.exports.default_csv_encoding = default_csv_encoding;
 module.exports.parse_to_js = parse_to_js;
+module.exports.parse_to_js_almost_web = parse_to_js_almost_web;
 module.exports.make_warnings_human_readable = make_warnings_human_readable;
 module.exports.strip_js_comments = strip_js_comments;
 module.exports.separate_string_literals_js = separate_string_literals_js;
