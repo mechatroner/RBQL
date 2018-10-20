@@ -531,7 +531,7 @@ function make_warnings_human_readable(warnings) {
         let warning_type = keys[i];
         let warning_value = warnings[warning_type];
         if (warning_type == 'null_value_in_output') {
-            result.push('None/null values in output were replaced by empty strings.');
+            result.push('undefined/null values in output were replaced by empty strings.');
         } else if (warning_type == 'delim_in_simple_output') {
             result.push('Some result set fields contain output separator.');
         } else if (warning_type == 'output_switch_to_csv') {
