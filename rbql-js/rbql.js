@@ -170,8 +170,8 @@ function parse_join_expression(src) {
     }
     avar = avar.substr(1);
     bvar = bvar.substr(1);
-    var lhs_join_var = `safe_get(afields, ${avar})`;
-    var rhs_join_var = `safe_get(bfields, ${bvar})`;
+    var lhs_join_var = `safe_join_get(afields, ${avar})`;
+    var rhs_join_var = `safe_join_get(bfields, ${bvar})`;
     return [table_id, lhs_join_var, rhs_join_var];
 }
 

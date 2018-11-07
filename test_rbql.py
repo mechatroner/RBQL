@@ -443,10 +443,10 @@ class TestEverything(unittest.TestCase):
 
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
-        with self.assertRaises(Exception) as cm:
-            run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, import_modules=['math', 'os'])
-        e = cm.exception
-        self.assertTrue(str(e).find('No "a2" column at line: 2') != -1)
+
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, ['input_fields_info', 'null_value_in_output'], warnings)
 
         if TEST_JS:
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
@@ -1418,6 +1418,9 @@ class TestFiles(unittest.TestCase):
         with codecs.open(ut_config_path, encoding='utf-8') as src:
             for test_no, line in enumerate(src, 1):
                 config = json.loads(line)
+                backend_language = config.get('backend_language', 'python')
+                if not TEST_JS and backend_language == 'js':
+                    continue
                 src_path = config['src_table']
                 canonic_table = config.get('canonic_table')
                 canonic_error_msg = config.get('canonic_error_msg')
@@ -1431,7 +1434,6 @@ class TestFiles(unittest.TestCase):
                     delim = '\t'
                 default_policy = 'quoted' if delim in [';', ','] else 'simple'
                 policy = config.get('policy', default_policy)
-                backend_language = config.get('backend_language', 'python')
                 canonic_path = None if canonic_table is None else os.path.abspath(canonic_table)
                 canonic_md5 = calc_file_md5(canonic_table)
 
@@ -1448,8 +1450,6 @@ class TestFiles(unittest.TestCase):
                     self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {}; Actual: {}'.format(canonic_path, test_path))
                     compare_warnings(self, canonic_warnings, warnings)
                 else: 
-                    if not TEST_JS:
-                        continue
                     assert backend_language == 'js'
                     try:
                         result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding)
@@ -1679,10 +1679,10 @@ class TestParsing(unittest.TestCase):
 
     def test_join_parsing(self):
         join_part = '/path/to/the/file.tsv on a1 == b3'
-        self.assertEqual(('/path/to/the/file.tsv', 'safe_get(afields, 1)', 'safe_get(bfields, 3)'), rbql.parse_join_expression(join_part))
+        self.assertEqual(('/path/to/the/file.tsv', 'safe_join_get(afields, 1)', 'safe_join_get(bfields, 3)'), rbql.parse_join_expression(join_part))
 
         join_part = ' file.tsv on b20== a12  '
-        self.assertEqual(('file.tsv', 'safe_get(afields, 12)', 'safe_get(bfields, 20)'), rbql.parse_join_expression(join_part))
+        self.assertEqual(('file.tsv', 'safe_join_get(afields, 12)', 'safe_join_get(bfields, 20)'), rbql.parse_join_expression(join_part))
 
         join_part = '/path/to/the/file.tsv on a1==a12  '
         with self.assertRaises(Exception) as cm:
@@ -1695,12 +1695,6 @@ class TestParsing(unittest.TestCase):
             rbql.parse_join_expression(join_part)
         e = cm.exception
         self.assertTrue(str(e).find('Incorrect join syntax') != -1)
-
-
-    def test_column_vars_replacement(self):
-        rbql_src = 'select top   100 *, a2,a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and int(b3) == 100 order by int(a7) desc '
-        replaced = 'select top   100 *, safe_get(afields, 2),safe_get(afields, 3) inner  join /path/to/the/file.tsv on safe_get(afields, 1) == safe_get(bfields, 3) where safe_get(afields, 4) == "hello" and int(safe_get(bfields, 3)) == 100 order by int(safe_get(afields, 7)) desc '
-        self.assertEqual(replaced, rbql.replace_column_vars(rbql_src))
 
 
     def test_update_translation(self):

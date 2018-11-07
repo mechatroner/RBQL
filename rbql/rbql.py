@@ -148,8 +148,8 @@ def parse_join_expression(src):
         avar, bvar = bvar, avar
     if avar[0] != 'a' or bvar[0] != 'b':
         raise RBParsingError('Incorrect join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
-    lhs_join_var = 'safe_get(afields, {})'.format(int(avar[1:]))
-    rhs_join_var = 'safe_get(bfields, {})'.format(int(bvar[1:]))
+    lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]))
+    rhs_join_var = 'safe_join_get(bfields, {})'.format(int(bvar[1:]))
     return (table_id, lhs_join_var, rhs_join_var)
 
 
@@ -356,7 +356,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
             raise RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
-        # TODO use js approach based on extract_column_vars function. Init missing fields with None using safe_get() for compatibility with js version
+        # TODO use js approach based on "extract_column_vars()" function
         aggregation_key_expression = replace_column_vars(rb_actions[GROUP_BY]['text'])
         py_meta_params['__RBQLMP__aggregation_key_expression'] = '[{}]'.format(combine_string_literals(aggregation_key_expression, string_literals))
     else:

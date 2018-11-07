@@ -300,7 +300,7 @@ function AggregateWriter(subwriter) {
 }
 
 
-function safe_get(record, idx) {
+function safe_join_get(record, idx) {
     if (idx - 1 < record.length) {
         return record[idx - 1];
     }
