@@ -21,8 +21,13 @@ def print_error_and_exit(error_msg):
     sys.exit(1)
 
 
-def interpret_format(format_name):
-    assert format_name in ['csv', 'tsv', 'monocolumn'], 'unknown format'
+out_format_names = ['input', 'csv', 'tsv', 'monocolumn']
+
+
+def interpret_format(format_name, input_delim, input_policy):
+    assert format_name in out_format_names, 'unknown format'
+    if format_name == 'input':
+        return (input_delim, input_policy)
     if format_name == 'monocolumn':
         return ('', 'monocolumn')
     if format_name == 'csv':
@@ -32,9 +37,14 @@ def interpret_format(format_name):
 
 def run_with_python(args):
     delim = rbql.normalize_delim(args.delim)
-    policy = args.policy
-    if policy is None:
-        policy = 'quoted' if delim in [';', ','] else 'simple'
+    if args.policy is not None:
+        policy = args.policy
+    elif delim in [';', ',']:
+        policy = 'quoted'
+    elif delim == ' ':
+        policy = 'whitespace'
+    else:
+        policy = 'simple'
     query = args.query
     query_path = args.query_file
     convert_only = args.convert_only
@@ -42,7 +52,7 @@ def run_with_python(args):
     output_path = args.output_table_path
     import_modules = args.libs
     csv_encoding = args.csv_encoding
-    output_delim, output_policy = interpret_format(args.out_format)
+    output_delim, output_policy = interpret_format(args.out_format, delim, policy)
 
     rbql_lines = None
     if query is None and query_path is None:
@@ -95,7 +105,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--delim', help='Delimiter', default='\t')
     parser.add_argument('--policy', help='csv split policy', choices=['simple', 'quoted', 'monocolumn'])
-    parser.add_argument('--out_format', help='output format', default='tsv', choices=['csv', 'tsv', 'monocolumn'])
+    parser.add_argument('--out_format', help='output format', default='input', choices=out_format_names)
     parser.add_argument('--query', help='Query string in rbql')
     parser.add_argument('--query_file', metavar='FILE', help='Read rbql query from FILE')
     parser.add_argument('--input_table_path', metavar='FILE', help='Read csv table from FILE instead of stdin')

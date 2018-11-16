@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 
 def extract_next_field(src, dlm, preserve_quotes, cidx, result):

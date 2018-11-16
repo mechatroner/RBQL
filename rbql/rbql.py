@@ -25,7 +25,7 @@ import time
 # This module must be both python2 and python3 compatible
 
 
-__version__ = '0.3.0'
+__version__ = '0.4.0'
 
 
 GROUP_BY = 'GROUP BY'
@@ -330,6 +330,8 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
 
     if input_delim == '"' and input_policy == 'quoted':
         raise RBParsingError('Double quote delimiter is incompatible with "quoted" policy')
+    if input_delim != ' ' and input_policy == 'whitespace':
+        raise RBParsingError('Only whitespace " " delim is supported with "whitespace" policy')
 
     rbql_lines = [strip_py_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]

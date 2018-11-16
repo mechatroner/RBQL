@@ -182,6 +182,8 @@ elif '__RBQLMP__output_policy' == 'quoted':
     output_join = quoted_join
 elif '__RBQLMP__output_policy' == 'monocolumn':
     output_join = mono_join
+elif '__RBQLMP__output_policy' == 'whitespace':
+    output_join = simple_join
 else:
     raise RuntimeError('unknown output csv policy')
 
@@ -192,6 +194,8 @@ elif '__RBQLMP__input_policy' == 'quoted':
     input_split = lambda line: rbql_utils.split_quoted_str(line, input_delim)
 elif '__RBQLMP__input_policy' == 'monocolumn':
     input_split = lambda line: ([line], 0)
+elif '__RBQLMP__input_policy' == 'whitespace':
+    input_split = lambda line: (rbql_utils.split_whitespace_separated_str(line), 0)
 else:
     raise RuntimeError('unknown input csv policy')
 
@@ -204,6 +208,8 @@ elif '__RBQLMP__join_policy' == 'quoted':
     join_split = lambda line: rbql_utils.split_quoted_str(line, join_delim)
 elif '__RBQLMP__join_policy' == 'monocolumn':
     join_split = lambda line: ([line], 0)
+elif '__RBQLMP__input_policy' == 'whitespace':
+    input_split = lambda line: (rbql_utils.split_whitespace_separated_str(line), 0)
 else:
     raise RuntimeError('unknown join csv policy')
 
@@ -212,6 +218,13 @@ def add_to_set(dst_set, value):
     len_before = len(dst_set)
     dst_set.add(value)
     return len_before != len(dst_set)
+
+
+def try_flush(dst_stream):
+    try:
+        dst_stream.flush()
+    except Exception:
+        pass
 
 
 class SimpleWriter(object):
@@ -228,7 +241,7 @@ class SimpleWriter(object):
         return True
 
     def finish(self):
-        pass
+        try_flush(self.dst)
 
 
 class UniqWriter(object):
@@ -248,7 +261,7 @@ class UniqWriter(object):
         return True
 
     def finish(self):
-        pass
+        try_flush(self.dst)
 
 
 class UniqCountWriter(object):
@@ -273,6 +286,7 @@ class UniqCountWriter(object):
             new_record = '{}{}{}\n'.format(count, output_delim, record)
             self.dst.write(new_record)
             NW += 1
+        try_flush(self.dst)
 
 
 class SortedWriter(object):
