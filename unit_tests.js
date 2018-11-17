@@ -113,7 +113,7 @@ function test_select_expression_translation() {
 
 
 function test_split() {
-    var test_cases = []
+    var test_cases = [];
     test_cases.push(['hello,world', ['hello','world'], false]);
     test_cases.push(['hello,"world"', ['hello','world'], false]);
     test_cases.push(['"abc"', ['abc'], false]);
@@ -150,9 +150,34 @@ function test_split() {
     }
 }
 
+function test_split_whitespaces() {
+    var test_cases = [];
+
+    test_cases.push(['hello world', ['hello','world'], false])
+    test_cases.push(['hello   world', ['hello','world'], false])
+    test_cases.push(['   hello   world   ', ['hello','world'], false])
+    test_cases.push(['     ', [], false])
+    test_cases.push(['', [], false])
+    test_cases.push(['   a   b  c d ', ['a', 'b', 'c', 'd'], false])
+
+    test_cases.push(['hello world', ['hello ','world'], true])
+    test_cases.push(['hello   world', ['hello   ','world'], true])
+    test_cases.push(['   hello   world   ', ['   hello   ','world   '], true])
+    test_cases.push(['     ', [], true])
+    test_cases.push(['', [], true])
+    test_cases.push(['   a   b  c d ', ['   a   ', 'b  ', 'c ', 'd '], true])
+
+    for (let i = 0; i < test_cases.length; i++) {
+        let [src, canonic_dst, preserve_whitespaces] = test_cases[i];
+        let test_dst = rbql_utils.split_whitespace_separated_str(src, preserve_whitespaces)
+        assert(arrays_are_equal(canonic_dst, test_dst, 'whitespace split failure'));
+    }
+}
+
 
 function test_all() {
     test_split();
+    test_split_whitespaces();
     test_comments_strip();
     test_separate_string_literals();
     test_select_expression_translation();

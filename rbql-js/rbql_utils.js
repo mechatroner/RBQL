@@ -82,6 +82,17 @@ function unquote_fields(fields) {
 }
 
 
+function split_whitespace_separated_str(src, preserve_whitespaces=false) {
+    var rgxp = preserve_whitespaces ? new RegExp(' *[^ ]+ *', 'g') : new RegExp('[^ ]+', 'g');
+    let result = [];
+    let match_obj = null;
+    while((match_obj = rgxp.exec(src)) !== null) {
+        result.push(match_obj[0]);
+    }
+    return result;
+}
+
+
 function MinAggregator() {
     this.stats = new Map();
 
@@ -271,6 +282,7 @@ function SubkeyChecker() {
 
 module.exports.split_quoted_str = split_quoted_str;
 module.exports.unquote_fields = unquote_fields;
+module.exports.split_whitespace_separated_str = split_whitespace_separated_str;
 
 module.exports.MinAggregator = MinAggregator;
 module.exports.MaxAggregator = MaxAggregator;
