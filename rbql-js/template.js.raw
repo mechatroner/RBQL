@@ -604,6 +604,8 @@ function do_run_encapsulated(input_reader, output_stream) {
         output_join = quoted_join;
     } else if ('__RBQLMP__output_policy' == 'monocolumn') {
         output_join = mono_join;
+    } else if ('__RBQLMP__output_policy' == 'whitespace') {
+        output_join = simple_join;
     } else {
         throw new RbqlError('unknown output csv policy');
     }
@@ -615,6 +617,8 @@ function do_run_encapsulated(input_reader, output_stream) {
         input_split = function(line) { return rbql_utils.split_quoted_str(line, input_delim); }
     } else if ('__RBQLMP__input_policy' == 'monocolumn') {
         input_split = function(line) { return [[line], false]; }
+    } else if ('__RBQLMP__input_policy' == 'whitespace') {
+        input_split = function(line) { return [rbql_utils.split_whitespace_separated_str(line), false]; }
     } else {
         throw new RbqlError('unknown input csv policy');
     }
@@ -627,6 +631,8 @@ function do_run_encapsulated(input_reader, output_stream) {
         join_split = function(line) { return rbql_utils.split_quoted_str(line, join_delim); }
     } else if ('__RBQLMP__join_policy' == 'monocolumn') {
         join_split = function(line) { return [[line], false]; }
+    } else if ('__RBQLMP__input_policy' == 'whitespace') {
+        input_split = function(line) { return [rbql_utils.split_whitespace_separated_str(line), false]; }
     } else {
         throw new RbqlError('unknown join csv policy');
     }

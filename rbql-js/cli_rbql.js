@@ -79,8 +79,10 @@ function normalize_delim(delim) {
 }
 
 
-function interpret_format(format_name) {
-    rbql.assert(['csv', 'tsv', 'monocolumn'].indexOf(format_name) != -1, 'unknown format');
+function interpret_format(format_name, input_delim, input_policy) {
+    rbql.assert(['csv', 'tsv', 'monocolumn', 'input'].indexOf(format_name) != -1, 'unknown format');
+    if (format_name == 'input')
+        return [input_delim, input_policy];
     if (format_name == 'monocolumn')
         return ['', 'monocolumn'];
     if (format_name == 'csv')
@@ -179,6 +181,8 @@ function run_with_js(args) {
     var policy = args['policy'];
     if (!policy) {
         policy = [';', ','].indexOf(delim) == -1 ? 'simple' : 'quoted';
+        if (delim == ' ')
+            policy = 'whitespace';
     }
     var query = args['query'];
     if (!query) {
@@ -191,7 +195,7 @@ function run_with_js(args) {
     var output_delim = get_default(args, 'out_delim', null);
     var output_policy = get_default(args, 'out_policy', null);
     if (output_delim === null) {
-        [output_delim, output_policy] = interpret_format(args['out_format']);
+        [output_delim, output_policy] = interpret_format(args['out_format'], delim, policy);
     }
     var rbql_lines = [query];
     var tmp_dir = os.tmpdir();
@@ -216,7 +220,7 @@ function main() {
     var scheme = {
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
         '--policy': {'help': 'Split policy'},
-        '--out_format': {'default': 'tsv', 'help': 'Output format'},
+        '--out_format': {'default': 'input', 'help': 'Output format'},
         '--error_format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
         '--out_delim': {'help': 'Output delim. Use with "out_policy". Overrides out_format'},
         '--out_policy': {'help': 'Output policy. Use with "out_delim". Overrides out_format'},
