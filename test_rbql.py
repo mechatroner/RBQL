@@ -1551,6 +1551,29 @@ class TestSplitMethods(unittest.TestCase):
             self.assertEqual(test_dst, canonic_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
 
 
+    def test_split_whitespaces(self):
+        test_cases = list()
+        test_cases.append(('hello world', (['hello','world'], False)))
+        test_cases.append(('hello   world', (['hello','world'], False)))
+        test_cases.append(('   hello   world   ', (['hello','world'], False)))
+        test_cases.append(('     ', ([], False)))
+        test_cases.append(('', ([], False)))
+        test_cases.append(('   a   b  c d ', (['a', 'b', 'c', 'd'], False)))
+
+        test_cases.append(('hello world', (['hello ','world'], True)))
+        test_cases.append(('hello   world', (['hello   ','world'], True)))
+        test_cases.append(('   hello   world   ', (['   hello   ','world   '], True)))
+        test_cases.append(('     ', ([], True)))
+        test_cases.append(('', ([], True)))
+        test_cases.append(('   a   b  c d ', (['   a   ', 'b  ', 'c ', 'd '], True)))
+
+        for tc in test_cases:
+            src = tc[0]
+            canonic_dst, preserve_whitespaces = tc[1]
+            test_dst = rbql_utils.split_whitespace_separated_str(src, preserve_whitespaces)
+            self.assertEqual(test_dst, canonic_dst)
+
+
     def test_random(self):
         random_records = make_random_csv_records()
         for ir, rec in enumerate(random_records):

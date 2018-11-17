@@ -23,14 +23,6 @@ def extract_next_field(src, dlm, preserve_quotes, cidx, result):
     return (uidx + 1, warning)
 
 
-def split_whitespace_separated_str(src, preserve_whitespaces=False):
-    rgxp = re.compile(" *[^ ]+ *") if preserve_whitespaces else re.compile("[^ ]+")
-    result = []
-    for m in rgxp.finditer(src):
-        result.append(m.group())
-    return result
-
-
 def split_quoted_str(src, dlm, preserve_quotes=False):
     assert dlm != '"'
     if src.find('"') == -1: # Optimization for most common case
@@ -60,6 +52,14 @@ def unquote_field(field):
 
 def unquote_fields(fields):
     return [unquote_field(f) for f in fields]
+
+
+def split_whitespace_separated_str(src, preserve_whitespaces=False):
+    rgxp = re.compile(" *[^ ]+ *") if preserve_whitespaces else re.compile("[^ ]+")
+    result = []
+    for m in rgxp.finditer(src):
+        result.append(m.group())
+    return result
 
 
 def rows(f, chunksize=1024, sep='\n'):
