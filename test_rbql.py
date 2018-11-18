@@ -190,7 +190,7 @@ def run_conversion_test_py(query, input_table, testname, input_delim, input_poli
         return (out_table, warnings)
 
 
-def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encoding):
+def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encoding, out_format):
     rnd_string = '{}{}_{}_{}'.format(rainbow_ut_prefix, time.time(), testname, random.randint(1, 100000000)).replace('.', '_')
     dst_table_filename = '{}.tsv'.format(rnd_string)
     output_path = os.path.join(tmp_dir, dst_table_filename)
@@ -198,6 +198,8 @@ def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encod
     cli_rbql_js_path = os.path.join(script_dir, 'rbql-js', 'cli_rbql.js')
 
     cmd = ['node', cli_rbql_js_path, '--delim', delim, '--policy', policy, '--input_table_path', input_path, '--csv_encoding', csv_encoding, '--query', query.encode('utf-8'), '--output_table_path', output_path, '--error_format', 'json']
+    if out_format is not None:
+        cmd += ['--out_format', out_format]
     pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out_data, err_data = pobj.communicate()
     exit_code = pobj.returncode
@@ -1434,6 +1436,7 @@ class TestFiles(unittest.TestCase):
                     delim = '\t'
                 default_policy = 'quoted' if delim in [';', ','] else 'simple'
                 policy = config.get('policy', default_policy)
+                out_format = config.get('out_format')
                 canonic_path = None if canonic_table is None else os.path.abspath(canonic_table)
                 canonic_md5 = calc_file_md5(canonic_table)
 
@@ -1447,19 +1450,19 @@ class TestFiles(unittest.TestCase):
                         continue
                     test_path = os.path.abspath(result_table) 
                     test_md5 = calc_file_md5(result_table)
-                    self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {}; Actual: {}'.format(canonic_path, test_path))
+                    self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {} Actual: {}'.format(canonic_path, test_path))
                     compare_warnings(self, canonic_warnings, warnings)
                 else: 
                     assert backend_language == 'js'
                     try:
-                        result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding)
+                        result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding, out_format)
                     except Exception as e:
                         if canonic_error_msg is None or str(e).find(canonic_error_msg) == -1:
                             raise
                         continue
                     test_path = os.path.abspath(result_table) 
                     test_md5 = calc_file_md5(result_table)
-                    self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {}; Actual: {}'.format(canonic_path, test_path))
+                    self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {} Actual: {}'.format(canonic_path, test_path))
                     compare_warnings(self, canonic_warnings, warnings)
 
 
