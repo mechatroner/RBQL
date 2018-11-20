@@ -1,6 +1,9 @@
 import re
 from collections import defaultdict
 
+#newline_rgx = re.compile('\r|\n')
+newline_rgx = re.compile('(?:\r\n)|\r|\n')
+
 def extract_next_field(src, dlm, preserve_quotes, cidx, result):
     warning = False
     if (src[cidx] == '"'):
@@ -62,7 +65,81 @@ def split_whitespace_separated_str(src, preserve_whitespaces=False):
     return result
 
 
+def extract_line_from_data(data):
+    # This is a very useful primitive
+    mobj = newline_rgx.search(data)
+    if mobj is None:
+        return (None, None, data)
+    pos_start, pos_end = mobj.span()
+    str_before = data[:pos_start]
+    str_after = data[pos_end:]
+    return (str_before, mobj.group(0), str_after)
+
+
+class LineIterator:
+    # FIXME write unit tests and compare with python's own str.splitlines() method with chunk_size = [1..5]
+    
+    def __init__(self, src, chunk_size=1024):
+        self.src = src
+        self.buffer = ''
+        self.chunk_size = chunk_size
+        self.detected_line_separator = '\n'
+        self.exhausted = False
+
+
+    def get_line_separator(self):
+        return self.detected_line_separator
+
+
+    def _get_row_from_buffer(self):
+        str_before, separator, str_after = extract_line_from_data(self.buffer)
+        if separator is None:
+            return None
+        if separator == '\r' and str_after == '':
+            one_more = self.src.read(1)
+            if one_more == '\n':
+                separator = '\r\n'
+            else:
+                str_after = one_more
+        self.detected_line_separator = separator
+        self.buffer = str_after
+        return str_before
+
+
+    def _read_until_found(self):
+        if self.exhausted:
+            return
+        chunks = []
+        while True:
+            chunk = self.src.read(self.chunk_size)
+            if not chunk:
+                self.exhausted = True
+                break
+            chunks.append(chunk)
+            if newline_rgx.search(chunk) is not None:
+                break
+        self.buffer += ''.join(chunks)
+            
+
+    def get_row(self):
+        row = self._get_row_from_buffer()
+        if row is not None:
+            return row
+        self._read_until_found()
+        row = self._get_row_from_buffer()
+        if row is None:
+            assert self.exhausted
+            if self.buffer:
+                tmp = self.buffer
+                self.buffer = ''
+                return tmp
+            return None
+        return row
+
+
+
 def rows(f, chunksize=1024, sep='\n'):
+    # FIXME delete
     incomplete_row = None
     while True:
         chunk = f.read(chunksize)
