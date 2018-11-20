@@ -1678,6 +1678,46 @@ def setUpModule():
         TEST_JS = False
 
 
+def line_iter_split(src, chunk_size):
+    line_iterator = rbql_utils.LineIterator(io.StringIO(src), chunk_size)
+    result = []
+    while True:
+        row = line_iterator.get_row()
+        if row is None:
+            break
+        result.append(row)
+    return result
+
+
+class TestLineSplit(unittest.TestCase):
+
+    def test_split_custom(self):
+        test_cases = list()
+        test_cases.append(('', []))
+        test_cases.append(('hello', ['hello']))
+        test_cases.append(('hello\nworld', ['hello', 'world']))
+        test_cases.append(('hello\rworld\n', ['hello', 'world']))
+        test_cases.append(('hello\r\nworld\r', ['hello', 'world']))
+        for tc in test_cases:
+            src, canonic_res = tc
+            test_res = line_iter_split(src, 6)
+            self.assertEqual(canonic_res, test_res)
+
+    def test_split_random(self):
+        line_separators = ['\r', '\n', '\r\n']
+        source_tokens = ['', 'defghIJKLMN', 'a', 'bc'] + line_separators
+        for test_case in rbql.xrange6(10000):
+            num_tokens = random.randint(0, 12)
+            chunk_size = random.randint(1, 5) if random.randint(0, 1) else random.randint(1, 100)
+            src = ''
+            for tnum in rbql.xrange6(num_tokens):
+                token = random.choice(source_tokens)
+                src += token
+            test_split = line_iter_split(src, chunk_size)
+            canonic_split = src.splitlines()
+            self.assertEqual(canonic_split, test_split)
+
+
 class TestParsing(unittest.TestCase):
 
     def test_literals_replacement(self):

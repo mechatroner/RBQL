@@ -77,8 +77,6 @@ def extract_line_from_data(data):
 
 
 class LineIterator:
-    # FIXME write unit tests and compare with python's own str.splitlines() method with chunk_size = [1..5]
-    
     def __init__(self, src, chunk_size=1024):
         self.src = src
         self.buffer = ''
