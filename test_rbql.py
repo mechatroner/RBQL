@@ -26,6 +26,9 @@ default_csv_encoding = rbql.default_csv_encoding
 script_dir = os.path.dirname(os.path.abspath(__file__))
 tmp_dir = tempfile.gettempdir()
 
+#line_separators = ['\n', '\r\n', '\r']
+line_separators = ['\n', '\r\n'] #FIXME add '\r' separator after fixing js code
+
 TEST_JS = True
 #TEST_JS = False #DBG
 
@@ -96,7 +99,7 @@ def smart_split(src, dlm, policy):
 
 
 def table_to_string(array2d, delim, policy):
-    line_separator = random.choice(['\r\n', '\n'])
+    line_separator = random.choice(line_separators)
     result = line_separator.join([smart_join(row, delim, policy) for row in array2d])
     if len(array2d):
         result += line_separator
@@ -107,7 +110,7 @@ def table_to_file(array2d, dst_path, delim, policy):
     with codecs.open(dst_path, 'w', 'latin-1') as f:
         for row in array2d:
             f.write(smart_join(row, delim, policy))
-            f.write(random.choice(['\r\n', '\n']))
+            f.write(random.choice(line_separators))
 
 
 def table_to_stream(array2d, delim, policy):
@@ -1648,10 +1651,7 @@ def make_random_bin_table(num_rows, num_cols, key_col1, key_col2, delim, dst_pat
     with codecs.open(dst_path, 'w', encoding='latin-1') as f:
         for row in result_table:
             f.write(delim.join(row))
-            if random.randint(0, 2) == 0:
-                f.write('\r\n')
-            else:
-                f.write('\n')
+            f.write(random.choice(line_separators))
 
 
 def system_has_node_js():
@@ -1704,8 +1704,7 @@ class TestLineSplit(unittest.TestCase):
             self.assertEqual(canonic_res, test_res)
 
     def test_split_random(self):
-        line_separators = ['\r', '\n', '\r\n']
-        source_tokens = ['', 'defghIJKLMN', 'a', 'bc'] + line_separators
+        source_tokens = ['', 'defghIJKLMN', 'a', 'bc'] + ['\n', '\r\n', '\r']
         for test_case in rbql.xrange6(10000):
             num_tokens = random.randint(0, 12)
             chunk_size = random.randint(1, 5) if random.randint(0, 1) else random.randint(1, 100)
