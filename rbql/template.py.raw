@@ -340,8 +340,14 @@ def read_join_table(join_table_path):
     if not os.path.isfile(join_table_path):
         raise RbqlRuntimeError('Table B: ' + join_table_path + ' is not accessible')
     result = defaultdict(list)
-    with codecs.open(join_table_path, encoding=csv_encoding) as src_text:
-        for il, line in enumerate(rbql_utils.rows(src_text), 1):
+    with codecs.open(join_table_path, encoding=csv_encoding) as src:
+        line_iterator = rbql_utils.LineIterator(src)
+        il = 0
+        while True:
+            line = line_iterator.get_row()
+            if line is None:
+                break
+            il += 1
             if il == 1:
                 clean_line = remove_utf8_bom(line, csv_encoding)
                 if clean_line != line:
@@ -530,7 +536,13 @@ def rb_transform(source, destination):
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
     joiner = joiner_type('__RBQLMP__rhs_table_path')
-    for NR, line in enumerate(rbql_utils.rows(source), 1):
+    line_iterator = rbql_utils.LineIterator(source)
+    NR = 0
+    while True:
+        line = line_iterator.get_row()
+        if line is None:
+            break
+        NR += 1
         if NR == 1:
             clean_line = remove_utf8_bom(line, csv_encoding)
             if clean_line != line:
