@@ -123,14 +123,6 @@ function simple_join(fields, delim) {
 }
 
 
-function strip_cr(line) {
-    if (line.charAt(line.length - 1) === '\r') {
-        return line.substring(0, line.length - 1);
-    }
-    return line;
-}
-
-
 function Marker(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
@@ -320,7 +312,7 @@ function safe_set(record, idx, value) {
 function read_join_table(table_path) {
     var fields_max_len = 0;
     var content = fs.readFileSync(table_path, {encoding: csv_encoding});
-    var lines = content.split('\n');
+    var lines = content.split(/(?:\r\n)|\r|\n/);
     var result = new Map();
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
@@ -331,7 +323,6 @@ function read_join_table(table_path) {
                 utf8_bom_removed = true;
             }
         }
-        line = strip_cr(line);
         if (i + 1 == lines.length && line.length == 0)
             break;
         var split_result = join_split(line);

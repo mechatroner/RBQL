@@ -26,8 +26,7 @@ default_csv_encoding = rbql.default_csv_encoding
 script_dir = os.path.dirname(os.path.abspath(__file__))
 tmp_dir = tempfile.gettempdir()
 
-#line_separators = ['\n', '\r\n', '\r']
-line_separators = ['\n', '\r\n'] #FIXME add '\r' separator after fixing js code
+line_separators = ['\n', '\r\n', '\r']
 
 TEST_JS = True
 #TEST_JS = False #DBG
