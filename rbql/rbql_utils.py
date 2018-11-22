@@ -1,7 +1,6 @@
 import re
 from collections import defaultdict
 
-#newline_rgx = re.compile('\r|\n')
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
 def extract_next_field(src, dlm, preserve_quotes, cidx, result):
@@ -66,7 +65,6 @@ def split_whitespace_separated_str(src, preserve_whitespaces=False):
 
 
 def extract_line_from_data(data):
-    # This is a very useful primitive
     mobj = newline_rgx.search(data)
     if mobj is None:
         return (None, None, data)
@@ -77,16 +75,15 @@ def extract_line_from_data(data):
 
 
 class LineIterator:
+    # TODO treat src as binary input (bytes in python3) and explicitly decode to encoding. Add encoding param.
+    # Use this hack for Windows: https://stackoverflow.com/a/38939320/2898283
+
     def __init__(self, src, chunk_size=1024):
         self.src = src
         self.buffer = ''
         self.chunk_size = chunk_size
         self.detected_line_separator = '\n'
         self.exhausted = False
-
-
-    def get_line_separator(self):
-        return self.detected_line_separator
 
 
     def _get_row_from_buffer(self):
