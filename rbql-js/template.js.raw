@@ -542,7 +542,6 @@ function do_process_line(line) {
         }
     }
     NR += 1;
-    // readline strips last '\r'
     var split_result = input_split(line);
     var afields = split_result[0];
     var warning = split_result[1];

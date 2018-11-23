@@ -4,19 +4,26 @@ from __future__ import unicode_literals
 from __future__ import print_function
 import sys
 import os
-import random #for random sort
-import datetime #for date manipulations
-import re #for regexes
+import random # For random sort
+import datetime # For date manipulations
+import re # For regexes
 import codecs
 from collections import OrderedDict, defaultdict
 
 import rbql_utils
 
-__RBQLMP__import_expression
+try:
+    pass
+__RBQLMP__user_init_code
+except Exception as e:
+    raise RuntimeError('Exception while executing user-provided init code: {}'.format(e))
 
 
 PY3 = sys.version_info[0] == 3
 
+# FIXME support included init code segment
+# FIXME support whitespaces outside double quotes in split
+# FIXME implement fold with default "|" join.
 
 def iteritems6(x):
     if PY3:
@@ -25,7 +32,7 @@ def iteritems6(x):
 
 
 def str6(obj):
-    #we have to use this function because str() for python2.7 tries to ascii-encode unicode strings
+    # We have to use this function because str() for python2.7 tries to ascii-encode unicode strings
     if PY3 and isinstance(obj, str):
         return obj
     if not PY3 and isinstance(obj, basestring):

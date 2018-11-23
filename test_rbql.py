@@ -171,12 +171,12 @@ def parse_json_report(exit_code, err_data):
         return report
 
 
-def run_conversion_test_py(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, join_csv_encoding=default_csv_encoding):
+def run_conversion_test_py(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, custom_init_path=None, join_csv_encoding=default_csv_encoding):
     with rbql.RbqlPyEnv() as worker_env:
         tmp_path = worker_env.module_path
         src = table_to_stream(input_table, input_delim, input_policy)
         dst = io.StringIO()
-        rbql.parse_to_py([query], tmp_path, input_delim, input_policy, output_delim, output_policy, join_csv_encoding, import_modules)
+        rbql.parse_to_py([query], tmp_path, input_delim, input_policy, output_delim, output_policy, join_csv_encoding, custom_init_path)
         assert os.path.isfile(tmp_path) and os.access(tmp_path, os.R_OK)
         rbconvert = worker_env.import_worker()
         warnings = rbconvert.rb_transform(src, dst)
@@ -417,9 +417,12 @@ class TestEverything(unittest.TestCase):
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select int(math.sqrt(int(a1))), r"\'\"a1   bc"'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, import_modules=['math', 'os'])
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['input_fields_info'], warnings)
+        with tempfile.NamedTemporaryFile() as init_tmp_file:
+            with open(init_tmp_file.name, 'w') as tf:
+                tf.write('import math\nimport os\n')
+            test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, custom_init_path=init_tmp_file.name)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, ['input_fields_info'], warnings)
 
         if TEST_JS:
             query = r'select Math.floor(Math.sqrt(a1)), String.raw`\'\"a1   bc`'

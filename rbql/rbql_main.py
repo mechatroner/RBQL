@@ -50,7 +50,7 @@ def run_with_python(args):
     convert_only = args.convert_only
     input_path = args.input_table_path
     output_path = args.output_table_path
-    import_modules = args.libs
+    init_source_file = args.init_source_file
     csv_encoding = args.csv_encoding
     output_delim, output_policy = interpret_format(args.out_format, delim, policy)
 
@@ -69,7 +69,7 @@ def run_with_python(args):
     with rbql.RbqlPyEnv() as worker_env:
         tmp_path = worker_env.module_path
         try:
-            rbql.parse_to_py(rbql_lines, tmp_path, delim, policy, output_delim, output_policy, csv_encoding, import_modules)
+            rbql.parse_to_py(rbql_lines, tmp_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file)
         except rbql.RBParsingError as e:
             print_error_and_exit('RBQL Parsing Error: \t{}'.format(e))
         if convert_only:
@@ -113,7 +113,7 @@ def main():
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     parser.add_argument('--convert_only', action='store_true', help='Only generate script do not run query on csv table')
     parser.add_argument('--csv_encoding', help='Manually set csv table encoding', default=rbql.default_csv_encoding, choices=['latin-1', 'utf-8'])
-    parser.add_argument('-I', dest='libs', action='append', help='Import module to use in the result conversion script')
+    parser.add_argument('--init_source_file', metavar='FILE', help='path to init source file to use instead of ~/.rbql_init_source.py')
     args = parser.parse_args()
 
     if args.version:

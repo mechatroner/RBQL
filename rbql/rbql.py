@@ -48,6 +48,7 @@ rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
 user_home_dir = os.path.expanduser('~')
 table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
 table_index_path = os.path.join(user_home_dir, '.rbql_table_index')
+default_init_source_path = os.path.join(user_home_dir, '.rbql_init_source.py')
 
 py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py.raw'), encoding='utf-8').read()
 
@@ -324,7 +325,15 @@ def find_top(rb_actions):
     return rb_actions[SELECT].get('top', None)
 
 
-def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, import_modules):
+def make_user_init_code(rbql_init_source_path):
+    source_lines = None
+    with open(rbql_init_source_path) as src:
+        source_lines = src.readlines()
+    source_lines = ['    ' + l.rstrip() for l in source_lines]
+    return '\n'.join(source_lines) + '\n'
+
+
+def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
 
@@ -339,13 +348,14 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
     format_expression, string_literals = separate_string_literals_py(full_rbql_expression)
     rb_actions = separate_actions(format_expression)
 
-    import_expression = ''
-    if import_modules is not None:
-        for mdl in import_modules:
-            import_expression += 'import {}\n'.format(mdl)
+    user_init_code = ''
+    if custom_init_path is not None:
+        user_init_code = make_user_init_code(custom_init_path)
+    elif os.path.exists(default_init_source_path):
+        user_init_code = make_user_init_code(default_init_source_path)
 
     py_meta_params = dict()
-    py_meta_params['__RBQLMP__import_expression'] = import_expression
+    py_meta_params['__RBQLMP__user_init_code'] = user_init_code
     py_meta_params['__RBQLMP__input_delim'] = escape_string_literal(input_delim)
     py_meta_params['__RBQLMP__input_policy'] = input_policy
     py_meta_params['__RBQLMP__csv_encoding'] = csv_encoding
