@@ -21,7 +21,6 @@ except Exception as e:
 
 PY3 = sys.version_info[0] == 3
 
-# FIXME support included init code segment
 # FIXME support whitespaces outside double quotes in split
 # FIXME implement fold with default "|" join.
 
