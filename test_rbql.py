@@ -214,14 +214,12 @@ def run_file_query_test_js(query, input_path, testname, delim, policy, csv_encod
     return (output_path, warnings)
 
 
-def run_conversion_test_js(*args, **kwargs):
-    return do_run_conversion_test_js(*args, **kwargs)
-
-
-def do_run_conversion_test_js(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, import_modules=None, csv_encoding=default_csv_encoding):
+def run_conversion_test_js(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, csv_encoding=default_csv_encoding, custom_init_path=None):
     cli_rbql_js_path = os.path.join(script_dir, 'rbql-js', 'cli_rbql.js')
     src = table_to_string(input_table, input_delim, input_policy)
     cmd = ['node', cli_rbql_js_path, '--delim', input_delim, '--policy', input_policy, '--csv_encoding', csv_encoding, '--query', query.encode('utf-8'), '--out_delim', output_delim, '--out_policy', output_policy, '--error_format', 'json']
+    if custom_init_path is not None:
+        cmd += ['--init_source_file', custom_init_path]
 
     pobj = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     out_data, err_data = pobj.communicate(src.encode(csv_encoding))
@@ -1395,6 +1393,40 @@ class TestEverything(unittest.TestCase):
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)
+
+
+    def test_run33(self):
+        test_name = 'test33'
+        input_table = list()
+        input_table.append(['5', 'haha', 'hoho'])
+        input_table.append(['-20', 'haha', 'hioho'])
+        input_table.append(['50', 'haha', 'dfdf'])
+        input_table.append(['20', 'haha', ''])
+
+        canonic_table = list()
+        canonic_table.append(['5', 'haha FOObar', 'hoho'])
+        canonic_table.append(['-20', 'haha FOObar', 'hioho'])
+        canonic_table.append(['50', 'haha FOObar', 'dfdf'])
+        canonic_table.append(['20', 'haha FOObar', ''])
+
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+
+        query = r'select a1, foobar(a2), a3'
+        with tempfile.NamedTemporaryFile() as init_tmp_file:
+            with open(init_tmp_file.name, 'w') as tf:
+                tf.write('def foobar(val):\n    return val + " FOObar"\r\n\n')
+            test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, custom_init_path=init_tmp_file.name)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            with tempfile.NamedTemporaryFile() as init_tmp_file:
+                with open(init_tmp_file.name, 'w') as tf:
+                    tf.write('function foobar(val) {\n    return val + " FOObar";\r\n}\n')
+                query = r'select a1, foobar(a2), a3'
+                test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, custom_init_path=init_tmp_file.name)
+                self.compare_tables(canonic_table, test_table)
+                compare_warnings(self, None, warnings)
 
 
 

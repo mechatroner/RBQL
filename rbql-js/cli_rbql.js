@@ -194,6 +194,7 @@ function run_with_js(args) {
     error_format = args['error_format'];
     var output_delim = get_default(args, 'out_delim', null);
     var output_policy = get_default(args, 'out_policy', null);
+    let init_source_file = get_default(args, 'init_source_file', null);
     if (output_delim === null) {
         [output_delim, output_policy] = interpret_format(args['out_format'], delim, policy);
     }
@@ -202,7 +203,7 @@ function run_with_js(args) {
     var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
     tmp_worker_module_path = path.join(tmp_dir, script_filename);
     try {
-        rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding);
+        rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file);
     } catch (e) {
         report_parsing_error(get_error_message(e));
         process.exit(1);
@@ -229,7 +230,8 @@ function main() {
         '--output_table_path': {'help': 'Write output table to FILE instead of stdout'},
         '--csv_encoding': {'default': rbql.default_csv_encoding, 'help': 'Manually set csv table encoding'},
         '--parse_only': {'boolean': true, 'help': 'Create worker module and exit'},
-        '--version': {'boolean': true, 'help': 'Script language to use in query'}
+        '--version': {'boolean': true, 'help': 'Script language to use in query'},
+        '--init_source_file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
     };
     var args = parse_cmd_args(process.argv, scheme);
 

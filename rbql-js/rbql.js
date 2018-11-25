@@ -19,6 +19,8 @@ const rbql_home_dir = __dirname;
 const user_home_dir = os.homedir();
 const table_names_settings_path = path.join(user_home_dir, '.rbql_table_names');
 const table_index_path = path.join(user_home_dir, '.rbql_table_index');
+const default_init_source_path = path.join(user_home_dir, '.rbql_init_source.js');
+
 const default_csv_encoding = 'latin-1';
 
 
@@ -391,7 +393,15 @@ function generate_init_statements(column_vars, indent) {
 }
 
 
-function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding) {
+function make_user_init_code(rbql_init_source_path) {
+    let content = fs.readFileSync(rbql_init_source_path, 'utf-8');
+    let source_lines = content.split(/(?:\r\n)|\r|\n/);
+    source_lines = source_lines.map(line => '    ' + line);
+    return source_lines.join('\n');
+}
+
+
+function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
     rbql_lines = rbql_lines.map(strip_js_comments);
@@ -401,7 +411,15 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_t
     var [format_expression, string_literals] = separate_string_literals_js(full_rbql_expression);
     var rb_actions = separate_actions(format_expression);
 
+    let user_init_code = '';
+    if (custom_init_path !== null) {
+        user_init_code = make_user_init_code(custom_init_path);
+    } else if (fs.existsSync(default_init_source_path)) {
+        user_init_code = make_user_init_code(default_init_source_path);
+    }
+
     var js_meta_params = {};
+    js_meta_params['__RBQLMP__user_init_code'] = user_init_code;
     js_meta_params['__RBQLMP__rbql_home_dir'] = escape_string_literal(rbql_home_dir);
     js_meta_params['__RBQLMP__input_delim'] = escape_string_literal(input_delim);
     js_meta_params['__RBQLMP__input_policy'] = input_policy;
@@ -501,9 +519,9 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_t
 }
 
 
-function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding) {
+function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
     var js_template_text = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
-    var result_script = parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding);
+    var result_script = parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path);
     fs.writeFileSync(js_dst, result_script);
 }
 

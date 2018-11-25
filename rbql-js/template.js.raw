@@ -2,6 +2,13 @@ const fs = require('fs');
 const readline = require('readline');
 const rbql_utils = require('__RBQLMP__rbql_home_dir/rbql_utils.js');
 
+try {
+__RBQLMP__user_init_code
+} catch (e) {
+    throw new Error('Exception while executing user-provided init code: ' + e);
+}
+
+
 var csv_encoding = '__RBQLMP__csv_encoding';
 
 var input_delim = '__RBQLMP__input_delim';
