@@ -70,9 +70,19 @@ def quoted_join(fields, delim):
     return delim.join([stochastic_quote_field(f, delim) for f in fields])
 
 
+def whitespace_join(fields):
+    result = ' ' * random.randint(0, 5)
+    for f in fields:
+        result += f + ' ' * random.randint(1, 5)
+    return result
+
+
 def smart_join(fields, dlm, policy):
     if policy == 'simple':
         return dlm.join(fields)
+    elif policy == 'whitespace':
+        assert dlm == ' '
+        return whitespace_join(fields)
     elif policy == 'quoted':
         assert dlm != '"'
         return quoted_join(fields, dlm)
@@ -1428,6 +1438,35 @@ class TestEverything(unittest.TestCase):
                 self.compare_tables(canonic_table, test_table)
                 compare_warnings(self, None, warnings)
 
+
+    def test_run34(self):
+        test_name = 'test34'
+
+        input_table = list()
+        input_table.append(['5', 'haha', 'hoho'])
+        input_table.append(['-20', 'haha', 'hioho'])
+        input_table.append(['50', 'haha', 'dfdf'])
+        input_table.append(['20', 'haha', 'mmmmm'])
+
+        canonic_table = list()
+        canonic_table.append(['3', '50', '4'])
+        canonic_table.append(['4', '20', '5'])
+
+        input_delim = ' '
+        input_policy = 'whitespace'
+        output_delim = '\t'
+        output_policy = 'simple'
+
+        query = 'select NR, a1, len(a3) where int(a1) > 5'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            query = 'select NR, a1, a3.length where a1 > 5'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
 
 
 def calc_file_md5(fname):
