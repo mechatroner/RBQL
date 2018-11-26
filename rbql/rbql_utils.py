@@ -3,18 +3,23 @@ from collections import defaultdict
 
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
-def extract_next_field(src, dlm, preserve_quotes, cidx, result):
+field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
+field_rgx = re.compile(field_regular_expression)
+field_rgx_external_whitespaces = re.compile(' *'+ field_regular_expression + ' *')
+
+
+def extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result):
     warning = False
-    if (src[cidx] == '"'):
-        uidx = src.find('"', cidx + 1)
-        while uidx != -1 and uidx + 1 < len(src) and src[uidx + 1] == '"':
-            uidx = src.find('"', uidx + 2)
-        if uidx != -1 and (uidx + 1 == len(src) or src[uidx + 1] == dlm):
+    rgx = field_rgx_external_whitespaces if allow_external_whitespaces else field_rgx
+    match_obj = rgx.match(src, cidx)
+    if match_obj is not None:
+        match_end = match_obj.span()[1]
+        if match_end == len(src) or src[match_end] == dlm:
             if preserve_quotes:
-                result.append(src[cidx:uidx + 1])
+                result.append(match_obj.group(0))
             else:
-                result.append(src[cidx + 1:uidx].replace('""', '"'))
-            return (uidx + 2, False)
+                result.append(match_obj.group(1).replace('""', '"'))
+            return (match_end + 1, False)
         warning = True
     uidx = src.find(dlm, cidx)
     if uidx == -1:
@@ -25,6 +30,7 @@ def extract_next_field(src, dlm, preserve_quotes, cidx, result):
     return (uidx + 1, warning)
 
 
+
 def split_quoted_str(src, dlm, preserve_quotes=False):
     assert dlm != '"'
     if src.find('"') == -1: # Optimization for most common case
@@ -32,8 +38,9 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
     result = list()
     cidx = 0
     warning = False
+    allow_external_whitespaces = dlm != ' '
     while cidx < len(src):
-        extraction_report = extract_next_field(src, dlm, preserve_quotes, cidx, result)
+        extraction_report = extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result)
         cidx = extraction_report[0]
         warning = warning or extraction_report[1]
 

@@ -1620,14 +1620,15 @@ class TestSplitMethods(unittest.TestCase):
         for tc in test_cases:
             src = tc[0]
             canonic_dst = tc[1]
+            warning_expected = canonic_dst[1]
             test_dst = rbql_utils.split_quoted_str(tc[0], ',')
+            self.assertEqual(canonic_dst, test_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
+
             test_dst_preserved = rbql_utils.split_quoted_str(tc[0], ',', True)
             self.assertEqual(test_dst[1], test_dst_preserved[1])
             self.assertEqual(','.join(test_dst_preserved[0]), tc[0], 'preserved split failure')
-            warning_expected = canonic_dst[1]
             if not warning_expected:
                 self.assertEqual(test_dst[0], rbql_utils.unquote_fields(test_dst_preserved[0]))
-            self.assertEqual(test_dst, canonic_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
 
 
     def test_split_whitespaces(self):
