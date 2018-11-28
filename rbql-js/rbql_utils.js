@@ -1,17 +1,21 @@
-function extract_next_field(src, dlm, preserve_quotes, cidx, result) {
+let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
+let field_rgx = new RegExp('^' + field_regular_expression);
+let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *')
+
+function extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result) {
     var warning = false;
-    if (src.charAt(cidx) === '"') {
-        var uidx = src.indexOf('"', cidx + 1);
-        while (uidx != -1 && uidx + 1 < src.length && src.charAt(uidx + 1) == '"') {
-            uidx = src.indexOf('"', uidx + 2);
-        }
-        if (uidx != -1 && (uidx + 1 == src.length || src.charAt(uidx + 1) == dlm)) {
+    let src_cur = src.substring(cidx);
+    let rgx = allow_external_whitespaces ? field_rgx_external_whitespaces : field_rgx;
+    let match_obj = rgx.exec(src_cur);
+    if (match_obj !== null) {
+        let match_end = match_obj[0].length;
+        if (cidx + match_end == src.length || src[cidx + match_end] == dlm) {
             if (preserve_quotes) {
-                result.push(src.substring(cidx, uidx + 1));
+                result.push(match_obj[0]);
             } else {
-                result.push(src.substring(cidx + 1, uidx).replace(/""/g, '"'));
+                result.push(match_obj[1].replace(/""/g, '"'));
             }
-            return [uidx + 2, false];
+            return [cidx + match_end + 1, false];
         }
         warning = true;
     }
@@ -31,8 +35,9 @@ function split_quoted_str(src, dlm, preserve_quotes=false) {
     var result = [];
     var cidx = 0;
     var warning = false;
+    let allow_external_whitespaces = dlm != ' ';
     while (cidx < src.length) {
-        var extraction_report = extract_next_field(src, dlm, preserve_quotes, cidx, result);
+        var extraction_report = extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result);
         cidx = extraction_report[0];
         warning = warning || extraction_report[1];
     }

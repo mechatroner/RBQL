@@ -21,7 +21,7 @@ except Exception as e:
 
 PY3 = sys.version_info[0] == 3
 
-# FIXME support whitespaces outside double quotes in split
+# FIXME support whitespaces outside double quotes in split. Add tests.
 # FIXME implement fold with default "|" join.
 
 def iteritems6(x):
