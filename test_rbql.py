@@ -65,9 +65,10 @@ def update_index(index_path, new_record, index_max_size):
 
 def stochastic_quote_field(src, delim):
     if src.find('"') != -1 or src.find(delim) != -1 or random.randint(0, 1) == 1:
-        # FIXME randomly add enclosing whitespaces
+        spaces_before = ' ' * random.randint(0, 2) if delim != ' ' else ''
+        spaces_after = ' ' * random.randint(0, 2) if delim != ' ' else ''
         escaped = src.replace('"', '""')
-        escaped = '"{}"'.format(escaped)
+        escaped = '{}"{}"{}'.format(spaces_before, escaped, spaces_after)
         return escaped
     return src
 
@@ -1627,6 +1628,7 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('"aaa,bbb",ccc', (['aaa,bbb','ccc'], False)))
         test_cases.append(('"aaa,bbb","ccc"', (['aaa,bbb','ccc'], False)))
         test_cases.append(('"aaa,bbb","ccc,ddd"', (['aaa,bbb','ccc,ddd'], False)))
+        test_cases.append((' "aaa,bbb" ,  "ccc,ddd" ', (['aaa,bbb','ccc,ddd'], False)))
         test_cases.append(('"aaa,bbb",ccc,ddd', (['aaa,bbb','ccc', 'ddd'], False)))
         test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['"a"aa" a', 'bbb"','ccc', 'ddd'], True)))
         test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc','ccc"', 'ddd'], True)))
