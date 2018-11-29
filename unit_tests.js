@@ -6,6 +6,22 @@ const cli_rbql = require('./rbql-js/cli_rbql.js');
 const rbql = require('./rbql-js/rbql.js')
 
 
+function unquote_field(field) {
+    let rgx = /^ *"((?:[^"]*"")*[^"]*)" *$/;
+    let match_obj = rgx.exec(field);
+    if (match_obj !== null) {
+        return match_obj[1].replace(/""/g, '"');;
+    }
+    return field;
+}
+
+
+function unquote_fields(fields) {
+    return fields.map(unquote_field);
+}
+
+
+
 function arrays_are_equal(a, b) {
     if (a.length != b.length)
         return false;
@@ -51,7 +67,7 @@ function process_random_test_line(line) {
     assert(test_warning === split_result_preserved[1]);
     assert(split_result_preserved[0].join(',') === escaped_entry);
     if (!canonic_warning) {
-        assert(arrays_are_equal(rbql_utils.unquote_fields(split_result_preserved[0]), test_dst));
+        assert(arrays_are_equal(unquote_fields(split_result_preserved[0]), test_dst));
     }
     if (!canonic_warning) {
         compare_splits(escaped_entry, test_dst, canonic_dst, test_warning, canonic_warning);
@@ -142,7 +158,7 @@ function test_split() {
         assert(test_warning === split_result_preserved[1], 'warnings do not match');
         assert(split_result_preserved[0].join(',') === src, 'preserved restore do not match');
         if (!canonic_warning) {
-            assert(arrays_are_equal(test_dst, rbql_utils.unquote_fields(split_result_preserved[0])), 'unquoted do not match');
+            assert(arrays_are_equal(test_dst, unquote_fields(split_result_preserved[0])), 'unquoted do not match');
         }
         if (!canonic_warning) {
             compare_splits(src, test_dst, canonic_dst, test_warning, canonic_warning);
@@ -175,7 +191,19 @@ function test_split_whitespaces() {
 }
 
 
+function test_unquote() {
+    var test_cases = [];
+    test_cases.push(['  "hello, ""world"" aa""  " ', 'hello, "world" aa"  '])
+    for (let i = 0; i < test_cases.length; i++) {
+        let unquoted = unquote_field(test_cases[i][0]);
+        let canonic = test_cases[i][1];
+        assert(canonic == unquoted);
+    }
+
+}
+
 function test_all() {
+    test_unquote();
     test_split();
     test_split_whitespaces();
     test_comments_strip();

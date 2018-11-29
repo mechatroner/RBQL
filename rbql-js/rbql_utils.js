@@ -69,24 +69,6 @@ function occurrences(string, subString, allowOverlapping=false) {
 }
 
 
-function unquote_field(field) {
-    if (field.length < 2)
-        return field;
-    if (field.charAt(0) === '"' && field.charAt(field.length - 1) == '"') {
-        var candidate = field.substring(1, field.length - 1);
-        if (occurrences(candidate, '"') == occurrences(candidate, '""') * 2) {
-            return candidate.replace(/""/g, '"');
-        }
-    }
-    return field;
-}
-
-
-function unquote_fields(fields) {
-    return fields.map(unquote_field);
-}
-
-
 function split_whitespace_separated_str(src, preserve_whitespaces=false) {
     var rgxp = preserve_whitespaces ? new RegExp(' *[^ ]+ *', 'g') : new RegExp('[^ ]+', 'g');
     let result = [];
@@ -286,7 +268,6 @@ function SubkeyChecker() {
 
 
 module.exports.split_quoted_str = split_quoted_str;
-module.exports.unquote_fields = unquote_fields;
 module.exports.split_whitespace_separated_str = split_whitespace_separated_str;
 
 module.exports.MinAggregator = MinAggregator;

@@ -49,20 +49,6 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
     return (result, warning)
 
 
-def unquote_field(field):
-    if len(field) < 2:
-        return field
-    if field[0] == '"' and field[-1] == '"':
-        candidate = field[1:-1]
-        if candidate.count('"') == candidate.count('""') * 2:
-            return candidate.replace('""', '"')
-    return field
-
-
-def unquote_fields(fields):
-    return [unquote_field(f) for f in fields]
-
-
 def split_whitespace_separated_str(src, preserve_whitespaces=False):
     rgxp = re.compile(" *[^ ]+ *") if preserve_whitespaces else re.compile("[^ ]+")
     result = []

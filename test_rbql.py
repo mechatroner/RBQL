@@ -31,6 +31,19 @@ line_separators = ['\n', '\r\n', '\r']
 TEST_JS = True
 #TEST_JS = False #DBG
 
+
+def unquote_field(field):
+    field_rgx_external_whitespaces = re.compile('^ *"((?:[^"]*"")*[^"]*)" *$')
+    match_obj = field_rgx_external_whitespaces.match(field)
+    if match_obj is not None:
+        return match_obj.group(1).replace('""', '"')
+    return field
+
+
+def unquote_fields(fields):
+    return [unquote_field(f) for f in fields]
+
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -52,6 +65,7 @@ def update_index(index_path, new_record, index_max_size):
 
 def stochastic_quote_field(src, delim):
     if src.find('"') != -1 or src.find(delim) != -1 or random.randint(0, 1) == 1:
+        # FIXME randomly add enclosing whitespaces
         escaped = src.replace('"', '""')
         escaped = '"{}"'.format(escaped)
         return escaped
@@ -102,7 +116,7 @@ def smart_split(src, dlm, policy):
     res = rbql_utils.split_quoted_str(src, dlm)[0]
     res_preserved = rbql_utils.split_quoted_str(src, dlm, True)[0]
     assert dlm.join(res_preserved) == src
-    assert res == rbql_utils.unquote_fields(res_preserved)
+    assert res == unquote_fields(res_preserved)
     return res
 
 
@@ -1577,7 +1591,7 @@ def randomly_csv_escape(fields):
     efields = list()
     for field in fields:
         efields.append(stochastic_quote_field(field, ','))
-    assert rbql_utils.unquote_fields(efields) == fields
+    assert unquote_fields(efields) == fields
     return ','.join(efields)
 
 
@@ -1628,7 +1642,16 @@ class TestSplitMethods(unittest.TestCase):
             self.assertEqual(test_dst[1], test_dst_preserved[1])
             self.assertEqual(','.join(test_dst_preserved[0]), tc[0], 'preserved split failure')
             if not warning_expected:
-                self.assertEqual(test_dst[0], rbql_utils.unquote_fields(test_dst_preserved[0]))
+                self.assertEqual(test_dst[0], unquote_fields(test_dst_preserved[0]))
+
+
+    def test_unquote(self):
+        test_cases = list()
+        test_cases.append(('  "hello, ""world"" aa""  " ', 'hello, "world" aa"  '))
+        for tc in test_cases:
+            src, canonic = tc
+            test_dst = unquote_field(src)
+            self.assertEqual(canonic, test_dst)
 
 
     def test_split_whitespaces(self):
@@ -1665,7 +1688,7 @@ class TestSplitMethods(unittest.TestCase):
             self.assertEqual(','.join(test_fields_preserved), escaped_entry)
             self.assertEqual(canonic_warning, test_warning)
             self.assertEqual(test_warning_preserved, test_warning)
-            self.assertEqual(test_fields, rbql_utils.unquote_fields(test_fields_preserved))
+            self.assertEqual(test_fields, unquote_fields(test_fields_preserved))
             if not canonic_warning:
                 self.assertEqual(canonic_fields, test_fields)
 
@@ -1694,7 +1717,7 @@ def test_random_csv_table(src_path):
             assert int(test_warning) == canonic_warning
             assert ','.join(test_fields_preserved) == escaped_entry
             if not canonic_warning:
-                assert rbql_utils.unquote_fields(test_fields_preserved) == test_fields
+                assert unquote_fields(test_fields_preserved) == test_fields
             if not canonic_warning and test_fields != canonic_fields:
                 eprint("Error at line {} (1-based). Test fields: {}, canonic fields: {}".format(iline, test_fields, canonic_fields))
                 sys.exit(1)
