@@ -106,12 +106,12 @@ class Marker(object):
         raise TypeError('Marker')
 
 
-def init_aggregator(generator_name, val):
+def init_aggregator(generator_name, val, post_proc=None):
     global aggregation_stage
     global aggr_init_counter
     aggregation_stage = 1
     assert aggr_init_counter == len(functional_aggregators)
-    functional_aggregators.append(generator_name())
+    functional_aggregators.append(generator_name(post_proc))
     res = Marker(aggr_init_counter, val)
     aggr_init_counter += 1
     return res
@@ -143,6 +143,10 @@ def VARIANCE(val):
 
 def MEDIAN(val):
     return init_aggregator(rbql_utils.MedianAggregator, val) if aggregation_stage < 2 else val
+
+
+def FOLD(val, post_proc=lambda v: '|'.join(v)):
+    return init_aggregator(rbql_utils.FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
 
 
 def quote_field(src, delim):
@@ -444,8 +448,24 @@ def create_warnings_report():
     return warnings
 
 
+def get_encoded_stdin(encoding_name):
+    if PY3:
+        import io
+        return io.TextIOWrapper(sys.stdin.buffer, encoding=encoding_name)
+    else:
+        return codecs.getreader(encoding_name)(sys.stdin)
+
+
+def get_encoded_stdout(encoding_name):
+    if PY3:
+        import io
+        return io.TextIOWrapper(sys.stdout.buffer, encoding=encoding_name)
+    else:
+        return codecs.getwriter(encoding_name)(sys.stdout)
+
+
 def main():
-    warnings = rb_transform(sys.stdin, sys.stdout)
+    warnings = rb_transform(get_encoded_stdin(csv_encoding), get_encoded_stdout(csv_encoding))
     if warnings is not None:
         for k, v in warnings.items():
             eprint(k, v)
@@ -553,7 +573,7 @@ def rb_transform(source, destination):
             if clean_line != line:
                 line = clean_line
                 utf8_bom_removed = True
-        line = line.rstrip('\r\n')
+        #line = line.rstrip('\r\n')
         afields, warning = input_split(line)
         if warning and not defective_csv_line_in_input:
             defective_csv_line_in_input = NR

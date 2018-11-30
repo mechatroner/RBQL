@@ -140,9 +140,10 @@ class NumHandler:
 
 
 class MinAggregator:
-    def __init__(self):
+    def __init__(self, post_proc):
         self.stats = dict()
         self.num_handler = NumHandler()
+        self.post_proc = post_proc
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -157,9 +158,10 @@ class MinAggregator:
 
 
 class MaxAggregator:
-    def __init__(self):
+    def __init__(self, post_proc):
         self.stats = dict()
         self.num_handler = NumHandler()
+        self.post_proc = post_proc
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -174,8 +176,9 @@ class MaxAggregator:
 
 
 class CountAggregator:
-    def __init__(self):
+    def __init__(self, post_proc):
         self.stats = defaultdict(int)
+        self.post_proc = post_proc
 
     def increment(self, key, val):
         self.stats[key] += 1
@@ -185,9 +188,10 @@ class CountAggregator:
 
 
 class SumAggregator:
-    def __init__(self):
+    def __init__(self, post_proc):
         self.stats = defaultdict(int)
         self.num_handler = NumHandler()
+        self.post_proc = post_proc
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -211,8 +215,9 @@ def pretty_format(val):
 
 
 class AvgAggregator:
-    def __init__(self):
+    def __init__(self, post_proc):
         self.stats = dict()
+        self.post_proc = post_proc
 
     def increment(self, key, val):
         val = float(val)
@@ -230,8 +235,9 @@ class AvgAggregator:
 
 
 class VarianceAggregator:
-    def __init__(self):
+    def __init__(self, post_proc):
         self.stats = dict()
+        self.post_proc = post_proc
 
     def increment(self, key, val):
         val = float(val)
@@ -245,20 +251,39 @@ class VarianceAggregator:
     def get_final(self, key):
         final_sum, final_sum_of_squares, final_cnt = self.stats[key]
         variance = float(final_sum_of_squares) / final_cnt - (float(final_sum) / final_cnt) ** 2
+        if self.post_proc is not None:
+            variance = self.post_proc(variance)
         return pretty_format(variance)
 
 
+class FoldAggregator:
+    def __init__(self, post_proc):
+        self.stats = defaultdict(list)
+        self.post_proc = post_proc
+
+    def increment(self, key, val):
+        self.stats[key].append(val)
+
+    def get_final(self, key):
+        res = self.stats[key]
+        return self.post_proc(res)
+
 
 class MedianAggregator:
-    def __init__(self):
+    def __init__(self, post_proc):
         self.stats = defaultdict(list)
         self.num_handler = NumHandler()
+        self.post_proc = post_proc
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
         self.stats[key].append(val)
 
     def get_final(self, key):
+        res = self.do_get_final(key)
+        return self.post_proc(res) if self.post_proc is not None else res
+
+    def do_get_final(self, key):
         sorted_vals = sorted(self.stats[key])
         assert len(sorted_vals)
         m = int(len(sorted_vals) / 2)
