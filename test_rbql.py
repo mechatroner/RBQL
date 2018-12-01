@@ -1484,6 +1484,38 @@ class TestEverything(unittest.TestCase):
             compare_warnings(self, None, warnings)
 
 
+    def test_run35(self):
+        test_name = 'test35'
+
+        input_table = list()
+        input_table.append(['car', '1', '100', '1'])
+        input_table.append(['car', '2', '100', '1'])
+        input_table.append(['dog', '3', '100', '2'])
+        input_table.append(['car', '4', '100', '2'])
+        input_table.append(['cat', '5', '100', '3'])
+        input_table.append(['cat', '6', '100', '3'])
+        input_table.append(['car', '7', '100', '100'])
+        input_table.append(['car', '8', '100', '100'])
+
+        canonic_table = list()
+        canonic_table.append(['1|2|4|7|8', 'car', '5'])
+        canonic_table.append(['3', 'dog', '1'])
+
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+
+        query = r'select FOLD(a2), a1, FOLD(a4, lambda v: len(v)) where a1 == "car" or a1 == "dog" group by a1'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            query = r'select FOLD(a2), a1, FOLD(a4, v => v.length) where a1 == "car" || a1 == "dog" group by a1'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
+
+
 def calc_file_md5(fname):
     import hashlib
     hash_md5 = hashlib.md5()
