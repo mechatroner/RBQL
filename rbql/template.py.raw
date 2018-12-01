@@ -111,7 +111,10 @@ def init_aggregator(generator_name, val, post_proc=None):
     global aggr_init_counter
     aggregation_stage = 1
     assert aggr_init_counter == len(functional_aggregators)
-    functional_aggregators.append(generator_name(post_proc))
+    if post_proc is not None:
+        functional_aggregators.append(generator_name(post_proc))
+    else:
+        functional_aggregators.append(generator_name())
     res = Marker(aggr_init_counter, val)
     aggr_init_counter += 1
     return res
