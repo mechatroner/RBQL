@@ -139,10 +139,14 @@ function Marker(marker_id, value) {
 }
 
 
-function init_aggregator(generator_name, val) {
+function init_aggregator(generator_name, val, post_proc=null) {
     aggregation_stage = 1;
     assert(aggr_init_counter == functional_aggregators.length, 'Unable to process aggregation expression');
-    functional_aggregators.push(new generator_name());
+    if (post_proc === null) {
+        functional_aggregators.push(new generator_name());
+    } else {
+        functional_aggregators.push(new generator_name(post_proc));
+    }
     var res = new Marker(aggr_init_counter, val);
     aggr_init_counter += 1;
     return res;
@@ -176,6 +180,10 @@ function VARIANCE(val) {
 
 function MEDIAN(val) {
     return aggregation_stage < 2 ? init_aggregator(rbql_utils.MedianAggregator, val) : val;
+}
+
+function FOLD(val, post_proc = v => v.join('|')) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.FoldAggregator, val, post_proc) : val;
 }
 
 

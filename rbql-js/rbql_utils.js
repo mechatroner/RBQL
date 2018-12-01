@@ -232,7 +232,7 @@ function MedianAggregator() {
             this.stats.set(key, [val]);
         } else {
             cur_aggr.push(val);
-            this.stats.set(key, cur_aggr); // do we really need to do this? mutable cur_aggr already holds a reference to the value
+            this.stats.set(key, cur_aggr); // Do we really need to do this? mutable cur_aggr already holds a reference to the value
         }
     }
 
@@ -245,6 +245,27 @@ function MedianAggregator() {
         } else {
             return (cur_aggr[m - 1] + cur_aggr[m]) / 2.0;
         }
+    }
+}
+
+
+function FoldAggregator(post_proc) {
+    this.post_proc = post_proc;
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        let cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, [val]);
+        } else {
+            cur_aggr.push(val);
+            this.stats.set(key, cur_aggr); // Do we really need to do this? mutable cur_aggr already holds a reference to the value
+        }
+    }
+
+    this.get_final = function(key) {
+        let cur_aggr = this.stats.get(key);
+        return this.post_proc(cur_aggr);
     }
 }
 
@@ -277,5 +298,6 @@ module.exports.SumAggregator = SumAggregator;
 module.exports.AvgAggregator = AvgAggregator;
 module.exports.VarianceAggregator = VarianceAggregator;
 module.exports.MedianAggregator = MedianAggregator;
+module.exports.FoldAggregator = FoldAggregator;
 
 module.exports.SubkeyChecker = SubkeyChecker;
