@@ -437,14 +437,14 @@ function process_update(NF, afields, rhs_records) {
     var bfields = null;
     if (rhs_records != null && rhs_records.length == 1)
         bfields = rhs_records[0];
+    var up_fields = afields;
     __RBQLMP__init_column_vars
     if ((rhs_records == null || rhs_records.length == 1) && (__RBQLMP__where_expression)) {
         NU += 1;
         __RBQLMP__update_statements
     }
-    var out_fields = afields;
-    replace_null_values(out_fields);
-    var out_record = output_join(out_fields, output_delim);
+    replace_null_values(up_fields);
+    var out_record = output_join(up_fields, output_delim);
     return writer.write(out_record);
 }
 

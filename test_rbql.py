@@ -1515,6 +1515,34 @@ class TestEverything(unittest.TestCase):
             compare_warnings(self, None, warnings)
 
 
+    def test_run36(self):
+        test_name = 'test36'
+        #FIXME make sure this test works
+
+        input_table = list()
+        input_table.append(['car', '1', '100', '1'])
+        input_table.append(['car', '2', '100', '1'])
+        input_table.append(['dog', '3', '100', '2'])
+
+        canonic_table = list()
+        canonic_table.append(['1', 'car', '100', '1'])
+        canonic_table.append(['2', 'car', '100', '1'])
+        canonic_table.append(['3', 'dog', '100', '2'])
+
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+
+        query = r'update set a1 = a2, a2 = a1'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            query = r'update set a1 = a2, a2 = a1'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
+
 
 def calc_file_md5(fname):
     import hashlib
@@ -1897,10 +1925,10 @@ class TestParsing(unittest.TestCase):
         rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  '
         test_dst = rbql.translate_update_expression(rbql_src, '    ')
         canonic_dst = list()
-        canonic_dst.append('safe_set(afields, 1,  safe_get(afields, 2)  + safe_get(bfields, 3))')
-        canonic_dst.append('    safe_set(afields, 2,safe_get(afields, 4)  if safe_get(bfields, 3) == safe_get(afields, 2) else safe_get(afields, 8))')
-        canonic_dst.append('    safe_set(afields, 8,   100)')
-        canonic_dst.append('    safe_set(afields, 30,200/3 + 1)')
+        canonic_dst.append('safe_set(up_fields, 1,  safe_get(afields, 2)  + safe_get(bfields, 3))')
+        canonic_dst.append('    safe_set(up_fields, 2,safe_get(afields, 4)  if safe_get(bfields, 3) == safe_get(afields, 2) else safe_get(afields, 8))')
+        canonic_dst.append('    safe_set(up_fields, 8,   100)')
+        canonic_dst.append('    safe_set(up_fields, 30,200/3 + 1)')
         canonic_dst = '\n'.join(canonic_dst)
         self.assertEqual(canonic_dst, test_dst)
 

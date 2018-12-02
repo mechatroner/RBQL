@@ -301,7 +301,7 @@ function normalize_delim(delim) {
 
 function translate_update_expression(update_expression, indent) {
     var rgx = /(?:^|,) *a([1-9][0-9]*) *=(?=[^=])/g;
-    var translated = update_expression.replace(rgx, '\nsafe_set(afields, $1,');
+    var translated = update_expression.replace(rgx, '\nsafe_set(up_fields, $1,');
     var update_statements = translated.split('\n');
     update_statements = update_statements.map(str_strip);
     if (update_statements.length < 2 || update_statements[0] != '') {

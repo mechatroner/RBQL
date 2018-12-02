@@ -480,13 +480,13 @@ def process_update(NR, NF, afields, rhs_records):
     bfields = None
     if rhs_records is not None and len(rhs_records) == 1:
         bfields = rhs_records[0]
+    up_fields = afields[:]
     if (rhs_records is None or len(rhs_records) == 1) and (__RBQLMP__where_expression):
         global NU
         NU += 1
         __RBQLMP__update_statements
-    out_fields = afields
-    replace_none_values(out_fields)
-    out_record = output_join(out_fields, output_delim)
+    replace_none_values(up_fields)
+    out_record = output_join(up_fields, output_delim)
     return writer.write(out_record)
 
 
