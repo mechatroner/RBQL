@@ -21,7 +21,8 @@ except Exception as e:
 
 PY3 = sys.version_info[0] == 3
 
-# FIXME implement fold with default "|" join.
+unfold_list = None
+
 
 def iteritems6(x):
     if PY3:
@@ -104,6 +105,18 @@ class Marker(object):
 
     def __str__(self):
         raise TypeError('Marker')
+
+
+class UNFOLD:
+    def __init__(self, vals):
+        global unfold_list
+        if unfold_list is not None:
+            # Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
+            raise RbqlRuntimeError('Only one UNFOLD is allowed per query')
+        unfold_list = vals
+
+    def __str__(self):
+        raise TypeError('UNFOLD')
 
 
 def init_aggregator(generator_name, val, post_proc=None):
@@ -527,10 +540,27 @@ def select_aggregated(NR, NF, afields, bfields, transparent_values):
     writer.aggregation_keys.add(key)
 
 
+def select_unfolded(NR, NF, afields, bfields, folded_fields):
+    out_fields = folded_fields[:]
+    unfold_pos = None
+    for i, trans_value in enumerate(folded_fields):
+        if isinstance(trans_value, UNFOLD):
+            unfold_pos = i
+            break
+    assert unfold_pos is not None
+    for v in unfold_list:
+        out_fields[unfold_pos] = v
+        if not select_simple(NR, NF, afields, bfields, out_fields):
+            return False
+    return True
+
+
 def process_select(NR, NF, afields, rhs_records):
+    global unfold_list
     if rhs_records is None:
         rhs_records = [None]
     for bfields in rhs_records:
+        unfold_list = None
         if bfields is None:
             star_fields = afields
         else:
@@ -540,6 +570,9 @@ def process_select(NR, NF, afields, rhs_records):
         out_fields = __RBQLMP__select_expression
         if aggregation_stage > 0:
             select_aggregated(NR, NF, afields, bfields, out_fields)
+        elif unfold_list is not None:
+            if not select_unfolded(NR, NF, afields, bfields, out_fields):
+                return False
         else:
             if not select_simple(NR, NF, afields, bfields, out_fields):
                 return False
