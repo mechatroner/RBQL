@@ -1517,7 +1517,6 @@ class TestEverything(unittest.TestCase):
 
     def test_run36(self):
         test_name = 'test36'
-        #FIXME make sure this test works
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1540,6 +1539,47 @@ class TestEverything(unittest.TestCase):
             query = r'update set a1 = a2, a2 = a1'
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
+
+    def test_run37(self):
+        test_name = 'test37'
+
+        input_table = list()
+        input_table.append(['car', '1'])
+        input_table.append(['car', '2'])
+        input_table.append(['car', '4'])
+        input_table.append(['dog', '3'])
+
+        canonic_table = list()
+        canonic_table.append(['car', '1|2|4'])
+        canonic_table.append(['dog', '3'])
+
+        input_delim, input_policy, output_delim, output_policy = ['\t', 'simple', '\t', 'simple']
+
+        # Step 1: FOLD
+        query = r'select a1, FOLD(a2) group by a1'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        # Step 2: UNFOLD back to original
+        query = r'select a1, UNFOLD(a2.split("|"))'
+        test_table, warnings = run_conversion_test_py(query, canonic_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(input_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            # Step 1: FOLD
+            query = r'select a1, FOLD(a2) group by a1'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
+            # Step 2: UNFOLD back to original
+            query = r'select a1, UNFOLD(a2.split("|"))'
+            test_table, warnings = run_conversion_test_js(query, canonic_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(input_table, test_table)
             compare_warnings(self, None, warnings)
 
 

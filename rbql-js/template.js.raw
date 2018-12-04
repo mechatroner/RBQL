@@ -70,7 +70,7 @@ function finish_processing_error(error_msg) {
 
 
 // FIXME rewrite README. Separate on sections like Advantages / Disadvatages
-// FIXME implement UNFOLD and write unit tests
+// FIXME implement "SELECT * EXCEPT"
 
 
 function assert(condition, message) {
