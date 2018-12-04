@@ -59,12 +59,18 @@ var null_record = null;
 
 var finished_with_error = false;
 
+var unfold_list = null;
+
 function finish_processing_error(error_msg) {
     finished_with_error = true;
     if (line_reader)
         line_reader.close(); // Sometimes linereader still calls "line" callback even after "close()" method has been called.
     external_error_handler(error_msg);
 }
+
+
+// FIXME rewrite README. Separate on sections like Advantages / Disadvatages
+// FIXME implement UNFOLD and write unit tests
 
 
 function assert(condition, message) {
@@ -136,6 +142,17 @@ function Marker(marker_id, value) {
     this.toString = function() {
         throw new RbqlError('Unsupported aggregate expression');
     }
+}
+
+function UnfoldMarker() {}
+
+function UNFOLD(vals) {
+    if (unfold_list !== null) {
+        // Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
+        throw new RbqlError('Only one UNFOLD is allowed per query');
+    }
+    unfold_list = vals;
+    return new UnfoldMarker();
 }
 
 
@@ -494,10 +511,23 @@ function select_aggregated(key, transparent_values) {
 }
 
 
+function select_unfolded(sort_key, folded_fields) {
+    let out_fields = folded_fields.slice();
+    let unfold_pos = folded_fields.findIndex(val => val instanceof UnfoldMarker);
+    for (var i = 0; i < unfold_list.length; i++) {
+        out_fields[unfold_pos] = unfold_list[i];
+        if (!select_simple(sort_key, out_fields))
+            return false;
+    }
+    return true;
+}
+
+
 function process_select(NF, afields, rhs_records) {
     if (rhs_records == null)
         rhs_records = [null];
     for (var i = 0; i < rhs_records.length; i++) {
+        unfold_list = null;
         var bfields = rhs_records[i];
         var star_fields = afields;
         if (bfields != null)
@@ -512,8 +542,13 @@ function process_select(NF, afields, rhs_records) {
             select_aggregated(key, out_fields);
         } else {
             var sort_key = [__RBQLMP__sort_key_expression];
-            if (!select_simple(sort_key, out_fields))
-                return false;
+            if (unfold_list !== null) {
+                if (!select_unfolded(sort_key, out_fields))
+                    return false;
+            } else {
+                if (!select_simple(sort_key, out_fields))
+                    return false;
+            }
         }
     }
     return true;
