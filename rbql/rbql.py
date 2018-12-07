@@ -106,7 +106,7 @@ def xrange6(x):
 
 def rbql_meta_format(template_src, meta_params):
     for key, value in meta_params.items():
-        # FIXME make special replace for multiple statements, like in update, it should be indent-aware. values should be a list in this case to avoid join/split
+        # TODO make special replace for multiple statements, like in update, it should be indent-aware. values should be a list in this case to avoid join/split
         template_src_upd = template_src.replace(key, value)
         assert template_src_upd != template_src
         template_src = template_src_upd
@@ -255,7 +255,7 @@ def locate_statements(rbql_expression):
     result = list()
     for st_group in statement_groups:
         for statement in st_group:
-            rgxp = r'(?i)(?:^| ){} '.format(statement.replace(' ', ' *'))
+            rgxp = r'(?i)(?:^| ){}(?= )'.format(statement.replace(' ', ' *'))
             matches = list(re.finditer(rgxp, rbql_expression))
             if not len(matches):
                 continue

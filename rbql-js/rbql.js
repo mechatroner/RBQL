@@ -124,7 +124,6 @@ function get_all_matches(regexp, text) {
 
 
 function locate_statements(rbql_expression) {
-    // TODO rewrite this function
     let statement_groups = [];
     statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
     statement_groups.push([SELECT]);
@@ -137,7 +136,7 @@ function locate_statements(rbql_expression) {
     for (var ig = 0; ig < statement_groups.length; ig++) {
         for (var is = 0; is < statement_groups[ig].length; is++) {
             var statement = statement_groups[ig][is];
-            var rgxp = new RegExp('(?:^| )' + replace_all(statement, ' ', ' *') + ' ', 'ig');
+            var rgxp = new RegExp('(?:^| )' + replace_all(statement, ' ', ' *') + '(?= )', 'ig');
             var matches = get_all_matches(rgxp, rbql_expression);
             if (!matches.length)
                 continue;
@@ -485,7 +484,6 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_t
         js_meta_params['__RBQLMP__top_count'] = 'null';
     }
 
-    // FIXME use single __RBQLMP__init_column_vars variable and fix rbql_meta_format() function to be indent-aware
     js_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' '.repeat(4));
     js_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' '.repeat(8));
 

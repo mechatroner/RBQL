@@ -69,7 +69,6 @@ function finish_processing_error(error_msg) {
 }
 
 
-// FIXME rbql_meta_format
 // FIXME implement "SELECT * EXCEPT"
 // FIXME utf8 (improvements) and tests
 // FIXME rewrite README. Separate on sections like Advantages / Disadvatages
