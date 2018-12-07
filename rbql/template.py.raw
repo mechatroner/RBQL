@@ -494,6 +494,7 @@ def process_update(NR, NF, afields, rhs_records):
     if rhs_records is not None and len(rhs_records) == 1:
         bfields = rhs_records[0]
     up_fields = afields[:]
+    __RBQLMP__init_column_vars_update
     if (rhs_records is None or len(rhs_records) == 1) and (__RBQLMP__where_expression):
         global NU
         NU += 1
@@ -503,12 +504,11 @@ def process_update(NR, NF, afields, rhs_records):
     return writer.write(out_record)
 
 
-def select_simple(NR, NF, afields, bfields, out_fields):
+def select_simple(sort_key, out_fields):
     replace_none_values(out_fields)
     out_record = output_join(out_fields, output_delim)
     if __RBQLMP__sort_flag:
-        sort_key_value = (__RBQLMP__sort_key_expression)
-        if not writer.write(sort_key_value, out_record):
+        if not writer.write(sort_key, out_record):
             return False
     else:
         if not writer.write(out_record):
@@ -516,9 +516,8 @@ def select_simple(NR, NF, afields, bfields, out_fields):
     return True
 
 
-def select_aggregated(NR, NF, afields, bfields, transparent_values):
+def select_aggregated(key, transparent_values):
     global aggregation_stage
-    key = __RBQLMP__aggregation_key_expression
     if key is not None:
         key = output_join(key, output_delim)
     if aggregation_stage == 1:
@@ -540,7 +539,7 @@ def select_aggregated(NR, NF, afields, bfields, transparent_values):
     writer.aggregation_keys.add(key)
 
 
-def select_unfolded(NR, NF, afields, bfields, folded_fields):
+def select_unfolded(sort_key, folded_fields):
     out_fields = folded_fields[:]
     unfold_pos = None
     for i, trans_value in enumerate(folded_fields):
@@ -550,7 +549,7 @@ def select_unfolded(NR, NF, afields, bfields, folded_fields):
     assert unfold_pos is not None
     for v in unfold_list:
         out_fields[unfold_pos] = v
-        if not select_simple(NR, NF, afields, bfields, out_fields):
+        if not select_simple(sort_key, out_fields):
             return False
     return True
 
@@ -565,17 +564,21 @@ def process_select(NR, NF, afields, rhs_records):
             star_fields = afields
         else:
             star_fields = afields + bfields
+        __RBQLMP__init_column_vars_select
         if not (__RBQLMP__where_expression):
             continue
         out_fields = __RBQLMP__select_expression
         if aggregation_stage > 0:
-            select_aggregated(NR, NF, afields, bfields, out_fields)
-        elif unfold_list is not None:
-            if not select_unfolded(NR, NF, afields, bfields, out_fields):
-                return False
+            key = __RBQLMP__aggregation_key_expression
+            select_aggregated(key, out_fields)
         else:
-            if not select_simple(NR, NF, afields, bfields, out_fields):
-                return False
+            sort_key = (__RBQLMP__sort_key_expression)
+            if unfold_list is not None:
+                if not select_unfolded(sort_key, out_fields):
+                    return False
+            else:
+                if not select_simple(sort_key, out_fields):
+                    return False
     return True
 
 

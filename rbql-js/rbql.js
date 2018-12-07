@@ -483,10 +483,11 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_t
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['__RBQLMP__is_select_query'] = 'false';
         js_meta_params['__RBQLMP__top_count'] = 'null';
-        js_meta_params['__RBQLMP__init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(4));
-    } else {
-        js_meta_params['__RBQLMP__init_column_vars'] = generate_init_statements(column_vars, ' '.repeat(8));
     }
+
+    // FIXME use single __RBQLMP__init_column_vars variable and fix rbql_meta_format() function to be indent-aware
+    js_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' '.repeat(4));
+    js_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' '.repeat(8));
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         var top_count = find_top(rb_actions);

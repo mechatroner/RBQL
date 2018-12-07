@@ -106,7 +106,7 @@ def xrange6(x):
 
 def rbql_meta_format(template_src, meta_params):
     for key, value in meta_params.items():
-        # TODO make special replace for multiple statements, like in update, it should be indent-aware
+        # FIXME make special replace for multiple statements, like in update, it should be indent-aware. values should be a list in this case to avoid join/split
         template_src_upd = template_src.replace(key, value)
         assert template_src_upd != template_src
         template_src = template_src_upd
@@ -164,9 +164,20 @@ def find_table_path(table_id):
     return None
 
 
-def replace_column_vars(rbql_expression):
-    translated = re.sub('(?:^|(?<=[^_a-zA-Z0-9]))([ab])([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))', r'safe_get(\1fields, \2)', rbql_expression)
-    return translated
+def generate_init_statements(column_vars, indent):
+    init_statements = []
+    for var_name in column_vars:
+        var_group = var_name[0]
+        one_based_idx = int(var_name[1:])
+        if var_group == 'a':
+            init_statements.append('{} = safe_get(afields, {})'.format(var_name, one_based_idx))
+        if var_group == 'b':
+            init_statements.append('{} = safe_get(bfields, {}) if bfields is not None else None'.format(var_name, one_based_idx))
+    for i in range(1, len(init_statements)):
+        init_statements[i] = indent + init_statements[i]
+    result = '\n'.join(init_statements)
+    return result
+
 
 
 def replace_star_count(aggregate_expression):
@@ -190,13 +201,11 @@ def translate_update_expression(update_expression, indent):
     for i in range(1, len(update_statements)):
         update_statements[i] = indent + update_statements[i]
     translated = '\n'.join(update_statements)
-    translated = replace_column_vars(translated)
     return translated
 
 
 def translate_select_expression_py(select_expression):
     translated = replace_star_count(select_expression)
-    translated = replace_column_vars(translated)
     translated = replace_star_vars_py(translated)
     translated = translated.strip()
     if not len(translated):
@@ -333,6 +342,12 @@ def make_user_init_code(rbql_init_source_path):
     return '\n'.join(source_lines) + '\n'
 
 
+def extract_column_vars(rbql_expression):
+    rgx = '(?:^|[^_a-zA-Z0-9])([ab][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'
+    matches = list(re.finditer(rgx, rbql_expression))
+    return list(set([m.group(1) for m in matches]))
+
+
 def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
@@ -345,6 +360,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
     rbql_lines = [strip_py_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
     full_rbql_expression = ' '.join(rbql_lines)
+    column_vars = extract_column_vars(full_rbql_expression)
     format_expression, string_literals = separate_string_literals_py(full_rbql_expression)
     rb_actions = separate_actions(format_expression)
 
@@ -368,8 +384,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
             raise RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
-        # FIXME use js approach based on "extract_column_vars()" function
-        aggregation_key_expression = replace_column_vars(rb_actions[GROUP_BY]['text'])
+        aggregation_key_expression = rb_actions[GROUP_BY]['text']
         py_meta_params['__RBQLMP__aggregation_key_expression'] = '[{}]'.format(combine_string_literals(aggregation_key_expression, string_literals))
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
@@ -401,7 +416,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
         py_meta_params['__RBQLMP__join_policy'] = ''
 
     if WHERE in rb_actions:
-        where_expression = replace_column_vars(rb_actions[WHERE]['text'])
+        where_expression = rb_actions[WHERE]['text']
         if re.search(r'[^!=]=[^=]', where_expression) is not None:
             raise RBParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="')
         py_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals)
@@ -415,6 +430,9 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
         py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
         py_meta_params['__RBQLMP__top_count'] = 'None'
+
+    py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' ' * 8)
+    py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' ' * 4)
 
     if SELECT in rb_actions:
         top_count = find_top(rb_actions)
@@ -431,7 +449,7 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
         py_meta_params['__RBQLMP__is_select_query'] = 'True'
 
     if ORDER_BY in rb_actions:
-        order_expression = replace_column_vars(rb_actions[ORDER_BY]['text'])
+        order_expression = rb_actions[ORDER_BY]['text']
         py_meta_params['__RBQLMP__sort_key_expression'] = combine_string_literals(order_expression, string_literals)
         py_meta_params['__RBQLMP__reverse_flag'] = 'True' if rb_actions[ORDER_BY]['reverse'] else 'False'
         py_meta_params['__RBQLMP__sort_flag'] = 'True'

@@ -69,8 +69,10 @@ function finish_processing_error(error_msg) {
 }
 
 
-// FIXME rewrite README. Separate on sections like Advantages / Disadvatages
+// FIXME rbql_meta_format
 // FIXME implement "SELECT * EXCEPT"
+// FIXME utf8 (improvements) and tests
+// FIXME rewrite README. Separate on sections like Advantages / Disadvatages
 
 
 function assert(condition, message) {
@@ -455,7 +457,7 @@ function process_update(NF, afields, rhs_records) {
     if (rhs_records != null && rhs_records.length == 1)
         bfields = rhs_records[0];
     var up_fields = afields;
-    __RBQLMP__init_column_vars
+    __RBQLMP__init_column_vars_select
     if ((rhs_records == null || rhs_records.length == 1) && (__RBQLMP__where_expression)) {
         NU += 1;
         __RBQLMP__update_statements
@@ -532,7 +534,7 @@ function process_select(NF, afields, rhs_records) {
         var star_fields = afields;
         if (bfields != null)
             star_fields = afields.concat(bfields);
-        __RBQLMP__init_column_vars
+        __RBQLMP__init_column_vars_update
         if (!(__RBQLMP__where_expression))
             continue;
         // TODO wrap all user expression in try/catch block to improve error reporting

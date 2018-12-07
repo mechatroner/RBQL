@@ -1965,8 +1965,8 @@ class TestParsing(unittest.TestCase):
         rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  '
         test_dst = rbql.translate_update_expression(rbql_src, '    ')
         canonic_dst = list()
-        canonic_dst.append('safe_set(up_fields, 1,  safe_get(afields, 2)  + safe_get(bfields, 3))')
-        canonic_dst.append('    safe_set(up_fields, 2,safe_get(afields, 4)  if safe_get(bfields, 3) == safe_get(afields, 2) else safe_get(afields, 8))')
+        canonic_dst.append('safe_set(up_fields, 1,  a2  + b3)')
+        canonic_dst.append('    safe_set(up_fields, 2,a4  if b3 == a2 else a8)')
         canonic_dst.append('    safe_set(up_fields, 8,   100)')
         canonic_dst.append('    safe_set(up_fields, 30,200/3 + 1)')
         canonic_dst = '\n'.join(canonic_dst)
@@ -1976,12 +1976,12 @@ class TestParsing(unittest.TestCase):
     def test_select_translation(self):
         rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * '
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + [ safe_get(afields, 1),  safe_get(afields, 2),safe_get(afields, 1)] + star_fields + [] + star_fields + [safe_get(bfields, 1)] + star_fields + [] + star_fields + []'
+        canonic_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(canonic_dst, test_dst)
 
         rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * '
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + [ safe_get(afields, 1),  safe_get(afields, 2),safe_get(afields, 1)] + star_fields + [] + star_fields + [] + star_fields + [safe_get(bfields, 1)] + star_fields + [] + star_fields + []'
+        canonic_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(canonic_dst, test_dst)
 
         rbql_src = ' * '
