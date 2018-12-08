@@ -68,8 +68,6 @@ function finish_processing_error(error_msg) {
     external_error_handler(error_msg);
 }
 
-// FIXME add unit test for query "select FOLD(a1)"  - without group by!
-// FIXME implement "SELECT * EXCEPT" and add unit tests
 // FIXME utf8 (improvements) and tests
 // FIXME rewrite README. Separate on sections like Advantages / Disadvatages
 

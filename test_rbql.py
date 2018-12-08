@@ -1603,6 +1603,33 @@ class TestEverything(unittest.TestCase):
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)
 
+    def test_run39(self):
+        test_name = 'test39'
+
+        input_table = list()
+        input_table.append(['car', '1', '100', '1'])
+        input_table.append(['car', '2', '100', '1'])
+        input_table.append(['dog', '3', '100', '2'])
+        input_table.append(['mouse', '2', '50', '1'])
+
+        canonic_table = list()
+        canonic_table.append(['mouse', '50'])
+        canonic_table.append(['dog', '100'])
+        canonic_table.append(['car', '100'])
+
+        input_delim, input_policy, output_delim, output_policy =  select_random_formats(input_table)
+
+        query = r'select top 3 * except a2, a4 order by a1 desc'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            query = r'select top 3 * except a2, a4 order by a1 desc'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
+
 
 def calc_file_md5(fname):
     import hashlib
