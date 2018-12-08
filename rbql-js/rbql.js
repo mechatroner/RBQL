@@ -158,7 +158,7 @@ function parse_join_expression(src) {
     var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
     var match = rgx.exec(src);
     if (match === null) {
-        throw new RBParsingError('Incorrect join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
+        throw new RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
     }
     var table_id = match[1];
     var avar = match[2];
@@ -167,7 +167,7 @@ function parse_join_expression(src) {
         [avar, bvar] = [bvar, avar];
     }
     if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
-        throw new RBParsingError('Incorrect join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
+        throw new RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
     }
     avar = avar.substr(1);
     bvar = bvar.substr(1);

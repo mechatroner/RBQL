@@ -441,6 +441,15 @@ def replace_none_values(fields):
         i += 1
 
 
+def select_except(src, except_fields):
+    result = list()
+    for i, v in enumerate(src):
+        if i not in except_fields:
+            result.append(v)
+    return result
+
+
+
 def create_warnings_report():
     warnings = dict()
     if defective_csv_line_in_join != 0:

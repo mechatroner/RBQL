@@ -38,6 +38,7 @@ STRICT_LEFT_JOIN = 'STRICT LEFT JOIN'
 ORDER_BY = 'ORDER BY'
 WHERE = 'WHERE'
 LIMIT = 'LIMIT'
+EXCEPT = 'EXCEPT'
 
 
 default_csv_encoding = 'latin-1'
@@ -141,14 +142,14 @@ def escape_string_literal(src):
 def parse_join_expression(src):
     match = re.match(r'(?i)^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$', src)
     if match is None:
-        raise RBParsingError('Incorrect join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
+        raise RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
     table_id = match.group(1)
     avar = match.group(2)
     bvar = match.group(3)
     if avar[0] == 'b':
         avar, bvar = bvar, avar
     if avar[0] != 'a' or bvar[0] != 'b':
-        raise RBParsingError('Incorrect join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
+        raise RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
     lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]))
     rhs_join_var = 'safe_join_get(bfields, {})'.format(int(bvar[1:]))
     return (table_id, lhs_join_var, rhs_join_var)
@@ -251,6 +252,7 @@ def locate_statements(rbql_expression):
     statement_groups.append([UPDATE])
     statement_groups.append([GROUP_BY])
     statement_groups.append([LIMIT])
+    statement_groups.append([EXCEPT])
 
     result = list()
     for st_group in statement_groups:
@@ -348,6 +350,19 @@ def extract_column_vars(rbql_expression):
     return list(set([m.group(1) for m in matches]))
 
 
+def translate_except_expression(except_expression):
+    skip_vars = except_expression.split(',')
+    skip_vars = list(set([v.strip() for v in skip_vars]))
+    skip_indices = list()
+    for var_name in skip_vars:
+        if re.match('^a[1-9][0-9]*$', var_name) is None:
+            raise RBParsingError('Invalid EXCEPT syntax')
+        skip_indices.append(int(var_name[1:]) - 1)
+    skip_indices = sorted(skip_indices)
+    skip_indices = [str(v) for v in skip_indices]
+    return 'select_except(afields, [{}])'.format(','.join(skip_indices))
+
+
 def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
@@ -443,8 +458,11 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
             py_meta_params['__RBQLMP__writer_type'] = 'uniq'
         else:
             py_meta_params['__RBQLMP__writer_type'] = 'simple'
-        select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
-        py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
+        if EXCEPT in rb_actions:
+            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'])
+        else:
+            select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
+            py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
         py_meta_params['__RBQLMP__update_statements'] = 'pass'
         py_meta_params['__RBQLMP__is_select_query'] = 'True'
 
