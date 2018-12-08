@@ -1,4 +1,5 @@
 # RBQL (RainBow Query Language) Description
+
 RBQL is a technology which provides SQL-like language that supports _SELECT_ and _UPDATE_ queries with Python or JavaScript expressions.  
 
 [Official Site](https://rbql.org/)
@@ -11,49 +12,61 @@ RBQL is a technology which provides SQL-like language that supports _SELECT_ and
 * Output records appear in the same order as in input unless _ORDER BY_ is provided
 * Each record has a unique NR (line number) identifier
 * Supports all main SQL keywords and adds some new useful query modes
+* Supports user-defined functions (UDF)
 * Works out of the box, no external dependencies
 
 ### Supported SQL Keywords (Keywords are case insensitive)
 
-* SELECT \[ TOP _N_ \] \[ DISTINCT [ COUNT ] \]
+* SELECT \[ TOP _N_ \] \[ DISTINCT \]
 * UPDATE \[ SET \]
 * WHERE
 * ORDER BY ... [ DESC | ASC ]
-* [ [ STRICT ] LEFT | INNER ] JOIN
+* [ LEFT | INNER ] JOIN
 * GROUP BY
 * LIMIT _N_
 
 All keywords have the same meaning as in SQL queries. You can check them [online](https://www.w3schools.com/sql/default.asp)  
 
 
-#### RBQL-specific keywords, rules and limitations
-
-* _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_  
-* _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify the source table.  
-* _UPDATE_ has the same meaning as in SQL, but it also can be considered as a special type of _SELECT_ query.  
-* _TOP_ and _LIMIT_ have identical meaning. Use whichever you like more.  
-* _DISTINCT COUNT_ is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
-*  _STRICT LEFT JOIN_ is like _LEFT JOIN_, but generates an error if any key in left table "A" doesn't have exactly one matching key in the right table "B".  
-
 ### Special variables
 
-| Variable Name          | Variable Type | Variable Description                 |
-|------------------------|---------------|--------------------------------------|
+| Variable Name            | Variable Type | Variable Description                 |
+|--------------------------|---------------|--------------------------------------|
 | _a1_, _a2_,..., _a{N}_   |string         | Value of i-th column                 |
 | _b1_, _b2_,..., _b{N}_   |string         | Value of i-th column in join table B |
 | _NR_                     |integer        | Line number (1-based)                |
 | _NF_                     |integer        | Number of fields in line             |
 
 ### Aggregate functions and queries
+
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
-_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_
+_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()
 
 #### Limitations
+
 * Aggregate function are CASE SENSITIVE and must be CAPITALIZED.
 * Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.
   E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
 
-### Examples of RBQL queries
+
+### Comparison with traditional database-based SQL engines
+
+#### Advantages
+
+* _UPDATE_ query produces a new table where original values are replaced according to the UPDATE expression, so it can also be considered a special type of SELECT query. This prevents accidental data loss due to incorrect query.
+* RBQL supports both _TOP_ and _LIMIT_ keywords, use whichever you like more.  
+* _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify the source table.  
+* RBQL supports _DISTINCT COUNT_ which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
+* RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an error if any key in left table "A" doesn't have exactly one matching key in the right table "B".  
+
+
+#### Disadvantages
+
+* RBQL doesn't support nested queries. To emulate nested queries one can execute two or more consecutive simple queries since every result set in RBQL is a new table.
+* _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_  
+
+
+## Examples of RBQL queries
 
 #### With Python expressions
 
@@ -90,6 +103,7 @@ _COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_
 ### FAQ
 
 #### How does RBQL work?
+
 RBQL parses SQL-like user query, creates a new python or javascript worker module, then imports and executes it.
 
 Explanation of simplified Python version of RBQL algorithm by example.
@@ -135,6 +149,7 @@ It is clear that this simplified version can only work with tab-separated files.
 
 
 #### Is this technology reliable?
+
 It should be: RBQL scripts have only 1000 - 2000 lines combined (depending on how you count them) and there are no external dependencies.
 There is no complex logic, even query parsing functions are very simple. If something goes wrong RBQL will show an error instead of producing incorrect output, also there are currently 5 different warning types.
 
