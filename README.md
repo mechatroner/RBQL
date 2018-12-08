@@ -4,10 +4,13 @@ RBQL is a technology which provides SQL-like language that supports _SELECT_ and
 [Official Site](https://rbql.org/)
 
 ### Main Features
+
 * Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
 * Result set of any query immediately becomes a first-class table on it's own
-* Output entries appear in the same order as in input unless _ORDER BY_ is provided
 * Supports input tables with inconsistent number of fields per record
+* Output records appear in the same order as in input unless _ORDER BY_ is provided
+* Each record has a unique NR (line number) identifier
+* Supports all main SQL keywords and adds some new useful query modes
 * Works out of the box, no external dependencies
 
 ### Supported SQL Keywords (Keywords are case insensitive)
@@ -47,8 +50,8 @@ _COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_
 
 #### Limitations
 * Aggregate function are CASE SENSITIVE and must be CAPITALIZED.
-* It is illegal to use aggregate functions inside Python (or JS) expressions. Although you can use expressions inside aggregate functions.
-  E.g. `MAX(float(a1) / 1000)` - legal; `MAX(a1) / 1000` - illegal.
+* Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.
+  E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
 
 ### Examples of RBQL queries
 
