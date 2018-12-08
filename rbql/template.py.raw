@@ -449,7 +449,6 @@ def select_except(src, except_fields):
     return result
 
 
-
 def create_warnings_report():
     warnings = dict()
     if defective_csv_line_in_join != 0:

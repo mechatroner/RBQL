@@ -14,6 +14,7 @@ const STRICT_LEFT_JOIN = 'STRICT LEFT JOIN';
 const ORDER_BY = 'ORDER BY';
 const WHERE = 'WHERE';
 const LIMIT = 'LIMIT';
+const EXCEPT = 'EXCEPT';
 
 const rbql_home_dir = __dirname;
 const user_home_dir = os.homedir();
@@ -132,6 +133,7 @@ function locate_statements(rbql_expression) {
     statement_groups.push([UPDATE]);
     statement_groups.push([GROUP_BY]);
     statement_groups.push([LIMIT]);
+    statement_groups.push([EXCEPT]);
     var result = [];
     for (var ig = 0; ig < statement_groups.length; ig++) {
         for (var is = 0; is < statement_groups[ig].length; is++) {
@@ -146,7 +148,7 @@ function locate_statements(rbql_expression) {
             var match = matches[0];
             var match_str = match[0];
             result.push([match.index, match.index + match_str.length, statement]);
-            break; // There must be only one statement maximum in each group
+            break; // Break to avoid matching a sub-statement from the same group e.g. "INNER JOIN" -> "JOIN"
         }
     }
     result.sort(function(a, b) { return a[0] - b[0]; });
@@ -400,6 +402,24 @@ function make_user_init_code(rbql_init_source_path) {
 }
 
 
+function translate_except_expression(except_expression) {
+    let skip_vars = except_expression.split(',');
+    let skip_indices = [];
+    let rgx = /^a[1-9][0-9]*$/;
+    for (let i = 0; i < skip_vars.length; i++) {
+        let skip_var = str_strip(skip_vars[i]);
+        let match = rgx.exec(skip_var);
+        if (match === null) {
+            throw new RBParsingError('Invalid EXCEPT syntax');
+        }
+        skip_indices.push(parseInt(skip_var.substring(1)) - 1);
+    }
+    skip_indices = skip_indices.sort((a, b) => a - b);
+    let indices_str = skip_indices.join(',');
+    return `select_except(afields, [${indices_str}])`;
+}
+
+
 function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
@@ -497,8 +517,12 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_t
         } else {
             js_meta_params['__RBQLMP__writer_type'] = 'simple';
         }
-        var select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
-        js_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals);
+        if (rb_actions.hasOwnProperty(EXCEPT)) {
+            js_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text']);
+        } else {
+            let select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
+            js_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals);
+        }
         js_meta_params['__RBQLMP__update_statements'] = '';
         js_meta_params['__RBQLMP__is_select_query'] = 'true';
     }
@@ -587,3 +611,4 @@ module.exports.make_warnings_human_readable = make_warnings_human_readable;
 module.exports.strip_js_comments = strip_js_comments;
 module.exports.separate_string_literals_js = separate_string_literals_js;
 module.exports.translate_select_expression_js = translate_select_expression_js;
+module.exports.translate_except_expression = translate_except_expression;

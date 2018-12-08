@@ -203,6 +203,18 @@ function test_unquote() {
 
 }
 
+
+function test_except_expression_translation() {
+    let except_part = null;
+    except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8';
+    assert('select_except(afields, [0,1,2,3,4,5,6,7])' == rbql.translate_except_expression(except_part));
+    except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  ';
+    assert('select_except(afields, [0,1,2,3,4,5,6,7])' == rbql.translate_except_expression(except_part));
+    except_part = 'a1';
+    assert('select_except(afields, [0])' == rbql.translate_except_expression(except_part));
+}
+
+
 function test_all() {
     test_unquote();
     test_split();
@@ -210,6 +222,7 @@ function test_all() {
     test_comments_strip();
     test_separate_string_literals();
     test_select_expression_translation();
+    test_except_expression_translation();
 }
 
 

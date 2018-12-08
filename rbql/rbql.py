@@ -266,7 +266,7 @@ def locate_statements(rbql_expression):
             assert len(matches) == 1
             match = matches[0]
             result.append((match.start(), match.end(), statement))
-            break # There must be only one statement maximum in each group
+            break # Break to avoid matching a sub-statement from the same group e.g. "INNER JOIN" -> "JOIN"
     return sorted(result)
 
 
@@ -352,7 +352,7 @@ def extract_column_vars(rbql_expression):
 
 def translate_except_expression(except_expression):
     skip_vars = except_expression.split(',')
-    skip_vars = list(set([v.strip() for v in skip_vars]))
+    skip_vars = [v.strip() for v in skip_vars]
     skip_indices = list()
     for var_name in skip_vars:
         if re.match('^a[1-9][0-9]*$', var_name) is None:

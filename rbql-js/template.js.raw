@@ -69,10 +69,11 @@ function finish_processing_error(error_msg) {
 }
 
 // FIXME add unit test for query "select FOLD(a1)"  - without group by!
-// FIXME get rid of '_py' and '_js' suffixes in rbql.py/rbql.js (except for interface functions)
 // FIXME implement "SELECT * EXCEPT" and add unit tests
 // FIXME utf8 (improvements) and tests
 // FIXME rewrite README. Separate on sections like Advantages / Disadvatages
+
+// TODO get rid of '_py' and '_js' suffixes in rbql.py/rbql.js (except for interface functions)
 
 
 function assert(condition, message) {
@@ -384,6 +385,16 @@ function read_join_table(table_path) {
         }
     }
     return [result, fields_max_len];
+}
+
+
+function select_except(src, except_fields) {
+    let result = [];
+    for (let i = 0; i < src.length; i++) {
+        if (except_fields.indexOf(i) == -1)
+            result.push(src[i]);
+    }
+    return result;
 }
 
 
