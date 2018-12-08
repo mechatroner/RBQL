@@ -161,17 +161,6 @@ def run_file_query_test_py(query, input_path, testname, delim, policy, csv_encod
     return (output_path, warnings)
 
 
-def get_random_input_delim():
-    delims = 'aA8 !#$%&\'()*+,-./:;<=>?@[\]^_`{|}~\t'
-    return random.choice(delims)
-
-
-def get_random_output_format():
-    if random.choice([True, False]):
-        return (',', 'quoted')
-    return ('\t', 'simple')
-
-
 def table_has_delim(array2d, delim):
     for r in array2d:
         for c in r: 
@@ -320,8 +309,14 @@ def compare_warnings(tester, canonic_warnings, test_warnings):
     tester.assertEqual(canonic_warnings, test_warnings)
 
 
-def select_random_formats(input_table):
-    input_delim = get_random_input_delim()
+def get_random_output_format():
+    if random.choice([True, False]):
+        return (',', 'quoted')
+    return ('\t', 'simple')
+
+
+def select_random_formats(input_table, allowed_delims='aA8 !#$%&\'()*+,-./:;<=>?@[\]^_`{|}~\t'):
+    input_delim = random.choice(allowed_delims)
     if table_has_delim(input_table, input_delim):
         input_policy = 'quoted'
     else:
@@ -1501,7 +1496,7 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['1|2|4|7|8', 'car', '5'])
         canonic_table.append(['3', 'dog', '1'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table, '\t,;:')
 
         query = r'select FOLD(a2), a1, FOLD(a4, lambda v: len(v)) where a1 == "car" or a1 == "dog" group by a1'
         test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
@@ -1582,6 +1577,31 @@ class TestEverything(unittest.TestCase):
             self.compare_tables(input_table, test_table)
             compare_warnings(self, None, warnings)
 
+
+    def test_run38(self):
+        test_name = 'test38'
+
+        input_table = list()
+        input_table.append(['car', '1', '100', '1'])
+        input_table.append(['car', '2', '100', '1'])
+        input_table.append(['dog', '3', '100', '2'])
+        input_table.append(['mouse', '2', '100', '1'])
+
+        canonic_table = list()
+        canonic_table.append(['car|car|dog|mouse'])
+
+        input_delim, input_policy, output_delim, output_policy =  select_random_formats(input_table, '\t,;:')
+
+        query = r'select FOLD(a1)'
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        self.compare_tables(canonic_table, test_table)
+        compare_warnings(self, None, warnings)
+
+        if TEST_JS:
+            query = r'select FOLD(a1)'
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            self.compare_tables(canonic_table, test_table)
+            compare_warnings(self, None, warnings)
 
 
 def calc_file_md5(fname):
