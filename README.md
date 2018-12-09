@@ -58,7 +58,7 @@ RBQL supports the following aggregate functions, which can also be used with _GR
 _COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()  
 
 Additionally RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
-`SELECT DISCTINC COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
+`SELECT DISTINCT COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
 
 #### Limitations
 
