@@ -11,18 +11,26 @@ RBQL is a technology which provides SQL-like language that supports _SELECT_ and
 * Supports input tables with inconsistent number of fields per record
 * Output records appear in the same order as in input unless _ORDER BY_ is provided
 * Each record has a unique NR (line number) identifier
-* Supports all main SQL keywords and adds some new useful query modes
+* Supports all main SQL keywords
+* Provides some new useful query modes which traditional SQL engines do not have
+* Supports both _TOP_ and _LIMIT_ keywords
 * Supports user-defined functions (UDF)
 * Works out of the box, no external dependencies
 
+#### Limitations:
+
+* RBQL doesn't support nested queries, but they can be emulated with 2 or more consecutive queries.
+
 ### Supported SQL Keywords (Keywords are case insensitive)
 
-* SELECT \[ TOP _N_ \] \[ DISTINCT \]
-* UPDATE \[ SET \]
+* SELECT
+* UPDATE
 * WHERE
 * ORDER BY ... [ DESC | ASC ]
 * [ LEFT | INNER ] JOIN
+* DISTINCT
 * GROUP BY
+* TOP _N_
 * LIMIT _N_
 
 All keywords have the same meaning as in SQL queries. You can check them [online](https://www.w3schools.com/sql/default.asp)  
@@ -37,10 +45,20 @@ All keywords have the same meaning as in SQL queries. You can check them [online
 | _NR_                     |integer        | Line number (1-based)                |
 | _NF_                     |integer        | Number of fields in line             |
 
+
+### UPDATE statement
+
+_UPDATE_ query produces a new table where original values are replaced according to the UPDATE expression, so it can also be considered a special type of SELECT query. This prevents accidental data loss from poorly written queries.  
+_UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify the source table.  
+
+
 ### Aggregate functions and queries
 
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
-_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()
+_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()  
+
+Additionally RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
+`SELECT DISCTINC COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
 
 #### Limitations
 
@@ -49,21 +67,15 @@ _COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()
   E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
 
 
-### Comparison with traditional database-based SQL engines
+### JOIN statements
 
-#### Advantages
+Join table B can be referenced either by it's file path or by it's name - an arbitary string which user should provide before executing the JOIN query.  
+RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an error if any key in left table "A" doesn't have exactly one matching key in the right table "B".  
 
-* _UPDATE_ query produces a new table where original values are replaced according to the UPDATE expression, so it can also be considered a special type of SELECT query. This prevents accidental data loss due to incorrect query.
-* RBQL supports both _TOP_ and _LIMIT_ keywords, use whichever you like more.  
-* _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify the source table.  
-* RBQL supports _DISTINCT COUNT_ which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
-* RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an error if any key in left table "A" doesn't have exactly one matching key in the right table "B".  
+#### Limitations
 
-
-#### Disadvantages
-
-* RBQL doesn't support nested queries. To emulate nested queries one can execute two or more consecutive simple queries since every result set in RBQL is a new table.
 * _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_  
+
 
 
 ## Examples of RBQL queries
