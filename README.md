@@ -83,7 +83,7 @@ SELECT EXCEPT can be used to select everything except specific columns. E.g. to 
 Traditional SQL engines do not support this query mode.
 
 
-### FOLD and UNFOLD
+### FOLD() and UNFOLD()
 
 #### FOLD() 
 FOLD is an aggregate function which accumulates all values into a list.  
