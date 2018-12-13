@@ -79,7 +79,7 @@ RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an err
 
 ### SELECT EXCEPT statement
 
-SELECT EXCEPT can be used to select everything except specific columns. E.g. to select everything but columns 2 and 4, run: `SELECT * EXCEPT a2, a4`
+SELECT EXCEPT can be used to select everything except specific columns. E.g. to select everything but columns 2 and 4, run: `SELECT * EXCEPT a2, a4`  
 Traditional SQL engines do not support this query mode.
 
 
