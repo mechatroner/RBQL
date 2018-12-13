@@ -83,6 +83,21 @@ SELECT EXCEPT can be used to select everything except specific columns. E.g. to 
 Traditional SQL engines do not support this query mode.
 
 
+### FOLD and UNFOLD
+
+#### FOLD() 
+FOLD is an aggregate function which accumulates all values into a list.  
+By default it would return the list joined by pipe `|` character, but you can provide a callback function to change this behavior.  
+Example (Python): `select a2, FOLD(a1, lambda v: ';'.join(sorted(v))) group by a2`  
+Example (JavaScript):  `select a2, FOLD(a1, v => v.sort().join(';')) group by a2`  
+
+#### UNFOLD() 
+UNFOLD() is a function-like query mode which will do the opposite to FOLD().  
+UNFOLD() accepts a list as an argument and will repeat the output record multiple times - one time for each value from the list argument.  
+Example: `SELECT a1, UNFOLD(a2.split(';'))`  
+Traditional SQL engines can't operate with lists (arrays) and do not support FOLD() and UNFOLD()  
+
+
 ## Examples of RBQL queries
 
 #### With Python expressions
