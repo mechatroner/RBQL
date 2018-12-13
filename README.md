@@ -77,6 +77,11 @@ RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an err
 * _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_  
 
 
+### SELECT EXCEPT statement
+
+SELECT EXCEPT can be used to select everything except specific columns. E.g. to select everything but columns 2 and 4, run: `SELECT * EXCEPT a2, a4`
+Traditional SQL engines do not support this query mode.
+
 
 ## Examples of RBQL queries
 
