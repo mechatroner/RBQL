@@ -100,8 +100,8 @@ Traditional SQL engines can't operate with lists (arrays) and do not support FOL
 
 ### User Defined Functions (UDF)
 
-RBQL supports User Defined Functions
-You can define custom functions and/or import libraries in two special files:
+RBQL supports User Defined Functions  
+You can define custom functions and/or import libraries in two special files:  
 * `~/.rbql_init_source.py` - for Python
 * `~/.rbql_init_source.js` - for JavaScript
 
