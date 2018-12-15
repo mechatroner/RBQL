@@ -88,6 +88,7 @@ Traditional SQL engines do not support this query mode.
 #### FOLD() 
 FOLD is an aggregate function which accumulates all values into a list.  
 By default it would return the list joined by pipe `|` character, but you can provide a callback function to change this behavior.  
+FOLD is very similar to GROUP_CONCAT function in MySQL  
 Example (Python): `select a2, FOLD(a1, lambda v: ';'.join(sorted(v))) group by a2`  
 Example (JavaScript):  `select a2, FOLD(a1, v => v.sort().join(';')) group by a2`  
 
