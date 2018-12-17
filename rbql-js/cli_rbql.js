@@ -190,7 +190,7 @@ function run_with_js(args) {
     }
     var input_path = get_default(args, 'input_table_path', null);
     var output_path = get_default(args, 'output_table_path', null);
-    var csv_encoding = args['csv_encoding'];
+    var csv_encoding = args['encoding'];
     error_format = args['error_format'];
     var output_delim = get_default(args, 'out_delim', null);
     var output_policy = get_default(args, 'out_policy', null);
@@ -217,6 +217,8 @@ function run_with_js(args) {
 }
 
 
+// FIXME use dashes instead of underscores in params!
+// rename input_table_path and output_table_path to input and output
 function main() {
     var scheme = {
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
@@ -228,7 +230,7 @@ function main() {
         '--query': {'help': 'Query string in rbql'},
         '--input_table_path': {'help': 'Read csv table from FILE instead of stdin'},
         '--output_table_path': {'help': 'Write output table to FILE instead of stdout'},
-        '--csv_encoding': {'default': rbql.default_csv_encoding, 'help': 'Manually set csv table encoding'},
+        '--encoding': {'default': rbql.default_csv_encoding, 'help': 'Manually set csv table encoding'},
         '--parse_only': {'boolean': true, 'help': 'Create worker module and exit'},
         '--version': {'boolean': true, 'help': 'Script language to use in query'},
         '--init_source_file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}

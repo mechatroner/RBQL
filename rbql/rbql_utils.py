@@ -57,6 +57,14 @@ def split_whitespace_separated_str(src, preserve_whitespaces=False):
     return result
 
 
+def smart_split(src, dlm, policy, preserve_quotes):
+    if policy == 'simple':
+        return (src.split(dlm), False)
+    if policy == 'whitespace':
+        return split_whitespace_separated_str(src, preserve_quotes)
+    return split_quoted_str(src, dlm, preserve_quotes)
+
+
 def extract_line_from_data(data):
     mobj = newline_rgx.search(data)
     if mobj is None:

@@ -69,7 +69,6 @@ function finish_processing_error(error_msg) {
 }
 
 // FIXME utf8 (improvements) and tests
-// FIXME rewrite README. Separate on sections like Advantages / Disadvatages
 
 // TODO get rid of '_py' and '_js' suffixes in rbql.py/rbql.js (except for interface functions)
 
