@@ -162,7 +162,7 @@ def sample_records(input_path, delim, policy, encoding):
     return (bad_lines, result)
 
 
-def print_colorized(records, delim, show_column_names):
+def print_colorized(records, delim, encoding, show_column_names):
     # TODO consider colorizing a1,a2,... in different default color
     reset_color_code = u'\u001b[0m'
     color_codes = [u'\u001b[0m', u'\u001b[31m', u'\u001b[32m', u'\u001b[33m', u'\u001b[34m', u'\u001b[35m', u'\u001b[36m', u'\u001b[31;1m', u'\u001b[32;1m', u'\u001b[33;1m']
@@ -175,7 +175,8 @@ def print_colorized(records, delim, show_column_names):
             else:
                 colored_field = '{}{}'.format(color_code, field)
             out_fields.append(colored_field)
-        print(delim.join(out_fields) + reset_color_code)
+        out_line = delim.join(out_fields) + reset_color_code
+        print(out_line.encode(encoding, 'replace'))
 
 
 def get_default_output_path(input_path, delim):
@@ -201,7 +202,7 @@ def run_interactive_loop(args):
             print('\nOutput table preview:')
             print('====================================')
             _bad_lines, records = sample_records(args.output, args.output_delim, args.output_policy, args.encoding)
-            print_colorized(records, args.output_delim, show_column_names=False)
+            print_colorized(records, args.output_delim, args.encoding, show_column_names=False)
             print('====================================')
             print('Success! Result table was saved to: ' + args.output)
             break
@@ -225,8 +226,7 @@ def start_preview_mode(args):
     bad_lines, records = sample_records(input_path, delim, policy, args.encoding)
     print('Input table preview:')
     print('====================================')
-    # FIXME: encoding. print_colorized fails with names_utf.csv
-    print_colorized(records, delim, show_column_names=True)
+    print_colorized(records, delim, args.encoding, show_column_names=True)
     print('====================================\n')
     if len(bad_lines):
         show_warning('Some input lines have quoting errors. Line numbers: ' + ', '.join([str(v) for v in bad_lines]), is_interactive=True)
