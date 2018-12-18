@@ -23,7 +23,7 @@ out_policy_names = policy_names + ['input']
 
 
 def interpret_format(format_name, input_delim, input_policy):
-    assert format_name in out_policy_names, 'unknown format'
+    assert format_name in out_policy_names
     if format_name == 'input':
         return (input_delim, input_policy)
     if format_name == 'monocolumn':
@@ -67,7 +67,7 @@ def run_with_python(args, is_interactive):
     output_path = args.output
     init_source_file = args.init_source_file
     csv_encoding = args.encoding
-    output_delim, output_policy = interpret_format(args.out_format, delim, policy)
+    args.output_delim, args.output_policy = interpret_format(args.out_format, delim, policy)
 
     assert args.query
     rbql_lines = [query]
@@ -75,7 +75,7 @@ def run_with_python(args, is_interactive):
     with rbql.RbqlPyEnv() as worker_env:
         tmp_path = worker_env.module_path
         try:
-            rbql.parse_to_py(rbql_lines, tmp_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file)
+            rbql.parse_to_py(rbql_lines, tmp_path, delim, policy, args.output_delim, args.output_policy, csv_encoding, init_source_file)
         except rbql.RBParsingError as e:
             show_error('RBQL Parsing Failure: {}'.format(e), is_interactive)
             return False
@@ -162,7 +162,7 @@ def sample_records(input_path, delim, policy, encoding):
     return (bad_lines, result)
 
 
-def print_colorized(records, delim):
+def print_colorized(records, delim, show_column_names):
     # TODO consider colorizing a1,a2,... in different default color
     reset_color_code = u'\u001b[0m'
     color_codes = [u'\u001b[0m', u'\u001b[31m', u'\u001b[32m', u'\u001b[33m', u'\u001b[34m', u'\u001b[35m', u'\u001b[36m', u'\u001b[31;1m', u'\u001b[32;1m', u'\u001b[33;1m']
@@ -170,7 +170,10 @@ def print_colorized(records, delim):
         out_fields = []
         for i, field in enumerate(record):
             color_code = color_codes[i % len(color_codes)]
-            colored_field = '{}a{}:{}'.format(color_code, i + 1, field)
+            if show_column_names:
+                colored_field = '{}a{}:{}'.format(color_code, i + 1, field)
+            else:
+                colored_field = '{}{}'.format(color_code, field)
             out_fields.append(colored_field)
         print(delim.join(out_fields) + reset_color_code)
 
@@ -195,6 +198,11 @@ def run_interactive_loop(args):
         args.query = query
         success = run_with_python(args, is_interactive=True)
         if success:
+            print('\nOutput table preview:')
+            print('====================================')
+            _bad_lines, records = sample_records(args.output, args.output_delim, args.output_policy, args.encoding)
+            print_colorized(records, args.output_delim, show_column_names=False)
+            print('====================================')
             print('Success! Result table was saved to: ' + args.output)
             break
 
@@ -215,9 +223,10 @@ def start_preview_mode(args):
         args.delim = delim
         args.policy = policy
     bad_lines, records = sample_records(input_path, delim, policy, args.encoding)
-    print('\n')
+    print('Input table preview:')
+    print('====================================')
     # FIXME: encoding. print_colorized fails with names_utf.csv
-    print_colorized(records, delim)
+    print_colorized(records, delim, show_column_names=True)
     print('====================================\n')
     if len(bad_lines):
         show_warning('Some input lines have quoting errors. Line numbers: ' + ', '.join([str(v) for v in bad_lines]), is_interactive=True)
