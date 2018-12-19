@@ -2,6 +2,7 @@
 
 cleanup_tmp_files() {
     rm random_ut.csv 2> /dev/null
+    rm tmp_out.csv 2> /dev/null
 }
 
 skip_python_ut="False"
@@ -57,6 +58,12 @@ md5sum_test=($(python -m rbql --query "select a1,a2,a7,b2,b3,b4 left join test_d
 md5sum_canonic=($( md5sum unit_tests/canonic_result_4.tsv ))
 if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
     echo "CLI test FAIL!"  1>&2
+fi
+
+echo "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" | python -m rbql --input test_datasets/movies.tsv --output tmp_out.csv > /dev/null
+md5sum_test=($(cat tmp_out.csv | md5sum))
+if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
+    echo "Interactive CLI test FAIL!"  1>&2
 fi
 
 if [ "$has_node" == "yes" ] ; then
