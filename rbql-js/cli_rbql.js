@@ -188,15 +188,15 @@ function run_with_js(args) {
     if (!query) {
         die('RBQL query is empty');
     }
-    var input_path = get_default(args, 'input_table_path', null);
-    var output_path = get_default(args, 'output_table_path', null);
+    var input_path = get_default(args, 'input', null);
+    var output_path = get_default(args, 'output', null);
     var csv_encoding = args['encoding'];
-    error_format = args['error_format'];
-    var output_delim = get_default(args, 'out_delim', null);
-    var output_policy = get_default(args, 'out_policy', null);
-    let init_source_file = get_default(args, 'init_source_file', null);
+    error_format = args['error-format'];
+    var output_delim = get_default(args, 'out-delim', null);
+    var output_policy = get_default(args, 'out-policy', null);
+    let init_source_file = get_default(args, 'init-source-file', null);
     if (output_delim === null) {
-        [output_delim, output_policy] = interpret_format(args['out_format'], delim, policy);
+        [output_delim, output_policy] = interpret_format(args['out-format'], delim, policy);
     }
     var rbql_lines = [query];
     var tmp_dir = os.tmpdir();
@@ -208,7 +208,7 @@ function run_with_js(args) {
         report_parsing_error(get_error_message(e));
         process.exit(1);
     }
-    if (args.hasOwnProperty('parse_only')) {
+    if (args.hasOwnProperty('parse-only')) {
         console.log('Worker module location: ' + tmp_worker_module_path);
         return;
     }
@@ -217,23 +217,21 @@ function run_with_js(args) {
 }
 
 
-// FIXME use dashes instead of underscores in params!
-// rename input_table_path and output_table_path to input and output
 function main() {
     var scheme = {
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
         '--policy': {'help': 'Split policy'},
-        '--out_format': {'default': 'input', 'help': 'Output format'},
-        '--error_format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
-        '--out_delim': {'help': 'Output delim. Use with "out_policy". Overrides out_format'},
-        '--out_policy': {'help': 'Output policy. Use with "out_delim". Overrides out_format'},
+        '--out-format': {'default': 'input', 'help': 'Output format'},
+        '--error-format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
+        '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format'},
+        '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format'},
         '--query': {'help': 'Query string in rbql'},
-        '--input_table_path': {'help': 'Read csv table from FILE instead of stdin'},
-        '--output_table_path': {'help': 'Write output table to FILE instead of stdout'},
+        '--input': {'help': 'Read csv table from FILE instead of stdin'},
+        '--output': {'help': 'Write output table to FILE instead of stdout'},
         '--encoding': {'default': rbql.default_csv_encoding, 'help': 'Manually set csv table encoding'},
-        '--parse_only': {'boolean': true, 'help': 'Create worker module and exit'},
+        '--parse-only': {'boolean': true, 'help': 'Create worker module and exit'},
         '--version': {'boolean': true, 'help': 'Script language to use in query'},
-        '--init_source_file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
+        '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
     };
     var args = parse_cmd_args(process.argv, scheme);
 
