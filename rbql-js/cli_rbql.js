@@ -2,13 +2,23 @@
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
+const readline = require('readline');
 
 const rbql = require('./rbql.js');
+const rbql_utils = require('./rbql_utils.js');
 
 
 function die(error_msg) {
     console.error('Error: ' + error_msg);
     process.exit(1);
+}
+
+function show_error(error_msg, is_interactive) {
+    if (is_interactive) {
+        console.log('\x1b[31;1mError:\x1b[0m ' + error_msg);
+    } else {
+        console.error('Error: ' + error_msg);
+    }
 }
 
 
@@ -175,15 +185,64 @@ function report_parsing_error(error_msg) {
     }
 }
 
+function get_default_policy(delim) {
+    if ([';', ','].indexOf(delim) != -1) {
+        return 'quoted';
+    } else if (delim == ' ') {
+        return 'whitespace';
+    } else {
+        return 'simple';
+    }
+}
+
+
+function is_delimited_table(sampled_lines, delim, policy) {
+    if (sampled_lines.length < 10)
+        return false;
+    let num_fields = null;
+    for (var i = 0; i < sampled_lines.length; i++) {
+        let [fields, warning] = rbql_utils.smart_split(sampled_lines[i], delim, policy, true);
+        if (warning)
+            return false;
+        if (num_fields === null)
+            num_fields = fields.length;
+        if (num_fields != fields.length)
+            return false;
+    }
+    return true;
+}
+
+
+function sample_lines(input_path, encoding, callback_func) {
+    let input_reader = readline.createInterface({ input: fs.createReadStream(input_path, {encoding: encoding}) });
+    let sampled_lines = [];
+    input_reader.on('line', line => {
+        sampled_lines.push(line);
+        if (sampled_lines.length >= 10)
+            input_reader.close();
+    });
+    input_reader.on('close', () => { callback_func(sampled_lines); });
+}
+
+
+function autodetect_delim_policy(sampled_lines) {
+    let autodetection_dialects = [['\t', 'simple'], [',', 'quoted'], [';', 'quoted']];
+    for (var i = 0; i < autodetection_dialects.length; i++) {
+        let [delim, policy] = autodetection_dialects[i];
+        if (is_delimited_table(sampled_lines, delim, policy))
+            return [delim, policy];
+    }
+    if (input_path.endsWith('.csv'))
+        return [',', 'quoted'];
+    if (input_path.endsWith('.tsv'))
+        return ['\t', 'simple'];
+    return [null, null];
+}
+
 
 function run_with_js(args) {
     var delim = normalize_delim(args['delim']);
-    var policy = args['policy'];
-    if (!policy) {
-        policy = [';', ','].indexOf(delim) == -1 ? 'simple' : 'quoted';
-        if (delim == ' ')
-            policy = 'whitespace';
-    }
+    var policy = args['policy'] ? args['policy'] : get_default_policy(delim);
     var query = args['query'];
     if (!query) {
         die('RBQL query is empty');
@@ -217,6 +276,77 @@ function run_with_js(args) {
 }
 
 
+function sample_records(input_path, encoding, delim, policy, callback_func) {
+    sample_lines(input_path, encoding, (sampled_lines) => {
+        let records = [];
+        let bad_lines = [];
+        for (var i = 0; i < sampled_lines.length; i++) {
+            let [fields, warning] = rbql_utils.smart_split(sampled_lines[i], delim, policy, true);
+            if (warning)
+                bad_lines.push(i + 1);
+            records.push(fields);
+        }
+        callback_func(records, bad_lines);
+    });
+}
+
+
+function print_colorized(records, delim, encoding, show_column_names) {
+    // FIXME test with utf8
+    let reset_color_code = '\x1b[0m';
+    let color_codes = ['\x1b[0m', '\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[31;1m', '\x1b[32;1m', '\x1b[33;1m'];
+    for (let r = 0; r < records.length; r++) {
+        let out_fields = [];
+        for (let c = 0; c < records[r].length; c++) {
+            let color_code = color_codes[c % color_codes.length];
+            let field = records[r][c];
+            let colored_field = show_column_names ? `${color_code}a${c + 1}:${field}` : color_code + field;
+            out_fields.push(colored_field);
+        }
+        let out_line = out_fields.join(delim) + reset_color_code;
+        console.log(out_line);
+    }
+}
+
+
+function show_preview(args, input_path, delim, policy) {
+    // FIXME
+    if (!delim) {
+        show_error('Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option', true);
+        return;
+    }
+    args.delim = delim;
+    args.policy = policy;
+    sample_records(input_path, args.encoding, delim, policy, (records, bad_lines) => {
+        console.log('Input table preview:')
+        console.log('====================================')
+        print_colorized(records, delim, args.encoding, true)
+        console.log('====================================\n')
+    });
+}
+
+
+function start_preview_mode(args) {
+    let input_path = get_default(args, 'input', null);
+    if (!input_path) {
+        show_error('Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', true);
+        return;
+    }
+    let delim = get_default(args, 'delim', null);
+    let policy = null;
+    if (delim !== null) {
+        delim = normalize_delim(delim);
+        policy = args['policy'] ? args['policy'] : get_default_policy(delim);
+        show_preview(args, input_path, delim, policy);
+    } else {
+        sample_lines(input_path, args.encoding, (sampled_lines) => { 
+            let [delim, policy] = autodetect_delim_policy(sampled_lines); 
+            show_preview(args, input_path, delim, policy);
+        });
+    }
+}
+
+
 function main() {
     var scheme = {
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
@@ -239,8 +369,14 @@ function main() {
         console.log(rbql.version);
         process.exit(0);
     }
+    if (args.encoding == 'latin-1')
+        args.encoding = 'binary';
 
-    run_with_js(args);
+    if (args.hasOwnProperty('query')) {
+        run_with_js(args);
+    } else {
+        start_preview_mode(args);
+    }
 }
 
 module.exports.parse_cmd_args = parse_cmd_args;

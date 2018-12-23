@@ -80,6 +80,17 @@ function split_whitespace_separated_str(src, preserve_whitespaces=false) {
 }
 
 
+function smart_split(src, dlm, policy, preserve_quotes) {
+    if (policy === 'simple')
+        return [src.split(dlm), false];
+    if (policy === 'monocolumn')
+        return [[src], false];
+    if (policy === 'whitespace')
+        return split_whitespace_separated_str(src, preserve_quotes);
+    return split_quoted_str(src, dlm, preserve_quotes);
+}
+
+
 function MinAggregator() {
     this.stats = new Map();
 
@@ -290,6 +301,7 @@ function SubkeyChecker() {
 
 module.exports.split_quoted_str = split_quoted_str;
 module.exports.split_whitespace_separated_str = split_whitespace_separated_str;
+module.exports.smart_split = smart_split;
 
 module.exports.MinAggregator = MinAggregator;
 module.exports.MaxAggregator = MaxAggregator;

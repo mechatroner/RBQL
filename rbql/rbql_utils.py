@@ -62,6 +62,8 @@ def smart_split(src, dlm, policy, preserve_quotes):
         return (src.split(dlm), False)
     if policy == 'whitespace':
         return split_whitespace_separated_str(src, preserve_quotes)
+    if policy == 'monocolumn':
+        return ([src], False)
     return split_quoted_str(src, dlm, preserve_quotes)
 
 

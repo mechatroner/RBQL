@@ -64,7 +64,7 @@ var unfold_list = null;
 function finish_processing_error(error_msg) {
     finished_with_error = true;
     if (line_reader)
-        line_reader.close(); // Sometimes linereader still calls "line" callback even after "close()" method has been called.
+        line_reader.close();
     external_error_handler(error_msg);
 }
 
@@ -578,7 +578,7 @@ function remove_utf8_bom(line, assumed_source_encoding) {
 
 function process_line(line) {
     if (finished_with_error)
-        return;
+        return; // Sometimes linereader still calls "line" callback even after "close()" method has been called.
     try {
         do_process_line(line);
     } catch (e) {
