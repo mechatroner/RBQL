@@ -213,8 +213,8 @@ function is_delimited_table(sampled_lines, delim, policy) {
 }
 
 
-function sample_lines(input_path, encoding, callback_func) {
-    let input_reader = readline.createInterface({ input: fs.createReadStream(input_path, {encoding: encoding}) });
+function sample_lines(input_path, callback_func) {
+    let input_reader = readline.createInterface({ input: fs.createReadStream(input_path) });
     let sampled_lines = [];
     input_reader.on('line', line => {
         sampled_lines.push(line);
@@ -276,8 +276,8 @@ function run_with_js(args) {
 }
 
 
-function sample_records(input_path, encoding, delim, policy, callback_func) {
-    sample_lines(input_path, encoding, (sampled_lines) => {
+function sample_records(input_path, delim, policy, callback_func) {
+    sample_lines(input_path, (sampled_lines) => {
         let records = [];
         let bad_lines = [];
         for (var i = 0; i < sampled_lines.length; i++) {
@@ -291,7 +291,7 @@ function sample_records(input_path, encoding, delim, policy, callback_func) {
 }
 
 
-function print_colorized(records, delim, encoding, show_column_names) {
+function print_colorized(records, delim, show_column_names) {
     // FIXME test with utf8
     let reset_color_code = '\x1b[0m';
     let color_codes = ['\x1b[0m', '\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[31;1m', '\x1b[32;1m', '\x1b[33;1m'];
@@ -317,10 +317,10 @@ function show_preview(args, input_path, delim, policy) {
     }
     args.delim = delim;
     args.policy = policy;
-    sample_records(input_path, args.encoding, delim, policy, (records, bad_lines) => {
+    sample_records(input_path, delim, policy, (records, bad_lines) => {
         console.log('Input table preview:')
         console.log('====================================')
-        print_colorized(records, delim, args.encoding, true)
+        print_colorized(records, delim, true)
         console.log('====================================\n')
     });
 }
@@ -339,7 +339,7 @@ function start_preview_mode(args) {
         policy = args['policy'] ? args['policy'] : get_default_policy(delim);
         show_preview(args, input_path, delim, policy);
     } else {
-        sample_lines(input_path, args.encoding, (sampled_lines) => { 
+        sample_lines(input_path, (sampled_lines) => { 
             let [delim, policy] = autodetect_delim_policy(sampled_lines); 
             show_preview(args, input_path, delim, policy);
         });
