@@ -47,7 +47,7 @@ def show_error(msg, is_interactive):
         full_msg = '{}Error:{} {}'.format(u'\u001b[31;1m', u'\u001b[0m', msg)
         print(full_msg)
     else:
-        eprint('Error: '+ msg)
+        eprint('Error: ' + msg)
 
 
 def show_warning(msg, is_interactive):
@@ -55,7 +55,7 @@ def show_warning(msg, is_interactive):
         full_msg = '{}Warning:{} {}'.format(u'\u001b[33;1m', u'\u001b[0m', msg)
         print(full_msg)
     else:
-        eprint('Warning: {}'.format(msg))
+        eprint('Warning: ' + msg)
 
 
 def run_with_python(args, is_interactive):

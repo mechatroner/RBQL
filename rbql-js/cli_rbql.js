@@ -13,17 +13,29 @@ function die(error_msg) {
     process.exit(1);
 }
 
-function show_error(error_msg, is_interactive) {
-    if (is_interactive) {
-        console.log('\x1b[31;1mError:\x1b[0m ' + error_msg);
+
+var tmp_worker_module_path = null;
+var error_format = 'hr';
+var interactive_mode = false;
+var user_input_reader = null;
+
+
+function show_error(msg) {
+    if (interactive_mode) {
+        console.log('\x1b[31;1mError:\x1b[0m ' + msg);
     } else {
-        console.error('Error: ' + error_msg);
+        console.error('Error: ' + msg);
     }
 }
 
 
-var tmp_worker_module_path = null;
-var error_format = 'hr';
+function show_warning(msg) {
+    if (interactive_mode) {
+        console.log('\x1b[33;1mWarning:\x1b[0m ' + msg);
+    } else {
+        console.error('Warning: ' + msg);
+    }
+}
 
 
 function show_help(scheme) {
@@ -117,9 +129,15 @@ function report_warnings_hr(warnings) {
     if (warnings !== null) {
         let hr_warnings = rbql.make_warnings_human_readable(warnings);
         for (let i = 0; i < hr_warnings.length; i++) {
-            console.error('Warning: ' + hr_warnings[i]);
+            show_warning(hr_warnings[i]);
         }
     }
+}
+
+
+function show_query_prompt() {
+    console.log('\nInput SQL-like RBQL query and press Enter:');
+    process.stdout.write('> ');
 }
 
 
@@ -149,24 +167,34 @@ function report_error_json(error_msg) {
 }
 
 
-function handle_worker_success(warnings) {
+function handle_worker_success(warnings, output_path) {
     cleanup_tmp();
     if (error_format == 'hr') {
         report_warnings_hr(warnings);
+        if (interactive_mode) {
+            // FIXME show preview
+            console.log('Success! Result table was saved to: ' + output_path);
+            user_input_reader.close();
+        }
     } else {
         report_warnings_json(warnings);
     }
 }
 
 
-function handle_worker_failure(error_msg) {
+function finish_query_with_error(error_msg) {
     if (error_format == 'hr') {
         report_error_hr(error_msg);
     } else {
         report_error_json(error_msg);
     }
-    process.exit(1);
+    if (!interactive_mode) {
+        process.exit(1);
+    } else {
+        show_query_prompt();
+    }
 }
+
 
 function get_error_message(error) {
     if (error && error.message)
@@ -174,16 +202,6 @@ function get_error_message(error) {
     return String(error);
 }
 
-
-function report_parsing_error(error_msg) {
-    if (error_format == 'hr') {
-        console.error('Parsing Error: ' + error_msg);
-    } else {
-        let report = new Object();
-        report.error = error_msg
-        process.stderr.write(JSON.stringify(report));
-    }
-}
 
 function get_default_policy(delim) {
     if ([';', ','].indexOf(delim) != -1) {
@@ -245,12 +263,12 @@ function run_with_js(args) {
     var policy = args['policy'] ? args['policy'] : get_default_policy(delim);
     var query = args['query'];
     if (!query) {
-        die('RBQL query is empty');
+        finish_query_with_error('Parsing Error: RBQL query is empty');
+        return;
     }
     var input_path = get_default(args, 'input', null);
     var output_path = get_default(args, 'output', null);
     var csv_encoding = args['encoding'];
-    error_format = args['error-format'];
     var output_delim = get_default(args, 'out-delim', null);
     var output_policy = get_default(args, 'out-policy', null);
     let init_source_file = get_default(args, 'init-source-file', null);
@@ -264,15 +282,15 @@ function run_with_js(args) {
     try {
         rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file);
     } catch (e) {
-        report_parsing_error(get_error_message(e));
-        process.exit(1);
+        finish_query_with_error('Parsing Error: ' + get_error_message(e));
+        return;
     }
     if (args.hasOwnProperty('parse-only')) {
         console.log('Worker module location: ' + tmp_worker_module_path);
         return;
     }
     var worker_module = require(tmp_worker_module_path);
-    worker_module.run_on_node(handle_worker_success, handle_worker_failure);
+    worker_module.run_on_node((warnings) => { handle_worker_success(warnings, output_path); }, finish_query_with_error);
 }
 
 
@@ -292,7 +310,6 @@ function sample_records(input_path, delim, policy, callback_func) {
 
 
 function print_colorized(records, delim, show_column_names) {
-    // FIXME test with utf8
     let reset_color_code = '\x1b[0m';
     let color_codes = ['\x1b[0m', '\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[31;1m', '\x1b[32;1m', '\x1b[33;1m'];
     for (let r = 0; r < records.length; r++) {
@@ -309,11 +326,27 @@ function print_colorized(records, delim, show_column_names) {
 }
 
 
+function get_default_output_path(input_path, delim) {
+    let well_known_extensions = {',': '.csv', '\t': '.tsv'};
+    if (well_known_extensions.hasOwnProperty(delim))
+        return input_path + well_known_extensions[delim];
+    return input_path + '.txt';
+}
+
+
+function run_interactive_loop(args) {
+    show_query_prompt();
+    user_input_reader = readline.createInterface({ input: process.stdin });
+    user_input_reader.on('line', line => {
+        args.query = line.trim();
+        run_with_js(args);
+    });
+}
+
+
 function show_preview(args, input_path, delim, policy) {
-    // FIXME
     if (!delim) {
-        show_error('Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option', true);
-        return;
+        die('Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option');
     }
     args.delim = delim;
     args.policy = policy;
@@ -322,6 +355,13 @@ function show_preview(args, input_path, delim, policy) {
         console.log('====================================')
         print_colorized(records, delim, true)
         console.log('====================================\n')
+        if (bad_lines.length)
+            show_warning('Some input lines have quoting errors. Line numbers: ' + bad_lines.join(','));
+        if (!args.output) {
+            args.output = get_default_output_path(input_path, delim);
+            show_warning('Output path was not provided. Result set will be saved as: ' + args.output);
+        }
+        run_interactive_loop(args);
     });
 }
 
@@ -329,8 +369,12 @@ function show_preview(args, input_path, delim, policy) {
 function start_preview_mode(args) {
     let input_path = get_default(args, 'input', null);
     if (!input_path) {
-        show_error('Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', true);
-        return;
+        show_error('Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode');
+        process.exit(1);
+    }
+    if (error_format != 'hr') {
+        show_error('Only default "hr" error format is supported in interactive mode');
+        process.exit(1);
     }
     let delim = get_default(args, 'delim', null);
     let policy = null;
@@ -372,9 +416,13 @@ function main() {
     if (args.encoding == 'latin-1')
         args.encoding = 'binary';
 
+    error_format = args['error-format'];
+
     if (args.hasOwnProperty('query')) {
+        interactive_mode = false;
         run_with_js(args);
     } else {
+        interactive_mode = true;
         start_preview_mode(args);
     }
 }
