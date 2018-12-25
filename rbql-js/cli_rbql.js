@@ -26,6 +26,10 @@ function show_error(msg) {
     } else {
         console.error('Error: ' + msg);
     }
+    if (fs.existsSync(tmp_worker_module_path)) {
+        let output_func = interactive_mode ? console.log : console.error;
+        output_func('Generated module was saved here: ' + tmp_worker_module_path);
+    }
 }
 
 
@@ -149,14 +153,6 @@ function report_warnings_json(warnings) {
 }
 
 
-function report_error_hr(error_msg) {
-    console.error('Error: ' + error_msg);
-    if (fs.existsSync(tmp_worker_module_path)) {
-        console.error('Generated module was saved here: ' + tmp_worker_module_path);
-    }
-}
-
-
 function report_error_json(error_msg) {
     let report = new Object();
     report.error = error_msg
@@ -169,7 +165,7 @@ function report_error_json(error_msg) {
 
 function finish_query_with_error(error_msg) {
     if (error_format == 'hr') {
-        report_error_hr(error_msg);
+        show_error(error_msg);
     } else {
         report_error_json(error_msg);
     }
