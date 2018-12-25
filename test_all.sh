@@ -54,23 +54,29 @@ fi
 
 
 # CLI tests:
-md5sum_test=($(python -m rbql --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test_datasets/movies.tsv | md5sum))
 md5sum_canonic=($( md5sum unit_tests/canonic_result_4.tsv ))
+
+md5sum_test=($(python -m rbql --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test_datasets/movies.tsv | md5sum))
 if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
     echo "CLI test FAIL!"  1>&2
 fi
 
-echo "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" | python -m rbql --input test_datasets/movies.tsv --output tmp_out.csv > /dev/null
+printf "select select a1\nselect a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010\n" | python -m rbql --input test_datasets/movies.tsv --output tmp_out.csv > /dev/null
 md5sum_test=($(cat tmp_out.csv | md5sum))
 if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
-    echo "Interactive CLI test FAIL!"  1>&2
+    echo "Interactive CLI Python test FAIL!"  1>&2
 fi
 
 if [ "$has_node" == "yes" ] ; then
     md5sum_test=($( node ./rbql-js/cli_rbql.js --query "select a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010" < test_datasets/movies.tsv | md5sum))
-    md5sum_canonic=($( md5sum unit_tests/canonic_result_4.tsv ))
     if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
         echo "CLI test FAIL!"  1>&2
+    fi
+
+    printf "select select a1\nselect a1,a2,a7,b2,b3,b4 left join test_datasets/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010\n" | node ./rbql-js/cli_rbql.js --input test_datasets/movies.tsv --output tmp_out.csv > /dev/null
+    md5sum_test=($(cat tmp_out.csv | md5sum))
+    if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
+        echo "Interactive CLI JS test FAIL!"  1>&2
     fi
 fi
 
