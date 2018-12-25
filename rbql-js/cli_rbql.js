@@ -167,21 +167,6 @@ function report_error_json(error_msg) {
 }
 
 
-function handle_worker_success(warnings, output_path) {
-    cleanup_tmp();
-    if (error_format == 'hr') {
-        report_warnings_hr(warnings);
-        if (interactive_mode) {
-            // FIXME show preview
-            console.log('Success! Result table was saved to: ' + output_path);
-            user_input_reader.close();
-        }
-    } else {
-        report_warnings_json(warnings);
-    }
-}
-
-
 function finish_query_with_error(error_msg) {
     if (error_format == 'hr') {
         report_error_hr(error_msg);
@@ -231,8 +216,8 @@ function is_delimited_table(sampled_lines, delim, policy) {
 }
 
 
-function sample_lines(input_path, callback_func) {
-    let input_reader = readline.createInterface({ input: fs.createReadStream(input_path) });
+function sample_lines(table_path, callback_func) {
+    let input_reader = readline.createInterface({ input: fs.createReadStream(table_path) });
     let sampled_lines = [];
     input_reader.on('line', line => {
         sampled_lines.push(line);
@@ -243,18 +228,70 @@ function sample_lines(input_path, callback_func) {
 }
 
 
-function autodetect_delim_policy(sampled_lines) {
+function sample_records(table_path, delim, policy, callback_func) {
+    sample_lines(table_path, (sampled_lines) => {
+        let records = [];
+        let bad_lines = [];
+        for (var i = 0; i < sampled_lines.length; i++) {
+            let [fields, warning] = rbql_utils.smart_split(sampled_lines[i], delim, policy, true);
+            if (warning)
+                bad_lines.push(i + 1);
+            records.push(fields);
+        }
+        callback_func(records, bad_lines);
+    });
+}
+
+
+function autodetect_delim_policy(table_path, sampled_lines) {
     let autodetection_dialects = [['\t', 'simple'], [',', 'quoted'], [';', 'quoted']];
     for (var i = 0; i < autodetection_dialects.length; i++) {
         let [delim, policy] = autodetection_dialects[i];
         if (is_delimited_table(sampled_lines, delim, policy))
             return [delim, policy];
     }
-    if (input_path.endsWith('.csv'))
+    if (table_path.endsWith('.csv'))
         return [',', 'quoted'];
-    if (input_path.endsWith('.tsv'))
+    if (table_path.endsWith('.tsv'))
         return ['\t', 'simple'];
     return [null, null];
+}
+
+
+function print_colorized(records, delim, show_column_names) {
+    let reset_color_code = '\x1b[0m';
+    let color_codes = ['\x1b[0m', '\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[31;1m', '\x1b[32;1m', '\x1b[33;1m'];
+    for (let r = 0; r < records.length; r++) {
+        let out_fields = [];
+        for (let c = 0; c < records[r].length; c++) {
+            let color_code = color_codes[c % color_codes.length];
+            let field = records[r][c];
+            let colored_field = show_column_names ? `${color_code}a${c + 1}:${field}` : color_code + field;
+            out_fields.push(colored_field);
+        }
+        let out_line = out_fields.join(delim) + reset_color_code;
+        console.log(out_line);
+    }
+}
+
+
+function handle_worker_success(warnings, output_path, delim, policy) {
+    cleanup_tmp();
+    if (error_format == 'hr') {
+        report_warnings_hr(warnings);
+        if (interactive_mode) {
+            user_input_reader.close();
+            sample_records(output_path, delim, policy, (records, bad_lines) => {
+                console.log('\nOutput table preview:');
+                console.log('====================================');
+                print_colorized(records, delim, false);
+                console.log('====================================');
+                console.log('Success! Result table was saved to: ' + output_path);
+            });
+        }
+    } else {
+        report_warnings_json(warnings);
+    }
 }
 
 
@@ -290,39 +327,7 @@ function run_with_js(args) {
         return;
     }
     var worker_module = require(tmp_worker_module_path);
-    worker_module.run_on_node((warnings) => { handle_worker_success(warnings, output_path); }, finish_query_with_error);
-}
-
-
-function sample_records(input_path, delim, policy, callback_func) {
-    sample_lines(input_path, (sampled_lines) => {
-        let records = [];
-        let bad_lines = [];
-        for (var i = 0; i < sampled_lines.length; i++) {
-            let [fields, warning] = rbql_utils.smart_split(sampled_lines[i], delim, policy, true);
-            if (warning)
-                bad_lines.push(i + 1);
-            records.push(fields);
-        }
-        callback_func(records, bad_lines);
-    });
-}
-
-
-function print_colorized(records, delim, show_column_names) {
-    let reset_color_code = '\x1b[0m';
-    let color_codes = ['\x1b[0m', '\x1b[31m', '\x1b[32m', '\x1b[33m', '\x1b[34m', '\x1b[35m', '\x1b[36m', '\x1b[31;1m', '\x1b[32;1m', '\x1b[33;1m'];
-    for (let r = 0; r < records.length; r++) {
-        let out_fields = [];
-        for (let c = 0; c < records[r].length; c++) {
-            let color_code = color_codes[c % color_codes.length];
-            let field = records[r][c];
-            let colored_field = show_column_names ? `${color_code}a${c + 1}:${field}` : color_code + field;
-            out_fields.push(colored_field);
-        }
-        let out_line = out_fields.join(delim) + reset_color_code;
-        console.log(out_line);
-    }
+    worker_module.run_on_node((warnings) => { handle_worker_success(warnings, output_path, delim, policy); }, finish_query_with_error);
 }
 
 
@@ -384,7 +389,7 @@ function start_preview_mode(args) {
         show_preview(args, input_path, delim, policy);
     } else {
         sample_lines(input_path, (sampled_lines) => { 
-            let [delim, policy] = autodetect_delim_policy(sampled_lines); 
+            let [delim, policy] = autodetect_delim_policy(input_path, sampled_lines); 
             show_preview(args, input_path, delim, policy);
         });
     }
