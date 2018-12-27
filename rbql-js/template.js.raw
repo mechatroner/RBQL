@@ -68,7 +68,7 @@ function finish_processing_error(error_msg) {
     external_error_handler(error_msg);
 }
 
-// FIXME utf8 (improvements) and tests
+// TODO utf8 (improvements) and tests
 
 // TODO get rid of '_py' and '_js' suffixes in rbql.py/rbql.js (except for interface functions)
 

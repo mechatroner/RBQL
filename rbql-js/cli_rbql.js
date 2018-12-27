@@ -394,15 +394,15 @@ function start_preview_mode(args) {
 
 function main() {
     var scheme = {
+        '--query': {'help': 'Query string in rbql'},
+        '--input': {'help': 'Read csv table from FILE instead of stdin'},
+        '--output': {'help': 'Write output table to FILE instead of stdout'},
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
         '--policy': {'help': 'Split policy'},
         '--out-format': {'default': 'input', 'help': 'Output format'},
         '--error-format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format'},
-        '--query': {'help': 'Query string in rbql'},
-        '--input': {'help': 'Read csv table from FILE instead of stdin'},
-        '--output': {'help': 'Write output table to FILE instead of stdout'},
         '--encoding': {'default': rbql.default_csv_encoding, 'help': 'Manually set csv table encoding'},
         '--parse-only': {'boolean': true, 'help': 'Create worker module and exit'},
         '--version': {'boolean': true, 'help': 'Script language to use in query'},
