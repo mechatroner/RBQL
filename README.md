@@ -55,7 +55,7 @@ _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify
 ### Aggregate functions and queries
 
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
-_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()  
+_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()_  
 
 Additionally RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
 `SELECT DISTINCT COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
