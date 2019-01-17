@@ -88,14 +88,14 @@ Traditional SQL engines do not support this query mode.
 #### FOLD() 
 FOLD is an aggregate function which accumulates all values into a list.  
 By default it would return the list joined by pipe `|` character, but you can provide a callback function to change this behavior.  
-FOLD is very similar to "GROUP_CONCAT" function in MySQL and "array_agg" in PostgreSQL
+FOLD is very similar to "GROUP_CONCAT" function in MySQL and "array_agg" in PostgreSQL  
 Example (Python): `select a2, FOLD(a1, lambda v: ';'.join(sorted(v))) group by a2`  
 Example (JavaScript):  `select a2, FOLD(a1, v => v.sort().join(';')) group by a2`  
 
 #### UNFOLD() 
 UNFOLD() is a function-like query mode which will do the opposite to FOLD().  
 UNFOLD() accepts a list as an argument and will repeat the output record multiple times - one time for each value from the list argument.  
-Equivalent in PostgreSQL: "unnest"
+Equivalent in PostgreSQL: "unnest"  
 Example: `SELECT a1, UNFOLD(a2.split(';'))`  
 
 
