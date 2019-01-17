@@ -88,15 +88,15 @@ Traditional SQL engines do not support this query mode.
 #### FOLD() 
 FOLD is an aggregate function which accumulates all values into a list.  
 By default it would return the list joined by pipe `|` character, but you can provide a callback function to change this behavior.  
-FOLD is very similar to GROUP_CONCAT function in MySQL  
+FOLD is very similar to "GROUP_CONCAT" function in MySQL and "array_agg" in PostgreSQL
 Example (Python): `select a2, FOLD(a1, lambda v: ';'.join(sorted(v))) group by a2`  
 Example (JavaScript):  `select a2, FOLD(a1, v => v.sort().join(';')) group by a2`  
 
 #### UNFOLD() 
 UNFOLD() is a function-like query mode which will do the opposite to FOLD().  
 UNFOLD() accepts a list as an argument and will repeat the output record multiple times - one time for each value from the list argument.  
+Equivalent in PostgreSQL: "unnest"
 Example: `SELECT a1, UNFOLD(a2.split(';'))`  
-Traditional SQL engines can't operate with lists (arrays) and do not support FOLD() and UNFOLD()  
 
 
 ### User Defined Functions (UDF)
@@ -197,8 +197,14 @@ There is no complex logic, even query parsing functions are very simple. If some
 
 ### References
 
-This repository includes source code of two independent RBQL implementations:
+[RBQL: Official Site](https://rbql.org/)
+RBQL is integrated with Rainbow CSV extensions in [Vim](https://github.com/mechatroner/rainbow_csv), [VSCode](https://marketplace.visualstudio.com/items?itemName=mechatroner.rainbow-csv), [Sublime Text](https://packagecontrol.io/packages/rainbow_csv) editors.
+[RBQL in npm](https://www.npmjs.com/package/rbql): `$ npm install rbql`
+[RBQL in PyPI](https://pypi.org/project/rbql/): `$ pip install rbql`
 
-* JavaScript-based RBQL: [rbql-js](https://github.com/mechatroner/rbql-js)
-* Python-based RBQL: [rbql-py](https://github.com/mechatroner/rbql-py)
+
+#### Related projects
+[bigbash](https://github.com/Borisvl/bigbash) - SQL queries as bash one-liners
+[q](https://github.com/harelba/q) - uses sqlite3
+[TextQL](http://dinedal.github.io/textql/) - uses sqlite3
 
