@@ -25,6 +25,10 @@ import time
 # This module must be both python2 and python3 compatible
 
 
+# FIXME show error when query contains non-ascii character and encoding is latin-1
+# FIXME show error when encoding is utf-8 and input is failing to decode as utf-8: suggest to use binary
+
+
 __version__ = '0.4.0'
 
 
