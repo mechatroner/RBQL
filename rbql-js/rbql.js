@@ -422,9 +422,10 @@ function translate_except_expression(except_expression) {
 }
 
 
-function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
+function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
+    let rbql_lines = query.split('\n');
     rbql_lines = rbql_lines.map(strip_js_comments);
     rbql_lines = rbql_lines.filter(line => line.length);
     var full_rbql_expression = rbql_lines.join(' ');
@@ -544,9 +545,9 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_t
 }
 
 
-function parse_to_js(src_table_path, dst_table_path, rbql_lines, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
+function parse_to_js(src_table_path, dst_table_path, query, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
     var js_template_text = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
-    var result_script = parse_to_js_almost_web(src_table_path, dst_table_path, rbql_lines, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path);
+    var result_script = parse_to_js_almost_web(src_table_path, dst_table_path, query, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path);
     fs.writeFileSync(js_dst, result_script);
 }
 

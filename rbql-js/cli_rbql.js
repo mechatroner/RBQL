@@ -308,12 +308,11 @@ function run_with_js(args) {
     if (output_delim === null) {
         [output_delim, output_policy] = interpret_format(args['out-format'], delim, policy);
     }
-    var rbql_lines = [query];
     var tmp_dir = os.tmpdir();
     var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
     tmp_worker_module_path = path.join(tmp_dir, script_filename);
     try {
-        rbql.parse_to_js(input_path, output_path, rbql_lines, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file);
+        rbql.parse_to_js(input_path, output_path, query, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file);
     } catch (e) {
         finish_query_with_error('Parsing Error: ' + get_error_message(e));
         return;
