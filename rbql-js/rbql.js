@@ -30,6 +30,8 @@ class RBParsingError extends Error {}
 
 class AssertionError extends Error {}
 
+// FIXME change interface: accept query instead of rbql_lines
+// FIXME thow exception for non-ascii query and binary input
 
 function assert(condition, message=null) {
     if (!condition) {

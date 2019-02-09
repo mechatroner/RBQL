@@ -25,11 +25,12 @@ import time
 # This module must be both python2 and python3 compatible
 
 
-# FIXME show error when query contains non-ascii character and encoding is latin-1
-# FIXME show error when encoding is utf-8 and input is failing to decode as utf-8: suggest to use binary
+
+# FIXME In python: show error when encoding is utf-8 and input is failing to decode as utf-8: suggest to use binary
+# FIXME in python and js: if user query contains non-ascii character and input encoding is set to "binary/latin-1" - report an error: suggest to use utf-8
 
 
-__version__ = '0.4.0'
+__version__ = '0.5.0'
 
 
 GROUP_BY = 'GROUP BY'
@@ -367,7 +368,11 @@ def translate_except_expression(except_expression):
     return 'select_except(afields, [{}])'.format(','.join(skip_indices))
 
 
-def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
+def is_ascii(s):
+    return all(ord(c) < 128 for c in s)
+
+
+def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
 
@@ -376,6 +381,10 @@ def parse_to_py(rbql_lines, py_dst, input_delim, input_policy, out_delim, out_po
     if input_delim != ' ' and input_policy == 'whitespace':
         raise RBParsingError('Only whitespace " " delim is supported with "whitespace" policy')
 
+    if not is_ascii(query) and csv_encoding == 'latin-1':
+        raise RBParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+
+    rbql_lines = query.split('\n')
     rbql_lines = [strip_py_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
     full_rbql_expression = ' '.join(rbql_lines)

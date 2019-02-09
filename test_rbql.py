@@ -149,7 +149,7 @@ def run_file_query_test_py(query, input_path, testname, delim, policy, csv_encod
     output_path = os.path.join(tmp_dir, dst_table_filename)
     with rbql.RbqlPyEnv() as worker_env:
         tmp_path = worker_env.module_path
-        rbql.parse_to_py([query], tmp_path, delim, policy, '\t', 'simple', csv_encoding, None)
+        rbql.parse_to_py(query, tmp_path, delim, policy, '\t', 'simple', csv_encoding, None)
         rbconvert = worker_env.import_worker()
         warnings = None
         with codecs.open(input_path, encoding=csv_encoding) as src, codecs.open(output_path, 'w', encoding=csv_encoding) as dst:
@@ -185,12 +185,12 @@ def parse_json_report(exit_code, err_data):
         return report
 
 
-def run_conversion_test_py(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, custom_init_path=None, join_csv_encoding=default_csv_encoding):
+def run_conversion_test_py(query, input_table, testname, input_delim, input_policy, output_delim, output_policy, custom_init_path=None, csv_encoding=default_csv_encoding):
     with rbql.RbqlPyEnv() as worker_env:
         tmp_path = worker_env.module_path
         src = table_to_stream(input_table, input_delim, input_policy)
         dst = io.StringIO()
-        rbql.parse_to_py([query], tmp_path, input_delim, input_policy, output_delim, output_policy, join_csv_encoding, custom_init_path)
+        rbql.parse_to_py(query, tmp_path, input_delim, input_policy, output_delim, output_policy, csv_encoding, custom_init_path)
         assert os.path.isfile(tmp_path) and os.access(tmp_path, os.R_OK)
         rbconvert = worker_env.import_worker()
         warnings = rbconvert.rb_transform(src, dst)
@@ -687,7 +687,7 @@ class TestEverything(unittest.TestCase):
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = 'select * where a2== "Наполеон" '
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, join_csv_encoding='utf-8')
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, csv_encoding='utf-8')
         self.compare_tables(canonic_table, test_table)
         compare_warnings(self, None, warnings)
 
@@ -816,7 +816,7 @@ class TestEverything(unittest.TestCase):
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = 'update set a2= "Наполеон" '
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, join_csv_encoding='utf-8')
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, csv_encoding='utf-8')
         self.compare_tables(canonic_table, test_table)
         compare_warnings(self, ['input_fields_info'], warnings)
 
@@ -1603,6 +1603,7 @@ class TestEverything(unittest.TestCase):
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)
 
+
     def test_run39(self):
         test_name = 'test39'
 
@@ -1629,6 +1630,32 @@ class TestEverything(unittest.TestCase):
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)
+
+
+    def test_run40(self):
+        test_name = 'test40'
+
+        input_table = list()
+        input_table.append(['car', '1', '100', '1'])
+        input_table.append(['car', '2', '100', '1'])
+        input_table.append(['dog', '3', '100', '2'])
+        input_table.append(['mouse', '2', '50', '1'])
+
+        input_delim, input_policy, output_delim, output_policy =  select_random_formats(input_table)
+
+        query = r'select * where a2 == "Мама"'
+        with self.assertRaises(Exception) as cm:
+            test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        e = cm.exception
+        self.assertTrue(str(e).find('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary') != -1)
+
+        # FIXME enable js test here
+
+        #if TEST_JS:
+        #    query = r'select top 3 * except a2, a4 order by a1 desc'
+        #    test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        #    self.compare_tables(canonic_table, test_table)
+        #    compare_warnings(self, None, warnings)
 
 
 def calc_file_md5(fname):

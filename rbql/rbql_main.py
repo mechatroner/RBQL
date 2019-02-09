@@ -70,12 +70,11 @@ def run_with_python(args, is_interactive):
     args.output_delim, args.output_policy = interpret_format(args.out_format, delim, policy)
 
     assert args.query
-    rbql_lines = [query]
 
     with rbql.RbqlPyEnv() as worker_env:
         tmp_path = worker_env.module_path
         try:
-            rbql.parse_to_py(rbql_lines, tmp_path, delim, policy, args.output_delim, args.output_policy, csv_encoding, init_source_file)
+            rbql.parse_to_py(query, tmp_path, delim, policy, args.output_delim, args.output_policy, csv_encoding, init_source_file)
         except rbql.RBParsingError as e:
             show_error('RBQL Parsing Failure: {}'.format(e), is_interactive)
             return False
