@@ -1649,13 +1649,12 @@ class TestEverything(unittest.TestCase):
         e = cm.exception
         self.assertTrue(str(e).find('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary') != -1)
 
-        # FIXME enable js test here
-
-        #if TEST_JS:
-        #    query = r'select top 3 * except a2, a4 order by a1 desc'
-        #    test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        #    self.compare_tables(canonic_table, test_table)
-        #    compare_warnings(self, None, warnings)
+        if TEST_JS:
+            query = r'select * where a2 == "Мама"'
+            with self.assertRaises(Exception) as cm:
+                test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            e = cm.exception
+            self.assertTrue(str(e).find('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary') != -1)
 
 
 def calc_file_md5(fname):

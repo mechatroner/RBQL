@@ -27,7 +27,6 @@ import time
 
 
 # FIXME In python: show error when encoding is utf-8 and input is failing to decode as utf-8: suggest to use binary
-# FIXME in python and js: if user query contains non-ascii character and input encoding is set to "binary/latin-1" - report an error: suggest to use utf-8
 
 
 __version__ = '0.5.0'

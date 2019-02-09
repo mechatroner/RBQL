@@ -30,8 +30,6 @@ class RBParsingError extends Error {}
 
 class AssertionError extends Error {}
 
-// FIXME change interface: accept query instead of rbql_lines
-// FIXME thow exception for non-ascii query and binary input
 
 function assert(condition, message=null) {
     if (!condition) {
@@ -422,9 +420,19 @@ function translate_except_expression(except_expression) {
 }
 
 
+function is_ascii(str) {
+    return /^[\x00-\x7F]*$/.test(str);
+}
+
+
 function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
+    if (csv_encoding == 'latin-1')
+        csv_encoding = 'binary';
+    if (!is_ascii(query) && csv_encoding == 'binary') {
+        throw new RBParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
+    }
     let rbql_lines = query.split('\n');
     rbql_lines = rbql_lines.map(strip_js_comments);
     rbql_lines = rbql_lines.filter(line => line.length);
@@ -445,7 +453,7 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_templa
     js_meta_params['__RBQLMP__rbql_home_dir'] = escape_string_literal(rbql_home_dir);
     js_meta_params['__RBQLMP__input_delim'] = escape_string_literal(input_delim);
     js_meta_params['__RBQLMP__input_policy'] = input_policy;
-    js_meta_params['__RBQLMP__csv_encoding'] = csv_encoding == 'latin-1' ? 'binary' : csv_encoding;
+    js_meta_params['__RBQLMP__csv_encoding'] = csv_encoding;
     js_meta_params['__RBQLMP__src_table_path'] = src_table_path === null ? "null" : "'" + escape_string_literal(src_table_path) + "'";
     js_meta_params['__RBQLMP__dst_table_path'] = dst_table_path === null ? "null" : "'" + escape_string_literal(dst_table_path) + "'";
     js_meta_params['__RBQLMP__output_delim'] = escape_string_literal(out_delim);
