@@ -101,9 +101,11 @@ def run_with_python(args, is_interactive):
                     show_warning(warning, is_interactive)
             worker_env.remove_env_dir()
         except Exception as e:
-            error_msg = 'Unable to use generated python module.\n'
-            error_msg += 'Location of the generated module: {}\n\n'.format(tmp_path)
-            error_msg += 'Original python exception:\n{}\n'.format(str(e))
+            if type(e).__name__.find('RbqlRuntimeError') != -1:
+                error_msg = '{}\n'.format(str(e))
+            else:
+                error_msg = 'Unexpected python exception:\n{}\n'.format(str(e))
+            error_msg += 'Location of the generated module: {}'.format(tmp_path)
             show_error(error_msg, is_interactive)
             return False
         return True

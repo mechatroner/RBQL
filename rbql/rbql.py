@@ -26,9 +26,6 @@ import time
 
 
 
-# FIXME In python: show error when encoding is utf-8 and input is failing to decode as utf-8: suggest to use binary
-
-
 __version__ = '0.5.0'
 
 

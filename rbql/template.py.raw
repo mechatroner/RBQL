@@ -52,6 +52,7 @@ class BadFieldError(Exception):
     def __init__(self, bad_idx):
         self.bad_idx = bad_idx
 
+
 class RbqlRuntimeError(Exception):
     pass
 
@@ -595,6 +596,15 @@ joiner_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoine
 
 
 def rb_transform(source, destination):
+    try:
+        do_rb_transform(source, destination)
+    except UnicodeDecodeError:
+        if csv_encoding == 'latin-1':
+            raise
+        raise RbqlRuntimeError('Unable to decode input table as UTF-8. Use latin-1/binary encoding instead.')
+
+
+def do_rb_transform(source, destination):
     global module_was_used_failsafe
     assert not module_was_used_failsafe
     module_was_used_failsafe = True
