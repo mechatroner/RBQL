@@ -681,8 +681,8 @@ function do_run_encapsulated(input_reader, output_stream) {
         join_split = function(line) { return rbql_utils.split_quoted_str(line, join_delim); }
     } else if ('__RBQLMP__join_policy' == 'monocolumn') {
         join_split = function(line) { return [[line], false]; }
-    } else if ('__RBQLMP__input_policy' == 'whitespace') {
-        input_split = function(line) { return [rbql_utils.split_whitespace_separated_str(line), false]; }
+    } else if ('__RBQLMP__join_policy' == 'whitespace') {
+        join_split = function(line) { return [rbql_utils.split_whitespace_separated_str(line), false]; }
     } else {
         throw new RbqlError('unknown join csv policy');
     }
