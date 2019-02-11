@@ -214,6 +214,7 @@ else:
     raise RuntimeError('unknown output csv policy')
 
 
+# FIXME get rid of this, reader does split now
 if '__RBQLMP__input_policy' == 'simple':
     input_split = lambda line: (line.split(input_delim), 0)
 elif '__RBQLMP__input_policy' == 'quoted':
@@ -226,6 +227,7 @@ else:
     raise RuntimeError('unknown input csv policy')
 
 
+# FIXME get rid of this, reader does split now
 if '__RBQLMP__join_policy' == '':
     join_split = lambda line: (None, None)
 elif '__RBQLMP__join_policy' == 'simple':
@@ -234,8 +236,8 @@ elif '__RBQLMP__join_policy' == 'quoted':
     join_split = lambda line: rbql_utils.split_quoted_str(line, join_delim)
 elif '__RBQLMP__join_policy' == 'monocolumn':
     join_split = lambda line: ([line], 0)
-elif '__RBQLMP__input_policy' == 'whitespace':
-    input_split = lambda line: (rbql_utils.split_whitespace_separated_str(line), 0)
+elif '__RBQLMP__join_policy' == 'whitespace':
+    join_split = lambda line: (rbql_utils.split_whitespace_separated_str(line), 0)
 else:
     raise RuntimeError('unknown join csv policy')
 
