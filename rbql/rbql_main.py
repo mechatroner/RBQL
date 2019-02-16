@@ -129,7 +129,7 @@ def is_delimited_table(sampled_lines, delim, policy):
 def sample_lines(src_path, encoding):
     result = []
     with codecs.open(src_path, encoding=encoding) as source:
-        line_iterator = rbql_utils.LineIterator(source)
+        line_iterator = rbql_utils.CSVRecordIterator(source, encoding, delim=None, policy=None)
         for i in rbql.xrange6(10):
             line = line_iterator.get_row()
             if line is None:

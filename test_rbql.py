@@ -1951,7 +1951,8 @@ def setUpModule():
 
 
 def line_iter_split(src, chunk_size):
-    line_iterator = rbql_utils.LineIterator(io.StringIO(src), chunk_size)
+    # Using record iterator as line iterator:
+    line_iterator = rbql_utils.CSVRecordIterator(io.StringIO(src), 'latin-1', delim=None, policy=None, chunk_size=chunk_size)
     result = []
     while True:
         row = line_iterator.get_row()

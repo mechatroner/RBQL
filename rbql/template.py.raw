@@ -38,9 +38,16 @@ def str6(obj):
         return obj
     return str(obj)
 
+# FIXME remove all csv-related functions and variables from this file
+# FIXME remove all csv write functions to a special file
+
 
 input_delim = '__RBQLMP__input_delim'
+input_policy = '__RBQLMP__input_policy'
+
 join_delim = '__RBQLMP__join_delim'
+join_policy = '__RBQLMP__join_policy'
+
 output_delim = '__RBQLMP__output_delim'
 csv_encoding='__RBQLMP__csv_encoding'
 
@@ -85,9 +92,10 @@ input_fields_info = dict()
 null_value_in_output = False
 delim_in_simple_output = False # Need refactoring to detect line number
 output_switch_to_csv = None # Need this as warning because user could use TSV files and CSV would be unexpected. Also this is a marker for editor to use CSV syntax for output instead of  monocolumn.
+
 utf8_bom_removed = False
-defective_csv_line_in_input = 0
-defective_csv_line_in_join = 0
+defective_csv_line_in_input = None
+defective_csv_line_in_join = None
 
 # Aggregators:
 aggregation_stage = 0
@@ -214,34 +222,6 @@ else:
     raise RuntimeError('unknown output csv policy')
 
 
-# FIXME get rid of this, reader does split now
-if '__RBQLMP__input_policy' == 'simple':
-    input_split = lambda line: (line.split(input_delim), 0)
-elif '__RBQLMP__input_policy' == 'quoted':
-    input_split = lambda line: rbql_utils.split_quoted_str(line, input_delim)
-elif '__RBQLMP__input_policy' == 'monocolumn':
-    input_split = lambda line: ([line], 0)
-elif '__RBQLMP__input_policy' == 'whitespace':
-    input_split = lambda line: (rbql_utils.split_whitespace_separated_str(line), 0)
-else:
-    raise RuntimeError('unknown input csv policy')
-
-
-# FIXME get rid of this, reader does split now
-if '__RBQLMP__join_policy' == '':
-    join_split = lambda line: (None, None)
-elif '__RBQLMP__join_policy' == 'simple':
-    join_split = lambda line: (line.split(join_delim), 0)
-elif '__RBQLMP__join_policy' == 'quoted':
-    join_split = lambda line: rbql_utils.split_quoted_str(line, join_delim)
-elif '__RBQLMP__join_policy' == 'monocolumn':
-    join_split = lambda line: ([line], 0)
-elif '__RBQLMP__join_policy' == 'whitespace':
-    join_split = lambda line: (rbql_utils.split_whitespace_separated_str(line), 0)
-else:
-    raise RuntimeError('unknown join csv policy')
-
-
 def add_to_set(dst_set, value):
     len_before = len(dst_set)
     dst_set.add(value)
@@ -352,39 +332,23 @@ class AggregateWriter(object):
         self.subwriter.finish()
 
 
-def remove_utf8_bom(line, assumed_source_encoding):
-    if assumed_source_encoding == 'latin-1' and len(line) >= 3 and line[:3] == '\xef\xbb\xbf':
-        return line[3:]
-    if assumed_source_encoding == 'utf-8' and len(line) >= 1 and line[0] == u'\ufeff':
-        return line[1:]
-    return line
-
-
 def read_join_table(join_table_path):
     global join_fields_info
     global defective_csv_line_in_join
     global utf8_bom_removed
+
     fields_max_len = 0
     if not os.path.isfile(join_table_path):
         raise RbqlRuntimeError('Table B: ' + join_table_path + ' is not accessible')
     result = defaultdict(list)
-    with codecs.open(join_table_path, encoding=csv_encoding) as src:
-        line_iterator = rbql_utils.LineIterator(src)
+    with codecs.open(join_table_path, encoding=csv_encoding) as source:
+        record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, join_delim, join_policy)
         il = 0
         while True:
-            line = line_iterator.get_row()
-            if line is None:
+            bfields = record_iterator.get_record()
+            if bfields is None:
                 break
             il += 1
-            if il == 1:
-                clean_line = remove_utf8_bom(line, csv_encoding)
-                if clean_line != line:
-                    line = clean_line
-                    utf8_bom_removed = True
-            line = line.rstrip('\r\n')
-            bfields, warning = join_split(line)
-            if warning and not defective_csv_line_in_join:
-                defective_csv_line_in_join = il
             num_fields = len(bfields)
             fields_max_len = max(fields_max_len, num_fields)
             if num_fields not in join_fields_info:
@@ -395,6 +359,10 @@ def read_join_table(join_table_path):
                 bad_idx = e.bad_idx
                 raise RbqlRuntimeError('No "b' + str(bad_idx + 1) + '" column at line: ' + str(il) + ' in "B" table')
             result[key].append(bfields)
+
+        defective_csv_line_in_join = record_iterator.first_defective_line
+        utf8_bom_removed = utf8_bom_removed or record_iterator.utf8_bom_removed
+
     return (result, fields_max_len)
 
 
@@ -454,9 +422,9 @@ def select_except(src, except_fields):
 
 def create_warnings_report():
     warnings = dict()
-    if defective_csv_line_in_join != 0:
+    if defective_csv_line_in_join is not None:
         warnings['defective_csv_line_in_join'] = defective_csv_line_in_join
-    if defective_csv_line_in_input != 0:
+    if defective_csv_line_in_input is not None:
         warnings['defective_csv_line_in_input'] = defective_csv_line_in_input
     if null_value_in_output:
         warnings['null_value_in_output'] = True
@@ -598,6 +566,7 @@ joiner_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoine
 
 
 def rb_transform(source, destination):
+    # FIXME change interface. Accept 3 params: InputIterator, JoinIterator, OutputWriter
     try:
         return do_rb_transform(source, destination)
     except UnicodeDecodeError:
@@ -612,30 +581,22 @@ def do_rb_transform(source, destination):
     module_was_used_failsafe = True
 
     global input_fields_info
+    global writer
     global defective_csv_line_in_input
     global utf8_bom_removed
-    global writer
+
     writer_type = {'simple': SimpleWriter, 'uniq': UniqWriter, 'uniq_count': UniqCountWriter}['__RBQLMP__writer_type']
     writer = writer_type(destination)
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
     joiner = joiner_type('__RBQLMP__rhs_table_path')
-    line_iterator = rbql_utils.LineIterator(source)
+    record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, input_delim, input_policy)
     NR = 0
     while True:
-        line = line_iterator.get_row()
-        if line is None:
+        afields = record_iterator.get_record()
+        if afields is None:
             break
         NR += 1
-        if NR == 1:
-            clean_line = remove_utf8_bom(line, csv_encoding)
-            if clean_line != line:
-                line = clean_line
-                utf8_bom_removed = True
-        #line = line.rstrip('\r\n')
-        afields, warning = input_split(line)
-        if warning and not defective_csv_line_in_input:
-            defective_csv_line_in_input = NR
         NF = len(afields)
         if NF not in input_fields_info:
             input_fields_info[NF] = NR
@@ -649,6 +610,9 @@ def do_rb_transform(source, destination):
         except Exception as e:
             raise RbqlRuntimeError('Error at line: ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
+
+    defective_csv_line_in_input = record_iterator.first_defective_line
+    utf8_bom_removed = utf8_bom_removed or record_iterator.utf8_bom_removed
     return create_warnings_report()
 
 

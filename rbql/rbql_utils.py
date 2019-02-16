@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+from __future__ import print_function
 import re
 from collections import defaultdict
 
@@ -61,7 +63,7 @@ def smart_split(src, dlm, policy, preserve_quotes):
     if policy == 'simple':
         return (src.split(dlm), False)
     if policy == 'whitespace':
-        return split_whitespace_separated_str(src, preserve_quotes)
+        return (split_whitespace_separated_str(src, preserve_quotes), False)
     if policy == 'monocolumn':
         return ([src], False)
     return split_quoted_str(src, dlm, preserve_quotes)
@@ -77,16 +79,28 @@ def extract_line_from_data(data):
     return (str_before, mobj.group(0), str_after)
 
 
-class LineIterator:
-    # TODO treat src as binary input (bytes in python3) and explicitly decode to encoding. Add encoding param.
-    # Use this hack for Windows: https://stackoverflow.com/a/38939320/2898283
+def remove_utf8_bom(line, assumed_source_encoding):
+    if assumed_source_encoding == 'latin-1' and len(line) >= 3 and line[:3] == '\xef\xbb\xbf':
+        return line[3:]
+    if assumed_source_encoding == 'utf-8' and len(line) >= 1 and line[0] == u'\ufeff':
+        return line[1:]
+    return line
 
-    def __init__(self, src, chunk_size=1024):
+
+class CSVRecordIterator:
+    def __init__(self, src, encoding, delim, policy, chunk_size=1024):
         self.src = src
+        self.encoding = encoding
+        self.delim = delim
+        self.policy = policy
+
         self.buffer = ''
-        self.chunk_size = chunk_size
         self.detected_line_separator = '\n'
         self.exhausted = False
+        self.utf8_bom_removed = False
+        self.NR = 0
+        self.first_defective_line = None # TODO use line # instead of record # when "\n" is done
+        self.chunk_size = chunk_size
 
 
     def _get_row_from_buffer(self):
@@ -135,6 +149,23 @@ class LineIterator:
         return row
 
 
+    def get_record(self):
+        line = self.get_row()
+        if line is None:
+            return None
+        if self.NR == 0:
+            clean_line = remove_utf8_bom(line, self.encoding)
+            if clean_line != line:
+                line = clean_line
+                self.utf8_bom_removed = True
+        self.NR += 1
+        record, warning = smart_split(line, self.delim, self.policy, preserve_quotes=False)
+        if warning and self.first_defective_line is None:
+            self.first_defective_line = NR
+        return record
+
+
+# TODO consider moving RBQL aggregators and related code into another module
 class NumHandler:
     def __init__(self):
         self.is_int = True
