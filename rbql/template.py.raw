@@ -261,6 +261,7 @@ class UniqWriter(object):
     def write(self, record):
         if __RBQLMP__top_count is not None and self.NW >= __RBQLMP__top_count:
             return False
+        # FIXME here record would be list. How can we do add_to_set with it? Answer use tuples in output instead of lists.
         if not add_to_set(self.seen, record):
             return True
         self.dst.write(record)
@@ -273,8 +274,6 @@ class UniqWriter(object):
 
 
 class UniqCountWriter(object):
-    # we can't optimize this for ordered result set:
-    # they might be ordered not by output records, but by some other expression
     def __init__(self, dst):
         self.dst = dst
         self.records = OrderedDict()
@@ -498,6 +497,7 @@ def select_simple(sort_key, out_fields):
 def select_aggregated(key, transparent_values):
     global aggregation_stage
     if key is not None:
+        # FIXME QUESTION how to make key without join? In python we can use tuple, but what about JS? maybe base64 encode fields + comma join - this will not loose any info
         key = output_join(key, output_delim)
     if aggregation_stage == 1:
         global writer

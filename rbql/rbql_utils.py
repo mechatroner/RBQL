@@ -165,7 +165,7 @@ class CSVRecordIterator:
         return record
 
 
-# TODO consider moving RBQL aggregators and related code into another module
+# TODO consider moving RBQL aggregators and related code into another module. Maybe even in rbql.py
 class NumHandler:
     def __init__(self):
         self.is_int = True
@@ -239,6 +239,7 @@ class SumAggregator:
 
 
 def pretty_format(val):
+    # FIXME get rid of this. Return value instead of string
     if val == 0:
         return '0.0'
     if abs(val) < 1:
