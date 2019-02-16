@@ -9,6 +9,7 @@ field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
 field_rgx = re.compile(field_regular_expression)
 field_rgx_external_whitespaces = re.compile(' *'+ field_regular_expression + ' *')
 
+# FIXME rename to rb_csv_utils.py
 
 def extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result):
     warning = False
@@ -85,6 +86,94 @@ def remove_utf8_bom(line, assumed_source_encoding):
     if assumed_source_encoding == 'utf-8' and len(line) >= 1 and line[0] == u'\ufeff':
         return line[1:]
     return line
+
+
+def str6(obj):
+    # We have to use this function because str() for python2.7 tries to ascii-encode unicode strings
+    if PY3 and isinstance(obj, str):
+        return obj
+    if not PY3 and isinstance(obj, basestring):
+        return obj
+    return str(obj)
+
+
+def quote_field(src, delim):
+    if src.find('"') != -1 or src.find(delim) != -1:
+        escaped = src.replace('"', '""')
+        escaped = '"{}"'.format(escaped)
+        return escaped
+    return src
+
+
+def quoted_join(fields, delim):
+    return delim.join([quote_field(f, delim) for f in fields])
+
+
+def mono_join(fields, delim):
+    if enable_monocolumn_csv_ux_optimization_hack and '__RBQLMP__input_policy' == 'monocolumn':
+        global output_switch_to_csv
+        if output_switch_to_csv is None:
+            output_switch_to_csv = (len(fields) > 1)
+        assert output_switch_to_csv == (len(fields) > 1), 'Monocolumn optimization logic failure'
+        if output_switch_to_csv:
+            return quoted_join(fields, ',')
+        else:
+            return fields[0]
+    if len(fields) > 1:
+        raise RbqlRuntimeError('Unable to use "Monocolumn" output format: some records have more than one field')
+    return fields[0]
+
+
+def simple_join(fields, delim):
+    res = delim.join([f for f in fields])
+    num_fields = res.count(delim)
+    if num_fields + 1 != len(fields):
+        global delim_in_simple_output
+        delim_in_simple_output = True
+    return res
+
+
+def try_flush(dst_stream):
+    try:
+        dst_stream.flush()
+    except Exception:
+        pass
+
+
+class CSVWriter:
+    def __init__(self, dst, delim, policy):
+        self.dst = dst
+        self.delim = delim
+        self.none_in_output = False
+        if policy == 'simple':
+            self.join_func = simple_join
+        elif policy == 'quoted':
+            self.join_func = quoted_join
+        elif policy == 'monocolumn':
+            self.join_func = mono_join
+        elif policy == 'whitespace':
+            self.join_func = simple_join
+        else:
+            raise RuntimeError('unknown output csv policy')
+
+
+    def replace_none_values(self, fields):
+        i = 0
+        while i < len(fields):
+            if fields[i] is None:
+                fields[i] = ''
+                self.none_in_output = True
+            i += 1
+
+
+    def write(self, fields):
+        self.replace_none_values(fields)
+        fields = [str6(f) for f in fields]
+        self.dst.write(self.join_func(fields, delim))
+
+
+    def finish(self):
+        try_flush(self.dst)
 
 
 class CSVRecordIterator:

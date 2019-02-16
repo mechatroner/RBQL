@@ -10,7 +10,13 @@ import re # For regexes
 import codecs
 from collections import OrderedDict, defaultdict
 
-import rbql_utils
+import rbql_utils # FIXME get rid of this import
+
+
+# This module works with records only. It is CSV-agnostic. Do not add csv-related variables/functions/objects like "delim", "separator", "split", "join", etc
+
+# FIXME rename into "template.py"
+
 
 try:
     pass
@@ -30,14 +36,6 @@ def iteritems6(x):
     return x.iteritems()
 
 
-def str6(obj):
-    # We have to use this function because str() for python2.7 tries to ascii-encode unicode strings
-    if PY3 and isinstance(obj, str):
-        return obj
-    if not PY3 and isinstance(obj, basestring):
-        return obj
-    return str(obj)
-
 # FIXME remove all csv-related functions and variables from this file
 # FIXME remove all csv write functions to a special file
 
@@ -52,6 +50,7 @@ output_delim = '__RBQLMP__output_delim'
 csv_encoding='__RBQLMP__csv_encoding'
 
 def eprint(*args, **kwargs):
+    # FIXME remove
     print(*args, file=sys.stderr, **kwargs)
 
 
@@ -174,52 +173,16 @@ def FOLD(val, post_proc=lambda v: '|'.join(v)):
     return init_aggregator(rbql_utils.FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
 
 
-def quote_field(src, delim):
-    if src.find('"') != -1 or src.find(delim) != -1:
-        escaped = src.replace('"', '""')
-        escaped = '"{}"'.format(escaped)
-        return escaped
-    return src
-
-
-def quoted_join(fields, delim):
-    return delim.join([quote_field(str6(f), delim) for f in fields])
-
-
-def mono_join(fields, delim):
-    if enable_monocolumn_csv_ux_optimization_hack and '__RBQLMP__input_policy' == 'monocolumn':
-        global output_switch_to_csv
-        if output_switch_to_csv is None:
-            output_switch_to_csv = (len(fields) > 1)
-        assert output_switch_to_csv == (len(fields) > 1), 'Monocolumn optimization logic failure'
-        if output_switch_to_csv:
-            return quoted_join(fields, ',')
-        else:
-            return fields[0]
-    if len(fields) > 1:
-        raise RbqlRuntimeError('Unable to use "Monocolumn" output format: some records have more than one field')
-    return fields[0]
-
-
-def simple_join(fields, delim):
-    res = delim.join([str6(f) for f in fields])
-    num_fields = res.count(delim)
-    if num_fields + 1 != len(fields):
-        global delim_in_simple_output
-        delim_in_simple_output = True
-    return res
-
-
-if '__RBQLMP__output_policy' == 'simple':
-    output_join = simple_join
-elif '__RBQLMP__output_policy' == 'quoted':
-    output_join = quoted_join
-elif '__RBQLMP__output_policy' == 'monocolumn':
-    output_join = mono_join
-elif '__RBQLMP__output_policy' == 'whitespace':
-    output_join = simple_join
-else:
-    raise RuntimeError('unknown output csv policy')
+#if '__RBQLMP__output_policy' == 'simple':
+#    output_join = simple_join
+#elif '__RBQLMP__output_policy' == 'quoted':
+#    output_join = quoted_join
+#elif '__RBQLMP__output_policy' == 'monocolumn':
+#    output_join = mono_join
+#elif '__RBQLMP__output_policy' == 'whitespace':
+#    output_join = simple_join
+#else:
+#    raise RuntimeError('unknown output csv policy')
 
 
 def add_to_set(dst_set, value):
@@ -229,6 +192,7 @@ def add_to_set(dst_set, value):
 
 
 def try_flush(dst_stream):
+    # FIXME remove
     try:
         dst_stream.flush()
     except Exception:
@@ -402,6 +366,7 @@ class StrictLeftJoiner(object):
 
 
 def replace_none_values(fields):
+    # FIXME delete
     global null_value_in_output
     i = 0
     while i < len(fields):
@@ -443,6 +408,7 @@ def create_warnings_report():
 
 
 def get_encoded_stdin(encoding_name):
+    # FIXME remove
     if PY3:
         import io
         return io.TextIOWrapper(sys.stdin.buffer, encoding=encoding_name)
@@ -451,6 +417,7 @@ def get_encoded_stdin(encoding_name):
 
 
 def get_encoded_stdout(encoding_name):
+    # FIXME remove
     if PY3:
         import io
         return io.TextIOWrapper(sys.stdout.buffer, encoding=encoding_name)
@@ -459,6 +426,7 @@ def get_encoded_stdout(encoding_name):
 
 
 def main():
+    # FIXME remove
     warnings = rb_transform(get_encoded_stdin(csv_encoding), get_encoded_stdout(csv_encoding))
     if warnings is not None:
         for k, v in warnings.items():
