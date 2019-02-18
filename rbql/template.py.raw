@@ -17,6 +17,20 @@ import rbql_utils # FIXME get rid of this import
 
 # FIXME rename into "template.py"
 
+# FIXME the main problem is the outermost rbql interface. Currently it provides 2 funtions that has to be called one after the other. Can we do better? Merge them into a single one.
+
+# FIXME to solve join problem we can just pass to rbql.py a Meta object - table_registry, which can generate joiner by join table name/path. For CSV it would be FileSystem joiner
+
+# FIXME JoinMap must have PrepareMap(key_index) method, so it can be somehow internally sorted by that field or just indexed
+
+#class JoinMap:
+#    def PrepareMap(key_index):
+#        pass
+#
+#    def GetRecord(key):
+#        pass
+
+
 
 try:
     pass
@@ -38,20 +52,6 @@ def iteritems6(x):
 
 # FIXME remove all csv-related functions and variables from this file
 # FIXME remove all csv write functions to a special file
-
-
-input_delim = '__RBQLMP__input_delim'
-input_policy = '__RBQLMP__input_policy'
-
-join_delim = '__RBQLMP__join_delim'
-join_policy = '__RBQLMP__join_policy'
-
-output_delim = '__RBQLMP__output_delim'
-csv_encoding='__RBQLMP__csv_encoding'
-
-def eprint(*args, **kwargs):
-    # FIXME remove
-    print(*args, file=sys.stderr, **kwargs)
 
 
 class BadFieldError(Exception):
@@ -81,7 +81,6 @@ def safe_set(record, idx, value):
     except IndexError as e:
         raise BadFieldError(idx - 1)
 
-enable_monocolumn_csv_ux_optimization_hack = True
 
 module_was_used_failsafe = False
 
@@ -127,6 +126,163 @@ class UNFOLD:
         raise TypeError('UNFOLD')
 
 
+class NumHandler:
+    def __init__(self):
+        self.is_int = True
+    
+    def parse(self, str_val):
+        if not self.is_int:
+            return float(str_val)
+        try:
+            return int(str_val)
+        except ValueError:
+            self.is_int = False
+            return float(str_val)
+
+
+class MinAggregator:
+    def __init__(self):
+        self.stats = dict()
+        self.num_handler = NumHandler()
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = val
+        else:
+            self.stats[key] = min(cur_aggr, val)
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class MaxAggregator:
+    def __init__(self):
+        self.stats = dict()
+        self.num_handler = NumHandler()
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = val
+        else:
+            self.stats[key] = max(cur_aggr, val)
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class CountAggregator:
+    def __init__(self):
+        self.stats = defaultdict(int)
+
+    def increment(self, key, val):
+        self.stats[key] += 1
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class SumAggregator:
+    def __init__(self):
+        self.stats = defaultdict(int)
+        self.num_handler = NumHandler()
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        self.stats[key] += val
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class AvgAggregator:
+    def __init__(self):
+        self.stats = dict()
+
+    def increment(self, key, val):
+        val = float(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = (val, 1)
+        else:
+            cur_sum, cur_cnt = cur_aggr
+            self.stats[key] = (cur_sum + val, cur_cnt + 1)
+
+    def get_final(self, key):
+        final_sum, final_cnt = self.stats[key]
+        return float(final_sum) / final_cnt
+
+
+class VarianceAggregator:
+    def __init__(self):
+        self.stats = dict()
+
+    def increment(self, key, val):
+        val = float(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = (val, val ** 2, 1)
+        else:
+            cur_sum, cur_sum_of_squares, cur_cnt = cur_aggr
+            self.stats[key] = (cur_sum + val, cur_sum_of_squares + val ** 2, cur_cnt + 1)
+
+    def get_final(self, key):
+        final_sum, final_sum_of_squares, final_cnt = self.stats[key]
+        return float(final_sum_of_squares) / final_cnt - (float(final_sum) / final_cnt) ** 2
+
+
+class FoldAggregator:
+    def __init__(self, post_proc):
+        self.stats = defaultdict(list)
+        self.post_proc = post_proc
+
+    def increment(self, key, val):
+        self.stats[key].append(val)
+
+    def get_final(self, key):
+        res = self.stats[key]
+        return self.post_proc(res)
+
+
+class MedianAggregator:
+    def __init__(self):
+        self.stats = defaultdict(list)
+        self.num_handler = NumHandler()
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        self.stats[key].append(val)
+
+    def get_final(self, key):
+        sorted_vals = sorted(self.stats[key])
+        assert len(sorted_vals)
+        m = int(len(sorted_vals) / 2)
+        if len(sorted_vals) % 2:
+            return sorted_vals[m]
+        else:
+            a = sorted_vals[m - 1]
+            b = sorted_vals[m]
+            return a if a == b else (a + b) / 2.0
+
+
+class SubkeyChecker:
+    def __init__(self):
+        self.subkeys = dict()
+
+    def increment(self, key, subkey):
+        old_subkey = self.subkeys.get(key)
+        if old_subkey is None:
+            self.subkeys[key] = subkey
+        elif old_subkey != subkey:
+            raise RuntimeError('Unable to group by "{}", different values in output: "{}" and "{}"'.format(key, old_subkey, subkey))
+
+    def get_final(self, key):
+        return self.subkeys[key]
+
+
 def init_aggregator(generator_name, val, post_proc=None):
     global aggregation_stage
     global aggr_init_counter
@@ -142,47 +298,35 @@ def init_aggregator(generator_name, val, post_proc=None):
 
 
 def MIN(val):
-    return init_aggregator(rbql_utils.MinAggregator, val) if aggregation_stage < 2 else val
+    return init_aggregator(MinAggregator, val) if aggregation_stage < 2 else val
 
 
 def MAX(val):
-    return init_aggregator(rbql_utils.MaxAggregator, val) if aggregation_stage < 2 else val
+    return init_aggregator(MaxAggregator, val) if aggregation_stage < 2 else val
 
 
 def COUNT(val):
-    return init_aggregator(rbql_utils.CountAggregator, 1) if aggregation_stage < 2 else 1
+    return init_aggregator(CountAggregator, 1) if aggregation_stage < 2 else 1
 
 
 def SUM(val):
-    return init_aggregator(rbql_utils.SumAggregator, val) if aggregation_stage < 2 else val
+    return init_aggregator(SumAggregator, val) if aggregation_stage < 2 else val
 
 
 def AVG(val):
-    return init_aggregator(rbql_utils.AvgAggregator, val) if aggregation_stage < 2 else val
+    return init_aggregator(AvgAggregator, val) if aggregation_stage < 2 else val
 
 
 def VARIANCE(val):
-    return init_aggregator(rbql_utils.VarianceAggregator, val) if aggregation_stage < 2 else val
+    return init_aggregator(VarianceAggregator, val) if aggregation_stage < 2 else val
 
 
 def MEDIAN(val):
-    return init_aggregator(rbql_utils.MedianAggregator, val) if aggregation_stage < 2 else val
+    return init_aggregator(MedianAggregator, val) if aggregation_stage < 2 else val
 
 
 def FOLD(val, post_proc=lambda v: '|'.join(v)):
-    return init_aggregator(rbql_utils.FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
-
-
-#if '__RBQLMP__output_policy' == 'simple':
-#    output_join = simple_join
-#elif '__RBQLMP__output_policy' == 'quoted':
-#    output_join = quoted_join
-#elif '__RBQLMP__output_policy' == 'monocolumn':
-#    output_join = mono_join
-#elif '__RBQLMP__output_policy' == 'whitespace':
-#    output_join = simple_join
-#else:
-#    raise RuntimeError('unknown output csv policy')
+    return init_aggregator(FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
 
 
 def add_to_set(dst_set, value):
@@ -191,58 +335,46 @@ def add_to_set(dst_set, value):
     return len_before != len(dst_set)
 
 
-def try_flush(dst_stream):
-    # FIXME remove
-    try:
-        dst_stream.flush()
-    except Exception:
-        pass
-
-
-class SimpleWriter(object):
-    def __init__(self, dst):
-        self.dst = dst
+class TopWriter(object):
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
         self.NW = 0
 
     def write(self, record):
         if __RBQLMP__top_count is not None and self.NW >= __RBQLMP__top_count:
             return False
-        self.dst.write(record)
-        self.dst.write('\n')
+        self.subwriter.write(record)
         self.NW += 1
         return True
 
     def finish(self):
-        try_flush(self.dst)
+        self.subwriter.finish()
 
 
 class UniqWriter(object):
-    def __init__(self, dst):
-        self.dst = dst
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
         self.seen = set()
-        self.NW = 0
 
     def write(self, record):
-        if __RBQLMP__top_count is not None and self.NW >= __RBQLMP__top_count:
-            return False
-        # FIXME here record would be list. How can we do add_to_set with it? Answer use tuples in output instead of lists.
-        if not add_to_set(self.seen, record):
+        immutable_record = tuple(record)
+        if not add_to_set(self.seen, immutable_record):
             return True
-        self.dst.write(record)
-        self.dst.write('\n')
-        self.NW += 1
+        if not self.subwriter.write(record):
+            return False
         return True
 
     def finish(self):
-        try_flush(self.dst)
+        self.subwriter.finish()
 
 
 class UniqCountWriter(object):
-    def __init__(self, dst):
-        self.dst = dst
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
         self.records = OrderedDict()
 
     def write(self, record):
+        record = tuple(record)
         if record in self.records:
             self.records[record] += 1
         else:
@@ -250,14 +382,12 @@ class UniqCountWriter(object):
         return True
 
     def finish(self):
-        NW = 0
         for record, count in iteritems6(self.records):
-            if __RBQLMP__top_count is not None and NW >= __RBQLMP__top_count:
+            mutable_record = list(record)
+            mutable_record.insert(0, count)
+            if not self.subwriter.write(mutable_record):
                 break
-            new_record = '{}{}{}\n'.format(count, output_delim, record)
-            self.dst.write(new_record)
-            NW += 1
-        try_flush(self.dst)
+        self.subwriter.finish()
 
 
 class SortedWriter(object):
@@ -289,48 +419,20 @@ class AggregateWriter(object):
         all_keys = sorted(list(self.aggregation_keys))
         for key in all_keys:
             out_fields = [ag.get_final(key) for ag in self.aggregators]
-            out_record = output_join(out_fields, output_delim)
-            if not self.subwriter.write(out_record):
+            if not self.subwriter.write(out_fields):
                 break
         self.subwriter.finish()
 
 
-def read_join_table(join_table_path):
-    global join_fields_info
-    global defective_csv_line_in_join
-    global utf8_bom_removed
-
-    fields_max_len = 0
-    if not os.path.isfile(join_table_path):
-        raise RbqlRuntimeError('Table B: ' + join_table_path + ' is not accessible')
-    result = defaultdict(list)
-    with codecs.open(join_table_path, encoding=csv_encoding) as source:
-        record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, join_delim, join_policy)
-        il = 0
-        while True:
-            bfields = record_iterator.get_record()
-            if bfields is None:
-                break
-            il += 1
-            num_fields = len(bfields)
-            fields_max_len = max(fields_max_len, num_fields)
-            if num_fields not in join_fields_info:
-                join_fields_info[num_fields] = il
-            try:
-                key = __RBQLMP__rhs_join_var
-            except BadFieldError as e:
-                bad_idx = e.bad_idx
-                raise RbqlRuntimeError('No "b' + str(bad_idx + 1) + '" column at line: ' + str(il) + ' in "B" table')
-            result[key].append(bfields)
-
-        defective_csv_line_in_join = record_iterator.first_defective_line
-        utf8_bom_removed = utf8_bom_removed or record_iterator.utf8_bom_removed
-
-    return (result, fields_max_len)
+def get_join_record_default(src_map, key, default_value):
+    result = src_map.get_join_record(key)
+    if result is None:
+        return default_value
+    return result
 
 
 class NoneJoiner(object):
-    def __init__(self, join_table_path):
+    def __init__(self, join_map):
         pass
 
     def get_rhs(self, lhs_key):
@@ -338,42 +440,32 @@ class NoneJoiner(object):
 
 
 class InnerJoiner(object):
-    def __init__(self, join_table_path):
-        self.join_data, self.fields_max_len = read_join_table(join_table_path)
+    def __init__(self, join_map):
+        self.join_map = join_map
 
     def get_rhs(self, lhs_key):
-        return self.join_data.get(lhs_key, [])
+        return get_join_record_default(self.join_map, lhs_key, [])
 
 
 class LeftJoiner(object):
-    def __init__(self, join_table_path):
-        self.join_data, self.fields_max_len = read_join_table(join_table_path)
-        self.null_record = [[None] * self.fields_max_len]
+    def __init__(self, join_map):
+        self.join_map = join_map
+        self.null_record = [[None] * join_map.max_record_len]
 
     def get_rhs(self, lhs_key):
-        return self.join_data.get(lhs_key, self.null_record)
+        return get_join_record_default(self.join_map, lhs_key, self.null_record)
 
 
 class StrictLeftJoiner(object):
-    def __init__(self, join_table_path):
-        self.join_data, self.fields_max_len = read_join_table(join_table_path)
+    # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
+    def __init__(self, join_map):
+        self.join_map = join_map
 
     def get_rhs(self, lhs_key):
-        result = self.join_data.get(lhs_key, [])
+        result = get_join_record_default(self.join_map, lhs_key, [])
         if len(result) != 1:
             raise RbqlRuntimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"')
         return result
-
-
-def replace_none_values(fields):
-    # FIXME delete
-    global null_value_in_output
-    i = 0
-    while i < len(fields):
-        if fields[i] is None:
-            fields[i] = ''
-            null_value_in_output = True
-        i += 1
 
 
 def select_except(src, except_fields):
@@ -407,32 +499,6 @@ def create_warnings_report():
     return warnings
 
 
-def get_encoded_stdin(encoding_name):
-    # FIXME remove
-    if PY3:
-        import io
-        return io.TextIOWrapper(sys.stdin.buffer, encoding=encoding_name)
-    else:
-        return codecs.getreader(encoding_name)(sys.stdin)
-
-
-def get_encoded_stdout(encoding_name):
-    # FIXME remove
-    if PY3:
-        import io
-        return io.TextIOWrapper(sys.stdout.buffer, encoding=encoding_name)
-    else:
-        return codecs.getwriter(encoding_name)(sys.stdout)
-
-
-def main():
-    # FIXME remove
-    warnings = rb_transform(get_encoded_stdin(csv_encoding), get_encoded_stdout(csv_encoding))
-    if warnings is not None:
-        for k, v in warnings.items():
-            eprint(k, v)
-
-
 def process_update(NR, NF, afields, rhs_records):
     if rhs_records is not None and len(rhs_records) > 1:
         raise RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B')
@@ -445,31 +511,25 @@ def process_update(NR, NF, afields, rhs_records):
         global NU
         NU += 1
         __RBQLMP__update_statements
-    replace_none_values(up_fields)
-    out_record = output_join(up_fields, output_delim)
-    return writer.write(out_record)
+    return writer.write(up_fields)
 
 
 def select_simple(sort_key, out_fields):
-    replace_none_values(out_fields)
-    out_record = output_join(out_fields, output_delim)
     if __RBQLMP__sort_flag:
-        if not writer.write(sort_key, out_record):
+        if not writer.write(sort_key, out_fields):
             return False
     else:
-        if not writer.write(out_record):
+        if not writer.write(out_fields):
             return False
     return True
 
 
 def select_aggregated(key, transparent_values):
     global aggregation_stage
-    if key is not None:
-        # FIXME QUESTION how to make key without join? In python we can use tuple, but what about JS? maybe base64 encode fields + comma join - this will not loose any info
-        key = output_join(key, output_delim)
     if aggregation_stage == 1:
         global writer
-        if type(writer) is not SimpleWriter:
+        if type(writer) is not TopWriter:
+            # FIXME
             raise RbqlRuntimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query')
         writer = AggregateWriter(writer)
         for i, trans_value in enumerate(transparent_values):
@@ -533,17 +593,19 @@ process_function = process_select if __RBQLMP__is_select_query else process_upda
 joiner_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
 
-def rb_transform(source, destination):
-    # FIXME change interface. Accept 3 params: InputIterator, JoinIterator, OutputWriter
+def rb_transform(input_iterator, join_map, output_writer):
+    # FIXME change interface. Accept 3 params: InputIterator, JoinMap, OutputWriter
+    # FIXME JoinMap should not be the same type as InputIterator. It can be presorted array or dictionary or MergeMap (if A is sorted by a_join and B is sorted by b_join)
     try:
         return do_rb_transform(source, destination)
     except UnicodeDecodeError:
+        # FIXME move this handling into record iterators
         if csv_encoding == 'latin-1':
             raise
-        raise RbqlRuntimeError('Unable to decode input table as UTF-8. Use latin-1/binary encoding instead.')
+        raise RbqlRuntimeError('Unable to decode input table as UTF-8. Use binary encoding instead.')
 
 
-def do_rb_transform(source, destination):
+def do_rb_transform(input_iterator, join_map, output_writer):
     global module_was_used_failsafe
     assert not module_was_used_failsafe
     module_was_used_failsafe = True
@@ -553,15 +615,15 @@ def do_rb_transform(source, destination):
     global defective_csv_line_in_input
     global utf8_bom_removed
 
-    writer_type = {'simple': SimpleWriter, 'uniq': UniqWriter, 'uniq_count': UniqCountWriter}['__RBQLMP__writer_type']
-    writer = writer_type(destination)
+    writer = TopWriter(output_writer)
+    #writer_type = {'simple': TopWriter, 'uniq': UniqWriter, 'uniq_count': UniqCountWriter}['__RBQLMP__writer_type']
+    #writer = writer_type(destination)
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
     joiner = joiner_type('__RBQLMP__rhs_table_path')
-    record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, input_delim, input_policy)
     NR = 0
     while True:
-        afields = record_iterator.get_record()
+        afields = input_iterator.get_record()
         if afields is None:
             break
         NR += 1
@@ -579,8 +641,8 @@ def do_rb_transform(source, destination):
             raise RbqlRuntimeError('Error at line: ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
 
-    defective_csv_line_in_input = record_iterator.first_defective_line
-    utf8_bom_removed = utf8_bom_removed or record_iterator.utf8_bom_removed
+    defective_csv_line_in_input = input_iterator.first_defective_line
+    utf8_bom_removed = utf8_bom_removed or input_iterator.utf8_bom_removed
     return create_warnings_report()
 
 

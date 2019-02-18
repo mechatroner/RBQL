@@ -368,6 +368,52 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
+def read_join_table(join_table_path):
+    global join_fields_info
+    global defective_csv_line_in_join
+    global utf8_bom_removed
+
+    fields_max_len = 0
+    if not os.path.isfile(join_table_path):
+        raise RbqlRuntimeError('Table B: ' + join_table_path + ' is not accessible')
+    result = defaultdict(list)
+    with codecs.open(join_table_path, encoding=csv_encoding) as source:
+        record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, join_delim, join_policy)
+        il = 0
+        while True:
+            bfields = record_iterator.get_record()
+            if bfields is None:
+                break
+            il += 1
+            num_fields = len(bfields)
+            fields_max_len = max(fields_max_len, num_fields)
+            if num_fields not in join_fields_info:
+                join_fields_info[num_fields] = il
+            try:
+                key = __RBQLMP__rhs_join_var
+            except BadFieldError as e:
+                bad_idx = e.bad_idx
+                raise RbqlRuntimeError('No "b' + str(bad_idx + 1) + '" column at line: ' + str(il) + ' in "B" table')
+            result[key].append(bfields)
+
+        defective_csv_line_in_join = record_iterator.first_defective_line
+        utf8_bom_removed = utf8_bom_removed or record_iterator.utf8_bom_removed
+
+    return (result, fields_max_len)
+
+
+# New generic interface
+def generic_run(query, input_table, output_writer, join_tables_registry=None):
+    # join_tables_registry can just throw an exception if rhs table is not "B". The registry therefore can consist of a single table. Or even of No tables at all (e.g. for WEB version)
+    pass #FIXME impl
+
+
+def csv_run(query, input_stream, input_delim, input_policy, output_path, output_delim, output_stream, csv_encoding):
+    # FIXME join_tables_registry will be FileSystemRegistry here.
+    pass
+    input_iterator = rbql_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
+
+
 def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
@@ -409,7 +455,7 @@ def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy,
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
             raise RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
         aggregation_key_expression = rb_actions[GROUP_BY]['text']
-        py_meta_params['__RBQLMP__aggregation_key_expression'] = '[{}]'.format(combine_string_literals(aggregation_key_expression, string_literals))
+        py_meta_params['__RBQLMP__aggregation_key_expression'] = '({},)'.format(combine_string_literals(aggregation_key_expression, string_literals))
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
