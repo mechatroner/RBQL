@@ -412,6 +412,7 @@ def csv_run(query, input_stream, input_delim, input_policy, output_path, output_
     # FIXME join_tables_registry will be FileSystemRegistry here.
     pass
     input_iterator = rbql_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
+    # FIXME call generic_run here
 
 
 def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
@@ -549,13 +550,8 @@ def make_inconsistent_num_fields_hr_warning(table_name, inconsistent_lines_info)
 def make_warnings_human_readable(warnings):
     result = list()
     for warning_type, warning_value in warnings.items():
-        if warning_type == 'null_value_in_output':
-            result.append('None values in output were replaced by empty strings.')
         elif warning_type == 'delim_in_simple_output':
             result.append('Some result set fields contain output separator.')
-        elif warning_type == 'output_switch_to_csv':
-            # ATTENTION: External tools depend on the exact wording of the following message:
-            result.append('Output has multiple fields: using "CSV" output format instead of "Monocolumn"')
         elif warning_type == 'utf8_bom_removed':
             result.append('UTF-8 Byte Order Mark BOM was found and removed.')
         elif warning_type == 'defective_csv_line_in_input':

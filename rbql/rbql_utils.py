@@ -3,6 +3,11 @@ from __future__ import print_function
 import re
 from collections import defaultdict
 
+
+class CSVHandlingError(Exception):
+    pass
+
+
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
 field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
@@ -105,35 +110,6 @@ def quote_field(src, delim):
     return src
 
 
-def quoted_join(fields, delim):
-    return delim.join([quote_field(f, delim) for f in fields])
-
-
-def mono_join(fields, delim):
-    # FIXME
-    if enable_monocolumn_csv_ux_optimization_hack and '__RBQLMP__input_policy' == 'monocolumn':
-        global output_switch_to_csv
-        if output_switch_to_csv is None:
-            output_switch_to_csv = (len(fields) > 1)
-        assert output_switch_to_csv == (len(fields) > 1), 'Monocolumn optimization logic failure'
-        if output_switch_to_csv:
-            return quoted_join(fields, ',')
-        else:
-            return fields[0]
-    if len(fields) > 1:
-        raise RbqlRuntimeError('Unable to use "Monocolumn" output format: some records have more than one field')
-    return fields[0]
-
-
-def simple_join(fields, delim):
-    res = delim.join([f for f in fields])
-    num_fields = res.count(delim)
-    if num_fields + 1 != len(fields):
-        global delim_in_simple_output
-        delim_in_simple_output = True
-    return res
-
-
 def try_flush(dst_stream):
     try:
         dst_stream.flush()
@@ -145,7 +121,6 @@ class CSVWriter:
     def __init__(self, dst, delim, policy):
         self.dst = dst
         self.delim = delim
-        self.none_in_output = False
         if policy == 'simple':
             self.join_func = simple_join
         elif policy == 'quoted':
@@ -156,6 +131,27 @@ class CSVWriter:
             self.join_func = simple_join
         else:
             raise RuntimeError('unknown output csv policy')
+
+        self.none_in_output = False
+        self.delim_in_simple_output = False
+
+
+    def quoted_join(self, fields):
+        return self.delim.join([quote_field(f, self.delim) for f in fields])
+
+
+    def mono_join(self, fields):
+        if len(fields) > 1:
+            raise CSVHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
+        return fields[0]
+
+
+    def simple_join(self, fields):
+        res = self.delim.join([f for f in fields])
+        num_fields = res.count(self.delim)
+        if num_fields + 1 != len(fields):
+            self.delim_in_simple_output = True
+        return res
 
 
     def replace_none_values(self, fields):
@@ -177,7 +173,21 @@ class CSVWriter:
         try_flush(self.dst)
 
 
+    def get_warnings():
+        result = list()
+        if self.none_in_output:
+            result.append('None values in output were replaced by empty strings')
+        if self.delim_in_simple_output:
+            result.append('Some output fields contain separator')
+        return result
+
+
+
 class CSVRecordIterator:
+    # Possibly can add presort_for_merge_join(key_index) method. 
+    # CSV tables are usually small, no need to use Merge algorithm. Also true when B is small (fits in memory) and A is big
+    # Potentially this can be useful if someone decides to use RBQL for MapReduce tables when rhs table B is very big.
+
     def __init__(self, src, encoding, delim, policy, chunk_size=1024):
         self.src = src
         self.encoding = encoding
@@ -187,10 +197,11 @@ class CSVRecordIterator:
         self.buffer = ''
         self.detected_line_separator = '\n'
         self.exhausted = False
-        self.utf8_bom_removed = False
         self.NR = 0
-        self.first_defective_line = None # TODO use line # instead of record # when "\n" is done
         self.chunk_size = chunk_size
+
+        self.utf8_bom_removed = False
+        self.first_defective_line = None # TODO use line # instead of record # when "\n" is done
 
 
     def _get_row_from_buffer(self):
@@ -239,11 +250,6 @@ class CSVRecordIterator:
         return row
 
 
-    # In the future we can add presort_for_merge_join(key_index) method
-    # CSV tables are usually small, no need to use Merge algorithm
-    # Potentially this can be useful if someone decides to use RBQL for MapReduce tables when rhs table B is very big.
-    # No need to use this if B is small (fits in memory) and A is big
-
     def get_record(self):
         line = self.get_row()
         if line is None:
@@ -258,3 +264,12 @@ class CSVRecordIterator:
         if warning and self.first_defective_line is None:
             self.first_defective_line = NR
         return record
+
+
+    def get_warnings(self):
+        result = list()
+        if self.utf8_bom_removed:
+            result.append('UTF-8 Byte Order Mark (BOM) was found and removed')
+        if self.first_defective_line is not None:
+            result.append('Defective double quote escaping in input table. E.g. at line {}'.format(self.first_defective_line))
+        return result
