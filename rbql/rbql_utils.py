@@ -150,7 +150,8 @@ def find_table_path(table_id):
     return None
 
 
-class CSVJoinMap:
+class CSVHashJoinMap:
+    # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
     def __init__(self, table_path, delim, policy, csv_encoding, key_pos):
         self.max_record_len = 0
         self.join_fields_info = dict()
@@ -187,7 +188,7 @@ class CSVJoinMap:
 
 
 
-class FileSystemRegistry:
+class FileSystemCSVRegistry:
     def __init__(self, delim, policy, csv_encoding):
         self.delim = delim
         self.policy = policy
@@ -197,7 +198,7 @@ class FileSystemRegistry:
         join_table_path = find_table_path(table_id)
         if join_table_path is None:
             raise CSVHandlingError('Unable to find join B table: "{}"'.format(table_id))
-        join_map = CSVJoinMap(join_table_path, self.delim, self.policy, self.csv_encoding, key_pos)
+        join_map = CSVHashJoinMap(join_table_path, self.delim, self.policy, self.csv_encoding, key_pos)
         return join_map
 
 

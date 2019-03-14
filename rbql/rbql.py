@@ -339,45 +339,16 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
-class HashJoinMap:
-    # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
-    def __init__(self, record_iterator, key_index):
-        self.max_record_len = 0
-        self.hash_map = defaultdict(list)
-        self.build_hash_map(record_iterator, key_index)
-        self.warnings = record_iterator.get_warnings()
-
-
-    def build_hash_map(self, record_iterator, key_index)
-        il = 0
-        while True:
-            bfields = record_iterator.get_record()
-            if bfields is None:
-                break
-            il += 1
-            self.max_record_len = max(self.max_record_len, len(bfields))
-            try:
-                key = bfields[key_index]
-            except IndexError as e:
-                raise RbqlError('No "b{}" column at line {} in "B" table').format(key_index + 1, il)
-            self.hash_map.append(bfields)
-
-
-    def get_warnings(self):
-        return self.warnings()
-
-
-
 def parse_to_py(query, py_dst, join_tables_registry):
     pass
 
 
 
-# New generic interface
 def generic_run(query, input_iterator, output_writer, join_tables_registry=None):
+    # New generic interface
     # join_tables_registry can just throw an exception if rhs table is not "B". The registry therefore can consist of a single table. Or even of No tables at all (e.g. for WEB version)
     pass #FIXME impl
-    join_map = parse_to_py() #FIXME
+    join_map = parse_to_py(query, join_tables_registry) #FIXME
     execution_warnings = rb_transform(input_iterator, join_map, output_writer) #FIXME
     input_warnings = input_iterator.get_warnings()
     join_warnings = join_map.get_warnings()
@@ -386,13 +357,11 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None)
 
 
 def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding):
-    # FIXME join_tables_registry will be FileSystemRegistry here.
-    pass
+    join_tables_registry = rbql_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
     input_iterator = rbql_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
     output_writer = rbql_utils.CSVWriter(output_stream, output_delim, output_policy)
     generic_run(query, input_iterator, output_writer, join_tables_registry)
-
-    # FIXME call generic_run here
+    # FIXME return warnings, errors, etc
 
 
 def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
