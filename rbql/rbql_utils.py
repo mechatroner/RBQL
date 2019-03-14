@@ -117,6 +117,90 @@ def try_flush(dst_stream):
         pass
 
 
+def try_read_index(index_path):
+    lines = []
+    try:
+        with open(index_path) as f:
+            lines = f.readlines()
+    except Exception:
+        return []
+    result = list()
+    for line in lines:
+        line = line.rstrip('\r\n')
+        record = line.split('\t')
+        result.append(record)
+    return result
+
+
+def get_index_record(index_path, key):
+    records = try_read_index(index_path)
+    for record in records:
+        if len(record) and record[0] == key:
+            return record
+    return None
+
+
+def find_table_path(table_id):
+    candidate_path = os.path.expanduser(table_id)
+    if os.path.exists(candidate_path):
+        return candidate_path
+    name_record = get_index_record(table_names_settings_path, table_id)
+    if name_record is not None and len(name_record) > 1 and os.path.exists(name_record[1]):
+        return name_record[1]
+    return None
+
+
+class CSVJoinMap:
+    def __init__(self, table_path, delim, policy, csv_encoding, key_pos):
+        self.max_record_len = 0
+        self.join_fields_info = dict()
+        self.defective_csv_line_in_join = None
+        self.utf8_bom_removed = False
+        self.join_map = defaultdict(list)
+
+        if not os.path.isfile(table_path):
+            raise CSVHandlingError('Table B: ' + table_path + ' is not accessible')
+
+        with codecs.open(table_path, encoding=csv_encoding) as source:
+            record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, delim, policy)
+            il = 0
+            while True:
+                fields = record_iterator.get_record()
+                if fields is None:
+                    break
+                il += 1
+                num_fields = len(fields)
+                self.max_record_len = max(self.max_record_len, num_fields)
+                if num_fields not in self.join_fields_info:
+                    self.join_fields_info[num_fields] = il
+                if key_pos >= num_fields:
+                    raise CSVHandlingError('No "b' + str(key_pos + 1) + '" column at line: ' + str(il) + ' in "B" table')
+                key = fields[key_pos]
+                self.join_map[key].append(fields)
+
+            self.defective_csv_line_in_join = record_iterator.first_defective_line
+            self.utf8_bom_removed = record_iterator.utf8_bom_removed
+
+
+    def get_join_records(self, key):
+        return self.join_map.get(key)
+
+
+
+class FileSystemRegistry:
+    def __init__(self, delim, policy, csv_encoding):
+        self.delim = delim
+        self.policy = policy
+        self.csv_encoding = csv_encoding
+
+    def get_join_map_by_table_id(table_id, key_pos):
+        join_table_path = find_table_path(table_id)
+        if join_table_path is None:
+            raise CSVHandlingError('Unable to find join B table: "{}"'.format(table_id))
+        join_map = CSVJoinMap(join_table_path, self.delim, self.policy, self.csv_encoding, key_pos)
+        return join_map
+
+
 class CSVWriter:
     def __init__(self, dst, delim, policy):
         self.dst = dst
@@ -188,11 +272,12 @@ class CSVRecordIterator:
     # CSV tables are usually small, no need to use Merge algorithm. Also true when B is small (fits in memory) and A is big
     # Potentially this can be useful if someone decides to use RBQL for MapReduce tables when rhs table B is very big.
 
-    def __init__(self, src, encoding, delim, policy, chunk_size=1024):
+    def __init__(self, src, encoding, delim, policy, table_name='input', chunk_size=1024):
         self.src = src
         self.encoding = encoding
         self.delim = delim
         self.policy = policy
+        self.table_name = table_name
 
         self.buffer = ''
         self.detected_line_separator = '\n'
@@ -269,7 +354,7 @@ class CSVRecordIterator:
     def get_warnings(self):
         result = list()
         if self.utf8_bom_removed:
-            result.append('UTF-8 Byte Order Mark (BOM) was found and removed')
+            result.append('UTF-8 Byte Order Mark (BOM) was found and skipped in {} table'.format(self.table_name))
         if self.first_defective_line is not None:
-            result.append('Defective double quote escaping in input table. E.g. at line {}'.format(self.first_defective_line))
+            result.append('Defective double quote escaping in {} table. E.g. at line {}'.format(self.table_name, self.first_defective_line))
         return result

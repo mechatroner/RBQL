@@ -78,10 +78,8 @@ def safe_set(record, idx, value):
 module_was_used_failsafe = False
 
 # For warnings:
-join_fields_info = dict()
+join_fields_info = dict() # FIXME populate
 input_fields_info = dict()
-
-defective_csv_line_in_join = None
 
 # Aggregators:
 aggregation_stage = 0
@@ -412,13 +410,6 @@ class AggregateWriter(object):
         self.subwriter.finish()
 
 
-def get_join_record_default(src_map, key, default_value):
-    result = src_map.get_join_record(key)
-    if result is None:
-        return default_value
-    return result
-
-
 class NoneJoiner(object):
     def __init__(self, join_map):
         pass
@@ -432,7 +423,7 @@ class InnerJoiner(object):
         self.join_map = join_map
 
     def get_rhs(self, lhs_key):
-        return get_join_record_default(self.join_map, lhs_key, [])
+        return self.join_map.get_join_records(lhs_key)
 
 
 class LeftJoiner(object):
@@ -441,7 +432,10 @@ class LeftJoiner(object):
         self.null_record = [[None] * join_map.max_record_len]
 
     def get_rhs(self, lhs_key):
-        return get_join_record_default(self.join_map, lhs_key, self.null_record)
+        result = self.join_map.get_join_records(lhs_key)
+        if len(result) == 0:
+            return self.null_record
+        return result
 
 
 class StrictLeftJoiner(object):
@@ -450,7 +444,7 @@ class StrictLeftJoiner(object):
         self.join_map = join_map
 
     def get_rhs(self, lhs_key):
-        result = get_join_record_default(self.join_map, lhs_key, [])
+        result = self.join_map.get_join_records(lhs_key)
         if len(result) != 1:
             raise RbqlRuntimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"')
         return result
@@ -465,10 +459,7 @@ def select_except(src, except_fields):
 
 
 def create_warnings_report():
-    # FIXME remove most of the warnings
     warnings = dict()
-    if defective_csv_line_in_join is not None:
-        warnings['defective_csv_line_in_join'] = defective_csv_line_in_join
     if len(input_fields_info) > 1:
         warnings['input_fields_info'] = input_fields_info
     if len(join_fields_info) > 1:

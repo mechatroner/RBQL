@@ -55,27 +55,8 @@ default_init_source_path = os.path.join(user_home_dir, '.rbql_init_source.py')
 py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py.raw'), encoding='utf-8').read()
 
 
-def try_read_index(index_path):
-    lines = []
-    try:
-        with open(index_path) as f:
-            lines = f.readlines()
-    except Exception:
-        return []
-    result = list()
-    for line in lines:
-        line = line.rstrip('\r\n')
-        record = line.split('\t')
-        result.append(record)
-    return result
-
-
-def get_index_record(index_path, key):
-    records = try_read_index(index_path)
-    for record in records:
-        if len(record) and record[0] == key:
-            return record
-    return None
+class RbqlError(Exception):
+    pass
 
 
 def normalize_delim(delim):
@@ -154,16 +135,6 @@ def parse_join_expression(src):
     lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]))
     rhs_join_var = 'safe_join_get(bfields, {})'.format(int(bvar[1:]))
     return (table_id, lhs_join_var, rhs_join_var)
-
-
-def find_table_path(table_id):
-    candidate_path = os.path.expanduser(table_id)
-    if os.path.exists(candidate_path):
-        return candidate_path
-    name_record = get_index_record(table_names_settings_path, table_id)
-    if name_record is not None and len(name_record) > 1 and os.path.exists(name_record[1]):
-        return name_record[1]
-    return None
 
 
 def generate_init_statements(column_vars, indent):
@@ -368,54 +339,64 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
-def read_join_table(join_table_path):
-    global join_fields_info
-    global defective_csv_line_in_join
-    global utf8_bom_removed
+class HashJoinMap:
+    # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
+    def __init__(self, record_iterator, key_index):
+        self.max_record_len = 0
+        self.hash_map = defaultdict(list)
+        self.build_hash_map(record_iterator, key_index)
+        self.warnings = record_iterator.get_warnings()
 
-    fields_max_len = 0
-    if not os.path.isfile(join_table_path):
-        raise RbqlRuntimeError('Table B: ' + join_table_path + ' is not accessible')
-    result = defaultdict(list)
-    with codecs.open(join_table_path, encoding=csv_encoding) as source:
-        record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, join_delim, join_policy)
+
+    def build_hash_map(self, record_iterator, key_index)
         il = 0
         while True:
             bfields = record_iterator.get_record()
             if bfields is None:
                 break
             il += 1
-            num_fields = len(bfields)
-            fields_max_len = max(fields_max_len, num_fields)
-            if num_fields not in join_fields_info:
-                join_fields_info[num_fields] = il
+            self.max_record_len = max(self.max_record_len, len(bfields))
             try:
-                key = __RBQLMP__rhs_join_var
-            except BadFieldError as e:
-                bad_idx = e.bad_idx
-                raise RbqlRuntimeError('No "b' + str(bad_idx + 1) + '" column at line: ' + str(il) + ' in "B" table')
-            result[key].append(bfields)
+                key = bfields[key_index]
+            except IndexError as e:
+                raise RbqlError('No "b{}" column at line {} in "B" table').format(key_index + 1, il)
+            self.hash_map.append(bfields)
 
-        defective_csv_line_in_join = record_iterator.first_defective_line
-        utf8_bom_removed = utf8_bom_removed or record_iterator.utf8_bom_removed
 
-    return (result, fields_max_len)
+    def get_warnings(self):
+        return self.warnings()
+
+
+
+def parse_to_py(query, py_dst, join_tables_registry):
+    pass
+
 
 
 # New generic interface
-def generic_run(query, input_table, output_writer, join_tables_registry=None):
+def generic_run(query, input_iterator, output_writer, join_tables_registry=None):
     # join_tables_registry can just throw an exception if rhs table is not "B". The registry therefore can consist of a single table. Or even of No tables at all (e.g. for WEB version)
     pass #FIXME impl
+    join_map = parse_to_py() #FIXME
+    execution_warnings = rb_transform(input_iterator, join_map, output_writer) #FIXME
+    input_warnings = input_iterator.get_warnings()
+    join_warnings = join_map.get_warnings()
+    output_warnings = output_writer.get_warnings()
+    warnings = input_warnings + join_warnings + execution_warnings + output_warnings
 
 
-def csv_run(query, input_stream, input_delim, input_policy, output_path, output_delim, output_stream, csv_encoding):
+def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding):
     # FIXME join_tables_registry will be FileSystemRegistry here.
     pass
     input_iterator = rbql_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
+    output_writer = rbql_utils.CSVWriter(output_stream, output_delim, output_policy)
+    generic_run(query, input_iterator, output_writer, join_tables_registry)
+
     # FIXME call generic_run here
 
 
 def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
+    # Thi is the old version
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
 
