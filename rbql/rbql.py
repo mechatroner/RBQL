@@ -133,8 +133,8 @@ def parse_join_expression(src):
     if avar[0] != 'a' or bvar[0] != 'b':
         raise RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
     lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]))
-    rhs_join_var = 'safe_join_get(bfields, {})'.format(int(bvar[1:]))
-    return (table_id, lhs_join_var, rhs_join_var)
+    rhs_key_index = int(bvar[1:]) - 1
+    return (table_id, lhs_join_var, rhs_key_index)
 
 
 def generate_init_statements(column_vars, indent):
@@ -339,44 +339,40 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
-def parse_to_py(query, py_dst, join_tables_registry):
-    pass
+
+class HashJoinMap:
+    # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
+    def __init__(self, record_iterator, key_index):
+        self.max_record_len = 0
+        self.hash_map = defaultdict(list)
+        self.record_iterator = record_iterator
+        self.key_index = key_index
+
+
+    def build(self):
+        nr = 0
+        while True:
+            fields = self.record_iterator.get_record()
+            if fields is None:
+                break
+            nr += 1
+            num_fields = len(fields)
+            self.max_record_len = max(self.max_record_len, num_fields)
+            if self.key_index >= num_fields:
+                raise RbqlError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
+            self.hash_map.append(fields)
+
+
+    def get_join_records(self, key):
+        return self.hash_map.get(key)
+
+
+    def get_warnings(self):
+        return self.record_iterator.get_warnings()
 
 
 
-def generic_run(query, input_iterator, output_writer, join_tables_registry=None):
-    # New generic interface
-    # join_tables_registry can just throw an exception if rhs table is not "B". The registry therefore can consist of a single table. Or even of No tables at all (e.g. for WEB version)
-    pass #FIXME impl
-    join_map = parse_to_py(query, join_tables_registry) #FIXME
-    execution_warnings = rb_transform(input_iterator, join_map, output_writer) #FIXME
-    input_warnings = input_iterator.get_warnings()
-    join_warnings = join_map.get_warnings()
-    output_warnings = output_writer.get_warnings()
-    warnings = input_warnings + join_warnings + execution_warnings + output_warnings
-
-
-def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding):
-    join_tables_registry = rbql_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
-    input_iterator = rbql_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
-    output_writer = rbql_utils.CSVWriter(output_stream, output_delim, output_policy)
-    generic_run(query, input_iterator, output_writer, join_tables_registry)
-    # FIXME return warnings, errors, etc
-
-
-def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
-    # Thi is the old version
-    if not py_dst.endswith('.py'):
-        raise RBParsingError('python module file must have ".py" extension')
-
-    if input_delim == '"' and input_policy == 'quoted':
-        raise RBParsingError('Double quote delimiter is incompatible with "quoted" policy')
-    if input_delim != ' ' and input_policy == 'whitespace':
-        raise RBParsingError('Only whitespace " " delim is supported with "whitespace" policy')
-
-    if not is_ascii(query) and csv_encoding == 'latin-1':
-        raise RBParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
-
+def parse_to_py(query, join_tables_registry, user_init_code):
     rbql_lines = query.split('\n')
     rbql_lines = [strip_py_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
@@ -385,19 +381,8 @@ def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy,
     format_expression, string_literals = separate_string_literals_py(full_rbql_expression)
     rb_actions = separate_actions(format_expression)
 
-    user_init_code = ''
-    if custom_init_path is not None:
-        user_init_code = make_user_init_code(custom_init_path)
-    elif os.path.exists(default_init_source_path):
-        user_init_code = make_user_init_code(default_init_source_path)
-
     py_meta_params = dict()
     py_meta_params['__RBQLMP__user_init_code'] = user_init_code
-    py_meta_params['__RBQLMP__input_delim'] = escape_string_literal(input_delim)
-    py_meta_params['__RBQLMP__input_policy'] = input_policy
-    py_meta_params['__RBQLMP__csv_encoding'] = csv_encoding
-    py_meta_params['__RBQLMP__output_delim'] = escape_string_literal(out_delim)
-    py_meta_params['__RBQLMP__output_policy'] = out_policy
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
         raise RBParsingError('"ORDER BY" is not allowed in "UPDATE" queries')
@@ -410,31 +395,13 @@ def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy,
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
+    join_map = None
     if JOIN in rb_actions:
-        rhs_table_id, lhs_join_var, rhs_join_var = parse_join_expression(rb_actions[JOIN]['text'])
-        rhs_table_path = find_table_path(rhs_table_id)
-        if rhs_table_path is None:
-            raise RBParsingError('Unable to find join B table: "{}"'.format(rhs_table_id))
-
-        join_delim, join_policy = input_delim, input_policy
-        join_format_record = get_index_record(table_index_path, rhs_table_path)
-        if join_format_record is not None and len(join_format_record) >= 3:
-            join_delim = normalize_delim(join_format_record[1])
-            join_policy = join_format_record[2]
-
-        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
-        py_meta_params['__RBQLMP__rhs_table_path'] = escape_string_literal(rhs_table_path)
-        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
-        py_meta_params['__RBQLMP__rhs_join_var'] = rhs_join_var
-        py_meta_params['__RBQLMP__join_delim'] = escape_string_literal(join_delim)
-        py_meta_params['__RBQLMP__join_policy'] = join_policy
-    else:
-        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
-        py_meta_params['__RBQLMP__rhs_table_path'] = ''
-        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
-        py_meta_params['__RBQLMP__rhs_join_var'] = 'None'
-        py_meta_params['__RBQLMP__join_delim'] = ''
-        py_meta_params['__RBQLMP__join_policy'] = ''
+        rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
+        join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
+        if join_record_iterator is None:
+            raise RBParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
+        join_map = HashJoinMap(join_record_iterator, rhs_key_index)
 
     if WHERE in rb_actions:
         where_expression = rb_actions[WHERE]['text']
@@ -482,8 +449,54 @@ def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy,
         py_meta_params['__RBQLMP__reverse_flag'] = 'False'
         py_meta_params['__RBQLMP__sort_flag'] = 'False'
 
-    with codecs.open(py_dst, 'w', encoding='utf-8') as dst:
-        dst.write(rbql_meta_format(py_script_body, py_meta_params))
+    python_code = rbql_meta_format(py_script_body, py_meta_params)
+    return (python_code, join_map)
+
+
+
+def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code=''):
+    # New generic interface
+    # join_tables_registry can just throw an exception if rhs table is not "B". The registry therefore can consist of a single table. Or even of No tables at all (e.g. for WEB version)
+    pass #FIXME impl
+
+    py_dst = None # FIXME
+    if not py_dst.endswith('.py'):
+        raise RBParsingError('python module file must have ".py" extension')
+
+    python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code) #FIXME
+    execution_warnings = rb_transform(input_iterator, join_map, output_writer) #FIXME
+    input_warnings = input_iterator.get_warnings()
+    join_warnings = join_map.get_warnings()
+    output_warnings = output_writer.get_warnings()
+    warnings = input_warnings + join_warnings + execution_warnings + output_warnings
+
+
+def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None):
+    if input_delim == '"' and input_policy == 'quoted':
+        raise rbql_utils.CSVHandlingError('Double quote delimiter is incompatible with "quoted" policy')
+    if input_delim != ' ' and input_policy == 'whitespace':
+        raise rbql_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
+
+    if not is_ascii(query) and csv_encoding == 'latin-1':
+        raise RBParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+
+    user_init_code = ''
+    if custom_init_path is not None:
+        user_init_code = make_user_init_code(custom_init_path)
+    elif os.path.exists(default_init_source_path):
+        user_init_code = make_user_init_code(default_init_source_path)
+
+    join_tables_registry = rbql_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
+    input_iterator = rbql_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
+    output_writer = rbql_utils.CSVWriter(output_stream, output_delim, output_policy)
+    generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code)
+    # FIXME return warnings, errors, etc
+
+
+
+#def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
+#    with codecs.open(py_dst, 'w', encoding='utf-8') as dst:
+#        dst.write(rbql_meta_format(py_script_body, py_meta_params))
 
 
 def make_inconsistent_num_fields_hr_warning(table_name, inconsistent_lines_info):

@@ -150,56 +150,19 @@ def find_table_path(table_id):
     return None
 
 
-class CSVHashJoinMap:
-    # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
-    def __init__(self, table_path, delim, policy, csv_encoding, key_pos):
-        self.max_record_len = 0
-        self.join_fields_info = dict()
-        self.defective_csv_line_in_join = None
-        self.utf8_bom_removed = False
-        self.join_map = defaultdict(list)
-
-        if not os.path.isfile(table_path):
-            raise CSVHandlingError('Table B: ' + table_path + ' is not accessible')
-
-        with codecs.open(table_path, encoding=csv_encoding) as source:
-            record_iterator = rbql_utils.CSVRecordIterator(source, csv_encoding, delim, policy)
-            il = 0
-            while True:
-                fields = record_iterator.get_record()
-                if fields is None:
-                    break
-                il += 1
-                num_fields = len(fields)
-                self.max_record_len = max(self.max_record_len, num_fields)
-                if num_fields not in self.join_fields_info:
-                    self.join_fields_info[num_fields] = il
-                if key_pos >= num_fields:
-                    raise CSVHandlingError('No "b' + str(key_pos + 1) + '" column at line: ' + str(il) + ' in "B" table')
-                key = fields[key_pos]
-                self.join_map[key].append(fields)
-
-            self.defective_csv_line_in_join = record_iterator.first_defective_line
-            self.utf8_bom_removed = record_iterator.utf8_bom_removed
-
-
-    def get_join_records(self, key):
-        return self.join_map.get(key)
-
-
-
 class FileSystemCSVRegistry:
     def __init__(self, delim, policy, csv_encoding):
         self.delim = delim
         self.policy = policy
         self.csv_encoding = csv_encoding
 
-    def get_join_map_by_table_id(table_id, key_pos):
+    def get_iterator_by_table_id(table_id):
         join_table_path = find_table_path(table_id)
         if join_table_path is None:
-            raise CSVHandlingError('Unable to find join B table: "{}"'.format(table_id))
-        join_map = CSVHashJoinMap(join_table_path, self.delim, self.policy, self.csv_encoding, key_pos)
-        return join_map
+            raise CSVHandlingError('Unable to find join table: "{}"'.format(table_id))
+        src = codecs.open(table_path, encoding=self.csv_encoding)
+        record_iterator = rbql_utils.CSVRecordIterator(source, self.csv_encoding, self.delim, self.policy, table_name=table_id)
+        return record_iterator
 
 
 class CSVWriter:
