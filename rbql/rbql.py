@@ -25,6 +25,8 @@ import time
 # This module must be both python2 and python3 compatible
 
 
+# FIXME the main problem is the outermost rbql interface. Currently it provides 2 funtions that has to be called one after the other. Can we do better? Merge them into a single one.
+
 
 __version__ = '0.5.0'
 

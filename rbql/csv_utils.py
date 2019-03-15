@@ -221,6 +221,7 @@ class CSVRecordIterator:
     # Potentially this can be useful if someone decides to use RBQL for MapReduce tables when rhs table B is very big.
 
     def __init__(self, src, encoding, delim, policy, table_name='input', chunk_size=1024):
+        assert encoding in ['utf-8', 'latin-1']
         self.src = src
         self.encoding = encoding
         self.delim = delim
@@ -268,6 +269,7 @@ class CSVRecordIterator:
             
 
     def get_row(self):
+        # FIXME make sure this function does not raise UnicodeDecodeError. write UT
         row = self._get_row_from_buffer()
         if row is not None:
             return row
@@ -284,19 +286,24 @@ class CSVRecordIterator:
 
 
     def get_record(self):
-        line = self.get_row()
-        if line is None:
-            return None
-        if self.NR == 0:
-            clean_line = remove_utf8_bom(line, self.encoding)
-            if clean_line != line:
-                line = clean_line
-                self.utf8_bom_removed = True
-        self.NR += 1
-        record, warning = smart_split(line, self.delim, self.policy, preserve_quotes=False)
-        if warning and self.first_defective_line is None:
-            self.first_defective_line = NR
-        return record
+        try:
+            line = self.get_row()
+            if line is None:
+                return None
+            if self.NR == 0:
+                clean_line = remove_utf8_bom(line, self.encoding)
+                if clean_line != line:
+                    line = clean_line
+                    self.utf8_bom_removed = True
+            self.NR += 1
+            record, warning = smart_split(line, self.delim, self.policy, preserve_quotes=False)
+            if warning and self.first_defective_line is None:
+                self.first_defective_line = NR
+            return record
+        except UnicodeDecodeError:
+            # FIXME make sure this function raise on binary input. write UT
+            assert self.encoding == 'utf-8', 'Unexpected UnicodeDecodeError with {} encoding'.format(self.encoding)
+            raise CSVHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
 
 
     def get_warnings(self):

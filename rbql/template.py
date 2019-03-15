@@ -16,16 +16,6 @@ from collections import OrderedDict, defaultdict
 # This module works with records only. It is CSV-agnostic. 
 # Do not add csv-related variables/functions/objects like "delim", "separator", "split", "join", "line", "column" etc
 
-
-# FIXME rename into "template.py"
-
-# FIXME the main problem is the outermost rbql interface. Currently it provides 2 funtions that has to be called one after the other. Can we do better? Merge them into a single one.
-
-# FIXME to solve join problem we can just pass to rbql.py a Meta object - table_registry, which can generate joiner by join table name/path. For CSV it would be FileSystem joiner
-
-# FIXME JoinMap must have PrepareMap(key_index) method, so it can be somehow internally sorted by that field or just indexed
-
-
 try:
     pass
 __RBQLMP__user_init_code
@@ -564,16 +554,6 @@ joiner_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoine
 
 
 def rb_transform(input_iterator, join_map, output_writer):
-    try:
-        return do_rb_transform(source, destination)
-    except UnicodeDecodeError:
-        # FIXME move this handling into record iterators
-        if csv_encoding == 'latin-1':
-            raise
-        raise RbqlRuntimeError('Unable to decode input table as UTF-8. Use binary encoding instead.')
-
-
-def do_rb_transform(input_iterator, join_map, output_writer):
     global module_was_used_failsafe
     assert not module_was_used_failsafe
     module_was_used_failsafe = True
