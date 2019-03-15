@@ -11,7 +11,7 @@ import subprocess
 import argparse
 
 from . import rbql
-from . import rbql_utils
+from . import csv_utils
 
 
 def eprint(*args, **kwargs):
@@ -116,7 +116,7 @@ def is_delimited_table(sampled_lines, delim, policy):
         return False
     num_fields = None
     for sl in sampled_lines:
-        fields, warning = rbql_utils.smart_split(sl, delim, policy, True)
+        fields, warning = csv_utils.smart_split(sl, delim, policy, True)
         if warning or len(fields) < 2:
             return False
         if num_fields is None:
@@ -129,7 +129,7 @@ def is_delimited_table(sampled_lines, delim, policy):
 def sample_lines(src_path, encoding):
     result = []
     with codecs.open(src_path, encoding=encoding) as source:
-        line_iterator = rbql_utils.CSVRecordIterator(source, encoding, delim=None, policy=None)
+        line_iterator = csv_utils.CSVRecordIterator(source, encoding, delim=None, policy=None)
         for i in rbql.xrange6(10):
             line = line_iterator.get_row()
             if line is None:
@@ -156,7 +156,7 @@ def sample_records(input_path, delim, policy, encoding):
     bad_lines = []
     result = []
     for il, line in enumerate(sampled_lines):
-        fields, warning = rbql_utils.smart_split(line, delim, policy, True)
+        fields, warning = csv_utils.smart_split(line, delim, policy, True)
         if warning:
             bad_lines.append(il + 1)
         result.append(fields)

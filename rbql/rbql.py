@@ -473,9 +473,9 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
 
 def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None):
     if input_delim == '"' and input_policy == 'quoted':
-        raise rbql_utils.CSVHandlingError('Double quote delimiter is incompatible with "quoted" policy')
+        raise csv_utils.CSVHandlingError('Double quote delimiter is incompatible with "quoted" policy')
     if input_delim != ' ' and input_policy == 'whitespace':
-        raise rbql_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
+        raise csv_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
 
     if not is_ascii(query) and csv_encoding == 'latin-1':
         raise RBParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
@@ -486,9 +486,9 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
     elif os.path.exists(default_init_source_path):
         user_init_code = make_user_init_code(default_init_source_path)
 
-    join_tables_registry = rbql_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
-    input_iterator = rbql_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
-    output_writer = rbql_utils.CSVWriter(output_stream, output_delim, output_policy)
+    join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
+    input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
+    output_writer = csv_utils.CSVWriter(output_stream, output_delim, output_policy)
     generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code)
     # FIXME return warnings, errors, etc
 
@@ -547,7 +547,7 @@ class RbqlPyEnv:
         module_filename = '{}.py'.format(self.module_name)
         self.module_path = os.path.join(self.env_dir, module_filename)
         os.mkdir(self.env_dir)
-        shutil.copy(os.path.join(rbql_home_dir, 'rbql_utils.py'), self.env_dir)
+        shutil.copy(os.path.join(rbql_home_dir, 'csv_utils.py'), self.env_dir)
         return self
 
     def import_worker(self):

@@ -150,21 +150,6 @@ def find_table_path(table_id):
     return None
 
 
-class FileSystemCSVRegistry:
-    def __init__(self, delim, policy, csv_encoding):
-        self.delim = delim
-        self.policy = policy
-        self.csv_encoding = csv_encoding
-
-    def get_iterator_by_table_id(table_id):
-        join_table_path = find_table_path(table_id)
-        if join_table_path is None:
-            raise CSVHandlingError('Unable to find join table: "{}"'.format(table_id))
-        src = codecs.open(table_path, encoding=self.csv_encoding)
-        record_iterator = rbql_utils.CSVRecordIterator(source, self.csv_encoding, self.delim, self.policy, table_name=table_id)
-        return record_iterator
-
-
 class CSVWriter:
     def __init__(self, dst, delim, policy):
         self.dst = dst
@@ -322,3 +307,20 @@ class CSVRecordIterator:
         if self.first_defective_line is not None:
             result.append('Defective double quote escaping in {} table. E.g. at line {}'.format(self.table_name, self.first_defective_line))
         return result
+
+
+class FileSystemCSVRegistry:
+    def __init__(self, delim, policy, csv_encoding):
+        self.delim = delim
+        self.policy = policy
+        self.csv_encoding = csv_encoding
+
+    def get_iterator_by_table_id(table_id):
+        join_table_path = find_table_path(table_id)
+        if join_table_path is None:
+            raise CSVHandlingError('Unable to find join table: "{}"'.format(table_id))
+        src = codecs.open(table_path, encoding=self.csv_encoding)
+        record_iterator = CSVRecordIterator(source, self.csv_encoding, self.delim, self.policy, table_name=table_id)
+        return record_iterator
+
+

@@ -17,7 +17,7 @@ import io
 import subprocess
 
 import rbql
-from rbql import rbql_utils
+from rbql import csv_utils
 
 #This module must be both python2 and python3 compatible
 
@@ -114,8 +114,8 @@ def smart_split(src, dlm, policy):
     if policy == 'simple':
         return src.split(dlm)
     assert policy == 'quoted'
-    res = rbql_utils.split_quoted_str(src, dlm)[0]
-    res_preserved = rbql_utils.split_quoted_str(src, dlm, True)[0]
+    res = csv_utils.split_quoted_str(src, dlm)[0]
+    res_preserved = csv_utils.split_quoted_str(src, dlm, True)[0]
     assert dlm.join(res_preserved) == src
     assert res == unquote_fields(res_preserved)
     return res
@@ -1810,10 +1810,10 @@ class TestSplitMethods(unittest.TestCase):
             src = tc[0]
             canonic_dst = tc[1]
             warning_expected = canonic_dst[1]
-            test_dst = rbql_utils.split_quoted_str(tc[0], ',')
+            test_dst = csv_utils.split_quoted_str(tc[0], ',')
             self.assertEqual(canonic_dst, test_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
 
-            test_dst_preserved = rbql_utils.split_quoted_str(tc[0], ',', True)
+            test_dst_preserved = csv_utils.split_quoted_str(tc[0], ',', True)
             self.assertEqual(test_dst[1], test_dst_preserved[1])
             self.assertEqual(','.join(test_dst_preserved[0]), tc[0], 'preserved split failure')
             if not warning_expected:
@@ -1848,7 +1848,7 @@ class TestSplitMethods(unittest.TestCase):
         for tc in test_cases:
             src = tc[0]
             canonic_dst, preserve_whitespaces = tc[1]
-            test_dst = rbql_utils.split_whitespace_separated_str(src, preserve_whitespaces)
+            test_dst = csv_utils.split_whitespace_separated_str(src, preserve_whitespaces)
             self.assertEqual(test_dst, canonic_dst)
 
 
@@ -1858,8 +1858,8 @@ class TestSplitMethods(unittest.TestCase):
             canonic_fields = rec[0]
             escaped_entry = rec[1]
             canonic_warning = rec[2]
-            test_fields, test_warning = rbql_utils.split_quoted_str(escaped_entry, ',')
-            test_fields_preserved, test_warning_preserved = rbql_utils.split_quoted_str(escaped_entry, ',', True)
+            test_fields, test_warning = csv_utils.split_quoted_str(escaped_entry, ',')
+            test_fields_preserved, test_warning_preserved = csv_utils.split_quoted_str(escaped_entry, ',', True)
             self.assertEqual(','.join(test_fields_preserved), escaped_entry)
             self.assertEqual(canonic_warning, test_warning)
             self.assertEqual(test_warning_preserved, test_warning)
@@ -1887,8 +1887,8 @@ def test_random_csv_table(src_path):
             escaped_entry = rec[0]
             canonic_warning = int(rec[1])
             canonic_fields = rec[2].split(';')
-            test_fields, test_warning = rbql_utils.split_quoted_str(escaped_entry, ',')
-            test_fields_preserved, test_warning = rbql_utils.split_quoted_str(escaped_entry, ',', True)
+            test_fields, test_warning = csv_utils.split_quoted_str(escaped_entry, ',')
+            test_fields_preserved, test_warning = csv_utils.split_quoted_str(escaped_entry, ',', True)
             assert int(test_warning) == canonic_warning
             assert ','.join(test_fields_preserved) == escaped_entry
             if not canonic_warning:
@@ -1952,7 +1952,7 @@ def setUpModule():
 
 def line_iter_split(src, chunk_size):
     # Using record iterator as line iterator:
-    line_iterator = rbql_utils.CSVRecordIterator(io.StringIO(src), 'latin-1', delim=None, policy=None, chunk_size=chunk_size)
+    line_iterator = csv_utils.CSVRecordIterator(io.StringIO(src), 'latin-1', delim=None, policy=None, chunk_size=chunk_size)
     result = []
     while True:
         row = line_iterator.get_row()
