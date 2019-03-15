@@ -52,7 +52,7 @@ table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
 table_index_path = os.path.join(user_home_dir, '.rbql_table_index')
 default_init_source_path = os.path.join(user_home_dir, '.rbql_init_source.py')
 
-py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py.raw'), encoding='utf-8').read()
+py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8').read()
 
 
 class RbqlError(Exception):

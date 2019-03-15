@@ -14,7 +14,6 @@ field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
 field_rgx = re.compile(field_regular_expression)
 field_rgx_external_whitespaces = re.compile(' *'+ field_regular_expression + ' *')
 
-# FIXME rename to rb_csv_utils.py
 
 def extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result):
     warning = False
