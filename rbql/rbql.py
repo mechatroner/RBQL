@@ -26,6 +26,7 @@ import time
 
 
 # FIXME the main problem is the outermost rbql interface. Currently it provides 2 funtions that has to be called one after the other. Can we do better? Merge them into a single one.
+# TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 
 
 __version__ = '0.5.0'
@@ -341,6 +342,16 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
+def make_inconsistent_num_fields_hr_warning(table_name, inconsistent_records_info):
+    assert len(inconsistent_records_info) > 1
+    inconsistent_records_info = inconsistent_records_info.items()
+    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
+    num_fields_1, record_num_1 = inconsistent_records_info[0]
+    num_fields_2, record_num_2 = inconsistent_records_info[1]
+    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
+    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
+    return warn_msg
+
 
 class HashJoinMap:
     # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
@@ -349,6 +360,7 @@ class HashJoinMap:
         self.hash_map = defaultdict(list)
         self.record_iterator = record_iterator
         self.key_index = key_index
+        self.fields_info = dict()
 
 
     def build(self):
@@ -359,6 +371,8 @@ class HashJoinMap:
                 break
             nr += 1
             num_fields = len(fields)
+            if num_fields not in self.fields_info:
+                self.fields_info[num_fields] = nr
             self.max_record_len = max(self.max_record_len, num_fields)
             if self.key_index >= num_fields:
                 raise RbqlError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
@@ -370,7 +384,11 @@ class HashJoinMap:
 
 
     def get_warnings(self):
-        return self.record_iterator.get_warnings()
+        warnings = []
+        if len(self.fields_info) > 1:
+            warnings.append(make_inconsistent_num_fields_hr_warning(self.fields_info))
+        warnings += self.record_iterator.get_warnings()
+        return warnings
 
 
 
@@ -497,23 +515,14 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
 
 
 #def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
+#    FIXME remove this after implementing script writing
 #    with codecs.open(py_dst, 'w', encoding='utf-8') as dst:
 #        dst.write(rbql_meta_format(py_script_body, py_meta_params))
 
 
-def make_inconsistent_num_fields_hr_warning(table_name, inconsistent_lines_info):
-    assert len(inconsistent_lines_info) > 1
-    inconsistent_lines_info = inconsistent_lines_info.items()
-    inconsistent_lines_info = sorted(inconsistent_lines_info, key=lambda v: v[1])
-    num_fields_1, lnum_1 = inconsistent_lines_info[0]
-    num_fields_2, lnum_2 = inconsistent_lines_info[1]
-    warn_msg = 'Number of fields in {} table is not consistent. '.format(table_name)
-    warn_msg += 'E.g. there are {} fields at line {}, and {} fields at line {}.'.format(num_fields_1, lnum_1, num_fields_2, lnum_2)
-    return warn_msg
-
-
 def make_warnings_human_readable(warnings):
     result = list()
+    # FIXME we don't need this function in it's current form
     for warning_type, warning_value in warnings.items():
         elif warning_type == 'delim_in_simple_output':
             result.append('Some result set fields contain output separator.')

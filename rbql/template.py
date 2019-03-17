@@ -14,7 +14,12 @@ from collections import OrderedDict, defaultdict
 # This module must be both python2 and python3 compatible
 
 # This module works with records only. It is CSV-agnostic. 
-# Do not add csv-related variables/functions/objects like "delim", "separator", "split", "join", "line", "column" etc
+# Do not add CSV-related logic or variables/functions/objects like "delim", "separator", "split", "line" etc
+
+
+# TODO implement arrays passing to output_writer, e.g. for FOLD()
+# TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
+
 
 try:
     pass
@@ -32,9 +37,6 @@ def iteritems6(x):
     if PY3:
         return x.items()
     return x.iteritems()
-
-
-# FIXME remove all csv-related functions and variables from this file
 
 
 class BadFieldError(Exception):
@@ -68,7 +70,6 @@ def safe_set(record, idx, value):
 module_was_used_failsafe = False
 
 # For warnings:
-join_fields_info = dict() # FIXME populate
 input_fields_info = dict()
 
 # Aggregators:
@@ -302,6 +303,7 @@ def MEDIAN(val):
 
 
 def FOLD(val, post_proc=lambda v: '|'.join(v)):
+    # TODO consider passing array to output writer
     return init_aggregator(FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
 
 
@@ -429,7 +431,6 @@ class LeftJoiner(object):
 
 
 class StrictLeftJoiner(object):
-    # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
     def __init__(self, join_map):
         self.join_map = join_map
 
@@ -452,8 +453,6 @@ def create_warnings_report():
     warnings = dict()
     if len(input_fields_info) > 1:
         warnings['input_fields_info'] = input_fields_info
-    if len(join_fields_info) > 1:
-        warnings['join_fields_info'] = join_fields_info
     if not len(warnings):
         return None
     return warnings
