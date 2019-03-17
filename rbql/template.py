@@ -488,7 +488,6 @@ def select_aggregated(key, transparent_values):
     if aggregation_stage == 1:
         global writer
         if type(writer) is not TopWriter:
-            # FIXME
             raise RbqlRuntimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query')
         writer = AggregateWriter(writer)
         for i, trans_value in enumerate(transparent_values):
@@ -561,11 +560,15 @@ def rb_transform(input_iterator, join_map, output_writer):
     global writer
 
     writer = TopWriter(output_writer)
-    # FIXME
-    #writer_type = {'simple': TopWriter, 'uniq': UniqWriter, 'uniq_count': UniqCountWriter}['__RBQLMP__writer_type']
-    #writer = writer_type(destination)
+
+    if '__RBQLMP__writer_type' == 'uniq':
+        writer = UniqWriter(writer)
+    elif '__RBQLMP__writer_type' == 'uniq_count':
+        writer = UniqCountWriter(writer)
+
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
+
     joiner = joiner_type('__RBQLMP__rhs_table_path')
     NR = 0
     while True:
