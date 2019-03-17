@@ -96,8 +96,7 @@ def run_with_python(args, is_interactive):
                 dst = rbql.get_encoded_stdout(csv_encoding)
                 warnings = rbconvert.rb_transform(src, dst)
             if warnings is not None:
-                hr_warnings = rbql.make_warnings_human_readable(warnings)
-                for warning in hr_warnings:
+                for warning in warnings:
                     show_warning(warning, is_interactive)
             worker_env.remove_env_dir()
         except Exception as e:

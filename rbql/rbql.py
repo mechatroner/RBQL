@@ -342,17 +342,6 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
-def make_inconsistent_num_fields_hr_warning(table_name, inconsistent_records_info):
-    assert len(inconsistent_records_info) > 1
-    inconsistent_records_info = inconsistent_records_info.items()
-    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
-    num_fields_1, record_num_1 = inconsistent_records_info[0]
-    num_fields_2, record_num_2 = inconsistent_records_info[1]
-    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
-    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
-    return warn_msg
-
-
 class HashJoinMap:
     # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
     def __init__(self, record_iterator, key_index):
@@ -360,7 +349,6 @@ class HashJoinMap:
         self.hash_map = defaultdict(list)
         self.record_iterator = record_iterator
         self.key_index = key_index
-        self.fields_info = dict()
 
 
     def build(self):
@@ -371,8 +359,6 @@ class HashJoinMap:
                 break
             nr += 1
             num_fields = len(fields)
-            if num_fields not in self.fields_info:
-                self.fields_info[num_fields] = nr
             self.max_record_len = max(self.max_record_len, num_fields)
             if self.key_index >= num_fields:
                 raise RbqlError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
@@ -384,11 +370,7 @@ class HashJoinMap:
 
 
     def get_warnings(self):
-        warnings = []
-        if len(self.fields_info) > 1:
-            warnings.append(make_inconsistent_num_fields_hr_warning(self.fields_info))
-        warnings += self.record_iterator.get_warnings()
-        return warnings
+        return self.record_iterator.get_warnings()
 
 
 
@@ -475,20 +457,21 @@ def parse_to_py(query, join_tables_registry, user_init_code):
 
 
 def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code=''):
-    # New generic interface
-    # join_tables_registry can just throw an exception if rhs table is not "B". The registry therefore can consist of a single table. Or even of No tables at all (e.g. for WEB version)
+    # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     pass #FIXME impl
 
     py_dst = None # FIXME
     if not py_dst.endswith('.py'):
         raise RBParsingError('python module file must have ".py" extension')
 
-    python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code) #FIXME
-    execution_warnings = rb_transform(input_iterator, join_map, output_writer) #FIXME
+    python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code)
+    success = rb_transform(input_iterator, join_map, output_writer)
+    assert success, 'Unexpected error during RBQL query execution'
     input_warnings = input_iterator.get_warnings()
     join_warnings = join_map.get_warnings()
     output_warnings = output_writer.get_warnings()
-    warnings = input_warnings + join_warnings + execution_warnings + output_warnings
+    warnings = input_warnings + join_warnings + output_warnings
+    return warnings
 
 
 def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None):
@@ -509,8 +492,7 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
     join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
     input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
     output_writer = csv_utils.CSVWriter(output_stream, output_delim, output_policy)
-    generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code)
-    # FIXME return warnings, errors, etc
+    return generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code)
 
 
 
@@ -519,28 +501,6 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
 #    with codecs.open(py_dst, 'w', encoding='utf-8') as dst:
 #        dst.write(rbql_meta_format(py_script_body, py_meta_params))
 
-
-def make_warnings_human_readable(warnings):
-    result = list()
-    # FIXME we don't need this function in it's current form
-    for warning_type, warning_value in warnings.items():
-        elif warning_type == 'delim_in_simple_output':
-            result.append('Some result set fields contain output separator.')
-        elif warning_type == 'utf8_bom_removed':
-            result.append('UTF-8 Byte Order Mark BOM was found and removed.')
-        elif warning_type == 'defective_csv_line_in_input':
-            result.append('Defective double quote escaping in input table. E.g. at line {}.'.format(warning_value))
-        elif warning_type == 'defective_csv_line_in_join':
-            result.append('Defective double quote escaping in join table. E.g. at line {}.'.format(warning_value))
-        elif warning_type == 'input_fields_info':
-            result.append(make_inconsistent_num_fields_hr_warning('input', warning_value))
-        elif warning_type == 'join_fields_info':
-            result.append(make_inconsistent_num_fields_hr_warning('join', warning_value))
-        else:
-            raise RuntimeError('Error: unknown warning type: {}'.format(warning_type))
-    for w in result:
-        assert w.find('\n') == -1
-    return result
 
 
 class RbqlPyEnv:

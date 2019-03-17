@@ -69,9 +69,6 @@ def safe_set(record, idx, value):
 
 module_was_used_failsafe = False
 
-# For warnings:
-input_fields_info = dict()
-
 # Aggregators:
 aggregation_stage = 0
 aggr_init_counter = 0
@@ -449,15 +446,6 @@ def select_except(src, except_fields):
     return result
 
 
-def create_warnings_report():
-    warnings = dict()
-    if len(input_fields_info) > 1:
-        warnings['input_fields_info'] = input_fields_info
-    if not len(warnings):
-        return None
-    return warnings
-
-
 def process_update(NR, NF, afields, rhs_records):
     if rhs_records is not None and len(rhs_records) > 1:
         raise RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B')
@@ -589,8 +577,7 @@ def rb_transform(input_iterator, join_map, output_writer):
         except Exception as e:
             raise RbqlRuntimeError('Error at record: ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
-
-    return create_warnings_report()
+    return True
 
 
 if __name__ == '__main__':

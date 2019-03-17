@@ -215,6 +215,18 @@ class CSVWriter:
 
 
 
+def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
+    assert len(inconsistent_records_info) > 1
+    inconsistent_records_info = inconsistent_records_info.items()
+    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
+    num_fields_1, record_num_1 = inconsistent_records_info[0]
+    num_fields_2, record_num_2 = inconsistent_records_info[1]
+    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
+    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
+    return warn_msg
+
+
+
 class CSVRecordIterator:
     # Possibly can add presort_for_merge_join(key_index) method. 
     # CSV tables are usually small, no need to use Merge algorithm. Also true when B is small (fits in memory) and A is big
@@ -233,6 +245,7 @@ class CSVRecordIterator:
         self.exhausted = False
         self.NR = 0
         self.chunk_size = chunk_size
+        self.fields_info = dict()
 
         self.utf8_bom_removed = False
         self.first_defective_line = None # TODO use line # instead of record # when "\n" is done
@@ -298,7 +311,10 @@ class CSVRecordIterator:
             self.NR += 1
             record, warning = smart_split(line, self.delim, self.policy, preserve_quotes=False)
             if warning and self.first_defective_line is None:
-                self.first_defective_line = NR
+                self.first_defective_line = self.NR
+            num_fields = len(record)
+            if num_fields not in self.fields_info:
+                self.fields_info[num_fields] = self.NR
             return record
         except UnicodeDecodeError:
             # FIXME make sure this function raise on binary input. write UT
@@ -312,6 +328,8 @@ class CSVRecordIterator:
             result.append('UTF-8 Byte Order Mark (BOM) was found and skipped in {} table'.format(self.table_name))
         if self.first_defective_line is not None:
             result.append('Defective double quote escaping in {} table. E.g. at line {}'.format(self.table_name, self.first_defective_line))
+        if len(self.fields_info) > 1:
+            result.append(make_inconsistent_num_fields_warning(self.fields_info))
         return result
 
 
