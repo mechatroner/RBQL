@@ -25,8 +25,10 @@ import time
 # This module must be both python2 and python3 compatible
 
 
-# FIXME the main problem is the outermost rbql interface. Currently it provides 2 funtions that has to be called one after the other. Can we do better? Merge them into a single one.
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
+
+
+# FIXME Error handling. e.g. create exception_to_error_msg() function which external users can use
 
 
 __version__ = '0.5.0'
@@ -455,23 +457,33 @@ def parse_to_py(query, join_tables_registry, user_init_code):
     return (python_code, join_map)
 
 
+def write_python_module(python_code, dst_path):
+    with codecs.open(dst_path, 'w', encoding='utf-8') as dst:
+        dst.write(python_code)
 
-def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code=''):
+
+
+def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
-    pass #FIXME impl
-
-    py_dst = None # FIXME
-    if not py_dst.endswith('.py'):
-        raise RBParsingError('python module file must have ".py" extension')
-
     python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code)
-    success = rb_transform(input_iterator, join_map, output_writer)
-    assert success, 'Unexpected error during RBQL query execution'
-    input_warnings = input_iterator.get_warnings()
-    join_warnings = join_map.get_warnings()
-    output_warnings = output_writer.get_warnings()
-    warnings = input_warnings + join_warnings + output_warnings
-    return warnings
+    if convert_only_dst is not None:
+        write_python_module(python_code, convert_only_dst)
+        return (None, [])
+    with rbql.RbqlPyEnv() as worker_env:
+        write_python_module(python_code, worker_env.module_path)
+        # TODO find a way to report module_path if exception is thrown. 
+        # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir. 
+        # It would point to the last module if lauch failed, or just a dangling ref.
+        # Generated modules are not re-runnable by themselves now anyway.
+        rbconvert = worker_env.import_worker()
+        success = rbconvert.rb_transform(input_iterator, join_map, output_writer)
+        assert success, 'Unexpected error during RBQL query execution'
+        input_warnings = input_iterator.get_warnings()
+        join_warnings = join_map.get_warnings()
+        output_warnings = output_writer.get_warnings()
+        warnings = input_warnings + join_warnings + output_warnings
+        worker_env.remove_env_dir()
+        return (None, warnings)
 
 
 def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None):
@@ -493,13 +505,6 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
     input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
     output_writer = csv_utils.CSVWriter(output_stream, output_delim, output_policy)
     return generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code)
-
-
-
-#def parse_to_py(query, py_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=None):
-#    FIXME remove this after implementing script writing
-#    with codecs.open(py_dst, 'w', encoding='utf-8') as dst:
-#        dst.write(rbql_meta_format(py_script_body, py_meta_params))
 
 
 
