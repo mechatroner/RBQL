@@ -24,11 +24,10 @@ import time
 
 # This module must be both python2 and python3 compatible
 
+# External functions: generic_run() and csv_run(), see at the bottom
+
 
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
-
-
-# FIXME Error handling. e.g. create exception_to_error_msg() function which external users can use
 
 
 __version__ = '0.5.0'
@@ -60,30 +59,27 @@ default_init_source_path = os.path.join(user_home_dir, '.rbql_init_source.py')
 py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8').read()
 
 
-class RbqlError(Exception):
+class RbqlRutimeError(Exception):
     pass
 
 
-def normalize_delim(delim):
-    if delim == 'TAB':
-        return '\t'
-    if delim == r'\t':
-        return '\t'
-    return delim
+class RbqlParsingError(Exception):
+    pass
 
 
-def get_encoded_stdin(encoding_name):
-    if PY3:
-        return io.TextIOWrapper(sys.stdin.buffer, encoding=encoding_name)
-    else:
-        return codecs.getreader(encoding_name)(sys.stdin)
+def exception_to_error_info(e):
+    exceptions_type_map = {
+        'RbqlRutimeError': 'query execution',
+        'RbqlParsingError': 'query parsing',
+        'RbqlIOHandlingError': 'IO handling'
+    }
 
-
-def get_encoded_stdout(encoding_name):
-    if PY3:
-        return io.TextIOWrapper(sys.stdout.buffer, encoding=encoding_name)
-    else:
-        return codecs.getwriter(encoding_name)(sys.stdout)
+    error_type = 'unexpected'
+    error_msg = str(e)
+    for k, v in exceptions_type_map.values():
+        if type(e).__name__.find(k) != -1:
+            error_type = v
+    return {'type': error_type, 'message': error_msg}
 
 
 def xrange6(x):
@@ -98,6 +94,7 @@ def rbql_meta_format(template_src, meta_params):
         template_src_upd = template_src.replace(key, value)
         assert template_src_upd != template_src
         template_src = template_src_upd
+    assert template_src.find('__RBQLMP__') == -1, 'Unitialized __RBQLMP__ template variables found'
     return template_src
 
 
@@ -108,10 +105,6 @@ def remove_if_possible(file_path):
         pass
 
 
-class RBParsingError(Exception):
-    pass
-
-
 def strip_py_comments(cline):
     cline = cline.strip()
     if cline.startswith('#'):
@@ -119,24 +112,17 @@ def strip_py_comments(cline):
     return cline
 
 
-def escape_string_literal(src):
-    result = src.replace('\\', '\\\\')
-    result = result.replace('\t', '\\t')
-    result = result.replace("'", r"\'")
-    return result
-
-
 def parse_join_expression(src):
     match = re.match(r'(?i)^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$', src)
     if match is None:
-        raise RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
+        raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
     table_id = match.group(1)
     avar = match.group(2)
     bvar = match.group(3)
     if avar[0] == 'b':
         avar, bvar = bvar, avar
     if avar[0] != 'a' or bvar[0] != 'b':
-        raise RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
+        raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
     lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]))
     rhs_key_index = int(bvar[1:]) - 1
     return (table_id, lhs_join_var, rhs_key_index)
@@ -173,7 +159,7 @@ def translate_update_expression(update_expression, indent):
     update_statements = translated.split('\n')
     update_statements = [s.strip() for s in update_statements]
     if len(update_statements) < 2 or update_statements[0] != '':
-        raise RBParsingError('Unable to parse "UPDATE" expression')
+        raise RbqlParsingError('Unable to parse "UPDATE" expression')
     update_statements = update_statements[1:]
     update_statements = ['{})'.format(s) for s in update_statements]
     for i in range(1, len(update_statements)):
@@ -187,7 +173,7 @@ def translate_select_expression_py(select_expression):
     translated = replace_star_vars_py(translated)
     translated = translated.strip()
     if not len(translated):
-        raise RBParsingError('"SELECT" expression is empty')
+        raise RbqlParsingError('"SELECT" expression is empty')
     return '[{}]'.format(translated)
 
 
@@ -239,7 +225,7 @@ def locate_statements(rbql_expression):
             if not len(matches):
                 continue
             if len(matches) > 1:
-                raise RBParsingError('More than one "{}" statements found'.format(statement))
+                raise RbqlParsingError('More than one "{}" statements found'.format(statement))
             assert len(matches) == 1
             match = matches[0]
             result.append((match.start(), match.end(), statement))
@@ -270,7 +256,7 @@ def separate_actions(rbql_expression):
 
         if statement == UPDATE:
             if statement_start != 0:
-                raise RBParsingError('UPDATE keyword must be at the beginning of the query')
+                raise RbqlParsingError('UPDATE keyword must be at the beginning of the query')
             span = re.sub('(?i)^ *SET ', '', span)
 
         if statement == ORDER_BY:
@@ -284,7 +270,7 @@ def separate_actions(rbql_expression):
 
         if statement == SELECT:
             if statement_start != 0:
-                raise RBParsingError('SELECT keyword must be at the beginning of the query')
+                raise RbqlParsingError('SELECT keyword must be at the beginning of the query')
             match = re.match('(?i)^ *TOP *([0-9]+) ', span)
             if match is not None:
                 statement_params['top'] = int(match.group(1))
@@ -299,7 +285,7 @@ def separate_actions(rbql_expression):
         statement_params['text'] = span.strip()
         result[statement] = statement_params
     if SELECT not in result and UPDATE not in result:
-        raise RBParsingError('Query must contain either SELECT or UPDATE statement')
+        raise RbqlParsingError('Query must contain either SELECT or UPDATE statement')
     assert (SELECT in result) != (UPDATE in result)
     return result
 
@@ -309,7 +295,7 @@ def find_top(rb_actions):
         try:
             return int(rb_actions[LIMIT]['text'])
         except ValueError:
-            raise RBParsingError('LIMIT keyword must be followed by an integer')
+            raise RbqlParsingError('LIMIT keyword must be followed by an integer')
     return rb_actions[SELECT].get('top', None)
 
 
@@ -333,7 +319,7 @@ def translate_except_expression(except_expression):
     skip_indices = list()
     for var_name in skip_vars:
         if re.match('^a[1-9][0-9]*$', var_name) is None:
-            raise RBParsingError('Invalid EXCEPT syntax')
+            raise RbqlParsingError('Invalid EXCEPT syntax')
         skip_indices.append(int(var_name[1:]) - 1)
     skip_indices = sorted(skip_indices)
     skip_indices = [str(v) for v in skip_indices]
@@ -363,7 +349,7 @@ class HashJoinMap:
             num_fields = len(fields)
             self.max_record_len = max(self.max_record_len, num_fields)
             if self.key_index >= num_fields:
-                raise RbqlError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
+                raise RbqlRutimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
             self.hash_map.append(fields)
 
 
@@ -389,11 +375,11 @@ def parse_to_py(query, join_tables_registry, user_init_code):
     py_meta_params['__RBQLMP__user_init_code'] = user_init_code
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
-        raise RBParsingError('"ORDER BY" is not allowed in "UPDATE" queries')
+        raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries')
 
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
-            raise RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
+            raise RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
         aggregation_key_expression = rb_actions[GROUP_BY]['text']
         py_meta_params['__RBQLMP__aggregation_key_expression'] = '({},)'.format(combine_string_literals(aggregation_key_expression, string_literals))
     else:
@@ -402,15 +388,20 @@ def parse_to_py(query, join_tables_registry, user_init_code):
     join_map = None
     if JOIN in rb_actions:
         rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
+        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
+        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
-            raise RBParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
+            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
         join_map = HashJoinMap(join_record_iterator, rhs_key_index)
+    else:
+        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
+        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
 
     if WHERE in rb_actions:
         where_expression = rb_actions[WHERE]['text']
         if re.search(r'[^!=]=[^=]', where_expression) is not None:
-            raise RBParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="')
+            raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="')
         py_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals)
     else:
         py_meta_params['__RBQLMP__where_expression'] = 'True'
@@ -463,51 +454,6 @@ def write_python_module(python_code, dst_path):
 
 
 
-def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
-    # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
-    python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code)
-    if convert_only_dst is not None:
-        write_python_module(python_code, convert_only_dst)
-        return (None, [])
-    with rbql.RbqlPyEnv() as worker_env:
-        write_python_module(python_code, worker_env.module_path)
-        # TODO find a way to report module_path if exception is thrown. 
-        # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir. 
-        # It would point to the last module if lauch failed, or just a dangling ref.
-        # Generated modules are not re-runnable by themselves now anyway.
-        rbconvert = worker_env.import_worker()
-        success = rbconvert.rb_transform(input_iterator, join_map, output_writer)
-        assert success, 'Unexpected error during RBQL query execution'
-        input_warnings = input_iterator.get_warnings()
-        join_warnings = join_map.get_warnings()
-        output_warnings = output_writer.get_warnings()
-        warnings = input_warnings + join_warnings + output_warnings
-        worker_env.remove_env_dir()
-        return (None, warnings)
-
-
-def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None):
-    if input_delim == '"' and input_policy == 'quoted':
-        raise csv_utils.CSVHandlingError('Double quote delimiter is incompatible with "quoted" policy')
-    if input_delim != ' ' and input_policy == 'whitespace':
-        raise csv_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
-
-    if not is_ascii(query) and csv_encoding == 'latin-1':
-        raise RBParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
-
-    user_init_code = ''
-    if custom_init_path is not None:
-        user_init_code = make_user_init_code(custom_init_path)
-    elif os.path.exists(default_init_source_path):
-        user_init_code = make_user_init_code(default_init_source_path)
-
-    join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
-    input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
-    output_writer = csv_utils.CSVWriter(output_stream, output_delim, output_policy)
-    return generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code)
-
-
-
 class RbqlPyEnv:
     def __init__(self):
         self.env_dir_name = None
@@ -545,4 +491,60 @@ class RbqlPyEnv:
             sys.path.remove(self.env_dir)
         except ValueError:
             pass
+
+
+
+
+def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
+    # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
+    try:
+        python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code)
+        if convert_only_dst is not None:
+            write_python_module(python_code, convert_only_dst)
+            return (None, [])
+        with rbql.RbqlPyEnv() as worker_env:
+            write_python_module(python_code, worker_env.module_path)
+            # TODO find a way to report module_path if exception is thrown. 
+            # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir. 
+            # It would point to the last module if lauch failed, or just a dangling ref.
+            # Generated modules are not re-runnable by themselves now anyway.
+            rbconvert = worker_env.import_worker()
+            success = rbconvert.rb_transform(input_iterator, join_map, output_writer)
+            assert success, 'Unexpected error during RBQL query execution'
+            input_warnings = input_iterator.get_warnings()
+            join_warnings = join_map.get_warnings()
+            output_warnings = output_writer.get_warnings()
+            warnings = input_warnings + join_warnings + output_warnings
+            worker_env.remove_env_dir()
+            return (None, warnings)
+    except Exception as e:
+        error_info = exception_to_error_info(e)
+        return (error_info, [])
+
+
+
+def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
+    try:
+        if input_delim == '"' and input_policy == 'quoted':
+            raise csv_utils.CSVHandlingError('Double quote delimiter is incompatible with "quoted" policy')
+        if input_delim != ' ' and input_policy == 'whitespace':
+            raise csv_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
+
+        if not is_ascii(query) and csv_encoding == 'latin-1':
+            raise RbqlParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+
+        user_init_code = ''
+        if custom_init_path is not None:
+            user_init_code = make_user_init_code(custom_init_path)
+        elif os.path.exists(default_init_source_path):
+            user_init_code = make_user_init_code(default_init_source_path)
+
+        join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
+        input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
+        output_writer = csv_utils.CSVWriter(output_stream, output_delim, output_policy)
+        error_info, warnings = generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code, convert_only_dst)
+        return (error_info, warnings)
+    except Exception as e:
+        error_info = exception_to_error_info(e)
+        return (error_info, [])
 

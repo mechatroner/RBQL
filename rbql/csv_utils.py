@@ -1,10 +1,13 @@
 from __future__ import unicode_literals
 from __future__ import print_function
+import sys
+import os
 import re
+import codecs
 from collections import defaultdict
 
 
-class CSVHandlingError(Exception):
+class RbqlIOHandlingError(Exception):
     pass
 
 
@@ -13,6 +16,31 @@ newline_rgx = re.compile('(?:\r\n)|\r|\n')
 field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
 field_rgx = re.compile(field_regular_expression)
 field_rgx_external_whitespaces = re.compile(' *'+ field_regular_expression + ' *')
+
+
+
+def normalize_delim(delim):
+    if delim == 'TAB':
+        return '\t'
+    if delim == r'\t':
+        return '\t'
+    return delim
+
+
+def get_encoded_stdin(encoding_name):
+    if PY3:
+        return io.TextIOWrapper(sys.stdin.buffer, encoding=encoding_name)
+    else:
+        return codecs.getreader(encoding_name)(sys.stdin)
+
+
+def get_encoded_stdout(encoding_name):
+    if PY3:
+        return io.TextIOWrapper(sys.stdout.buffer, encoding=encoding_name)
+    else:
+        return codecs.getwriter(encoding_name)(sys.stdout)
+
+
 
 
 def extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result):
@@ -174,7 +202,7 @@ class CSVWriter:
 
     def mono_join(self, fields):
         if len(fields) > 1:
-            raise CSVHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
+            raise RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
         return fields[0]
 
 
@@ -319,7 +347,7 @@ class CSVRecordIterator:
         except UnicodeDecodeError:
             # FIXME make sure this function raise on binary input. write UT
             assert self.encoding == 'utf-8', 'Unexpected UnicodeDecodeError with {} encoding'.format(self.encoding)
-            raise CSVHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
+            raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
 
 
     def get_warnings(self):
@@ -342,7 +370,7 @@ class FileSystemCSVRegistry:
     def get_iterator_by_table_id(table_id):
         join_table_path = find_table_path(table_id)
         if join_table_path is None:
-            raise CSVHandlingError('Unable to find join table: "{}"'.format(table_id))
+            raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
         src = codecs.open(table_path, encoding=self.csv_encoding)
         record_iterator = CSVRecordIterator(source, self.csv_encoding, self.delim, self.policy, table_name=table_id)
         return record_iterator

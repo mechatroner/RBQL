@@ -42,12 +42,12 @@ def get_default_policy(delim):
         return 'simple'
 
 
-def show_error(msg, is_interactive):
+def show_error(error_type, error_msg, is_interactive):
     if is_interactive:
-        full_msg = '{}Error:{} {}'.format(u'\u001b[31;1m', u'\u001b[0m', msg)
+        full_msg = '{}Error [{}]:{} {}'.format(u'\u001b[31;1m', error_type, u'\u001b[0m', msg)
         print(full_msg)
     else:
-        eprint('Error: ' + msg)
+        eprint('{}: {}'.format(error_type, msg))
 
 
 def show_warning(msg, is_interactive):
@@ -59,7 +59,7 @@ def show_warning(msg, is_interactive):
 
 
 def run_with_python(args, is_interactive):
-    delim = rbql.normalize_delim(args.delim) if args.delim is not None else '\t'
+    delim = csv_utils.normalize_delim(args.delim) if args.delim is not None else '\t'
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
     convert_only = args.convert_only
@@ -69,45 +69,37 @@ def run_with_python(args, is_interactive):
     csv_encoding = args.encoding
     args.output_delim, args.output_policy = interpret_format(args.out_format, delim, policy)
 
-    assert args.query
+    input_stream = None
+    if input_path:
+        input_stream = codecs.open(input_path, encoding=csv_encoding)
+    else:
+        input_stream = csv_utils.get_encoded_stdin(csv_encoding)
+    output_stream = None
+    if output_path:
+        output_stream = codecs.open(output_path, 'w', encoding=csv_encoding)
+    else:
+        output_stream = csv_utils.get_encoded_stdout(csv_encoding)
 
-    with rbql.RbqlPyEnv() as worker_env:
-        tmp_path = worker_env.module_path
-        try:
-            rbql.parse_to_py(query, tmp_path, delim, policy, args.output_delim, args.output_policy, csv_encoding, init_source_file)
-        except rbql.RBParsingError as e:
-            show_error('RBQL Parsing Failure: {}'.format(e), is_interactive)
-            return False
-        if convert_only:
-            print(tmp_path)
-            return True
-        try:
-            rbconvert = worker_env.import_worker()
-            src = None
-            if input_path:
-                src = codecs.open(input_path, encoding=csv_encoding)
-            else:
-                src = rbql.get_encoded_stdin(csv_encoding)
-            warnings = None
-            if output_path:
-                with codecs.open(output_path, 'w', encoding=csv_encoding) as dst:
-                    warnings = rbconvert.rb_transform(src, dst)
-            else:
-                dst = rbql.get_encoded_stdout(csv_encoding)
-                warnings = rbconvert.rb_transform(src, dst)
-            if warnings is not None:
-                for warning in warnings:
-                    show_warning(warning, is_interactive)
-            worker_env.remove_env_dir()
-        except Exception as e:
-            if type(e).__name__.find('RbqlRuntimeError') != -1:
-                error_msg = '{}\n'.format(str(e))
-            else:
-                error_msg = 'Unexpected python exception:\n{}\n'.format(str(e))
-            error_msg += 'Location of the generated module: {}'.format(tmp_path)
-            show_error(error_msg, is_interactive)
-            return False
-        return True
+    error_info, warnings = rbql.csv_run(query, input_stream, delim, policy, output_stream, delim, policy, csv_encoding, init_source_file, convert_only)
+
+    if error_info is None:
+        success = True
+        for warning in warnings:
+            show_warning(warning, is_interactive)
+    else:
+        success = False
+        error_type = error_info['type']
+        error_msg = error_info['message']
+        show_error(error_type, error_msg, is_interactive)
+
+    try:
+        output_stream.close()
+        input_stream.close()
+    except Exception as e:
+        pass
+
+    return success
+
 
 
 def is_delimited_table(sampled_lines, delim, policy):
@@ -211,15 +203,15 @@ def run_interactive_loop(args):
 def start_preview_mode(args):
     input_path = args.input
     if not input_path:
-        show_error('Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', is_interactive=True)
+        show_error('generic', 'Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', is_interactive=True)
         return
     if args.delim is not None:
-        delim = rbql.normalize_delim(args.delim)
+        delim = csv_utils.normalize_delim(args.delim)
         policy = args.policy if args.policy is not None else get_default_policy(delim)
     else:
         delim, policy = autodetect_delim_policy(input_path, args.encoding)
         if delim is None:
-            show_error('Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option', is_interactive=True)
+            show_error('generic', 'Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option', is_interactive=True)
             return
         args.delim = delim
         args.policy = policy
@@ -248,7 +240,7 @@ def main():
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
-    parser.add_argument('--convert-only', action='store_true', help='Only generate script do not run query on csv table')
+    parser.add_argument('--convert-only', metavar='FILE', action='store', help='Only generate worker module and save to FILE do not run it')
     parser.add_argument('--encoding', help='Manually set csv table encoding', default=rbql.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--init-source-file', metavar='FILE', help='path to init source file to use instead of ~/.rbql_init_source.py')
     args = parser.parse_args()

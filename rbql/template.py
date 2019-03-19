@@ -7,14 +7,13 @@ import os
 import random # For random sort
 import datetime # For date manipulations
 import re # For regexes
-import codecs
 from collections import OrderedDict, defaultdict
 
 
 # This module must be both python2 and python3 compatible
 
 # This module works with records only. It is CSV-agnostic. 
-# Do not add CSV-related logic or variables/functions/objects like "delim", "separator", "split", "line" etc
+# Do not add CSV-related logic or variables/functions/objects like "delim", "separator", "split", "line", "path" etc
 
 
 # TODO implement arrays passing to output_writer, e.g. for FOLD()
@@ -39,7 +38,7 @@ def iteritems6(x):
     return x.iteritems()
 
 
-class BadFieldError(Exception):
+class InternalBadFieldError(Exception):
     def __init__(self, bad_idx):
         self.bad_idx = bad_idx
 
@@ -57,14 +56,14 @@ def safe_join_get(record, idx):
     try:
         return record[idx - 1]
     except IndexError as e:
-        raise BadFieldError(idx - 1)
+        raise InternalBadFieldError(idx - 1)
 
 
 def safe_set(record, idx, value):
     try:
         record[idx - 1] = value
     except IndexError as e:
-        raise BadFieldError(idx - 1)
+        raise InternalBadFieldError(idx - 1)
 
 
 module_was_used_failsafe = False
@@ -536,16 +535,19 @@ def process_select(NR, NF, afields, rhs_records):
 
 
 process_function = process_select if __RBQLMP__is_select_query else process_update
-joiner_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
+sql_join_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
 
-def rb_transform(input_iterator, join_map, output_writer):
+def rb_transform(input_iterator, join_map_impl, output_writer):
     global module_was_used_failsafe
     assert not module_was_used_failsafe
     module_was_used_failsafe = True
 
     global input_fields_info
     global writer
+
+    join_map_impl.build()
+    join_map = sql_join_type(join_map_impl)
 
     writer = TopWriter(output_writer)
 
@@ -557,7 +559,6 @@ def rb_transform(input_iterator, join_map, output_writer):
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
 
-    joiner = joiner_type('__RBQLMP__rhs_table_path')
     NR = 0
     while True:
         afields = input_iterator.get_record()
@@ -568,10 +569,10 @@ def rb_transform(input_iterator, join_map, output_writer):
         if NF not in input_fields_info:
             input_fields_info[NF] = NR
         try:
-            rhs_records = joiner.get_rhs(__RBQLMP__lhs_join_var)
+            rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var)
             if not process_function(NR, NF, afields, rhs_records):
                 break
-        except BadFieldError as e:
+        except InternalBadFieldError as e:
             bad_idx = e.bad_idx
             raise RbqlRuntimeError('No "a' + str(bad_idx + 1) + '" field at record: ' + str(NR))
         except Exception as e:
