@@ -14,12 +14,21 @@ from . import rbql
 from . import csv_utils
 
 
+PY3 = sys.version_info[0] == 3
+
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
 policy_names = ['csv', 'tsv', 'monocolumn']
 out_policy_names = policy_names + ['input']
+
+
+def xrange6(x):
+    if PY3:
+        return range(x)
+    return xrange(x)
 
 
 def interpret_format(format_name, input_delim, input_policy):
@@ -92,12 +101,6 @@ def run_with_python(args, is_interactive):
         error_msg = error_info['message']
         show_error(error_type, error_msg, is_interactive)
 
-    try:
-        output_stream.close()
-        input_stream.close()
-    except Exception as e:
-        pass
-
     return success
 
 
@@ -121,7 +124,7 @@ def sample_lines(src_path, encoding):
     result = []
     with codecs.open(src_path, encoding=encoding) as source:
         line_iterator = csv_utils.CSVRecordIterator(source, encoding, delim=None, policy=None)
-        for i in rbql.xrange6(10):
+        for i in xrange6(10):
             line = line_iterator.get_row()
             if line is None:
                 break

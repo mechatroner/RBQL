@@ -3,12 +3,11 @@ from __future__ import print_function
 import sys
 import os
 import re
+import io
 import codecs
-from collections import defaultdict
 
 
-class RbqlIOHandlingError(Exception):
-    pass
+PY3 = sys.version_info[0] == 3
 
 
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
@@ -16,6 +15,14 @@ newline_rgx = re.compile('(?:\r\n)|\r|\n')
 field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
 field_rgx = re.compile(field_regular_expression)
 field_rgx_external_whitespaces = re.compile(' *'+ field_regular_expression + ' *')
+
+
+user_home_dir = os.path.expanduser('~')
+table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
+
+
+class RbqlIOHandlingError(Exception):
+    pass
 
 
 
@@ -137,13 +144,6 @@ def quote_field(src, delim):
     return src
 
 
-def try_flush(dst_stream):
-    try:
-        dst_stream.flush()
-    except Exception:
-        pass
-
-
 def try_read_index(index_path):
     lines = []
     try:
@@ -182,13 +182,13 @@ class CSVWriter:
         self.dst = dst
         self.delim = delim
         if policy == 'simple':
-            self.join_func = simple_join
+            self.join_func = self.simple_join
         elif policy == 'quoted':
-            self.join_func = quoted_join
+            self.join_func = self.quoted_join
         elif policy == 'monocolumn':
-            self.join_func = mono_join
+            self.join_func = self.mono_join
         elif policy == 'whitespace':
-            self.join_func = simple_join
+            self.join_func = self.simple_join
         else:
             raise RuntimeError('unknown output csv policy')
 
@@ -226,14 +226,21 @@ class CSVWriter:
     def write(self, fields):
         self.replace_none_values(fields)
         fields = [str6(f) for f in fields]
-        self.dst.write(self.join_func(fields, delim))
+        self.dst.write(self.join_func(fields, self.delim))
 
 
     def finish(self):
-        try_flush(self.dst)
+        try:
+            self.dst.flush()
+        except Exception:
+            pass
+        try:
+            self.dst.close()
+        except Exception:
+            pass
 
 
-    def get_warnings():
+    def get_warnings(self):
         result = list()
         if self.none_in_output:
             result.append('None values in output were replaced by empty strings')
@@ -256,7 +263,7 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 
 
 class CSVRecordIterator:
-    # Possibly can add presort_for_merge_join(key_index) method. 
+    # Possibly can add presort_for_merge_join(key_index) method.
     # CSV tables are usually small, no need to use Merge algorithm. Also true when B is small (fits in memory) and A is big
     # Potentially this can be useful if someone decides to use RBQL for MapReduce tables when rhs table B is very big.
 
@@ -277,6 +284,13 @@ class CSVRecordIterator:
 
         self.utf8_bom_removed = False
         self.first_defective_line = None # TODO use line # instead of record # when "\n" is done
+
+
+    def finish(self):
+        try:
+            self.src.close()
+        except Exception:
+            pass
 
 
     def _get_row_from_buffer(self):
@@ -307,7 +321,7 @@ class CSVRecordIterator:
             if newline_rgx.search(chunk) is not None:
                 break
         self.buffer += ''.join(chunks)
-            
+
 
     def get_row(self):
         # FIXME make sure this function does not raise UnicodeDecodeError. write UT
@@ -357,7 +371,7 @@ class CSVRecordIterator:
         if self.first_defective_line is not None:
             result.append('Defective double quote escaping in {} table. E.g. at line {}'.format(self.table_name, self.first_defective_line))
         if len(self.fields_info) > 1:
-            result.append(make_inconsistent_num_fields_warning(self.fields_info))
+            result.append(make_inconsistent_num_fields_warning(self.table_name, self.fields_info))
         return result
 
 
@@ -367,12 +381,12 @@ class FileSystemCSVRegistry:
         self.policy = policy
         self.csv_encoding = csv_encoding
 
-    def get_iterator_by_table_id(table_id):
-        join_table_path = find_table_path(table_id)
-        if join_table_path is None:
+    def get_iterator_by_table_id(self, table_id):
+        table_path = find_table_path(table_id)
+        if table_path is None:
             raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
         src = codecs.open(table_path, encoding=self.csv_encoding)
-        record_iterator = CSVRecordIterator(source, self.csv_encoding, self.delim, self.policy, table_name=table_id)
+        record_iterator = CSVRecordIterator(src, self.csv_encoding, self.delim, self.policy, table_name=table_id)
         return record_iterator
 
 

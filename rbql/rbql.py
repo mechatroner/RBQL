@@ -8,7 +8,6 @@ import os
 import re
 import importlib
 import codecs
-import io
 import tempfile
 import random
 import shutil
@@ -48,8 +47,6 @@ EXCEPT = 'EXCEPT'
 
 default_csv_encoding = 'latin-1'
 
-PY3 = sys.version_info[0] == 3
-
 rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
 user_home_dir = os.path.expanduser('~')
 table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
@@ -80,12 +77,6 @@ def exception_to_error_info(e):
         if type(e).__name__.find(k) != -1:
             error_type = v
     return {'type': error_type, 'message': error_msg}
-
-
-def xrange6(x):
-    if PY3:
-        return range(x)
-    return xrange(x)
 
 
 def rbql_meta_format(template_src, meta_params):
@@ -351,6 +342,7 @@ class HashJoinMap:
             if self.key_index >= num_fields:
                 raise RbqlRutimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
             self.hash_map.append(fields)
+        self.record_iterator.finish()
 
 
     def get_join_records(self, key):
@@ -520,6 +512,9 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
     except Exception as e:
         error_info = exception_to_error_info(e)
         return (error_info, [])
+    finally:
+        input_iterator.finish()
+        output_writer.finish()
 
 
 
