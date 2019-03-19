@@ -73,20 +73,10 @@ def run_with_python(args, is_interactive):
     init_source_file = args.init_source_file
     csv_encoding = args.encoding
     args.output_delim, args.output_policy = interpret_format(args.out_format, delim, policy)
+    out_delim, out_policy = args.output_delim, args.output_policy
 
-    # FIXME move the double section below into csv_utils as context managers. Close input_path and output_path; don't close stdin and stdout
-    input_stream = None
-    if input_path:
-        input_stream = codecs.open(input_path, encoding=csv_encoding)
-    else:
-        input_stream = csv_utils.get_encoded_stdin(csv_encoding)
-    output_stream = None
-    if output_path:
-        output_stream = codecs.open(output_path, 'w', encoding=csv_encoding)
-    else:
-        output_stream = csv_utils.get_encoded_stdout(csv_encoding)
-
-    error_info, warnings = rbql.csv_run(query, input_stream, delim, policy, output_stream, delim, policy, csv_encoding, init_source_file, convert_only)
+    with csv_utils.InputStreamManager(input_path, csv_encoding) as src, csv_utils.OutputStreamManager(output_path, csv_encoding) as dst:
+        error_info, warnings = rbql.csv_run(query, src.stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
 
     if error_info is None:
         success = True

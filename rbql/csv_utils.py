@@ -25,7 +25,6 @@ class RbqlIOHandlingError(Exception):
     pass
 
 
-
 def normalize_delim(delim):
     if delim == 'TAB':
         return '\t'
@@ -47,6 +46,47 @@ def get_encoded_stdout(encoding_name):
     else:
         return codecs.getwriter(encoding_name)(sys.stdout)
 
+
+class InputStreamManager:
+    def __init__(self, input_path, csv_encoding):
+        self.input_path = input_path
+        self.csv_encoding = csv_encoding
+        self.stream = None
+
+    def __enter__(self):
+        if self.input_path:
+            self.stream = codecs.open(self.input_path, encoding=self.csv_encoding)
+        else:
+            self.stream = get_encoded_stdin(self.csv_encoding)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.input_path:
+            try:
+                self.stream.close()
+            except Exception:
+                pass
+
+
+class OutputStreamManager:
+    def __init__(self, output_path, csv_encoding):
+        self.output_path = output_path
+        self.csv_encoding = csv_encoding
+        self.stream = None
+
+    def __enter__(self):
+        if self.output_path:
+            self.stream = codecs.open(self.output_path, 'w', encoding=self.csv_encoding)
+        else:
+            self.stream = get_encoded_stdout(self.csv_encoding)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if self.output_path:
+                self.stream.close()
+            else:
+                self.stream.flush()
+        except Exception:
+            pass
 
 
 
