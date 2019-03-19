@@ -234,10 +234,6 @@ class CSVWriter:
             self.dst.flush()
         except Exception:
             pass
-        try:
-            self.dst.close()
-        except Exception:
-            pass
 
 
     def get_warnings(self):
@@ -287,10 +283,7 @@ class CSVRecordIterator:
 
 
     def finish(self):
-        try:
-            self.src.close()
-        except Exception:
-            pass
+        pass
 
 
     def _get_row_from_buffer(self):

@@ -2,12 +2,8 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 
-import os
 import sys
 import codecs
-import time
-import tempfile
-import subprocess
 import argparse
 
 from . import rbql
@@ -53,10 +49,10 @@ def get_default_policy(delim):
 
 def show_error(error_type, error_msg, is_interactive):
     if is_interactive:
-        full_msg = '{}Error [{}]:{} {}'.format(u'\u001b[31;1m', error_type, u'\u001b[0m', msg)
+        full_msg = '{}Error [{}]:{} {}'.format(u'\u001b[31;1m', error_type, u'\u001b[0m', error_msg)
         print(full_msg)
     else:
-        eprint('{}: {}'.format(error_type, msg))
+        eprint('{}: {}'.format(error_type, error_msg))
 
 
 def show_warning(msg, is_interactive):
@@ -78,6 +74,7 @@ def run_with_python(args, is_interactive):
     csv_encoding = args.encoding
     args.output_delim, args.output_policy = interpret_format(args.out_format, delim, policy)
 
+    # FIXME move the double section below into csv_utils as context managers. Close input_path and output_path; don't close stdin and stdout
     input_stream = None
     if input_path:
         input_stream = codecs.open(input_path, encoding=csv_encoding)
@@ -124,7 +121,7 @@ def sample_lines(src_path, encoding):
     result = []
     with codecs.open(src_path, encoding=encoding) as source:
         line_iterator = csv_utils.CSVRecordIterator(source, encoding, delim=None, policy=None)
-        for i in xrange6(10):
+        for _i in xrange6(10):
             line = line_iterator.get_row()
             if line is None:
                 break

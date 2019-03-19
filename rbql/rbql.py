@@ -12,6 +12,7 @@ import tempfile
 import random
 import shutil
 import time
+from collections import defaultdict
 
 ##########################################################################
 #
@@ -225,7 +226,7 @@ def locate_statements(rbql_expression):
 
 
 def separate_actions(rbql_expression):
-    # TODO add more checks: 
+    # TODO add more checks:
     # make sure all rbql_expression was separated and SELECT or UPDATE is at the beginning
     rbql_expression = rbql_expression.strip(' ')
     ordered_statements = locate_statements(rbql_expression)
@@ -341,7 +342,8 @@ class HashJoinMap:
             self.max_record_len = max(self.max_record_len, num_fields)
             if self.key_index >= num_fields:
                 raise RbqlRutimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
-            self.hash_map.append(fields)
+            key = fields[self.key_index]
+            self.hash_map[key].append(fields)
         self.record_iterator.finish()
 
 
@@ -467,7 +469,7 @@ class RbqlPyEnv:
     def import_worker(self):
         # We need to add env_dir to sys.path after worker module has been generated to avoid calling `importlib.invalidate_caches()`
         # Description of the problem: http://ballingt.com/import-invalidate-caches/
-        assert os.path.exists(self.module_path), 'Unable to find generated module at {}'.format(sys.module_path)
+        assert os.path.exists(self.module_path), 'Unable to find generated module at {}'.format(self.module_path)
         sys.path.append(self.env_dir)
         return importlib.import_module(self.module_name)
 
@@ -496,8 +498,8 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
             return (None, [])
         with rbql.RbqlPyEnv() as worker_env:
             write_python_module(python_code, worker_env.module_path)
-            # TODO find a way to report module_path if exception is thrown. 
-            # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir. 
+            # TODO find a way to report module_path if exception is thrown.
+            # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir.
             # It would point to the last module if lauch failed, or just a dangling ref.
             # Generated modules are not re-runnable by themselves now anyway.
             rbconvert = worker_env.import_worker()
