@@ -163,7 +163,7 @@ def run_file_query_test_py(query, input_path, testname, delim, policy, csv_encod
 
 def table_has_delim(array2d, delim):
     for r in array2d:
-        for c in r: 
+        for c in r:
             if c.find(delim) != -1:
                 return True
     return False
@@ -517,7 +517,7 @@ class TestEverything(unittest.TestCase):
         query = r'select NR, * inner join {} on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)'.format(join_table_path)
         test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
         self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None,  warnings)
+        compare_warnings(self, None, warnings)
 
         if TEST_JS:
             query = r'select NR, * inner join {} on a2 == b1 where   b2 !=  "haha" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)'.format(join_table_path)
@@ -731,13 +731,13 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['6', '200', 'plane', 'boeing 737', 'plane', 'wings'])
 
         query = r'select NR, * JOIN {} on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order   by a2, int(a1)'.format(join_table_path)
-        test_table, warnings= run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
         self.compare_tables(canonic_table, test_table)
         compare_warnings(self, None, warnings)
 
         if TEST_JS:
             query = r'select NR, * JOIN {} on a2 == b1 where b2 != "haha" && a1 > -100 && b2.length > 1 order    by a2, parseInt(a1)'.format(join_table_path)
-            test_table, warnings= run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)
 
@@ -1590,7 +1590,7 @@ class TestEverything(unittest.TestCase):
         canonic_table = list()
         canonic_table.append(['car|car|dog|mouse'])
 
-        input_delim, input_policy, output_delim, output_policy =  select_random_formats(input_table, '\t,;:')
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table, '\t,;:')
 
         query = r'select FOLD(a1)'
         test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
@@ -1618,7 +1618,7 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['dog', '100'])
         canonic_table.append(['car', '100'])
 
-        input_delim, input_policy, output_delim, output_policy =  select_random_formats(input_table)
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select top 3 * except a2, a4 order by a1 desc'
         test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
@@ -1641,7 +1641,7 @@ class TestEverything(unittest.TestCase):
         input_table.append(['dog', '3', '100', '2'])
         input_table.append(['mouse', '2', '50', '1'])
 
-        input_delim, input_policy, output_delim, output_policy =  select_random_formats(input_table)
+        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select * where a2 == "Мама"'
         with self.assertRaises(Exception) as cm:
@@ -1712,11 +1712,11 @@ class TestFiles(unittest.TestCase):
                         if canonic_error_msg is None or str(e).find(canonic_error_msg) == -1:
                             raise
                         continue
-                    test_path = os.path.abspath(result_table) 
+                    test_path = os.path.abspath(result_table)
                     test_md5 = calc_file_md5(result_table)
                     self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {} Actual: {}'.format(canonic_path, test_path))
                     compare_warnings(self, canonic_warnings, warnings)
-                else: 
+                else:
                     assert backend_language == 'js'
                     try:
                         result_table, warnings = run_file_query_test_js(query, src_path, str(test_no), delim, policy, encoding, out_format)
@@ -1724,7 +1724,7 @@ class TestFiles(unittest.TestCase):
                         if canonic_error_msg is None or str(e).find(canonic_error_msg) == -1:
                             raise
                         continue
-                    test_path = os.path.abspath(result_table) 
+                    test_path = os.path.abspath(result_table)
                     test_md5 = calc_file_md5(result_table)
                     self.assertEqual(test_md5, canonic_md5, msg='Tables missmatch. Canonic: {} Actual: {}'.format(canonic_path, test_path))
                     compare_warnings(self, canonic_warnings, warnings)
@@ -1788,30 +1788,30 @@ class TestSplitMethods(unittest.TestCase):
 
     def test_split(self):
         test_cases = list()
-        test_cases.append(('hello,world', (['hello','world'], False)))
-        test_cases.append(('hello,"world"', (['hello','world'], False)))
+        test_cases.append(('hello,world', (['hello', 'world'], False)))
+        test_cases.append(('hello,"world"', (['hello', 'world'], False)))
         test_cases.append(('"abc"', (['abc'], False)))
         test_cases.append(('abc', (['abc'], False)))
         test_cases.append(('', ([''], False)))
-        test_cases.append((',', (['',''], False)))
-        test_cases.append((',,,', (['','','',''], False)))
-        test_cases.append((',"",,,', (['','','','',''], False)))
-        test_cases.append(('"","",,,""', (['','','','',''], False)))
-        test_cases.append(('"aaa,bbb",', (['aaa,bbb',''], False)))
-        test_cases.append(('"aaa,bbb",ccc', (['aaa,bbb','ccc'], False)))
-        test_cases.append(('"aaa,bbb","ccc"', (['aaa,bbb','ccc'], False)))
-        test_cases.append(('"aaa,bbb","ccc,ddd"', (['aaa,bbb','ccc,ddd'], False)))
-        test_cases.append((' "aaa,bbb" ,  "ccc,ddd" ', (['aaa,bbb','ccc,ddd'], False)))
-        test_cases.append(('"aaa,bbb",ccc,ddd', (['aaa,bbb','ccc', 'ddd'], False)))
-        test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['"a"aa" a', 'bbb"','ccc', 'ddd'], True)))
-        test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc','ccc"', 'ddd'], True)))
-        test_cases.append(('hello,world,"', (['hello','world', '"'], True)))
+        test_cases.append((',', (['', ''], False)))
+        test_cases.append((',,,', (['', '', '', ''], False)))
+        test_cases.append((',"",,,', (['', '', '', '', ''], False)))
+        test_cases.append(('"","",,,""', (['', '', '', '', ''], False)))
+        test_cases.append(('"aaa,bbb",', (['aaa,bbb', ''], False)))
+        test_cases.append(('"aaa,bbb",ccc', (['aaa,bbb', 'ccc'], False)))
+        test_cases.append(('"aaa,bbb","ccc"', (['aaa,bbb', 'ccc'], False)))
+        test_cases.append(('"aaa,bbb","ccc,ddd"', (['aaa,bbb', 'ccc,ddd'], False)))
+        test_cases.append((' "aaa,bbb" ,  "ccc,ddd" ', (['aaa,bbb', 'ccc,ddd'], False)))
+        test_cases.append(('"aaa,bbb",ccc,ddd', (['aaa,bbb', 'ccc', 'ddd'], False)))
+        test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['"a"aa" a', 'bbb"', 'ccc', 'ddd'], True)))
+        test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc', 'ccc"', 'ddd'], True)))
+        test_cases.append(('hello,world,"', (['hello', 'world', '"'], True)))
         for tc in test_cases:
             src = tc[0]
             canonic_dst = tc[1]
             warning_expected = canonic_dst[1]
             test_dst = csv_utils.split_quoted_str(tc[0], ',')
-            self.assertEqual(canonic_dst, test_dst, msg = '\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
+            self.assertEqual(canonic_dst, test_dst, msg='\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
 
             test_dst_preserved = csv_utils.split_quoted_str(tc[0], ',', True)
             self.assertEqual(test_dst[1], test_dst_preserved[1])
@@ -1831,16 +1831,16 @@ class TestSplitMethods(unittest.TestCase):
 
     def test_split_whitespaces(self):
         test_cases = list()
-        test_cases.append(('hello world', (['hello','world'], False)))
-        test_cases.append(('hello   world', (['hello','world'], False)))
-        test_cases.append(('   hello   world   ', (['hello','world'], False)))
+        test_cases.append(('hello world', (['hello', 'world'], False)))
+        test_cases.append(('hello   world', (['hello', 'world'], False)))
+        test_cases.append(('   hello   world   ', (['hello', 'world'], False)))
         test_cases.append(('     ', ([], False)))
         test_cases.append(('', ([], False)))
         test_cases.append(('   a   b  c d ', (['a', 'b', 'c', 'd'], False)))
 
-        test_cases.append(('hello world', (['hello ','world'], True)))
-        test_cases.append(('hello   world', (['hello   ','world'], True)))
-        test_cases.append(('   hello   world   ', (['   hello   ','world   '], True)))
+        test_cases.append(('hello world', (['hello ', 'world'], True)))
+        test_cases.append(('hello   world', (['hello   ', 'world'], True)))
+        test_cases.append(('   hello   world   ', (['   hello   ', 'world   '], True)))
         test_cases.append(('     ', ([], True)))
         test_cases.append(('', ([], True)))
         test_cases.append(('   a   b  c d ', (['   a   ', 'b  ', 'c ', 'd '], True)))
