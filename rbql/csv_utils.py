@@ -184,6 +184,18 @@ def quote_field(src, delim):
     return src
 
 
+def unquote_field(field):
+    field_rgx_external_whitespaces = re.compile('^ *"((?:[^"]*"")*[^"]*)" *$')
+    match_obj = field_rgx_external_whitespaces.match(field)
+    if match_obj is not None:
+        return match_obj.group(1).replace('""', '"')
+    return field
+
+
+def unquote_fields(fields):
+    return [unquote_field(f) for f in fields]
+
+
 def try_read_index(index_path):
     lines = []
     try:
