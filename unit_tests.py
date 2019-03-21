@@ -23,6 +23,11 @@ from rbql import csv_utils
 
 PY3 = sys.version_info[0] == 3
 
+
+########################################################################################################
+# Below are some generic functions
+########################################################################################################
+
 def xrange6(x):
     if PY3:
         return range(x)
@@ -40,18 +45,6 @@ def natural_random(low, high):
     return random.randint(low, high)
 
 
-def make_random_csv_fields(num_fields, max_field_len):
-    available = [',', '"', 'a', 'b', 'c', 'd']
-    result = list()
-    for fn in range(num_fields):
-        flen = natural_random(0, max_field_len)
-        chosen = list()
-        for i in range(flen):
-            chosen.append(random.choice(available))
-        result.append(''.join(chosen))
-    return result
-
-
 def randomly_quote_field(src, delim):
     if src.find('"') != -1 or src.find(delim) != -1 or random.randint(0, 1) == 1:
         spaces_before = ' ' * random.randint(0, 2) if delim != ' ' else ''
@@ -62,26 +55,58 @@ def randomly_quote_field(src, delim):
     return src
 
 
-def randomly_csv_escape(fields):
+def simple_join(fields, delim):
+    result = delim.join(fields)
+    if result.count(delim) + 1 != len(fields):
+        raise RuntimeError('Unable to use simple policy')
+    return result
+
+
+def whitespace_join(fields):
+    result = ' ' * random.randint(0, 5)
+    for f in fields:
+        result += f + ' ' * random.randint(1, 5)
+    return result
+
+
+def randomly_join_quoted(fields, delim):
     efields = list()
     for field in fields:
-        efields.append(randomly_quote_field(field, ','))
+        efields.append(randomly_quote_field(field, delim))
     assert csv_utils.unquote_fields(efields) == fields
-    return ','.join(efields)
+    return delim.join(efields)
 
 
-def make_random_csv_records():
-    result = list()
-    for num_test in xrange6(1000):
-        num_fields = random.randint(1, 11)
-        max_field_len = 25
-        fields = make_random_csv_fields(num_fields, max_field_len)
-        csv_line = randomly_csv_escape(fields)
-        defective_escaping = random.randint(0, 1)
-        if defective_escaping:
-            defect_pos = random.randint(0, len(csv_line))
-            csv_line = csv_line[:defect_pos] + '"' + csv_line[defect_pos:]
-        result.append((fields, csv_line, defective_escaping))
+def smart_join(fields, delim, policy):
+    if policy == 'simple':
+        return simple_join(fields, delim)
+    elif policy == 'whitespace':
+        assert delim == ' '
+        return whitespace_join(fields)
+    elif policy == 'quoted':
+        assert delim != '"'
+        return randomly_join_quoted(fields, delim)
+    elif policy == 'monocolumn':
+        assert len(fields) == 1
+        return fields[0]
+    else:
+        raise RuntimeError('Unknown policy')
+
+
+def find_in_table(table, token):
+    for row in table:
+        for col in row:
+            if col.find(token) != -1:
+                return True
+    return False
+
+
+def table_to_csv_string(table, delim, policy):
+    line_separators = ['\n', '\r\n', '\r']
+    line_separator = random.choice(line_separators)
+    result = line_separator.join([smart_join(row, delim, policy) for row in table])
+    if random.choice([True, False]):
+        result += line_separator
     return result
 
 
@@ -97,12 +122,37 @@ def line_iter_split(src, chunk_size):
     return result
 
 
+########################################################################################################
+# Below are some ad-hoc functions:
+########################################################################################################
 
-class TestStringMethods(unittest.TestCase):
-    def test_strip4(self):
-        a = ''' # a comment  '''
-        a_strp = rbql.strip_py_comments(a)
-        self.assertEqual(a_strp, '')
+
+def make_random_pseudo_binary_csv_entry(min_len, max_len, restricted_chars):
+    strlen = random.randint(min_len, max_len)
+    char_set = list(range(256))
+    restricted_chars = [ord(c) for c in restricted_chars]
+    char_set = [c for c in char_set if c not in restricted_chars]
+    data = list()
+    for i in rbql.xrange6(strlen):
+        data.append(random.choice(char_set))
+    pseudo_latin = bytes(bytearray(data)).decode('latin-1')
+    return pseudo_latin
+
+
+def generate_random_pseudo_binary_table(max_num_rows, max_num_cols):
+    num_rows = natural_random(1, max_num_rows)
+    num_cols = natural_random(1, max_num_cols)
+    good_keys = ['Hello', 'Avada Kedavra ', ' ??????', '128', '3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
+    result = list()
+    good_column = random.randint(0, num_cols - 1)
+    for r in rbql.xrange6(num_rows):
+        result.append(list())
+        for c in rbql.xrange6(num_cols):
+            if c == good_column:
+                result[-1].append(random.choice(good_keys))
+            else:
+                result[-1].append(make_random_pseudo_binary_csv_entry(0, 20, restricted_chars=['\r', '\n']))
+    return result
 
 
 class TestSplitMethods(unittest.TestCase):
@@ -173,8 +223,37 @@ class TestSplitMethods(unittest.TestCase):
             self.assertEqual(test_dst, canonic_dst)
 
 
+    def make_random_csv_fields_naive(self, num_fields, max_field_len):
+        available = [',', '"', 'a', 'b', 'c', 'd']
+        result = list()
+        for fn in range(num_fields):
+            flen = natural_random(0, max_field_len)
+            chosen = list()
+            for i in range(flen):
+                chosen.append(random.choice(available))
+            result.append(''.join(chosen))
+        return result
+
+
+
+    def make_random_csv_records_naive(self):
+        result = list()
+        for num_test in xrange6(1000):
+            num_fields = random.randint(1, 11)
+            max_field_len = 25
+            fields = self.make_random_csv_fields_naive(num_fields, max_field_len)
+            csv_line = smart_join(fields, ',', 'quoted')
+            defective_escaping = random.randint(0, 1)
+            if defective_escaping:
+                defect_pos = random.randint(0, len(csv_line))
+                csv_line = csv_line[:defect_pos] + '"' + csv_line[defect_pos:]
+            result.append((fields, csv_line, defective_escaping))
+        return result
+
+
+
     def test_random(self):
-        random_records = make_random_csv_records()
+        random_records = self.make_random_csv_records_naive()
         for ir, rec in enumerate(random_records):
             canonic_fields = rec[0]
             escaped_entry = rec[1]
@@ -218,7 +297,28 @@ class TestLineSplit(unittest.TestCase):
             self.assertEqual(canonic_split, test_split)
 
 
-class TestParsing(unittest.TestCase):
+class TestRecordIterator(unittest.TestCase):
+    def test_iterator(self):
+        for _test_num in xrange(20):
+            table = generate_random_pseudo_binary_table(10, 10)
+            delims = ['\t', ',', ';', '|']
+            delim = random.choice(delims)
+            table_has_delim = find_in_table(table, delim)
+            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
+            csv_string = table_to_csv_string(table, delim, policy)
+            # FIXME write to stream
+
+        pass #FIXME
+
+
+
+class TestRBQLQueryParsing(unittest.TestCase):
+
+    def test_comment_strip(self):
+        a = ''' # a comment  '''
+        a_strp = rbql.strip_py_comments(a)
+        self.assertEqual(a_strp, '')
+
 
     def test_literals_replacement(self):
         #TODO generate some random examples: Generate some strings randomly and then parse them

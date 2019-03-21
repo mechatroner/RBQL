@@ -241,7 +241,7 @@ def run_conversion_test_js(query, input_table, testname, input_delim, input_poli
     return (out_table, warnings)
 
 
-def make_random_csv_entry(min_len, max_len, restricted_chars):
+def make_random_pseudo_binary_csv_entry(min_len, max_len, restricted_chars):
     strlen = random.randint(min_len, max_len)
     char_set = list(range(256))
     restricted_chars = [ord(c) for c in restricted_chars]
@@ -268,7 +268,7 @@ def generate_random_scenario(max_num_rows, max_num_cols, delims):
         input_table.append(list())
         for c in rbql.xrange6(num_cols):
             if c != key_col:
-                input_table[-1].append(make_random_csv_entry(0, 20, restricted_chars))
+                input_table[-1].append(make_random_pseudo_binary_csv_entry(0, 20, restricted_chars))
             else:
                 input_table[-1].append(random.choice(good_keys))
 
@@ -1907,7 +1907,7 @@ def make_random_bin_table(num_rows, num_cols, key_col1, key_col2, delim, dst_pat
                 elif dice == 2:
                     result_table[-1].append(random.choice(good_keys2))
                 else:
-                    result_table[-1].append(make_random_csv_entry(0, 20, restricted_chars))
+                    result_table[-1].append(make_random_pseudo_binary_csv_entry(0, 20, restricted_chars))
     with codecs.open(dst_path, 'w', encoding='latin-1') as f:
         for row in result_table:
             f.write(delim.join(row))
