@@ -77,7 +77,7 @@ def randomly_join_quoted(fields, delim):
     return delim.join(efields)
 
 
-def smart_join(fields, delim, policy):
+def random_smart_join(fields, delim, policy):
     if policy == 'simple':
         return simple_join(fields, delim)
     elif policy == 'whitespace':
@@ -101,36 +101,14 @@ def find_in_table(table, token):
     return False
 
 
-def table_to_csv_string(table, delim, policy):
+def table_to_csv_string_random(table, delim, policy):
     line_separators = ['\n', '\r\n', '\r']
     line_separator = random.choice(line_separators)
-    result = line_separator.join([smart_join(row, delim, policy) for row in table])
+    result = line_separator.join([random_smart_join(row, delim, policy) for row in table])
     if random.choice([True, False]):
         result += line_separator
     return result
 
-
-def line_iter_split(src, chunk_size):
-    # Using record iterator as line iterator:
-    line_iterator = csv_utils.CSVRecordIterator(io.StringIO(src), 'latin-1', delim=None, policy=None, chunk_size=chunk_size)
-    result = []
-    while True:
-        row = line_iterator.get_row()
-        if row is None:
-            break
-        result.append(row)
-    return result
-
-
-def table_split(src_stream, reference_encoding):
-    record_iterator = csv_utils.CSVRecordIterator(src_stream, 'latin-1', delim=None, policy=None, chunk_size=chunk_size)
-    result = []
-    while True:
-        row = line_iterator.get_row()
-        if row is None:
-            break
-        result.append(row)
-    return result
 
 
 ########################################################################################################
@@ -253,7 +231,7 @@ class TestSplitMethods(unittest.TestCase):
             num_fields = random.randint(1, 11)
             max_field_len = 25
             fields = self.make_random_csv_fields_naive(num_fields, max_field_len)
-            csv_line = smart_join(fields, ',', 'quoted')
+            csv_line = random_smart_join(fields, ',', 'quoted')
             defective_escaping = random.randint(0, 1)
             if defective_escaping:
                 defect_pos = random.randint(0, len(csv_line))
@@ -291,7 +269,8 @@ class TestLineSplit(unittest.TestCase):
         test_cases.append(('hello\r\nworld\r', ['hello', 'world']))
         for tc in test_cases:
             src, canonic_res = tc
-            test_res = line_iter_split(src, 6)
+            line_iterator = csv_utils.CSVRecordIterator(io.StringIO(src), None, delim=None, policy=None, chunk_size=6)
+            test_res = line_iterator._get_all_rows()
             self.assertEqual(canonic_res, test_res)
 
     def test_split_random(self):
@@ -303,25 +282,26 @@ class TestLineSplit(unittest.TestCase):
             for tnum in xrange6(num_tokens):
                 token = random.choice(source_tokens)
                 src += token
-            test_split = line_iter_split(src, chunk_size)
-            canonic_split = src.splitlines()
-            self.assertEqual(canonic_split, test_split)
+            line_iterator = csv_utils.CSVRecordIterator(io.StringIO(src), None, delim=None, policy=None, chunk_size=chunk_size)
+            test_res = line_iterator._get_all_rows()
+            canonic_res = src.splitlines()
+            self.assertEqual(canonic_res, test_res)
 
 
-class TestRecordIterator(unittest.TestCase):
-    def test_iterator(self):
-        for _test_num in xrange(20):
-            # FIXME also add utf-8 tests
-            table = generate_random_pseudo_binary_table(10, 10)
-            delims = ['\t', ',', ';', '|']
-            delim = random.choice(delims)
-            table_has_delim = find_in_table(table, delim)
-            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
-            csv_string = table_to_csv_string(table, delim, policy)
-            stream = io.StringIO(csv_string)
-            # FIXME write to stream
-
-        pass #FIXME
+#class TestRecordIterator(unittest.TestCase):
+#    def test_iterator(self):
+#        for _test_num in xrange(20):
+#            # FIXME also add utf-8 tests
+#            table = generate_random_pseudo_binary_table(10, 10)
+#            delims = ['\t', ',', ';', '|']
+#            delim = random.choice(delims)
+#            table_has_delim = find_in_table(table, delim)
+#            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
+#            csv_string = table_to_csv_string_random(table, delim, policy)
+#            stream = io.StringIO(csv_string)
+#            # FIXME write to stream
+#
+#        pass #FIXME
 
 
 

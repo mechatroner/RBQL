@@ -229,9 +229,10 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 
 
 class CSVWriter:
-    def __init__(self, stream, encoding, delim, policy):
+    def __init__(self, stream, encoding, delim, policy, line_separator='\n'):
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = encode_output_stream(stream, encoding)
+        self.line_separator = line_separator
         self.delim = delim
         if policy == 'simple':
             self.join_func = self.simple_join
@@ -279,6 +280,7 @@ class CSVWriter:
         self.replace_none_values(fields)
         fields = [str6(f) for f in fields]
         self.stream.write(self.join_func(fields, self.delim))
+        self.stream.write(self.line_separator)
 
 
     def finish(self):
@@ -352,7 +354,7 @@ class CSVRecordIterator:
         self.buffer += ''.join(chunks)
 
 
-    def get_row(self):
+    def _get_row(self):
         # FIXME make sure this function does not raise UnicodeDecodeError. write UT
         row = self._get_row_from_buffer()
         if row is not None:
@@ -371,7 +373,7 @@ class CSVRecordIterator:
 
     def get_record(self):
         try:
-            line = self.get_row()
+            line = self._get_row()
             if line is None:
                 return None
             if self.NR == 0:
@@ -390,6 +392,26 @@ class CSVRecordIterator:
         except UnicodeDecodeError:
             # FIXME make sure this function raise on binary input. write UT
             raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
+
+
+    def _get_all_rows(self):
+        result = []
+        while True:
+            row = self._get_row()
+            if row is None:
+                break
+            result.append(row)
+        return result
+
+
+    def _get_all_records(self):
+        result = []
+        while True:
+            record = self.get_record()
+            if record is None:
+                break
+            result.append(record)
+        return result
 
 
     def get_warnings(self):
