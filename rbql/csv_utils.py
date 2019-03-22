@@ -10,6 +10,9 @@ import codecs
 PY3 = sys.version_info[0] == 3
 
 
+# FIXME write unit tests for writer
+
+
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
 field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
@@ -33,51 +36,35 @@ def normalize_delim(delim):
     return delim
 
 
-def get_encoded_stdin(encoding_name):
+def encode_input_stream(stream, encoding):
+    if encoding is None:
+        return stream
     if PY3:
-        return io.TextIOWrapper(sys.stdin.buffer, encoding=encoding_name)
+        # Reference: https://stackoverflow.com/a/16549381/2898283
+        # typical stream (e.g. sys.stdin) in Python 3 is actually a io.TextIOWrapper but with some unknown encoding
+        return io.TextIOWrapper(stream.buffer, encoding=encoding)
     else:
-        return codecs.getreader(encoding_name)(sys.stdin)
+        # Reference: https://stackoverflow.com/a/27425797/2898283 
+        # Python 2 streams don't have stream.buffer and therefore we can't use io.TextIOWrapper. Instead we use codecs
+        return codecs.getreader(encoding)(stream)
 
 
-def get_encoded_stdout(encoding_name):
+def encode_output_stream(stream, encoding):
+    if encoding is None:
+        return stream
     if PY3:
-        return io.TextIOWrapper(sys.stdout.buffer, encoding=encoding_name)
+        return io.TextIOWrapper(stream.buffer, encoding=encoding)
     else:
-        return codecs.getwriter(encoding_name)(sys.stdout)
-
-
-class InputStreamManager:
-    def __init__(self, input_path, csv_encoding):
-        self.input_path = input_path
-        self.csv_encoding = csv_encoding
-        self.stream = None
-
-    def __enter__(self):
-        if self.input_path:
-            self.stream = codecs.open(self.input_path, encoding=self.csv_encoding)
-        else:
-            self.stream = get_encoded_stdin(self.csv_encoding)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.input_path:
-            try:
-                self.stream.close()
-            except Exception:
-                pass
+        return codecs.getwriter(encoding)(stream)
 
 
 class OutputStreamManager:
-    def __init__(self, output_path, csv_encoding):
+    def __init__(self, output_path):
         self.output_path = output_path
-        self.csv_encoding = csv_encoding
         self.stream = None
 
     def __enter__(self):
-        if self.output_path:
-            self.stream = codecs.open(self.output_path, 'w', encoding=self.csv_encoding)
-        else:
-            self.stream = get_encoded_stdout(self.csv_encoding)
+        self.stream = codecs.open(self.output_path, 'wb') if self.output_path else sys.stdout
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
@@ -87,7 +74,6 @@ class OutputStreamManager:
                 self.stream.flush()
         except Exception:
             pass
-
 
 
 def extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result):
@@ -162,6 +148,7 @@ def extract_line_from_data(data):
 def remove_utf8_bom(line, assumed_source_encoding):
     if assumed_source_encoding == 'latin-1' and len(line) >= 3 and line[:3] == '\xef\xbb\xbf':
         return line[3:]
+    # TODO consider replacing "utf-8" with "utf-8-sig" to automatically remove BOM, see https://stackoverflow.com/a/44573867/2898283
     if assumed_source_encoding == 'utf-8' and len(line) >= 1 and line[0] == u'\ufeff':
         return line[1:]
     return line
@@ -229,9 +216,22 @@ def find_table_path(table_id):
     return None
 
 
+def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
+    assert len(inconsistent_records_info) > 1
+    inconsistent_records_info = inconsistent_records_info.items()
+    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
+    num_fields_1, record_num_1 = inconsistent_records_info[0]
+    num_fields_2, record_num_2 = inconsistent_records_info[1]
+    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
+    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
+    return warn_msg
+
+
+
 class CSVWriter:
-    def __init__(self, dst, delim, policy):
-        self.dst = dst
+    def __init__(self, stream, encoding, delim, policy):
+        assert encoding in ['utf-8', 'latin-1', None]
+        self.stream = encode_output_stream(stream, encoding)
         self.delim = delim
         if policy == 'simple':
             self.join_func = self.simple_join
@@ -278,12 +278,12 @@ class CSVWriter:
     def write(self, fields):
         self.replace_none_values(fields)
         fields = [str6(f) for f in fields]
-        self.dst.write(self.join_func(fields, self.delim))
+        self.stream.write(self.join_func(fields, self.delim))
 
 
     def finish(self):
         try:
-            self.dst.flush()
+            self.stream.flush()
         except Exception:
             pass
 
@@ -298,27 +298,11 @@ class CSVWriter:
 
 
 
-def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
-    assert len(inconsistent_records_info) > 1
-    inconsistent_records_info = inconsistent_records_info.items()
-    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
-    num_fields_1, record_num_1 = inconsistent_records_info[0]
-    num_fields_2, record_num_2 = inconsistent_records_info[1]
-    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
-    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
-    return warn_msg
-
-
-
 class CSVRecordIterator:
-    # Possibly can add presort_for_merge_join(key_index) method.
-    # CSV tables are usually small, no need to use Merge algorithm. Also true when B is small (fits in memory) and A is big
-    # Potentially this can be useful if someone decides to use RBQL for MapReduce tables when rhs table B is very big.
-
-    def __init__(self, src, encoding, delim, policy, table_name='input', chunk_size=1024):
-        assert encoding in ['utf-8', 'latin-1']
-        self.src = src
+    def __init__(self, stream, encoding, delim, policy, table_name='input', chunk_size=1024):
+        assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
+        self.stream = encode_input_stream(stream, encoding)
         self.delim = delim
         self.policy = policy
         self.table_name = table_name
@@ -343,7 +327,7 @@ class CSVRecordIterator:
         if separator is None:
             return None
         if separator == '\r' and str_after == '':
-            one_more = self.src.read(1)
+            one_more = self.stream.read(1)
             if one_more == '\n':
                 separator = '\r\n'
             else:
@@ -358,7 +342,7 @@ class CSVRecordIterator:
             return
         chunks = []
         while True:
-            chunk = self.src.read(self.chunk_size)
+            chunk = self.stream.read(self.chunk_size)
             if not chunk:
                 self.exhausted = True
                 break
@@ -405,7 +389,6 @@ class CSVRecordIterator:
             return record
         except UnicodeDecodeError:
             # FIXME make sure this function raise on binary input. write UT
-            assert self.encoding == 'utf-8', 'Unexpected UnicodeDecodeError with {} encoding'.format(self.encoding)
             raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
 
 

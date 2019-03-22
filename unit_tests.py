@@ -122,6 +122,17 @@ def line_iter_split(src, chunk_size):
     return result
 
 
+def table_split(src_stream, reference_encoding):
+    record_iterator = csv_utils.CSVRecordIterator(src_stream, 'latin-1', delim=None, policy=None, chunk_size=chunk_size)
+    result = []
+    while True:
+        row = line_iterator.get_row()
+        if row is None:
+            break
+        result.append(row)
+    return result
+
+
 ########################################################################################################
 # Below are some ad-hoc functions:
 ########################################################################################################
@@ -300,12 +311,14 @@ class TestLineSplit(unittest.TestCase):
 class TestRecordIterator(unittest.TestCase):
     def test_iterator(self):
         for _test_num in xrange(20):
+            # FIXME also add utf-8 tests
             table = generate_random_pseudo_binary_table(10, 10)
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
             table_has_delim = find_in_table(table, delim)
             policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
             csv_string = table_to_csv_string(table, delim, policy)
+            stream = io.StringIO(csv_string)
             # FIXME write to stream
 
         pass #FIXME

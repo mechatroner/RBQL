@@ -538,7 +538,7 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
 
         join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
         input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
-        output_writer = csv_utils.CSVWriter(output_stream, output_delim, output_policy)
+        output_writer = csv_utils.CSVWriter(output_stream, csv_encoding, output_delim, output_policy)
         error_info, warnings = generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code, convert_only_dst)
         return (error_info, warnings)
     except Exception as e:

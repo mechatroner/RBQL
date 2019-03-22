@@ -75,8 +75,9 @@ def run_with_python(args, is_interactive):
     args.output_delim, args.output_policy = interpret_format(args.out_format, delim, policy)
     out_delim, out_policy = args.output_delim, args.output_policy
 
-    with csv_utils.InputStreamManager(input_path, csv_encoding) as src, csv_utils.OutputStreamManager(output_path, csv_encoding) as dst:
-        error_info, warnings = rbql.csv_run(query, src.stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
+    src_stream = open(input_path, 'rb') if input_path else sys.stdin
+    with csv_utils.OutputStreamManager(output_path) as dst:
+        error_info, warnings = rbql.csv_run(query, src_stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
 
     if error_info is None:
         success = True
