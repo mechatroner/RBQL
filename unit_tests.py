@@ -284,7 +284,7 @@ class TestLineSplit(unittest.TestCase):
 
     def test_split_chunk_sizes(self):
         source_tokens = ['', 'defghIJKLMN', 'a', 'bc'] + ['\n', '\r\n', '\r']
-        for test_case in xrange6(10000):
+        for test_case in xrange6(1000):
             num_tokens = random.randint(0, 12)
             chunk_size = random.randint(1, 5) if random.randint(0, 1) else random.randint(1, 100)
             src = ''
@@ -300,18 +300,17 @@ class TestLineSplit(unittest.TestCase):
 
 class TestRecordIterator(unittest.TestCase):
     def test_iterator(self):
-        for _test_num in xrange6(20):
-            # FIXME also add utf-8 tests
+        for _test_num in xrange6(100):
             table = generate_random_decoded_binary_table(10, 10)
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
             table_has_delim = find_in_table(table, delim)
             policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
             csv_string = table_to_csv_string_random(table, delim, policy)
-            stream = io.StringIO(csv_string)
-            # FIXME write to stream
-
-        pass #FIXME
+            stream, encoding = string_to_randomly_encoded_stream(csv_string)
+            record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=delim, policy=policy)
+            parsed_table = record_iterator._get_all_records()
+            self.assertEqual(table, parsed_table)
 
 
 
