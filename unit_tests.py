@@ -122,31 +122,33 @@ def string_to_randomly_encoded_stream(src_str):
 ########################################################################################################
 
 
-def make_random_pseudo_binary_csv_entry(min_len, max_len, restricted_chars):
+def make_random_decoded_binary_csv_entry(min_len, max_len, restricted_chars):
     strlen = random.randint(min_len, max_len)
-    char_set = list(range(256))
+    char_codes = list(range(256))
     restricted_chars = [ord(c) for c in restricted_chars]
-    char_set = [c for c in char_set if c not in restricted_chars]
-    data = list()
-    for i in rbql.xrange6(strlen):
-        data.append(random.choice(char_set))
-    pseudo_latin = bytes(bytearray(data)).decode('latin-1')
-    return pseudo_latin
+    char_codes = [i for i in char_codes if i not in restricted_chars]
+    data_bytes = list()
+    for i in xrange6(strlen):
+        data_bytes.append(random.choice(char_codes))
+    binary_data = bytes(bytearray(data_bytes))
+    decoded_binary = binary_data.decode('latin-1')
+    assert decoded_binary.encode('latin-1') == binary_data
+    return decoded_binary
 
 
-def generate_random_pseudo_binary_table(max_num_rows, max_num_cols):
+def generate_random_decoded_binary_table(max_num_rows, max_num_cols):
     num_rows = natural_random(1, max_num_rows)
     num_cols = natural_random(1, max_num_cols)
     good_keys = ['Hello', 'Avada Kedavra ', ' ??????', '128', '3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
     result = list()
     good_column = random.randint(0, num_cols - 1)
-    for r in rbql.xrange6(num_rows):
+    for r in xrange6(num_rows):
         result.append(list())
-        for c in rbql.xrange6(num_cols):
+        for c in xrange6(num_cols):
             if c == good_column:
                 result[-1].append(random.choice(good_keys))
             else:
-                result[-1].append(make_random_pseudo_binary_csv_entry(0, 20, restricted_chars=['\r', '\n']))
+                result[-1].append(make_random_decoded_binary_csv_entry(0, 20, restricted_chars=['\r', '\n']))
     return result
 
 
@@ -296,20 +298,20 @@ class TestLineSplit(unittest.TestCase):
             self.assertEqual(canonic_res, test_res)
 
 
-#class TestRecordIterator(unittest.TestCase):
-#    def test_iterator(self):
-#        for _test_num in xrange(20):
-#            # FIXME also add utf-8 tests
-#            table = generate_random_pseudo_binary_table(10, 10)
-#            delims = ['\t', ',', ';', '|']
-#            delim = random.choice(delims)
-#            table_has_delim = find_in_table(table, delim)
-#            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
-#            csv_string = table_to_csv_string_random(table, delim, policy)
-#            stream = io.StringIO(csv_string)
-#            # FIXME write to stream
-#
-#        pass #FIXME
+class TestRecordIterator(unittest.TestCase):
+    def test_iterator(self):
+        for _test_num in xrange6(20):
+            # FIXME also add utf-8 tests
+            table = generate_random_decoded_binary_table(10, 10)
+            delims = ['\t', ',', ';', '|']
+            delim = random.choice(delims)
+            table_has_delim = find_in_table(table, delim)
+            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
+            csv_string = table_to_csv_string_random(table, delim, policy)
+            stream = io.StringIO(csv_string)
+            # FIXME write to stream
+
+        pass #FIXME
 
 
 
