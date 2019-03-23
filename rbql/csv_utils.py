@@ -42,7 +42,11 @@ def encode_input_stream(stream, encoding):
     if PY3:
         # Reference: https://stackoverflow.com/a/16549381/2898283
         # typical stream (e.g. sys.stdin) in Python 3 is actually a io.TextIOWrapper but with some unknown encoding
-        return io.TextIOWrapper(stream.buffer, encoding=encoding)
+        try:
+            return io.TextIOWrapper(stream.buffer, encoding=encoding)
+        except AttributeError:
+            # BytesIO doesn't have "buffer"
+            return io.TextIOWrapper(stream, encoding=encoding)
     else:
         # Reference: https://stackoverflow.com/a/27425797/2898283 
         # Python 2 streams don't have stream.buffer and therefore we can't use io.TextIOWrapper. Instead we use codecs

@@ -110,6 +110,12 @@ def table_to_csv_string_random(table, delim, policy):
     return result
 
 
+def string_to_randomly_encoded_stream(src_str):
+    encoding = random.choice(['utf-8', 'latin-1', None])
+    if encoding is None:
+        return (io.StringIO(src_str), None)
+    return (io.BytesIO(src_str.encode(encoding)), encoding)
+
 
 ########################################################################################################
 # Below are some ad-hoc functions:
@@ -269,11 +275,12 @@ class TestLineSplit(unittest.TestCase):
         test_cases.append(('hello\r\nworld\r', ['hello', 'world']))
         for tc in test_cases:
             src, canonic_res = tc
-            line_iterator = csv_utils.CSVRecordIterator(io.StringIO(src), None, delim=None, policy=None, chunk_size=6)
+            stream, encoding = string_to_randomly_encoded_stream(src)
+            line_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=None, policy=None, chunk_size=6)
             test_res = line_iterator._get_all_rows()
             self.assertEqual(canonic_res, test_res)
 
-    def test_split_random(self):
+    def test_split_chunk_sizes(self):
         source_tokens = ['', 'defghIJKLMN', 'a', 'bc'] + ['\n', '\r\n', '\r']
         for test_case in xrange6(10000):
             num_tokens = random.randint(0, 12)
@@ -282,7 +289,8 @@ class TestLineSplit(unittest.TestCase):
             for tnum in xrange6(num_tokens):
                 token = random.choice(source_tokens)
                 src += token
-            line_iterator = csv_utils.CSVRecordIterator(io.StringIO(src), None, delim=None, policy=None, chunk_size=chunk_size)
+            stream, encoding = string_to_randomly_encoded_stream(src)
+            line_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=None, policy=None, chunk_size=chunk_size)
             test_res = line_iterator._get_all_rows()
             canonic_res = src.splitlines()
             self.assertEqual(canonic_res, test_res)
