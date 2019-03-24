@@ -359,43 +359,41 @@ class CSVRecordIterator:
 
 
     def _get_row(self):
-        # FIXME make sure this function does not raise UnicodeDecodeError. write UT
-        row = self._get_row_from_buffer()
-        if row is not None:
+        try:
+            row = self._get_row_from_buffer()
+            if row is not None:
+                return row
+            self._read_until_found()
+            row = self._get_row_from_buffer()
+            if row is None:
+                assert self.exhausted
+                if self.buffer:
+                    tmp = self.buffer
+                    self.buffer = ''
+                    return tmp
+                return None
             return row
-        self._read_until_found()
-        row = self._get_row_from_buffer()
-        if row is None:
-            assert self.exhausted
-            if self.buffer:
-                tmp = self.buffer
-                self.buffer = ''
-                return tmp
-            return None
-        return row
+        except UnicodeDecodeError:
+            raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
 
 
     def get_record(self):
-        try:
-            line = self._get_row()
-            if line is None:
-                return None
-            if self.NR == 0:
-                clean_line = remove_utf8_bom(line, self.encoding)
-                if clean_line != line:
-                    line = clean_line
-                    self.utf8_bom_removed = True
-            self.NR += 1
-            record, warning = smart_split(line, self.delim, self.policy, preserve_quotes=False)
-            if warning and self.first_defective_line is None:
-                self.first_defective_line = self.NR
-            num_fields = len(record)
-            if num_fields not in self.fields_info:
-                self.fields_info[num_fields] = self.NR
-            return record
-        except UnicodeDecodeError:
-            # FIXME make sure this function raise on binary input. write UT
-            raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
+        line = self._get_row()
+        if line is None:
+            return None
+        if self.NR == 0:
+            clean_line = remove_utf8_bom(line, self.encoding)
+            if clean_line != line:
+                line = clean_line
+                self.utf8_bom_removed = True
+        self.NR += 1
+        record, warning = smart_split(line, self.delim, self.policy, preserve_quotes=False)
+        if warning and self.first_defective_line is None:
+            self.first_defective_line = self.NR
+        num_fields = len(record)
+        if num_fields not in self.fields_info:
+            self.fields_info[num_fields] = self.NR
+        return record
 
 
     def _get_all_rows(self):
