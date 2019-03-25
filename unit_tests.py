@@ -121,6 +121,18 @@ def string_to_randomly_encoded_stream(src_str):
     return (io.BytesIO(src_str.encode(encoding)), encoding)
 
 
+def write_and_parse_back(table, encoding, delim, policy):
+    writer_stream = io.BytesIO() if encoding is not None else io.StringIO()
+    line_separator = random.choice(line_separators)
+    writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, line_separator)
+    writer._write_all(table)
+    writer_stream.seek(0)
+    record_iterator = csv_utils.CSVRecordIterator(writer_stream, encoding, delim=delim, policy=policy)
+    parsed_table = record_iterator._get_all_records()
+    return parsed_table
+
+
+
 ########################################################################################################
 # Below are some ad-hoc functions:
 ########################################################################################################
@@ -310,18 +322,12 @@ class TestRecordIterator(unittest.TestCase):
             policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
             csv_data = table_to_csv_string_random(table, delim, policy)
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
+
             record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=delim, policy=policy)
             parsed_table = record_iterator._get_all_records()
             self.assertEqual(table, parsed_table)
 
-            # Part 2. Test writer
-            writer_stream = io.BytesIO() if encoding is not None else io.StringIO()
-            line_separator = random.choice(line_separators)
-            writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, line_separator)
-            writer._write_all(table)
-            writer_stream.seek(0)
-            record_iterator = csv_utils.CSVRecordIterator(writer_stream, encoding, delim=delim, policy=policy)
-            parsed_table = record_iterator._get_all_records()
+            parsed_table = write_and_parse_back(table, encoding, delim, policy)
             self.assertEqual(table, parsed_table)
 
 
@@ -335,8 +341,14 @@ class TestRecordIterator(unittest.TestCase):
         expected_table = [['hello', 'world'], ['hello', 'world'], ['hello', 'world'], ['hello'], ['hello', 'world']]
         csv_data = '\n'.join(data_lines)
         stream = io.StringIO(csv_data)
-        record_iterator = csv_utils.CSVRecordIterator(stream, None, delim=' ', policy='whitespace')
+        delim = ' '
+        policy = 'whitespace'
+        encoding = None
+        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
         parsed_table = record_iterator._get_all_records()
+        self.assertEqual(expected_table, parsed_table)
+
+        parsed_table = write_and_parse_back(expected_table, encoding, delim, policy)
         self.assertEqual(expected_table, parsed_table)
 
 
@@ -346,8 +358,14 @@ class TestRecordIterator(unittest.TestCase):
             table.append([make_random_decoded_binary_csv_entry(0, 20, restricted_chars=['\r', '\n'])])
         csv_data = table_to_csv_string_random(table, None, 'monocolumn')
         stream = io.StringIO(csv_data)
-        record_iterator = csv_utils.CSVRecordIterator(stream, None, delim=None, policy='monocolumn')
+        delim = None
+        policy = 'monocolumn'
+        encoding = None
+        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
         parsed_table = record_iterator._get_all_records()
+        self.assertEqual(table, parsed_table)
+
+        parsed_table = write_and_parse_back(table, encoding, delim, policy)
         self.assertEqual(table, parsed_table)
 
 
@@ -355,10 +373,14 @@ class TestRecordIterator(unittest.TestCase):
         table = [['hello', u'\x80\x81\xffThis unicode string encoded as latin-1 is not a valid utf-8\xaa\xbb\xcc'], ['hello', 'world']]
         delim = ','
         policy = 'simple'
+        encoding = 'latin-1'
         csv_data = table_to_csv_string_random(table, delim, policy)
         stream = io.BytesIO(csv_data.encode('latin-1'))
-        record_iterator = csv_utils.CSVRecordIterator(stream, 'latin-1', delim=delim, policy=policy)
+        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
         parsed_table = record_iterator._get_all_records()
+        self.assertEqual(table, parsed_table)
+
+        parsed_table = write_and_parse_back(table, encoding, delim, policy)
         self.assertEqual(table, parsed_table)
 
         stream = io.BytesIO(csv_data.encode('latin-1'))
