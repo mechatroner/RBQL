@@ -57,7 +57,11 @@ def encode_output_stream(stream, encoding):
     if encoding is None:
         return stream
     if PY3:
-        return io.TextIOWrapper(stream.buffer, encoding=encoding)
+        try:
+            return io.TextIOWrapper(stream.buffer, encoding=encoding)
+        except AttributeError:
+            # BytesIO doesn't have "buffer"
+            return io.TextIOWrapper(stream, encoding=encoding)
     else:
         return codecs.getwriter(encoding)(stream)
 
@@ -283,7 +287,7 @@ class CSVWriter:
     def write(self, fields):
         self.replace_none_values(fields)
         fields = [str6(f) for f in fields]
-        self.stream.write(self.join_func(fields, self.delim))
+        self.stream.write(self.join_func(fields))
         self.stream.write(self.line_separator)
 
 

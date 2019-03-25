@@ -29,6 +29,10 @@ PY3 = sys.version_info[0] == 3
 # Below are some generic functions
 ########################################################################################################
 
+
+line_separators = ['\n', '\r\n', '\r']
+
+
 def xrange6(x):
     if PY3:
         return range(x)
@@ -103,7 +107,6 @@ def find_in_table(table, token):
 
 
 def table_to_csv_string_random(table, delim, policy):
-    line_separators = ['\n', '\r\n', '\r']
     line_separator = random.choice(line_separators)
     result = line_separator.join([random_smart_join(row, delim, policy) for row in table])
     if random.choice([True, False]):
@@ -308,6 +311,16 @@ class TestRecordIterator(unittest.TestCase):
             csv_data = table_to_csv_string_random(table, delim, policy)
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
             record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=delim, policy=policy)
+            parsed_table = record_iterator._get_all_records()
+            self.assertEqual(table, parsed_table)
+
+            # Part 2. Test writer
+            writer_stream = io.BytesIO() if encoding is not None else io.StringIO()
+            line_separator = random.choice(line_separators)
+            writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, line_separator)
+            writer._write_all(table)
+            writer_stream.seek(0)
+            record_iterator = csv_utils.CSVRecordIterator(writer_stream, encoding, delim=delim, policy=policy)
             parsed_table = record_iterator._get_all_records()
             self.assertEqual(table, parsed_table)
 
