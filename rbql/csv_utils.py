@@ -287,6 +287,12 @@ class CSVWriter:
         self.stream.write(self.line_separator)
 
 
+    def _write_all(self, table):
+        for record in table:
+            self.write(record)
+        self.finish()
+
+
     def finish(self):
         try:
             self.stream.flush()

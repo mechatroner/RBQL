@@ -317,8 +317,9 @@ class TestRecordIterator(unittest.TestCase):
         data_lines.append('hello world')
         data_lines.append('   hello   world  ')
         data_lines.append('hello   world  ')
+        data_lines.append('  hello   ')
         data_lines.append('  hello   world')
-        expected_table = [['hello', 'world'], ['hello', 'world'], ['hello', 'world'], ['hello', 'world']]
+        expected_table = [['hello', 'world'], ['hello', 'world'], ['hello', 'world'], ['hello'], ['hello', 'world']]
         csv_data = '\n'.join(data_lines)
         stream = io.StringIO(csv_data)
         record_iterator = csv_utils.CSVRecordIterator(stream, None, delim=' ', policy='whitespace')
