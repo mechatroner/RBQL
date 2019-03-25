@@ -312,6 +312,31 @@ class TestRecordIterator(unittest.TestCase):
             self.assertEqual(table, parsed_table)
 
 
+    def test_whitespace_separated_parsing(self):
+        data_lines = []
+        data_lines.append('hello world')
+        data_lines.append('   hello   world  ')
+        data_lines.append('hello   world  ')
+        data_lines.append('  hello   world')
+        expected_table = [['hello', 'world'], ['hello', 'world'], ['hello', 'world'], ['hello', 'world']]
+        csv_data = '\n'.join(data_lines)
+        stream = io.StringIO(csv_data)
+        record_iterator = csv_utils.CSVRecordIterator(stream, None, delim=' ', policy='whitespace')
+        parsed_table = record_iterator._get_all_records()
+        self.assertEqual(expected_table, parsed_table)
+
+
+    def test_monocolumn_separated_parsing(self):
+        table = list()
+        for irow in xrange6(20):
+            table.append([make_random_decoded_binary_csv_entry(0, 20, restricted_chars=['\r', '\n'])])
+        csv_data = table_to_csv_string_random(table, None, 'monocolumn')
+        stream = io.StringIO(csv_data)
+        record_iterator = csv_utils.CSVRecordIterator(stream, None, delim=None, policy='monocolumn')
+        parsed_table = record_iterator._get_all_records()
+        self.assertEqual(table, parsed_table)
+
+
     def test_utf_decoding_errors(self):
         table = [['hello', u'\x80\x81\xffThis unicode string encoded as latin-1 is not a valid utf-8\xaa\xbb\xcc'], ['hello', 'world']]
         delim = ','
