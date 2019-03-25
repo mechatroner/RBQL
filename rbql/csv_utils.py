@@ -10,9 +10,6 @@ import codecs
 PY3 = sys.version_info[0] == 3
 
 
-# FIXME write unit tests for writer
-
-
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
 field_regular_expression = '"((?:[^"]*"")*[^"]*)"'

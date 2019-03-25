@@ -25,6 +25,8 @@ PY3 = sys.version_info[0] == 3
 
 # TODO separate csv_utils testing and rbql testing
 
+# FIXME replace "canonic" with "expected"
+
 ########################################################################################################
 # Below are some generic functions
 ########################################################################################################
@@ -191,10 +193,10 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('hello,world,"', (['hello', 'world', '"'], True)))
         for tc in test_cases:
             src = tc[0]
-            canonic_dst = tc[1]
-            warning_expected = canonic_dst[1]
+            expected_dst = tc[1]
+            warning_expected = expected_dst[1]
             test_dst = csv_utils.split_quoted_str(tc[0], ',')
-            self.assertEqual(canonic_dst, test_dst, msg='\nsrc: {}\ntest_dst: {}\ncanonic_dst: {}\n'.format(src, test_dst, canonic_dst))
+            self.assertEqual(expected_dst, test_dst, msg='\nsrc: {}\ntest_dst: {}\nexpected_dst: {}\n'.format(src, test_dst, expected_dst))
 
             test_dst_preserved = csv_utils.split_quoted_str(tc[0], ',', True)
             self.assertEqual(test_dst[1], test_dst_preserved[1])
@@ -207,9 +209,9 @@ class TestSplitMethods(unittest.TestCase):
         test_cases = list()
         test_cases.append(('  "hello, ""world"" aa""  " ', 'hello, "world" aa"  '))
         for tc in test_cases:
-            src, canonic = tc
+            src, expected = tc
             test_dst = csv_utils.unquote_field(src)
-            self.assertEqual(canonic, test_dst)
+            self.assertEqual(expected, test_dst)
 
 
     def test_split_whitespaces(self):
@@ -230,9 +232,9 @@ class TestSplitMethods(unittest.TestCase):
 
         for tc in test_cases:
             src = tc[0]
-            canonic_dst, preserve_whitespaces = tc[1]
+            expected_dst, preserve_whitespaces = tc[1]
             test_dst = csv_utils.split_whitespace_separated_str(src, preserve_whitespaces)
-            self.assertEqual(test_dst, canonic_dst)
+            self.assertEqual(test_dst, expected_dst)
 
 
     def make_random_csv_fields_naive(self, num_fields, max_field_len):
@@ -267,17 +269,17 @@ class TestSplitMethods(unittest.TestCase):
     def test_random(self):
         random_records = self.make_random_csv_records_naive()
         for ir, rec in enumerate(random_records):
-            canonic_fields = rec[0]
+            expected_fields = rec[0]
             escaped_entry = rec[1]
-            canonic_warning = rec[2]
+            expected_warning = rec[2]
             test_fields, test_warning = csv_utils.split_quoted_str(escaped_entry, ',')
             test_fields_preserved, test_warning_preserved = csv_utils.split_quoted_str(escaped_entry, ',', True)
             self.assertEqual(','.join(test_fields_preserved), escaped_entry)
-            self.assertEqual(canonic_warning, test_warning)
+            self.assertEqual(expected_warning, test_warning)
             self.assertEqual(test_warning_preserved, test_warning)
             self.assertEqual(test_fields, csv_utils.unquote_fields(test_fields_preserved))
-            if not canonic_warning:
-                self.assertEqual(canonic_fields, test_fields)
+            if not expected_warning:
+                self.assertEqual(expected_fields, test_fields)
 
 
 
@@ -290,11 +292,11 @@ class TestLineSplit(unittest.TestCase):
         test_cases.append(('hello\rworld\n', ['hello', 'world']))
         test_cases.append(('hello\r\nworld\r', ['hello', 'world']))
         for tc in test_cases:
-            src, canonic_res = tc
+            src, expected_res = tc
             stream, encoding = string_to_randomly_encoded_stream(src)
             line_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=None, policy=None, chunk_size=6)
             test_res = line_iterator._get_all_rows()
-            self.assertEqual(canonic_res, test_res)
+            self.assertEqual(expected_res, test_res)
 
     def test_split_chunk_sizes(self):
         source_tokens = ['', 'defghIJKLMN', 'a', 'bc'] + ['\n', '\r\n', '\r']
@@ -308,8 +310,8 @@ class TestLineSplit(unittest.TestCase):
             stream, encoding = string_to_randomly_encoded_stream(src)
             line_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=None, policy=None, chunk_size=chunk_size)
             test_res = line_iterator._get_all_rows()
-            canonic_res = src.splitlines()
-            self.assertEqual(canonic_res, test_res)
+            expected_res = src.splitlines()
+            self.assertEqual(expected_res, test_res)
 
 
 class TestRecordIterator(unittest.TestCase):
@@ -410,16 +412,16 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
         for tc in test_cases:
             format_expression, string_literals = rbql.separate_string_literals_py(tc[0])
-            canonic_literals = tc[1]
-            self.assertEqual(canonic_literals, string_literals)
+            expected_literals = tc[1]
+            self.assertEqual(expected_literals, string_literals)
             self.assertEqual(tc[0], rbql.combine_string_literals(format_expression, string_literals))
 
 
     def test_separate_actions(self):
         query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and int(b3) == 100 order by int(a7) desc '
-        canonic_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': rbql.INNER_JOIN}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and int(b3) == 100'}, 'ORDER BY': {'text': 'int(a7)', 'reverse': True}}
+        expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': rbql.INNER_JOIN}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and int(b3) == 100'}, 'ORDER BY': {'text': 'int(a7)', 'reverse': True}}
         test_res = rbql.separate_actions(query)
-        assert test_res == canonic_res
+        assert test_res == expected_res
 
 
     def test_except_parsing(self):
@@ -456,42 +458,42 @@ class TestRBQLQueryParsing(unittest.TestCase):
     def test_update_translation(self):
         rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  '
         test_dst = rbql.translate_update_expression(rbql_src, '    ')
-        canonic_dst = list()
-        canonic_dst.append('safe_set(up_fields, 1,  a2  + b3)')
-        canonic_dst.append('    safe_set(up_fields, 2,a4  if b3 == a2 else a8)')
-        canonic_dst.append('    safe_set(up_fields, 8,   100)')
-        canonic_dst.append('    safe_set(up_fields, 30,200/3 + 1)')
-        canonic_dst = '\n'.join(canonic_dst)
-        self.assertEqual(canonic_dst, test_dst)
+        expected_dst = list()
+        expected_dst.append('safe_set(up_fields, 1,  a2  + b3)')
+        expected_dst.append('    safe_set(up_fields, 2,a4  if b3 == a2 else a8)')
+        expected_dst.append('    safe_set(up_fields, 8,   100)')
+        expected_dst.append('    safe_set(up_fields, 30,200/3 + 1)')
+        expected_dst = '\n'.join(expected_dst)
+        self.assertEqual(expected_dst, test_dst)
 
 
     def test_select_translation(self):
         rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * '
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
-        self.assertEqual(canonic_dst, test_dst)
+        expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
+        self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * '
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
-        self.assertEqual(canonic_dst, test_dst)
+        expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
+        self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' * '
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + []'
-        self.assertEqual(canonic_dst, test_dst)
+        expected_dst = '[] + star_fields + []'
+        self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,* '
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + [] + star_fields + []'
-        self.assertEqual(canonic_dst, test_dst)
+        expected_dst = '[] + star_fields + [] + star_fields + []'
+        self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,*, * '
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + [] + star_fields + [] + star_fields + []'
-        self.assertEqual(canonic_dst, test_dst)
+        expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + []'
+        self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,*, * , *'
         test_dst = rbql.translate_select_expression_py(rbql_src)
-        canonic_dst = '[] + star_fields + [] + star_fields + [] + star_fields + [] + star_fields + []'
-        self.assertEqual(canonic_dst, test_dst)
+        expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + [] + star_fields + []'
+        self.assertEqual(expected_dst, test_dst)
