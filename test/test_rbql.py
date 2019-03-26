@@ -4,11 +4,15 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import unittest
+import os
+import json
 
 import rbql
 
 #This module must be both python2 and python3 compatible
 
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 class TestRBQLQueryParsing(unittest.TestCase):
@@ -115,3 +119,18 @@ class TestRBQLQueryParsing(unittest.TestCase):
         test_dst = rbql.translate_select_expression_py(rbql_src)
         expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
+
+
+
+class TestJsonTables(unittest.TestCase):
+    def process_test_case(self, test_case_path):
+        test_case = json.loads(open(test_case_path).read())
+        print(test_case['query_python'])
+
+
+    def test_json_tables(self):
+        json_test_cases_dir = os.path.join(script_dir, 'json_test_cases')
+        json_file_names = [f for f in os.listdir(json_test_cases_dir) if f.endswith('.json')]
+        for name in json_file_names:
+            test_case_path = os.path.join(json_test_cases_dir, name)
+            self.process_test_case(test_case_path)
