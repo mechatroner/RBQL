@@ -27,6 +27,8 @@ PY3 = sys.version_info[0] == 3
 
 # FIXME replace "canonic" with "expected"
 
+# FIXME split on 2 files, rename, and put them into "test" module/directory, see https://stackoverflow.com/questions/1896918/running-unittest-with-typical-test-directory-structure
+
 ########################################################################################################
 # Below are some generic functions
 ########################################################################################################
