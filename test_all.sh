@@ -10,6 +10,10 @@ die_if_error() {
 
 python2 -m unittest test.test_csv_utils
 die_if_error $?
-
 python3 -m unittest test.test_csv_utils
+die_if_error $?
+
+python2 -m unittest test.test_rbql
+die_if_error $?
+python3 -m unittest test.test_rbql
 die_if_error $?
