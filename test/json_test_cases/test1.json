@@ -5,7 +5,7 @@
         ["50", "haha", "dfdf"],
         ["20", "haha", ""]
     ],
-    "output_table": [
+    "expected_output_table": [
         ["3", "50", "4"],
         ["4", "20", "0"]
     ],

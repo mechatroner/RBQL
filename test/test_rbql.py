@@ -125,7 +125,25 @@ class TestRBQLQueryParsing(unittest.TestCase):
 class TestJsonTables(unittest.TestCase):
     def process_test_case(self, test_case_path):
         test_case = json.loads(open(test_case_path).read())
-        print(test_case['query_python'])
+        query = test_case['query_python']
+        input_table = test_case['input_table']
+        expected_output_table = test_case['expected_output_table']
+        expected_error = test_case.get('expected_error', None)
+        expected_warnings = test_case.get('expected_warnings', [])
+        # FIXME compare warnings text
+        input_iterator = rbql.TableIterator(input_table)
+        output_writer = rbql.TableWriter()
+        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer)
+        self.assertEqual(len(expected_warnings), len(warnings))
+        self.assertTrue((expected_error is not None) == (error_info is not None))
+        if expected_error is not None:
+            self.assertTrue(error_info['message'].find(expected_error) != -1)
+        else:
+            output_table = output_writer.table
+            for row in output_table:
+                for c in range(len(row)):
+                    row[c] = str(row[c])
+            self.assertEqual(output_table, expected_output_table)
 
 
     def test_json_tables(self):

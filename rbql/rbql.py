@@ -74,7 +74,7 @@ def exception_to_error_info(e):
 
     error_type = 'unexpected'
     error_msg = str(e)
-    for k, v in exceptions_type_map.values():
+    for k, v in exceptions_type_map.items():
         if type(e).__name__.find(k) != -1:
             error_type = v
     return {'type': error_type, 'message': error_msg}
@@ -496,7 +496,7 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
         if convert_only_dst is not None:
             write_python_module(python_code, convert_only_dst)
             return (None, [])
-        with rbql.RbqlPyEnv() as worker_env:
+        with RbqlPyEnv() as worker_env:
             write_python_module(python_code, worker_env.module_path)
             # TODO find a way to report module_path if exception is thrown.
             # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir.
@@ -506,12 +506,13 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
             success = rbconvert.rb_transform(input_iterator, join_map, output_writer)
             assert success, 'Unexpected error during RBQL query execution'
             input_warnings = input_iterator.get_warnings()
-            join_warnings = join_map.get_warnings()
+            join_warnings = join_map.get_warnings() if join_map is not None else []
             output_warnings = output_writer.get_warnings()
             warnings = input_warnings + join_warnings + output_warnings
             worker_env.remove_env_dir()
             return (None, warnings)
     except Exception as e:
+        raise #FIXME
         error_info = exception_to_error_info(e)
         return (error_info, [])
     finally:
@@ -545,3 +546,52 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
         error_info = exception_to_error_info(e)
         return (error_info, [])
 
+
+def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
+    assert len(inconsistent_records_info) > 1
+    inconsistent_records_info = inconsistent_records_info.items()
+    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
+    num_fields_1, record_num_1 = inconsistent_records_info[0]
+    num_fields_2, record_num_2 = inconsistent_records_info[1]
+    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
+    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
+    return warn_msg
+
+
+class TableIterator:
+    def __init__(self, table):
+        self.table = table
+        self.NR = 0
+        self.fields_info = dict()
+
+    def finish(self):
+        pass
+
+    def get_record(self):
+        if self.NR >= len(self.table):
+            return None
+        record = self.table[self.NR]
+        self.NR += 1
+        num_fields = len(record)
+        if num_fields not in self.fields_info:
+            self.fields_info[num_fields] = self.NR
+        return record
+
+    def get_warnings(self):
+        if len(self.fields_info) > 1:
+            return [make_inconsistent_num_fields_warning('input', self.fields_info)]
+        return []
+
+
+class TableWriter:
+    def __init__(self):
+        self.table = []
+
+    def write(self, fields):
+        self.table.append(fields)
+
+    def finish(self):
+        pass
+
+    def get_warnings(self):
+        return []

@@ -543,10 +543,10 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
     assert not module_was_used_failsafe
     module_was_used_failsafe = True
 
-    global input_fields_info
     global writer
 
-    join_map_impl.build()
+    if join_map_impl is not None:
+        join_map_impl.build()
     join_map = sql_join_type(join_map_impl)
 
     writer = TopWriter(output_writer)
@@ -566,8 +566,6 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
             break
         NR += 1
         NF = len(afields)
-        if NF not in input_fields_info:
-            input_fields_info[NF] = NR
         try:
             rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var)
             if not process_function(NR, NF, afields, rhs_records):
