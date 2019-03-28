@@ -18,10 +18,11 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 def normalize_warnings(warnings):
     result = []
     for warning in warnings:
-        if warning.find('Number of fields in "input" table is not consistent')
-            return 'inconsistent input records'
+        if warning.find('Number of fields in "input" table is not consistent') != -1:
+            result.append('inconsistent input records')
         else:
             assert False, 'unknown warning'
+    return result
 
 
 
@@ -140,11 +141,12 @@ class TestJsonTables(unittest.TestCase):
         expected_output_table = test_case['expected_output_table']
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
-        # FIXME compare warnings text
         input_iterator = rbql.TableIterator(input_table)
         output_writer = rbql.TableWriter()
         error_info, warnings = rbql.generic_run(query, input_iterator, output_writer)
-        self.assertEqual(len(expected_warnings), len(warnings))
+        warnings = sorted(normalize_warnings(warnings))
+        expected_warnings = sorted(expected_warnings)
+        self.assertEqual(expected_warnings, warnings)
         self.assertTrue((expected_error is not None) == (error_info is not None))
         if expected_error is not None:
             self.assertTrue(error_info['message'].find(expected_error) != -1)

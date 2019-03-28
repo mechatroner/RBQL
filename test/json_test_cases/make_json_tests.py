@@ -326,7 +326,7 @@ def select_random_formats(input_table, allowed_delims='aA8 !#$%&\'()*+,-./:;<=>?
 def normalize_warnings(warnings):
     result = []
     for warning in warnings:
-        if warning.find('Number of fields in "input" table is not consistent') or warning == 'input_fields_info':
+        if warning.find('Number of fields in "input" table is not consistent') != -1 or warning == 'input_fields_info':
             result.append('inconsistent input records')
         else:
             assert False, 'unknown warning'
@@ -361,7 +361,7 @@ def save_test_as_json(test_name, input_table, join_table, canonic_table, warning
             write_json_table(f, indent, 'expected_output_table', canonic_table)
         if warnings is not None and len(warnings):
             normalized_warnings = normalize_warnings(warnings)
-            write_json_line(f, indent, '"warnings": [')
+            write_json_line(f, indent, '"expected_warnings": [')
             for i in range(len(normalized_warnings)):
                 out_line = json.dumps(normalized_warnings[i])
                 if i + 1 < len(normalized_warnings):
