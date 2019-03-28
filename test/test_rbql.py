@@ -15,6 +15,16 @@ import rbql
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
+def normalize_warnings(warnings):
+    result = []
+    for warning in warnings:
+        if warning.find('Number of fields in "input" table is not consistent')
+            return 'inconsistent input records'
+        else:
+            assert False, 'unknown warning'
+
+
+
 class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_comment_strip(self):

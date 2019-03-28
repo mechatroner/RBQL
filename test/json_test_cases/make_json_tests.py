@@ -323,6 +323,16 @@ def select_random_formats(input_table, allowed_delims='aA8 !#$%&\'()*+,-./:;<=>?
 #        f.write(json.dumps(result, indent=4))
 
 
+def normalize_warnings(warnings):
+    result = []
+    for warning in warnings:
+        if warning.find('Number of fields in "input" table is not consistent') or warning == 'input_fields_info':
+            result.append('inconsistent input records')
+        else:
+            assert False, 'unknown warning'
+    return result
+
+
 def write_json_line(dst, indent, line):
     dst.write('    ' * indent + line + '\n')
 
@@ -339,7 +349,7 @@ def write_json_table(dst, indent, table_name, table):
     write_json_line(dst, indent, '],')
 
 
-def save_test_as_json(test_name, input_table, join_table, canonic_table, python_query, js_query):
+def save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, python_query, js_query):
     with open('{}.json'.format(test_name), 'w') as f:
         indent = 0
         write_json_line(f, indent, '{')
@@ -349,6 +359,16 @@ def save_test_as_json(test_name, input_table, join_table, canonic_table, python_
             write_json_table(f, indent, 'join_table', join_table)
         if canonic_table:
             write_json_table(f, indent, 'expected_output_table', canonic_table)
+        if warnings is not None and len(warnings):
+            normalized_warnings = normalize_warnings(warnings)
+            write_json_line(f, indent, '"warnings": [')
+            for i in range(len(normalized_warnings)):
+                out_line = json.dumps(normalized_warnings[i])
+                if i + 1 < len(normalized_warnings):
+                    out_line += ','
+                write_json_line(f, indent + 1, out_line)
+            write_json_line(f, indent, '],')
+            
         write_json_line(f, indent, '"query_python": ' + json.dumps(python_query) + ',')
         write_json_line(f, indent, '"query_js": ' + json.dumps(js_query))
         indent -= 1
@@ -429,7 +449,7 @@ class TestEverything(unittest.TestCase):
 
         query = '\tselect    distinct\ta2 where int(a1) > 10 '
         query_js = '\tselect    distinct\ta2 where a1 > 10  '
-        save_test_as_json(test_name, input_table, None, canonic_table, query, query_js)
+        save_test_as_json(test_name, input_table, None, canonic_table, ['input_fields_info'], query, query_js)
 
 
 
