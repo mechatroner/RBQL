@@ -326,8 +326,10 @@ def select_random_formats(input_table, allowed_delims='aA8 !#$%&\'()*+,-./:;<=>?
 def normalize_warnings(warnings):
     result = []
     for warning in warnings:
-        if warning.find('Number of fields in "input" table is not consistent') != -1 or warning == 'input_fields_info':
+        if warning == 'input_fields_info':
             result.append('inconsistent input records')
+        elif warning == 'null_value_in_output':
+            result.append('NULL in output')
         else:
             assert False, 'unknown warning'
     return result
@@ -419,13 +421,16 @@ class TestEverything(unittest.TestCase):
         input_table.append(['20', 'haha', ''])
 
         canonic_table = list()
-        canonic_table.append(['3', '50', '4'])
-        canonic_table.append(['4', '20', '0'])
+        canonic_table.append([3, '50', 4])
+        canonic_table.append([4, '20', 0])
 
 
         query = 'select NR, a1, len(a3) where int(a1) > 5'
         query_js = 'select NR, a1, a3.length where a1 > 5'
 
+        join_table = None
+
+        save_test_as_json(test_name, input_table, join_table, canonic_table, [], query, query_js)
 
 
     def test_run2(self):
@@ -446,10 +451,13 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['haha'])
         canonic_table.append(['hoho'])
 
+        join_table = None
 
         query = '\tselect    distinct\ta2 where int(a1) > 10 '
         query_js = '\tselect    distinct\ta2 where a1 > 10  '
-        save_test_as_json(test_name, input_table, None, canonic_table, ['input_fields_info'], query, query_js)
+
+
+        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], query, query_js)
 
 
 
@@ -462,33 +470,23 @@ class TestEverything(unittest.TestCase):
         input_table.append(['4', 'haha', 'dfdf', 'asdfa', '111'])
 
         canonic_table = list()
-        canonic_table.append(['0', r"\'\"a1   bc"])
-        canonic_table.append(['3', r"\'\"a1   bc"])
-        canonic_table.append(['9', r"\'\"a1   bc"])
-        canonic_table.append(['2', r"\'\"a1   bc"])
+        canonic_table.append([0, r"\'\"a1   bc"])
+        canonic_table.append([3, r"\'\"a1   bc"])
+        canonic_table.append([9, r"\'\"a1   bc"])
+        canonic_table.append([2, r"\'\"a1   bc"])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        join_table = None
 
         query = r'select int(math.sqrt(int(a1))), r"\'\"a1   bc"'
-        with tempfile.NamedTemporaryFile() as init_tmp_file:
-            with open(init_tmp_file.name, 'w') as tf:
-                tf.write('import math\nimport os\n')
-            test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, custom_init_path=init_tmp_file.name)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['input_fields_info'], warnings)
+        query_js = r'select Math.floor(Math.sqrt(a1)), String.raw`\'\"a1   bc`'
 
-        if TEST_JS:
-            query = r'select Math.floor(Math.sqrt(a1)), String.raw`\'\"a1   bc`'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['input_fields_info'], warnings)
+        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], query, query_js)
 
 
     #TODO add test with js regex with multiple spaces and check that it is preserved during parsing
 
     def test_run5(self):
         test_name = 'test5'
-        query = 'select a2'
         input_table = list()
         input_table.append(['0', 'haha', 'hoho'])
         input_table.append(['9'])
@@ -497,21 +495,16 @@ class TestEverything(unittest.TestCase):
 
         canonic_table = list()
         canonic_table.append(['haha'])
-        canonic_table.append([''])
+        canonic_table.append([None])
         canonic_table.append(['haha'])
         canonic_table.append(['haha'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        join_table = None
 
+        query = 'select a2'
+        query_js = query
+        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info', 'null_value_in_output'], query, query_js)
 
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['input_fields_info', 'null_value_in_output'], warnings)
-
-        if TEST_JS:
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['input_fields_info', 'null_value_in_output'], warnings)
 
 
     def test_run6(self):

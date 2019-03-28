@@ -1,0 +1,20 @@
+{
+    "input_table": [
+        ["0", "haha", "hoho"],
+        ["9"],
+        ["81", "haha", "dfdf"],
+        ["4", "haha", "dfdf", "asdfa", "111"]
+    ],
+    "expected_output_table": [
+        ["haha"],
+        [null],
+        ["haha"],
+        ["haha"]
+    ],
+    "expected_warnings": [
+        "inconsistent input records",
+        "NULL in output"
+    ],
+    "query_python": "select a2",
+    "query_js": "select a2"
+}

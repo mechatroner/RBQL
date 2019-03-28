@@ -6,8 +6,8 @@
         ["20", "haha", ""]
     ],
     "expected_output_table": [
-        ["3", "50", "4"],
-        ["4", "20", "0"]
+        [3, "50", 4],
+        [4, "20", 0]
     ],
     "query_python": "select NR, a1, len(a3) where int(a1) > 5",
     "query_js": "select NR, a1, a3.length where a1 > 5"

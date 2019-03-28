@@ -15,11 +15,70 @@ import rbql
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
+
+def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
+    assert len(inconsistent_records_info) > 1
+    inconsistent_records_info = inconsistent_records_info.items()
+    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
+    num_fields_1, record_num_1 = inconsistent_records_info[0]
+    num_fields_2, record_num_2 = inconsistent_records_info[1]
+    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
+    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
+    return warn_msg
+
+
+class TableIterator:
+    def __init__(self, table):
+        self.table = table
+        self.NR = 0
+        self.fields_info = dict()
+
+    def finish(self):
+        pass
+
+    def get_record(self):
+        if self.NR >= len(self.table):
+            return None
+        record = self.table[self.NR]
+        self.NR += 1
+        num_fields = len(record)
+        if num_fields not in self.fields_info:
+            self.fields_info[num_fields] = self.NR
+        return record
+
+    def get_warnings(self):
+        if len(self.fields_info) > 1:
+            return [make_inconsistent_num_fields_warning('input', self.fields_info)]
+        return []
+
+
+class TableWriter:
+    def __init__(self):
+        self.table = []
+        self.none_in_output = False
+
+    def write(self, fields):
+        for field in fields:
+            if field is None:
+                self.none_in_output = True
+        self.table.append(fields)
+
+    def finish(self):
+        pass
+
+    def get_warnings(self):
+        if self.none_in_output:
+            return ['Output contains None values']
+        return []
+
+
 def normalize_warnings(warnings):
     result = []
     for warning in warnings:
         if warning.find('Number of fields in "input" table is not consistent') != -1:
             result.append('inconsistent input records')
+        elif warning.find('Output contains None values') != -1:
+            result.append('NULL in output')
         else:
             assert False, 'unknown warning'
     return result
@@ -135,14 +194,15 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
 class TestJsonTables(unittest.TestCase):
     def process_test_case(self, test_case_path):
-        test_case = json.loads(open(test_case_path).read())
+        with open(test_case_path) as f:
+            test_case = json.loads(f.read())
         query = test_case['query_python']
         input_table = test_case['input_table']
         expected_output_table = test_case['expected_output_table']
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
-        input_iterator = rbql.TableIterator(input_table)
-        output_writer = rbql.TableWriter()
+        input_iterator = TableIterator(input_table)
+        output_writer = TableWriter()
         error_info, warnings = rbql.generic_run(query, input_iterator, output_writer)
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
@@ -152,10 +212,10 @@ class TestJsonTables(unittest.TestCase):
             self.assertTrue(error_info['message'].find(expected_error) != -1)
         else:
             output_table = output_writer.table
-            for row in output_table:
-                for c in range(len(row)):
-                    row[c] = str(row[c])
-            self.assertEqual(output_table, expected_output_table)
+            #for row in output_table:
+            #    for c in range(len(row)):
+            #        row[c] = str(row[c])
+            self.assertEqual(expected_output_table, output_table)
 
 
     def test_json_tables(self):

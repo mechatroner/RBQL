@@ -1,0 +1,19 @@
+{
+    "input_table": [
+        ["0", "haha", "hoho"],
+        ["9"],
+        ["81", "haha", "dfdf"],
+        ["4", "haha", "dfdf", "asdfa", "111"]
+    ],
+    "expected_output_table": [
+        [0, "\\'\\\"a1   bc"],
+        [3, "\\'\\\"a1   bc"],
+        [9, "\\'\\\"a1   bc"],
+        [2, "\\'\\\"a1   bc"]
+    ],
+    "expected_warnings": [
+        "inconsistent input records"
+    ],
+    "query_python": "select int(math.sqrt(int(a1))), r\"\\'\\\"a1   bc\"",
+    "query_js": "select Math.floor(Math.sqrt(a1)), String.raw`\\'\\\"a1   bc`"
+}

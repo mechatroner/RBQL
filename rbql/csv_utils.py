@@ -430,7 +430,7 @@ class CSVRecordIterator:
         if self.first_defective_line is not None:
             result.append('Defective double quote escaping in {} table. E.g. at line {}'.format(self.table_name, self.first_defective_line))
         if len(self.fields_info) > 1:
-            result.append(rbql.make_inconsistent_num_fields_warning(self.table_name, self.fields_info))
+            result.append(make_inconsistent_num_fields_warning(self.table_name, self.fields_info))
         return result
 
 
