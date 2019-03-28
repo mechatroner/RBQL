@@ -12,8 +12,7 @@
         ["haha"]
     ],
     "expected_warnings": [
-        "inconsistent input records",
-        "NULL in output"
+        "inconsistent input records"
     ],
     "query_python": "select a2",
     "query_js": "select a2"

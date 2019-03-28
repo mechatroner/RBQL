@@ -328,8 +328,8 @@ def normalize_warnings(warnings):
     for warning in warnings:
         if warning == 'input_fields_info':
             result.append('inconsistent input records')
-        elif warning == 'null_value_in_output':
-            result.append('NULL in output')
+        #elif warning == 'null_value_in_output':
+        #    result.append('NULL in output')
         else:
             assert False, 'unknown warning'
     return result
@@ -503,7 +503,8 @@ class TestEverything(unittest.TestCase):
 
         query = 'select a2'
         query_js = query
-        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info', 'null_value_in_output'], query, query_js)
+        #save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info', 'null_value_in_output'], query, query_js)
+        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], query, query_js)
 
 
 

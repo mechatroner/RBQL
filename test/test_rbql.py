@@ -55,20 +55,14 @@ class TableIterator:
 class TableWriter:
     def __init__(self):
         self.table = []
-        self.none_in_output = False
 
     def write(self, fields):
-        for field in fields:
-            if field is None:
-                self.none_in_output = True
         self.table.append(fields)
 
     def finish(self):
         pass
 
     def get_warnings(self):
-        if self.none_in_output:
-            return ['Output contains None values']
         return []
 
 
@@ -77,8 +71,6 @@ def normalize_warnings(warnings):
     for warning in warnings:
         if warning.find('Number of fields in "input" table is not consistent') != -1:
             result.append('inconsistent input records')
-        elif warning.find('Output contains None values') != -1:
-            result.append('NULL in output')
         else:
             assert False, 'unknown warning'
     return result
