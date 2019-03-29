@@ -520,7 +520,6 @@ class TestEverything(unittest.TestCase):
         input_table.append(['200', 'plane', 'boeing 737'])
         input_table.append(['80', 'train', 'Thomas'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         join_table = list()
         join_table.append(['bicycle', 'legs'])
@@ -528,12 +527,6 @@ class TestEverything(unittest.TestCase):
         join_table.append(['plane', 'wings  '])
         join_table.append(['boat', 'wind'])
         join_table.append(['rocket', 'some stuff'])
-
-        join_delim = ';'
-        join_policy = 'simple'
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, join_delim, join_policy)
-        update_index(rbql.table_index_path, [join_table_path, join_delim, join_policy, ''], 100)
 
         canonic_table = list()
         canonic_table.append(['5', '10', 'boat', 'yacht ', 'boat', 'wind'])
@@ -543,16 +536,9 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['3', '50', 'plane', 'tu-134', 'plane', 'wings  '])
         canonic_table.append(['6', '200', 'plane', 'boeing 737', 'plane', 'wings  '])
 
-        query = r'select NR, * inner join {} on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)'.format(join_table_path)
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'select NR, * inner join {} on a2 == b1 where   b2 !=  "haha" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)'.format(join_table_path)
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query = r'select NR, * inner join B on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)'
+        query_js = r'select NR, * inner join B on a2 == b1 where   b2 !=  "haha" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)'
+        save_test_as_json(test_name, input_table, join_table, canonic_table, [], query, query_js)
 
 
     def test_run7(self):

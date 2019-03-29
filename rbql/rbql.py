@@ -348,7 +348,7 @@ class HashJoinMap:
 
 
     def get_join_records(self, key):
-        return self.hash_map.get(key)
+        return self.hash_map[key]
 
 
     def get_warnings(self):

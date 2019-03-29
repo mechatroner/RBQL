@@ -404,7 +404,7 @@ class NoneJoiner(object):
         pass
 
     def get_rhs(self, lhs_key):
-        return None
+        return [None]
 
 
 class InnerJoiner(object):
@@ -447,14 +447,14 @@ def select_except(src, except_fields):
 
 
 def process_update(NR, NF, afields, rhs_records):
-    if rhs_records is not None and len(rhs_records) > 1:
+    if len(rhs_records) > 1:
         raise RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B')
     bfields = None
-    if rhs_records is not None and len(rhs_records) == 1:
+    if len(rhs_records) == 1:
         bfields = rhs_records[0]
     up_fields = afields[:]
     __RBQLMP__init_column_vars_update
-    if (rhs_records is None or len(rhs_records) == 1) and (__RBQLMP__where_expression):
+    if len(rhs_records) == 1 and (__RBQLMP__where_expression):
         global NU
         NU += 1
         __RBQLMP__update_statements
@@ -509,8 +509,6 @@ def select_unfolded(sort_key, folded_fields):
 
 def process_select(NR, NF, afields, rhs_records):
     global unfold_list
-    if rhs_records is None:
-        rhs_records = [None]
     for bfields in rhs_records:
         unfold_list = None
         if bfields is None:

@@ -66,6 +66,17 @@ class TableWriter:
         return []
 
 
+class SingleTableTestRegistry:
+    def __init__(self, table, table_name='B'):
+        self.table = table
+        self.table_name = table_name
+
+    def get_iterator_by_table_id(self, table_id):
+        if table_id != self.table_name:
+            raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
+        return TableIterator(self.table)
+
+
 def normalize_warnings(warnings):
     result = []
     for warning in warnings:
@@ -188,14 +199,19 @@ class TestJsonTables(unittest.TestCase):
     def process_test_case(self, test_case_path):
         with open(test_case_path) as f:
             test_case = json.loads(f.read())
+        #print( "test_case_path:", test_case_path)
         query = test_case['query_python']
         input_table = test_case['input_table']
+        join_table = test_case.get('join_table', None)
         expected_output_table = test_case['expected_output_table']
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
         input_iterator = TableIterator(input_table)
         output_writer = TableWriter()
-        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer)
+        join_tables_registry = None if join_table is None else SingleTableTestRegistry(join_table)
+
+        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry)
+
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
         self.assertEqual(expected_warnings, warnings)
@@ -204,9 +220,6 @@ class TestJsonTables(unittest.TestCase):
             self.assertTrue(error_info['message'].find(expected_error) != -1)
         else:
             output_table = output_writer.table
-            #for row in output_table:
-            #    for c in range(len(row)):
-            #        row[c] = str(row[c])
             self.assertEqual(expected_output_table, output_table)
 
 
