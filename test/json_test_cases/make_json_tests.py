@@ -553,34 +553,22 @@ class TestEverything(unittest.TestCase):
         input_table.append(['10', 'boat', 'yacht'])
         input_table.append(['200', 'plane', 'boeing 737'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
         join_table = list()
         join_table.append(['bicycle', 'legs'])
         join_table.append(['car', 'gas'])
         join_table.append(['plane', 'wings'])
         join_table.append(['rocket', 'some stuff'])
 
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, input_delim, input_policy)
-
         canonic_table = list()
-        canonic_table.append(['', '', '100'])
+        canonic_table.append([None, None, '100'])
         canonic_table.append(['car', 'gas', '5'])
         canonic_table.append(['car', 'gas', '-20'])
-        canonic_table.append(['', '', '20'])
-        canonic_table.append(['', '', '10'])
+        canonic_table.append([None, None, '20'])
+        canonic_table.append([None, None, '10'])
 
-        query = r'select b1,b2,   a1 left join {} on a2 == b1 where b2 != "wings"'.format(join_table_path)
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['null_value_in_output'], warnings)
-
-        if TEST_JS:
-            query = r'select b1,b2,   a1 left join {} on a2 == b1 where b2 != "wings"'.format(join_table_path)
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['null_value_in_output'], warnings)
+        query = r'select b1,b2,   a1 left join  B  on a2 == b1 where b2 != "wings"'
+        query_js = r'select b1,b2,   a1 left join  B  on a2 == b1 where b2 != "wings"'
+        save_test_as_json(test_name, input_table, join_table, canonic_table, [], query, query_js)
 
 
     def test_run8(self):
