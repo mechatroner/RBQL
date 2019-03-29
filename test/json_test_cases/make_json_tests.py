@@ -426,7 +426,7 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run2(self):
+
         test_name = 'test2'
 
         input_table = list()
@@ -456,7 +456,7 @@ class TestEverything(unittest.TestCase):
 
 
 
-    def test_run4(self):
+
         test_name = 'test4'
         input_table = list()
         input_table.append(['0', 'haha', 'hoho'])
@@ -480,9 +480,8 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    #TODO add test with js regex with multiple spaces and check that it is preserved during parsing
 
-    def test_run5(self):
+
         test_name = 'test5'
         input_table = list()
         input_table.append(['0', 'haha', 'hoho'])
@@ -506,7 +505,7 @@ class TestEverything(unittest.TestCase):
 
 
 
-    def test_run6(self):
+
         test_name = 'test6'
 
         input_table = list()
@@ -527,12 +526,12 @@ class TestEverything(unittest.TestCase):
         join_table.append(['rocket', 'some stuff'])
 
         canonic_table = list()
-        canonic_table.append(['5', '10', 'boat', 'yacht ', 'boat', 'wind'])
-        canonic_table.append(['4', '20', 'boat', 'destroyer', 'boat', 'wind'])
-        canonic_table.append(['2', '-20', 'car', 'Ferrari', 'car', 'gas '])
-        canonic_table.append(['1', '5', 'car', 'lada', 'car', 'gas '])
-        canonic_table.append(['3', '50', 'plane', 'tu-134', 'plane', 'wings  '])
-        canonic_table.append(['6', '200', 'plane', 'boeing 737', 'plane', 'wings  '])
+        canonic_table.append([5, '10', 'boat', 'yacht ', 'boat', 'wind'])
+        canonic_table.append([4, '20', 'boat', 'destroyer', 'boat', 'wind'])
+        canonic_table.append([2, '-20', 'car', 'Ferrari', 'car', 'gas '])
+        canonic_table.append([1, '5', 'car', 'lada', 'car', 'gas '])
+        canonic_table.append([3, '50', 'plane', 'tu-134', 'plane', 'wings  '])
+        canonic_table.append([6, '200', 'plane', 'boeing 737', 'plane', 'wings  '])
 
         query = r'select NR, * inner join B on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)'
         query_js = r'select NR, * inner join B on a2 == b1 where   b2 !=  "haha" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)'
@@ -541,7 +540,7 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run7(self):
+
         test_name = 'test7'
 
         input_table = list()
@@ -573,7 +572,7 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run8(self):
+
         test_name = 'test8'
 
         input_table = list()
@@ -600,7 +599,7 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run9(self):
+
         test_name = 'test9'
 
         input_table = list()
@@ -618,16 +617,17 @@ class TestEverything(unittest.TestCase):
         join_table.append(['rocket', 'some stuff'])
 
         canonic_table = list()
-        canonic_table.append(['3', 'car'])
-        canonic_table.append(['3', 'car'])
-        canonic_table.append(['5', 'plane'])
-        canonic_table.append(['5', 'plane'])
+        canonic_table.append([3, 'car'])
+        canonic_table.append([3, 'car'])
+        canonic_table.append([5, 'plane'])
+        canonic_table.append([5, 'plane'])
 
         query = r'select len(b1), a2 strict left join B on a2 == b1'
         query_js = r'select b1.length,  a2 strict left join B on a2 == b1'
         error_msg = None
         warnings = []
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
+
 
 
     def test_run10(self):
