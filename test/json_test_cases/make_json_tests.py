@@ -422,7 +422,8 @@ class TestEverything(unittest.TestCase):
         join_table = None
 
         error_msg = None
-        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
+        warnings = []
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     def test_run2(self):
@@ -450,7 +451,8 @@ class TestEverything(unittest.TestCase):
 
 
         error_msg = None
-        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], error_msg, query, query_js)
+        warnings = ['input_fields_info']
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
 
@@ -474,7 +476,8 @@ class TestEverything(unittest.TestCase):
         query_js = r'select Math.floor(Math.sqrt(a1)), String.raw`\'\"a1   bc`'
 
         error_msg = None
-        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], error_msg, query, query_js)
+        warnings = ['input_fields_info']
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     #TODO add test with js regex with multiple spaces and check that it is preserved during parsing
@@ -497,9 +500,9 @@ class TestEverything(unittest.TestCase):
 
         query = 'select a2'
         query_js = query
-        #save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info', 'null_value_in_output'], error_msg, query, query_js)
         error_msg = None
-        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], error_msg, query, query_js)
+        warnings = ['input_fields_info']
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
 
@@ -534,7 +537,8 @@ class TestEverything(unittest.TestCase):
         query = r'select NR, * inner join B on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)'
         query_js = r'select NR, * inner join B on a2 == b1 where   b2 !=  "haha" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)'
         error_msg = None
-        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
+        warnings = []
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     def test_run7(self):
@@ -565,7 +569,8 @@ class TestEverything(unittest.TestCase):
         query = r'select b1,b2,   a1 left join  B  on a2 == b1 where b2 != "wings"'
         query_js = r'select b1,b2,   a1 left join  B  on a2 == b1 where b2 != "wings"'
         error_msg = None
-        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
+        warnings = []
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     def test_run8(self):
@@ -591,7 +596,8 @@ class TestEverything(unittest.TestCase):
         query = r'select b1,b2,   a1 strict left join B on a2 == b1 where b2 != "wings"'
         query_js = r'select b1,b2,   a1 strict left join B on a2 == b1 where b2 != "wings"'
         error_msg = 'In "STRICT LEFT JOIN" each key in A must have exactly one match in B'
-        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
+        warnings = []
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     def test_run9(self):
@@ -611,25 +617,17 @@ class TestEverything(unittest.TestCase):
         join_table.append(['plane', 'wings'])
         join_table.append(['rocket', 'some stuff'])
 
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, input_delim, input_policy)
-
         canonic_table = list()
         canonic_table.append(['3', 'car'])
         canonic_table.append(['3', 'car'])
         canonic_table.append(['5', 'plane'])
         canonic_table.append(['5', 'plane'])
 
-        query = r'select len(b1), a2 strict left join {} on a2 == b1'.format(join_table_path)
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'select b1.length,  a2 strict left join {} on a2 == b1'.format(join_table_path)
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query = r'select len(b1), a2 strict left join B on a2 == b1'
+        query_js = r'select b1.length,  a2 strict left join B on a2 == b1'
+        error_msg = None
+        warnings = []
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     def test_run10(self):
