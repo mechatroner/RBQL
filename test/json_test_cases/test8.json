@@ -1,0 +1,20 @@
+{
+    "input_table": [
+        ["5", "car", "lada"],
+        ["-20", "car", "ferrari"],
+        ["50", "plane", "tu-134"],
+        ["20", "boat", "destroyer"],
+        ["10", "boat", "yacht"],
+        ["200", "plane", "boeing 737"],
+        ["100", "magic carpet", "nimbus 3000"]
+    ],
+    "join_table": [
+        ["bicycle", "legs"],
+        ["car", "gas"],
+        ["plane", "wings"],
+        ["rocket", "some stuff"]
+    ],
+    "expected_error": "In \"STRICT LEFT JOIN\" each key in A must have exactly one match in B",
+    "query_python": "select b1,b2,   a1 strict left join B on a2 == b1 where b2 != \"wings\"",
+    "query_js": "select b1,b2,   a1 strict left join B on a2 == b1 where b2 != \"wings\""
+}

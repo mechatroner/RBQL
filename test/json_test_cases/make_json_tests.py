@@ -312,16 +312,6 @@ def select_random_formats(input_table, allowed_delims='aA8 !#$%&\'()*+,-./:;<=>?
     return (input_delim, input_policy, output_delim, output_policy)
 
 
-#def save_test_as_json(test_name, input_table, join_table, canonic_table, python_query, js_query):
-#    result = dict()
-#    result['input_table'] = input_table
-#    if canonic_table:
-#        result['expected_output_table'] = canonic_table
-#    result['query_python'] = python_query
-#    result['query_js'] = js_query
-#    with open('{}.json'.format(test_name), 'w') as f:
-#        f.write(json.dumps(result, indent=4))
-
 
 def normalize_warnings(warnings):
     result = []
@@ -351,7 +341,7 @@ def write_json_table(dst, indent, table_name, table):
     write_json_line(dst, indent, '],')
 
 
-def save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, python_query, js_query):
+def save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, python_query, js_query):
     with open('{}.json'.format(test_name), 'w') as f:
         indent = 0
         write_json_line(f, indent, '{')
@@ -370,7 +360,8 @@ def save_test_as_json(test_name, input_table, join_table, canonic_table, warning
                     out_line += ','
                 write_json_line(f, indent + 1, out_line)
             write_json_line(f, indent, '],')
-            
+        if error_msg is not None:
+            write_json_line(f, indent, '"expected_error": ' + json.dumps(error_msg) + ',')
         write_json_line(f, indent, '"query_python": ' + json.dumps(python_query) + ',')
         write_json_line(f, indent, '"query_js": ' + json.dumps(js_query))
         indent -= 1
@@ -430,7 +421,8 @@ class TestEverything(unittest.TestCase):
 
         join_table = None
 
-        save_test_as_json(test_name, input_table, join_table, canonic_table, [], query, query_js)
+        error_msg = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
 
 
     def test_run2(self):
@@ -457,7 +449,8 @@ class TestEverything(unittest.TestCase):
         query_js = '\tselect    distinct\ta2 where a1 > 10  '
 
 
-        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], query, query_js)
+        error_msg = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], error_msg, query, query_js)
 
 
 
@@ -480,7 +473,8 @@ class TestEverything(unittest.TestCase):
         query = r'select int(math.sqrt(int(a1))), r"\'\"a1   bc"'
         query_js = r'select Math.floor(Math.sqrt(a1)), String.raw`\'\"a1   bc`'
 
-        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], query, query_js)
+        error_msg = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], error_msg, query, query_js)
 
 
     #TODO add test with js regex with multiple spaces and check that it is preserved during parsing
@@ -503,8 +497,9 @@ class TestEverything(unittest.TestCase):
 
         query = 'select a2'
         query_js = query
-        #save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info', 'null_value_in_output'], query, query_js)
-        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], query, query_js)
+        #save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info', 'null_value_in_output'], error_msg, query, query_js)
+        error_msg = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, ['input_fields_info'], error_msg, query, query_js)
 
 
 
@@ -538,7 +533,8 @@ class TestEverything(unittest.TestCase):
 
         query = r'select NR, * inner join B on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)'
         query_js = r'select NR, * inner join B on a2 == b1 where   b2 !=  "haha" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)'
-        save_test_as_json(test_name, input_table, join_table, canonic_table, [], query, query_js)
+        error_msg = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
 
 
     def test_run7(self):
@@ -568,7 +564,8 @@ class TestEverything(unittest.TestCase):
 
         query = r'select b1,b2,   a1 left join  B  on a2 == b1 where b2 != "wings"'
         query_js = r'select b1,b2,   a1 left join  B  on a2 == b1 where b2 != "wings"'
-        save_test_as_json(test_name, input_table, join_table, canonic_table, [], query, query_js)
+        error_msg = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
 
 
     def test_run8(self):
@@ -583,29 +580,18 @@ class TestEverything(unittest.TestCase):
         input_table.append(['200', 'plane', 'boeing 737'])
         input_table.append(['100', 'magic carpet', 'nimbus 3000'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
         join_table = list()
         join_table.append(['bicycle', 'legs'])
         join_table.append(['car', 'gas'])
         join_table.append(['plane', 'wings'])
         join_table.append(['rocket', 'some stuff'])
 
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, input_delim, input_policy)
+        canonic_table = None
 
-        query = r'select b1,b2,   a1 strict left join {} on a2 == b1 where b2 != "wings"'.format(join_table_path)
-        with self.assertRaises(Exception) as cm:
-            test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        e = cm.exception
-        self.assertTrue(str(e).find('In "STRICT LEFT JOIN" each key in A must have exactly one match in B') != -1)
-
-        if TEST_JS:
-            query = r'select b1,b2,   a1 strict left join {} on a2 == b1 where b2 != "wings"'.format(join_table_path)
-            with self.assertRaises(Exception) as cm:
-                test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            e = cm.exception
-            self.assertTrue(str(e).find('In "STRICT LEFT JOIN" each key in A must have exactly one match in B') != -1)
+        query = r'select b1,b2,   a1 strict left join B on a2 == b1 where b2 != "wings"'
+        query_js = r'select b1,b2,   a1 strict left join B on a2 == b1 where b2 != "wings"'
+        error_msg = 'In "STRICT LEFT JOIN" each key in A must have exactly one match in B'
+        save_test_as_json(test_name, input_table, join_table, canonic_table, [], error_msg, query, query_js)
 
 
     def test_run9(self):
@@ -623,25 +609,24 @@ class TestEverything(unittest.TestCase):
         join_table.append(['bicycle', 'legs'])
         join_table.append(['car', 'gas'])
         join_table.append(['plane', 'wings'])
-        join_table.append(['plane', 'air'])
         join_table.append(['rocket', 'some stuff'])
 
         join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
         table_to_file(join_table, join_table_path, input_delim, input_policy)
 
         canonic_table = list()
-        canonic_table.append(['plane', 'wings', '50'])
-        canonic_table.append(['plane', 'air', '50'])
-        canonic_table.append(['plane', 'wings', '200'])
-        canonic_table.append(['plane', 'air', '200'])
+        canonic_table.append(['3', 'car'])
+        canonic_table.append(['3', 'car'])
+        canonic_table.append(['5', 'plane'])
+        canonic_table.append(['5', 'plane'])
 
-        query = r'select b1,b2,a1 inner join {} on a2 == b1 where b1 != "car"'.format(join_table_path)
+        query = r'select len(b1), a2 strict left join {} on a2 == b1'.format(join_table_path)
         test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
         self.compare_tables(canonic_table, test_table)
         compare_warnings(self, None, warnings)
 
         if TEST_JS:
-            query = r'select b1,b2,a1 inner join {} on a2 == b1 where b1 != "car"'.format(join_table_path)
+            query = r'select b1.length,  a2 strict left join {} on a2 == b1'.format(join_table_path)
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)
@@ -964,44 +949,6 @@ class TestEverything(unittest.TestCase):
 
         if TEST_JS:
             query = r'select distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc limit 2'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
-
-
-    def test_run19(self):
-        test_name = 'test19'
-
-        input_table = list()
-        input_table.append(['5', 'car', 'lada'])
-        input_table.append(['-20', 'car', 'ferrari'])
-        input_table.append(['50', 'plane', 'tu-134'])
-        input_table.append(['200', 'plane', 'boeing 737'])
-
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
-        join_table = list()
-        join_table.append(['bicycle', 'legs'])
-        join_table.append(['car', 'gas'])
-        join_table.append(['plane', 'wings'])
-        join_table.append(['rocket', 'some stuff'])
-
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, input_delim, input_policy)
-
-        canonic_table = list()
-        canonic_table.append(['3', 'car'])
-        canonic_table.append(['3', 'car'])
-        canonic_table.append(['5', 'plane'])
-        canonic_table.append(['5', 'plane'])
-
-        query = r'select len(b1), a2 strict left join {} on a2 == b1'.format(join_table_path)
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'select b1.length,  a2 strict left join {} on a2 == b1'.format(join_table_path)
             test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
             self.compare_tables(canonic_table, test_table)
             compare_warnings(self, None, warnings)

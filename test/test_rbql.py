@@ -203,7 +203,7 @@ class TestJsonTables(unittest.TestCase):
         query = test_case['query_python']
         input_table = test_case['input_table']
         join_table = test_case.get('join_table', None)
-        expected_output_table = test_case['expected_output_table']
+        expected_output_table = test_case.get('expected_output_table', None)
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
         input_iterator = TableIterator(input_table)
