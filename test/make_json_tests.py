@@ -837,7 +837,6 @@ class TestEverything(unittest.TestCase):
 
         error_msg = None
         warnings = []
-        join_table = None
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 

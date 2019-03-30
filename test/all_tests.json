@@ -206,6 +206,105 @@
             ["50", "Наполеон", "dfdf"],
             ["20", "Наполеон", ""]
         ],
+        "expected_output_table": [
+            ["50", "Наполеон", "dfdf"],
+            ["20", "Наполеон", ""]
+        ],
+        "query_python": "select * where a2== \"Наполеон\" ",
+        "query_js": "select * where a2== \"Наполеон\" "
+    },
+    {
+        "test_name": "test_join_12",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht"],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas"],
+            ["plane", "wings"],
+            ["boat", "wind"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            [5, "10", "boat", "yacht", "boat", "wind"],
+            [4, "20", "boat", "destroyer", "boat", "wind"],
+            [2, "-20", "car", "Ferrari", "car", "gas"],
+            [1, "5", "car", "lada", "car", "gas"],
+            [3, "50", "plane", "tu-134", "plane", "wings"],
+            [6, "200", "plane", "boeing 737", "plane", "wings"]
+        ],
+        "query_python": "select NR, * JOIN B on a2 == b1 where b2 != \"haha\" and int(a1) > -100 and len(b2) > 1 order   by a2, int(a1)",
+        "query_js": "select NR, * JOIN B on a2 == b1 where b2 != \"haha\" && a1 > -100 && b2.length > 1 order    by a2, parseInt(a1)"
+    },
+    {
+        "test_name": "regexp_1",
+        "input_table": [
+            ["5", "haha   asdf", "hoho"],
+            ["50", "haha  asdf", "dfdf"],
+            ["20", "haha    asdf", ""],
+            ["-20", "haha   asdf", "hioho"]
+        ],
+        "expected_output_table": [
+            ["5", "haha   asdf", "hoho"],
+            ["-20", "haha   asdf", "hioho"]
+        ],
+        "query_python": "select * where re.search(\"a   as\", a2)  is   not  None",
+        "query_js": "select * where /a   as/.test(a2)"
+    },
+    {
+        "test_name": "update_1",
+        "input_table": [
+            ["5", "haha   asdf", "hoho"],
+            ["50", "haha  asdf", "dfdf"],
+            ["20", "haha    asdf", ""],
+            ["-20", "haha   asdf", "hioho"]
+        ],
+        "expected_output_table": [
+            ["5", "haha   asdf", "hoho"],
+            [100, "haha  asdf hoho", "dfdf"],
+            [100, "haha    asdf hoho", ""],
+            ["-20", "haha   asdf", "hioho"]
+        ],
+        "query_python": "update a2 = a2 + \" hoho\", a1 = 100 where int(a1) > 10",
+        "query_js": "update a2 = a2 + \" hoho\", a1 = 100 where parseInt(a1) > 10"
+    },
+    {
+        "test_name": "update_unicode_1",
+        "input_table": [
+            ["5", "Петр Первый", "hoho"],
+            ["-20", "Екатерина Великая", "hioho"],
+            ["50", "Наполеон", "dfdf"],
+            ["20", "Наполеон"]
+        ],
+        "expected_output_table": [
+            ["5", "Наполеон", "hoho"],
+            ["-20", "Наполеон", "hioho"],
+            ["50", "Наполеон", "dfdf"],
+            ["20", "Наполеон"]
+        ],
+        "expected_warnings": [
+            "inconsistent input records"
+        ],
+        "query_python": "update set a2= \"Наполеон\" ",
+        "query_js": "update  set  a2= \"Наполеон\" "
+    },
+    {
+        "test_name": "update_with_join_1",
+        "input_table": [
+            ["100", "magic carpet", "nimbus 3000"],
+            ["5", "car", "lada"],
+            ["-20", "car", "ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht"],
+            ["200", "plane", "boeing 737"]
+        ],
         "join_table": [
             ["bicycle", "legs"],
             ["car", "gas"],
@@ -213,10 +312,15 @@
             ["rocket", "some stuff"]
         ],
         "expected_output_table": [
-            ["50", "Наполеон", "dfdf"],
-            ["20", "Наполеон", ""]
+            ["100", "magic carpet", "nimbus 3000"],
+            ["5", "car (gas)", "lada"],
+            ["-20", "car (gas)", "ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht"],
+            ["200", "plane", "boeing 737"]
         ],
-        "query_python": "select * where a2== \"Наполеон\" ",
-        "query_js": "select * where a2== \"Наполеон\" "
+        "query_python": "update set a2 = \"{} ({})\".format(a2, b2) inner join B on a2 == b1 where b2 != \"wings\"",
+        "query_js": "update set a2 = a2 + \" (\" + b2 + \")\" inner join B on a2 == b1 where b2 != \"wings\""
     }
 ]

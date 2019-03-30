@@ -198,6 +198,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
 class TestJsonTables(unittest.TestCase):
 
     def process_test_case(self, test_case):
+        test_name = test_case['test_name']
         query = test_case['query_python']
         input_table = test_case['input_table']
         join_table = test_case.get('join_table', None)
@@ -212,13 +213,13 @@ class TestJsonTables(unittest.TestCase):
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
-        self.assertEqual(expected_warnings, warnings)
-        self.assertTrue((expected_error is not None) == (error_info is not None))
+        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}'.format(test_name))
+        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}'.format(test_name))
         if expected_error is not None:
-            self.assertTrue(error_info['message'].find(expected_error) != -1)
+            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:
             output_table = output_writer.table
-            self.assertEqual(expected_output_table, output_table)
+            self.assertEqual(expected_output_table, output_table, 'Inside json test: {}'.format(test_name))
 
 
     def test_json_tables(self):
