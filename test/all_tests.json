@@ -546,5 +546,31 @@
         ],
         "query_python": "select \"mv {} {} --opt1 --opt2\".format(a1, a2 + str(NR))",
         "query_js": "select `mv ${a1} ${a2 + NR} --opt1 --opt2`"
+    },
+    {
+        "test_name": "single_equal_in_where",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "expected_error": "Assignments \"=\" are not allowed in \"WHERE\" expressions. For equality test use \"==\"",
+        "query_python": "select NR where a3 = \"hioho\"",
+        "query_js": "select NR where a3 = \"hioho\""
+    },
+    {
+        "test_name": "triple_equality_js",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "expected_output_table": [
+            ["2"]
+        ],
+        "query_python": null,
+        "query_js": "select NR where a3 === \"hioho\""
     }
 ]

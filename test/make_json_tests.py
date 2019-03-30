@@ -1177,8 +1177,7 @@ class TestEverything(unittest.TestCase):
 
 
 
-    def test_run30(self):
-        test_name = 'test30'
+        test_name = 'single_equal_in_where'
 
         input_table = list()
         input_table.append(['5', 'haha', 'hoho'])
@@ -1186,53 +1185,20 @@ class TestEverything(unittest.TestCase):
         input_table.append(['50', 'haha', 'dfdf'])
         input_table.append(['20', 'haha', ''])
 
-        canonic_table = list()
-        canonic_table.append(['2'])
-
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
-        query = 'select NR where a3 == "hioho"'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = 'select NR where a3 == "hioho"'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
-
-
-    def test_run31(self):
-        test_name = 'test31'
-
-        input_table = list()
-        input_table.append(['5', 'haha', 'hoho'])
-        input_table.append(['-20', 'haha', 'hioho'])
-        input_table.append(['50', 'haha', 'dfdf'])
-        input_table.append(['20', 'haha', ''])
-
-        canonic_table = list()
-        canonic_table.append(['2'])
-
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = 'select NR where a3 = "hioho"'
-        with self.assertRaises(Exception) as cm:
-            test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        e = cm.exception
-        self.assertTrue(str(e).find('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="') != -1)
+        query_js = 'select NR where a3 = "hioho"'
+        canonic_table = None
 
-        if TEST_JS:
-            query = 'select NR where a3 = "hioho"'
-            with self.assertRaises(Exception) as cm:
-                test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            e = cm.exception
-            self.assertTrue(str(e).find('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "==" or "==="') != -1)
+        error_msg = 'Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="'
+        warnings = []
+        join_table = None
+
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run32(self):
-        test_name = 'test32'
+
+        test_name = 'triple_equality_js'
 
         input_table = list()
         input_table.append(['5', 'haha', 'hoho'])
@@ -1244,12 +1210,13 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['2'])
 
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        query = None
+        query_js = 'select NR where a3 === "hioho"'
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
-        if TEST_JS:
-            query = 'select NR where a3 === "hioho"'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
 
 
     def test_run33(self):
