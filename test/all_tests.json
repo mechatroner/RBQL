@@ -1,0 +1,180 @@
+{
+    {
+        "test_name": "test1",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 4],
+            [4, "20", 0]
+        ],
+        "query_python": "select NR, a1, len(a3) where int(a1) > 5",
+        "query_js": "select NR, a1, a3.length where a1 > 5"
+    },
+    {
+        "test_name": "test2",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""],
+            ["8"],
+            ["3", "4", "1000", "asdfasf", "asdfsaf", "asdfa"],
+            ["11", "hoho", ""],
+            ["10", "hihi", ""],
+            ["13", "haha", ""]
+        ],
+        "expected_output_table": [
+            ["haha"],
+            ["hoho"]
+        ],
+        "expected_warnings": [
+            "inconsistent input records"
+        ],
+        "query_python": "\tselect    distinct\ta2 where int(a1) > 10 ",
+        "query_js": "\tselect    distinct\ta2 where a1 > 10  "
+    },
+    {
+        "test_name": "test4",
+        "input_table": [
+            ["0", "haha", "hoho"],
+            ["9"],
+            ["81", "haha", "dfdf"],
+            ["4", "haha", "dfdf", "asdfa", "111"]
+        ],
+        "expected_output_table": [
+            [0, "\\'\\\"a1   bc"],
+            [3, "\\'\\\"a1   bc"],
+            [9, "\\'\\\"a1   bc"],
+            [2, "\\'\\\"a1   bc"]
+        ],
+        "expected_warnings": [
+            "inconsistent input records"
+        ],
+        "query_python": "select int(math.sqrt(int(a1))), r\"\\'\\\"a1   bc\"",
+        "query_js": "select Math.floor(Math.sqrt(a1)), String.raw`\\'\\\"a1   bc`"
+    },
+    {
+        "test_name": "test5",
+        "input_table": [
+            ["0", "haha", "hoho"],
+            ["9"],
+            ["81", "haha", "dfdf"],
+            ["4", "haha", "dfdf", "asdfa", "111"]
+        ],
+        "expected_output_table": [
+            ["haha"],
+            [null],
+            ["haha"],
+            ["haha"]
+        ],
+        "expected_warnings": [
+            "inconsistent input records"
+        ],
+        "query_python": "select a2",
+        "query_js": "select a2"
+    },
+    {
+        "test_name": "test6",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas "],
+            ["plane", "wings  "],
+            ["boat", "wind"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            [5, "10", "boat", "yacht ", "boat", "wind"],
+            [4, "20", "boat", "destroyer", "boat", "wind"],
+            [2, "-20", "car", "Ferrari", "car", "gas "],
+            [1, "5", "car", "lada", "car", "gas "],
+            [3, "50", "plane", "tu-134", "plane", "wings  "],
+            [6, "200", "plane", "boeing 737", "plane", "wings  "]
+        ],
+        "query_python": "select NR, * inner join B on a2 == b1 where b2 != \"haha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
+        "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"haha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+    },
+    {
+        "test_name": "test7",
+        "input_table": [
+            ["100", "magic carpet", "nimbus 3000"],
+            ["5", "car", "lada"],
+            ["-20", "car", "ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht"],
+            ["200", "plane", "boeing 737"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas"],
+            ["plane", "wings"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            [null, null, "100"],
+            ["car", "gas", "5"],
+            ["car", "gas", "-20"],
+            [null, null, "20"],
+            [null, null, "10"]
+        ],
+        "query_python": "select b1,b2,   a1 left join  B  on a2 == b1 where b2 != \"wings\"",
+        "query_js": "select b1,b2,   a1 left join  B  on a2 == b1 where b2 != \"wings\""
+    },
+    {
+        "test_name": "test8",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht"],
+            ["200", "plane", "boeing 737"],
+            ["100", "magic carpet", "nimbus 3000"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas"],
+            ["plane", "wings"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_error": "In \"STRICT LEFT JOIN\" each key in A must have exactly one match in B",
+        "query_python": "select b1,b2,   a1 strict left join B on a2 == b1 where b2 != \"wings\"",
+        "query_js": "select b1,b2,   a1 strict left join B on a2 == b1 where b2 != \"wings\""
+    },
+    {
+        "test_name": "test9",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "ferrari"],
+            ["50", "plane", "tu-134"],
+            ["200", "plane", "boeing 737"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas"],
+            ["plane", "wings"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            [3, "car"],
+            [3, "car"],
+            [5, "plane"],
+            [5, "plane"]
+        ],
+        "query_python": "select len(b1), a2 strict left join B on a2 == b1",
+        "query_js": "select b1.length,  a2 strict left join B on a2 == b1"
+    }
+}
