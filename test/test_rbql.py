@@ -237,7 +237,7 @@ class TestJsonTables(unittest.TestCase):
 
 
     def test_json_tables(self):
-        tests_file = os.path.join(script_dir, 'all_tests.json')
+        tests_file = os.path.join(script_dir, 'rbql_unit_tests.json')
         with open(tests_file) as f:
             tests = json.loads(f.read())
             for test in tests:

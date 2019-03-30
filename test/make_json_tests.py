@@ -399,7 +399,7 @@ class TestEverything(unittest.TestCase):
     def tearDownClass(cls):
         global json_data
         json_data += '\n]\n'
-        with codecs.open('all_tests.json', 'w', encoding='utf-8') as f:
+        with codecs.open('rbql_unit_tests.json', 'w', encoding='utf-8') as f:
             f.write(json_data)
 
 
