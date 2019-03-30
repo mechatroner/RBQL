@@ -196,10 +196,8 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
 
 class TestJsonTables(unittest.TestCase):
-    def process_test_case(self, test_case_path):
-        with open(test_case_path) as f:
-            test_case = json.loads(f.read())
-        #print( "test_case_path:", test_case_path)
+
+    def process_test_case(self, test_case):
         query = test_case['query_python']
         input_table = test_case['input_table']
         join_table = test_case.get('join_table', None)
@@ -224,8 +222,8 @@ class TestJsonTables(unittest.TestCase):
 
 
     def test_json_tables(self):
-        json_test_cases_dir = os.path.join(script_dir, 'json_test_cases')
-        json_file_names = [f for f in os.listdir(json_test_cases_dir) if f.endswith('.json')]
-        for name in json_file_names:
-            test_case_path = os.path.join(json_test_cases_dir, name)
-            self.process_test_case(test_case_path)
+        tests_file = os.path.join(script_dir, 'all_tests.json')
+        with open(tests_file) as f:
+            tests = json.loads(f.read())
+            for test in tests:
+                self.process_test_case(test)

@@ -351,7 +351,7 @@ def save_test_as_json(test_name, input_table, join_table, canonic_table, warning
     global json_data
     f = io.StringIO()
     if not len(json_data):
-        write_json_line(f, 0, '{')
+        write_json_line(f, 0, '[')
     else:
         write_json_line(f, 0, ',')
     indent = 1
@@ -642,7 +642,7 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
         global json_data
-        json_data += '\n}\n'
+        json_data += '\n]\n'
         with open('all_tests.json', 'w') as f:
             f.write(json_data)
 

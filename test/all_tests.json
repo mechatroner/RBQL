@@ -1,4 +1,4 @@
-{
+[
     {
         "test_name": "test1",
         "input_table": [
@@ -177,4 +177,4 @@
         "query_python": "select len(b1), a2 strict left join B on a2 == b1",
         "query_js": "select b1.length,  a2 strict left join B on a2 == b1"
     }
-}
+]
