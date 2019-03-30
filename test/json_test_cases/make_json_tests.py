@@ -31,6 +31,9 @@ TEST_JS = True
 #TEST_JS = False #DBG
 
 
+json_data = ''
+
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -325,8 +328,11 @@ def normalize_warnings(warnings):
     return result
 
 
-def write_json_line(dst, indent, line):
-    dst.write('    ' * indent + line + '\n')
+def write_json_line(dst, indent, line, add_newline=True):
+    out_line = '    ' * indent + line 
+    if add_newline:
+        out_line += '\n'
+    dst.write(out_line)
 
 def write_json_table(dst, indent, table_name, table):
     write_json_line(dst, indent, '"{}": ['.format(table_name))
@@ -342,30 +348,37 @@ def write_json_table(dst, indent, table_name, table):
 
 
 def save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, python_query, js_query):
-    with open('{}.json'.format(test_name), 'w') as f:
-        indent = 0
-        write_json_line(f, indent, '{')
-        indent += 1
-        write_json_table(f, indent, 'input_table', input_table)
-        if join_table:
-            write_json_table(f, indent, 'join_table', join_table)
-        if canonic_table:
-            write_json_table(f, indent, 'expected_output_table', canonic_table)
-        if warnings is not None and len(warnings):
-            normalized_warnings = normalize_warnings(warnings)
-            write_json_line(f, indent, '"expected_warnings": [')
-            for i in range(len(normalized_warnings)):
-                out_line = json.dumps(normalized_warnings[i])
-                if i + 1 < len(normalized_warnings):
-                    out_line += ','
-                write_json_line(f, indent + 1, out_line)
-            write_json_line(f, indent, '],')
-        if error_msg is not None:
-            write_json_line(f, indent, '"expected_error": ' + json.dumps(error_msg) + ',')
-        write_json_line(f, indent, '"query_python": ' + json.dumps(python_query) + ',')
-        write_json_line(f, indent, '"query_js": ' + json.dumps(js_query))
-        indent -= 1
-        write_json_line(f, indent, '}')
+    global json_data
+    f = io.StringIO()
+    if not len(json_data):
+        write_json_line(f, 0, '{')
+    else:
+        write_json_line(f, 0, ',')
+    indent = 1
+    write_json_line(f, indent, '{')
+    indent += 1
+    write_json_line(f, indent, '"test_name": ' + json.dumps(test_name) + ',')
+    write_json_table(f, indent, 'input_table', input_table)
+    if join_table:
+        write_json_table(f, indent, 'join_table', join_table)
+    if canonic_table:
+        write_json_table(f, indent, 'expected_output_table', canonic_table)
+    if warnings is not None and len(warnings):
+        normalized_warnings = normalize_warnings(warnings)
+        write_json_line(f, indent, '"expected_warnings": [')
+        for i in range(len(normalized_warnings)):
+            out_line = json.dumps(normalized_warnings[i])
+            if i + 1 < len(normalized_warnings):
+                out_line += ','
+            write_json_line(f, indent + 1, out_line)
+        write_json_line(f, indent, '],')
+    if error_msg is not None:
+        write_json_line(f, indent, '"expected_error": ' + json.dumps(error_msg) + ',')
+    write_json_line(f, indent, '"query_python": ' + json.dumps(python_query) + ',')
+    write_json_line(f, indent, '"query_js": ' + json.dumps(js_query))
+    indent -= 1
+    write_json_line(f, indent, '}', add_newline=False)
+    json_data += f.getvalue()
 
 
 
@@ -627,6 +640,11 @@ class TestEverything(unittest.TestCase):
         error_msg = None
         warnings = []
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
+
+        global json_data
+        json_data += '\n}\n'
+        with open('all_tests.json', 'w') as f:
+            f.write(json_data)
 
 
 
