@@ -685,6 +685,7 @@ class TestEverything(unittest.TestCase):
 
         error_msg = None
         warnings = []
+        join_table = None
 
         query = 'select * where a2== "Наполеон" '
         query_js = 'select * where a2== "Наполеон" '
@@ -692,8 +693,7 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run12(self):
-        test_name = 'test12'
+        test_name = 'test_join_12'
 
         input_table = list()
         input_table.append(['5', 'car', 'lada'])
@@ -704,7 +704,6 @@ class TestEverything(unittest.TestCase):
         input_table.append(['200', 'plane', 'boeing 737'])
         input_table.append(['80', 'train', 'Thomas'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         join_table = list()
         join_table.append(['bicycle', 'legs'])
@@ -713,31 +712,26 @@ class TestEverything(unittest.TestCase):
         join_table.append(['boat', 'wind'])
         join_table.append(['rocket', 'some stuff'])
 
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, input_delim, input_policy)
 
         canonic_table = list()
-        canonic_table.append(['5', '10', 'boat', 'yacht', 'boat', 'wind'])
-        canonic_table.append(['4', '20', 'boat', 'destroyer', 'boat', 'wind'])
-        canonic_table.append(['2', '-20', 'car', 'Ferrari', 'car', 'gas'])
-        canonic_table.append(['1', '5', 'car', 'lada', 'car', 'gas'])
-        canonic_table.append(['3', '50', 'plane', 'tu-134', 'plane', 'wings'])
-        canonic_table.append(['6', '200', 'plane', 'boeing 737', 'plane', 'wings'])
+        canonic_table.append([5, '10', 'boat', 'yacht', 'boat', 'wind'])
+        canonic_table.append([4, '20', 'boat', 'destroyer', 'boat', 'wind'])
+        canonic_table.append([2, '-20', 'car', 'Ferrari', 'car', 'gas'])
+        canonic_table.append([1, '5', 'car', 'lada', 'car', 'gas'])
+        canonic_table.append([3, '50', 'plane', 'tu-134', 'plane', 'wings'])
+        canonic_table.append([6, '200', 'plane', 'boeing 737', 'plane', 'wings'])
 
+        error_msg = None
+        warnings = []
+
+        join_table_path = 'B'
         query = r'select NR, * JOIN {} on a2 == b1 where b2 != "haha" and int(a1) > -100 and len(b2) > 1 order   by a2, int(a1)'.format(join_table_path)
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'select NR, * JOIN {} on a2 == b1 where b2 != "haha" && a1 > -100 && b2.length > 1 order    by a2, parseInt(a1)'.format(join_table_path)
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query_js = r'select NR, * JOIN {} on a2 == b1 where b2 != "haha" && a1 > -100 && b2.length > 1 order    by a2, parseInt(a1)'.format(join_table_path)
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run13(self):
-        test_name = 'test13'
+
+        test_name = 'regexp_1'
 
         input_table = list()
         input_table.append(['5', 'haha   asdf', 'hoho'])
@@ -752,19 +746,16 @@ class TestEverything(unittest.TestCase):
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select * where re.search("a   as", a2)  is   not  None'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select * where /a   as/.test(a2)'
 
-        if TEST_JS:
-            query = r'select * where /a   as/.test(a2)'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run14(self):
-        test_name = 'test14'
+
+        test_name = 'update_1'
 
         input_table = list()
         input_table.append(['5', 'haha   asdf', 'hoho'])
@@ -774,26 +765,23 @@ class TestEverything(unittest.TestCase):
 
         canonic_table = list()
         canonic_table.append(['5', 'haha   asdf', 'hoho'])
-        canonic_table.append(['100', 'haha  asdf hoho', 'dfdf'])
-        canonic_table.append(['100', 'haha    asdf hoho', ''])
+        canonic_table.append([100, 'haha  asdf hoho', 'dfdf'])
+        canonic_table.append([100, 'haha    asdf hoho', ''])
         canonic_table.append(['-20', 'haha   asdf', 'hioho'])
 
         input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'update a2 = a2 + " hoho", a1 = 100 where int(a1) > 10'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'update a2 = a2 + " hoho", a1 = 100 where parseInt(a1) > 10'
 
-        if TEST_JS:
-            query = r'update a2 = a2 + " hoho", a1 = 100 where parseInt(a1) > 10'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run15(self):
-        test_name = 'test15'
+
+        test_name = 'update_unicode_1'
 
         input_table = list()
         input_table.append(['5', 'Петр Первый', 'hoho'])
@@ -807,22 +795,18 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['50', 'Наполеон', 'dfdf'])
         canonic_table.append(['20', 'Наполеон'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
         query = 'update set a2= "Наполеон" '
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, csv_encoding='utf-8')
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['input_fields_info'], warnings)
+        query_js = 'update  set  a2= "Наполеон" '
 
-        if TEST_JS:
-            query = 'update  set  a2= "Наполеон" '
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, csv_encoding='utf-8')
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['input_fields_info'], warnings)
+        error_msg = None
+        warnings = ['input_fields_info']
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run16(self):
-        test_name = 'test16'
+
+
+        test_name = 'update_with_join_1'
 
         input_table = list()
         input_table.append(['100', 'magic carpet', 'nimbus 3000'])
@@ -833,16 +817,11 @@ class TestEverything(unittest.TestCase):
         input_table.append(['10', 'boat', 'yacht'])
         input_table.append(['200', 'plane', 'boeing 737'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
         join_table = list()
         join_table.append(['bicycle', 'legs'])
         join_table.append(['car', 'gas'])
         join_table.append(['plane', 'wings'])
         join_table.append(['rocket', 'some stuff'])
-
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, input_delim, input_policy)
 
         canonic_table = list()
         canonic_table.append(['100', 'magic carpet', 'nimbus 3000'])
@@ -853,16 +832,14 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['10', 'boat', 'yacht'])
         canonic_table.append(['200', 'plane', 'boeing 737'])
 
-        query = r'update set a2 = "{} ({})".format(a2, b2) inner join ' + join_table_path + ' on a2 == b1 where b2 != "wings"'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query = r'update set a2 = "{} ({})".format(a2, b2) inner join B on a2 == b1 where b2 != "wings"'
+        query_js = r'update set a2 = a2 + " (" + b2 + ")" inner join B on a2 == b1 where b2 != "wings"'
 
-        if TEST_JS:
-            query = r'update set a2 = a2 + " (" + b2 + ")" inner join ' + join_table_path + ' on a2 == b1 where b2 != "wings"'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
+
 
 
     def test_run17(self):
