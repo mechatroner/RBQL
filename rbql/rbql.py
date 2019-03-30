@@ -532,6 +532,7 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
             raise csv_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
 
         if not is_ascii(query) and csv_encoding == 'latin-1':
+            # FIXME add unit test
             raise RbqlParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
 
         user_init_code = ''

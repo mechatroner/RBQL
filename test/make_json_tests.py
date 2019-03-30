@@ -1251,38 +1251,7 @@ class TestEverything(unittest.TestCase):
 
 
 
-    def test_run34(self):
-        test_name = 'test34'
-
-        input_table = list()
-        input_table.append(['5', 'haha', 'hoho'])
-        input_table.append(['-20', 'haha', 'hioho'])
-        input_table.append(['50', 'haha', 'dfdf'])
-        input_table.append(['20', 'haha', 'mmmmm'])
-
-        canonic_table = list()
-        canonic_table.append(['3', '50', '4'])
-        canonic_table.append(['4', '20', '5'])
-
-        input_delim = ' '
-        input_policy = 'whitespace'
-        output_delim = '\t'
-        output_policy = 'simple'
-
-        query = 'select NR, a1, len(a3) where int(a1) > 5'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = 'select NR, a1, a3.length where a1 > 5'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
-
-
-    def test_run35(self):
-        test_name = 'test35'
+        test_name = 'fold_with_grouping'
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1295,25 +1264,20 @@ class TestEverything(unittest.TestCase):
         input_table.append(['car', '8', '100', '100'])
 
         canonic_table = list()
-        canonic_table.append(['1|2|4|7|8', 'car', '5'])
-        canonic_table.append(['3', 'dog', '1'])
-
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table, '\t,;:')
+        canonic_table.append(['1|2|4|7|8', 'car', 5])
+        canonic_table.append(['3', 'dog', 1])
 
         query = r'select FOLD(a2), a1, FOLD(a4, lambda v: len(v)) where a1 == "car" or a1 == "dog" group by a1'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select FOLD(a2), a1, FOLD(a4, v => v.length) where a1 == "car" || a1 == "dog" group by a1'
 
-        if TEST_JS:
-            query = r'select FOLD(a2), a1, FOLD(a4, v => v.length) where a1 == "car" || a1 == "dog" group by a1'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run36(self):
-        test_name = 'test36'
+
+        test_name = 'update_swap'
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1325,63 +1289,39 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['2', 'car', '100', '1'])
         canonic_table.append(['3', 'dog', '100', '2'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
         query = r'update set a1 = a2, a2 = a1'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'update set a1 = a2, a2 = a1'
 
-        if TEST_JS:
-            query = r'update set a1 = a2, a2 = a1'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run37(self):
-        test_name = 'test37'
+
+        test_name = 'unfold_1'
 
         input_table = list()
-        input_table.append(['car', '1'])
-        input_table.append(['car', '2'])
-        input_table.append(['car', '4'])
+        input_table.append(['car', '1|2|4'])
         input_table.append(['dog', '3'])
 
         canonic_table = list()
-        canonic_table.append(['car', '1|2|4'])
+        canonic_table.append(['car', '1'])
+        canonic_table.append(['car', '2'])
+        canonic_table.append(['car', '4'])
         canonic_table.append(['dog', '3'])
 
-        input_delim, input_policy, output_delim, output_policy = ['\t', 'simple', '\t', 'simple']
-
-        # Step 1: FOLD
-        query = r'select a1, FOLD(a2) group by a1'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        # Step 2: UNFOLD back to original
         query = r'select a1, UNFOLD(a2.split("|"))'
-        test_table, warnings = run_conversion_test_py(query, canonic_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(input_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select a1, UNFOLD(a2.split("|"))'
 
-        if TEST_JS:
-            # Step 1: FOLD
-            query = r'select a1, FOLD(a2) group by a1'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
-
-            # Step 2: UNFOLD back to original
-            query = r'select a1, UNFOLD(a2.split("|"))'
-            test_table, warnings = run_conversion_test_js(query, canonic_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(input_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run38(self):
-        test_name = 'test38'
+
+        test_name = 'fold_without_grouping'
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1392,22 +1332,17 @@ class TestEverything(unittest.TestCase):
         canonic_table = list()
         canonic_table.append(['car|car|dog|mouse'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table, '\t,;:')
-
         query = r'select FOLD(a1)'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select FOLD(a1)'
 
-        if TEST_JS:
-            query = r'select FOLD(a1)'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run39(self):
-        test_name = 'test39'
+
+        test_name = 'except_1'
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1420,18 +1355,14 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['dog', '100'])
         canonic_table.append(['car', '100'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select top 3 * except a2, a4 order by a1 desc'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select top 3 * except a2, a4 order by a1 desc'
 
-        if TEST_JS:
-            query = r'select top 3 * except a2, a4 order by a1 desc'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     def test_run40(self):

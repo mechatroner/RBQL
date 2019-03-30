@@ -134,6 +134,7 @@ def smart_split(src, dlm, policy, preserve_quotes):
     if policy == 'simple':
         return (src.split(dlm), False)
     if policy == 'whitespace':
+        # FIXME add unit test
         return (split_whitespace_separated_str(src, preserve_quotes), False)
     if policy == 'monocolumn':
         return ([src], False)
@@ -246,6 +247,7 @@ class CSVWriter:
         elif policy == 'monocolumn':
             self.join_func = self.mono_join
         elif policy == 'whitespace':
+            # FIXME add unit test
             self.join_func = self.simple_join
         else:
             raise RuntimeError('unknown output csv policy')

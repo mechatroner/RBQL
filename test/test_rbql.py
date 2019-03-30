@@ -206,6 +206,7 @@ class TestJsonTables(unittest.TestCase):
 
     def process_test_case(self, test_case):
         test_name = test_case['test_name']
+        #print(test_name)
         query = test_case.get('query_python', None)
         if query is None:
             self.assertTrue(test_case.get('query_js', None) is not None)

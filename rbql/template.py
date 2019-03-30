@@ -493,7 +493,6 @@ def select_aggregated(key, transparent_values):
 
 
 def select_unfolded(sort_key, folded_fields):
-    out_fields = folded_fields[:]
     unfold_pos = None
     for i, trans_value in enumerate(folded_fields):
         if isinstance(trans_value, UNFOLD):
@@ -501,6 +500,7 @@ def select_unfolded(sort_key, folded_fields):
             break
     assert unfold_pos is not None
     for v in unfold_list:
+        out_fields = folded_fields[:]
         out_fields[unfold_pos] = v
         if not select_simple(sort_key, out_fields):
             return False
