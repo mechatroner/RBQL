@@ -291,12 +291,15 @@ def find_top(rb_actions):
     return rb_actions[SELECT].get('top', None)
 
 
-def make_user_init_code(rbql_init_source_path):
-    source_lines = None
-    with open(rbql_init_source_path) as src:
-        source_lines = src.readlines()
+def indent_user_init_code(user_init_code):
+    source_lines = user_init_code.split('\n')
     source_lines = ['    ' + l.rstrip() for l in source_lines]
     return '\n'.join(source_lines) + '\n'
+
+
+def read_user_init_code(rbql_init_source_path):
+    with open(rbql_init_source_path) as src:
+        return src.read()
 
 
 def extract_column_vars(rbql_expression):
@@ -492,6 +495,7 @@ class RbqlPyEnv:
 def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     try:
+        user_init_code = indent_user_init_code(user_init_code)
         python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code)
         if convert_only_dst is not None:
             write_python_module(python_code, convert_only_dst)
@@ -532,9 +536,9 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
 
         user_init_code = ''
         if custom_init_path is not None:
-            user_init_code = make_user_init_code(custom_init_path)
+            user_init_code = read_user_init_code(custom_init_path)
         elif os.path.exists(default_init_source_path):
-            user_init_code = make_user_init_code(default_init_source_path)
+            user_init_code = read_user_init_code(default_init_source_path)
 
         join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
         input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)

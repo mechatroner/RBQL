@@ -572,5 +572,24 @@
         ],
         "query_python": null,
         "query_js": "select NR where a3 === \"hioho\""
+    },
+    {
+        "test_name": "user_init_code_1",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "expected_output_table": [
+            ["5", "haha FOObar", "hoho"],
+            ["-20", "haha FOObar", "hioho"],
+            ["50", "haha FOObar", "dfdf"],
+            ["20", "haha FOObar", ""]
+        ],
+        "python_init_code": "def foobar(val):\n    return val + \" FOObar\"\r\n\n",
+        "js_init_code": "function foobar(val) {\n    return val + \" FOObar\";\r\n}\n",
+        "query_python": "select a1, foobar(a2), a3",
+        "query_js": "select a1, foobar(a2), a3"
     }
 ]

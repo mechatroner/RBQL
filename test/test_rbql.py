@@ -212,6 +212,7 @@ class TestJsonTables(unittest.TestCase):
             return # Skip this test
         input_table = test_case['input_table']
         join_table = test_case.get('join_table', None)
+        user_init_code = test_case.get('python_init_code', '')
         expected_output_table = test_case.get('expected_output_table', None)
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
@@ -219,7 +220,7 @@ class TestJsonTables(unittest.TestCase):
         output_writer = TableWriter()
         join_tables_registry = None if join_table is None else SingleTableTestRegistry(join_table)
 
-        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry)
+        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)

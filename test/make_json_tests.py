@@ -347,7 +347,7 @@ def write_json_table(dst, indent, table_name, table):
     write_json_line(dst, indent, '],')
 
 
-def save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, python_query, js_query):
+def save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, python_query, js_query, user_init_code_py=None, user_init_code_js=None):
     global json_data
     f = io.StringIO()
     if not len(json_data):
@@ -374,6 +374,10 @@ def save_test_as_json(test_name, input_table, join_table, canonic_table, warning
         write_json_line(f, indent, '],')
     if error_msg is not None:
         write_json_line(f, indent, '"expected_error": ' + json.dumps(error_msg, ensure_ascii=False) + ',')
+    if user_init_code_py is not None:
+        write_json_line(f, indent, '"python_init_code": ' + json.dumps(user_init_code_py, ensure_ascii=False) + ',')
+    if user_init_code_js is not None:
+        write_json_line(f, indent, '"js_init_code": ' + json.dumps(user_init_code_js, ensure_ascii=False) + ',')
     write_json_line(f, indent, '"query_python": ' + json.dumps(python_query, ensure_ascii=False) + ',')
     write_json_line(f, indent, '"query_js": ' + json.dumps(js_query, ensure_ascii=False))
     indent -= 1
@@ -1218,9 +1222,8 @@ class TestEverything(unittest.TestCase):
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-
-    def test_run33(self):
-        test_name = 'test33'
+        # FIXME add the same test but without init code. Should return "foobar" is not defined error
+        test_name = 'user_init_code_1'
         input_table = list()
         input_table.append(['5', 'haha', 'hoho'])
         input_table.append(['-20', 'haha', 'hioho'])
@@ -1233,24 +1236,19 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['50', 'haha FOObar', 'dfdf'])
         canonic_table.append(['20', 'haha FOObar', ''])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
-
         query = r'select a1, foobar(a2), a3'
-        with tempfile.NamedTemporaryFile() as init_tmp_file:
-            with open(init_tmp_file.name, 'w') as tf:
-                tf.write('def foobar(val):\n    return val + " FOObar"\r\n\n')
-            test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, custom_init_path=init_tmp_file.name)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query_js = r'select a1, foobar(a2), a3'
 
-        if TEST_JS:
-            with tempfile.NamedTemporaryFile() as init_tmp_file:
-                with open(init_tmp_file.name, 'w') as tf:
-                    tf.write('function foobar(val) {\n    return val + " FOObar";\r\n}\n')
-                query = r'select a1, foobar(a2), a3'
-                test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, custom_init_path=init_tmp_file.name)
-                self.compare_tables(canonic_table, test_table)
-                compare_warnings(self, None, warnings)
+        user_init_code_py = 'def foobar(val):\n    return val + " FOObar"\r\n\n'
+        user_init_code_js = 'function foobar(val) {\n    return val + " FOObar";\r\n}\n'
+
+        error_msg = None
+        warnings = []
+        join_table = None
+
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js, user_init_code_py=user_init_code_py, user_init_code_js=user_init_code_js)
+
+
 
 
     def test_run34(self):
