@@ -219,7 +219,7 @@ class TestJsonTables(unittest.TestCase):
             self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:
             output_table = output_writer.table
-            self.assertEqual(expected_output_table, output_table, 'Inside json test: {}'.format(test_name))
+            self.assertEqual(expected_output_table, output_table)
 
 
     def test_json_tables(self):

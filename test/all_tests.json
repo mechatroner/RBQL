@@ -322,5 +322,95 @@
         ],
         "query_python": "update set a2 = \"{} ({})\".format(a2, b2) inner join B on a2 == b1 where b2 != \"wings\"",
         "query_js": "update set a2 = a2 + \" (\" + b2 + \")\" inner join B on a2 == b1 where b2 != \"wings\""
+    },
+    {
+        "test_name": "distinct_count",
+        "input_table": [
+            ["cde", "1234"],
+            ["abc", "1234"],
+            ["abc", "1234"],
+            ["efg", "100"],
+            ["abc", "100"],
+            ["cde", "12999"],
+            ["aaa", "2000"],
+            ["abc", "100"]
+        ],
+        "expected_output_table": [
+            [2, "cde"],
+            [4, "abc"],
+            [1, "efg"],
+            [1, "aaa"]
+        ],
+        "query_python": "select distinct count a1 where int(a2) > 10",
+        "query_js": "select distinct count a1 where parseInt(a2) > 10"
+    },
+    {
+        "test_name": "distinct_count_order_asc_limit",
+        "input_table": [
+            ["cde", "1234"],
+            ["abc", "1234"],
+            ["abc", "1234"],
+            ["efg", "100"],
+            ["abc", "100"],
+            ["cde", "12999"],
+            ["aaa", "2000"],
+            ["abc", "100"]
+        ],
+        "expected_output_table": [
+            [1, "efg"],
+            [4, "abc"]
+        ],
+        "query_python": "select distinct count a1 where int(a2) > 10 order by int(a2) asc limit   2  ",
+        "query_js": "select distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc limit 2"
+    },
+    {
+        "test_name": "update_left_join",
+        "input_table": [
+            ["100", "magic carpet", "nimbus 3000"],
+            ["5", "car", "lada"],
+            ["-20", "car", "ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht"],
+            ["200", "plane", "boeing 737"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas"],
+            ["plane", "wings"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            ["100", "magic carpet", null],
+            ["5", "car", "gas"],
+            ["-20", "car", "gas"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", null],
+            ["10", "boat", null],
+            ["200", "plane", "boeing 737"]
+        ],
+        "query_python": "update set a3 = b2 left join B on a2 == b1 where b2 != \"wings\"",
+        "query_js": "update set a3 = b2 left join B on a2 == b1 where b2 != \"wings\""
+    },
+    {
+        "test_name": "single_column",
+        "input_table": [
+            ["cde"],
+            ["abc"],
+            ["abc"],
+            ["efg"],
+            ["abc"],
+            ["cde"],
+            ["aaa"],
+            ["abc"]
+        ],
+        "expected_output_table": [
+            ["cde"],
+            ["abc"],
+            ["efg"],
+            ["aaa"]
+        ],
+        "query_python": "select distinct a1",
+        "query_js": "select distinct a1"
     }
 ]

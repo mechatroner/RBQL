@@ -841,8 +841,7 @@ class TestEverything(unittest.TestCase):
 
 
 
-    def test_run17(self):
-        test_name = 'test17'
+        test_name = 'distinct_count'
 
         input_table = list()
         input_table.append(['cde', '1234'])
@@ -855,58 +854,55 @@ class TestEverything(unittest.TestCase):
         input_table.append(['abc', '100'])
 
         canonic_table = list()
-        canonic_table.append(['2', 'cde'])
-        canonic_table.append(['4', 'abc'])
-        canonic_table.append(['1', 'efg'])
-        canonic_table.append(['1', 'aaa'])
+        canonic_table.append([2, 'cde'])
+        canonic_table.append([4, 'abc'])
+        canonic_table.append([1, 'efg'])
+        canonic_table.append([1, 'aaa'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select distinct count a1 where int(a2) > 10'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select distinct count a1 where parseInt(a2) > 10'
 
-        if TEST_JS:
-            query = r'select distinct count a1 where parseInt(a2) > 10'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run18(self):
-        test_name = 'test18'
 
-        input_table = list()
-        input_table.append(['\xef\xbb\xbfcde', '1234'])
-        input_table.append(['abc', '1234'])
-        input_table.append(['abc', '1234'])
-        input_table.append(['efg', '100'])
-        input_table.append(['abc', '100'])
-        input_table.append(['cde', '12999'])
-        input_table.append(['aaa', '2000'])
-        input_table.append(['abc', '100'])
+        #test_name = 'test18'
+        #
+        #input_table = list()
+        #input_table.append(['\xef\xbb\xbfcde', '1234'])
+        #input_table.append(['abc', '1234'])
+        #input_table.append(['abc', '1234'])
+        #input_table.append(['efg', '100'])
+        #input_table.append(['abc', '100'])
+        #input_table.append(['cde', '12999'])
+        #input_table.append(['aaa', '2000'])
+        #input_table.append(['abc', '100'])
+        #
+        #canonic_table = list()
+        #canonic_table.append(['1', 'efg'])
+        #canonic_table.append(['4', 'abc'])
+        #
+        #input_delim, input_policy, output_delim, output_policy = ['\t', 'simple', '\t', 'simple']
+        #
+        #query = r'select top 2 distinct count a1 where int(a2) > 10 order by int(a2) asc'
+        #test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        #self.compare_tables(canonic_table, test_table)
+        #compare_warnings(self, ['utf8_bom_removed'], warnings)
+        #
+        #if TEST_JS:
+        #    query = r'select top 2 distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc'
+        #    test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
+        #    self.compare_tables(canonic_table, test_table)
+        #    compare_warnings(self, ['utf8_bom_removed'], warnings)
 
-        canonic_table = list()
-        canonic_table.append(['1', 'efg'])
-        canonic_table.append(['4', 'abc'])
-
-        input_delim, input_policy, output_delim, output_policy = ['\t', 'simple', '\t', 'simple']
-
-        query = r'select top 2 distinct count a1 where int(a2) > 10 order by int(a2) asc'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['utf8_bom_removed'], warnings)
-
-        if TEST_JS:
-            query = r'select top 2 distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['utf8_bom_removed'], warnings)
 
 
-    def test_run18b(self):
-        test_name = 'test18b'
+
+        test_name = 'distinct_count_order_asc_limit'
 
         input_table = list()
         input_table.append(['cde', '1234'])
@@ -919,25 +915,20 @@ class TestEverything(unittest.TestCase):
         input_table.append(['abc', '100'])
 
         canonic_table = list()
-        canonic_table.append(['1', 'efg'])
-        canonic_table.append(['4', 'abc'])
-
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        canonic_table.append([1, 'efg'])
+        canonic_table.append([4, 'abc'])
 
         query = r'select distinct count a1 where int(a2) > 10 order by int(a2) asc limit   2  '
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc limit 2'
 
-        if TEST_JS:
-            query = r'select distinct count a1 where parseInt(a2) > 10 order by parseInt(a2) asc limit 2'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run20(self):
-        test_name = 'test20'
+
+        test_name = 'update_left_join'
 
         input_table = list()
         input_table.append(['100', 'magic carpet', 'nimbus 3000'])
@@ -948,40 +939,32 @@ class TestEverything(unittest.TestCase):
         input_table.append(['10', 'boat', 'yacht'])
         input_table.append(['200', 'plane', 'boeing 737'])
 
-        input_delim, input_policy, output_delim, output_policy = ['\t', 'simple', '\t', 'simple']
 
         join_table = list()
-        join_table.append(['\xef\xbb\xbfbicycle', 'legs'])
+        join_table.append(['bicycle', 'legs'])
         join_table.append(['car', 'gas'])
         join_table.append(['plane', 'wings'])
         join_table.append(['rocket', 'some stuff'])
 
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, input_delim, input_policy)
-
         canonic_table = list()
-        canonic_table.append(['100', 'magic carpet', ''])
+        canonic_table.append(['100', 'magic carpet', None])
         canonic_table.append(['5', 'car', 'gas'])
         canonic_table.append(['-20', 'car', 'gas'])
         canonic_table.append(['50', 'plane', 'tu-134'])
-        canonic_table.append(['20', 'boat', ''])
-        canonic_table.append(['10', 'boat', ''])
+        canonic_table.append(['20', 'boat', None])
+        canonic_table.append(['10', 'boat', None])
         canonic_table.append(['200', 'plane', 'boeing 737'])
 
         query = r'update set a3 = b2 left join ' + join_table_path + ' on a2 == b1 where b2 != "wings"'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['utf8_bom_removed', 'null_value_in_output'], warnings)
+        query_js = r'update set a3 = b2 left join ' + join_table_path + ' on a2 == b1 where b2 != "wings"'
 
-        if TEST_JS:
-            query = r'update set a3 = b2 left join ' + join_table_path + ' on a2 == b1 where b2 != "wings"'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['utf8_bom_removed', 'null_value_in_output'], warnings)
+        error_msg = None
+        warnings = []
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run21(self):
-        test_name = 'test21'
+
+        test_name = 'single_column'
 
         input_table = list()
         input_table.append(['cde'])
@@ -999,21 +982,15 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['efg'])
         canonic_table.append(['aaa'])
 
-        input_delim = ''
-        input_policy = 'monocolumn'
-        output_delim = '\t'
-        output_policy = 'simple'
 
         query = r'select distinct a1'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = r'select distinct a1'
 
-        if TEST_JS:
-            query = r'select distinct a1'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
+
 
 
     def test_run22(self):
