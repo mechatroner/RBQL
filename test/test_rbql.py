@@ -194,8 +194,27 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(expected_dst, test_dst)
 
 
+def has_numeric_type(value):
+    return isinstance(value, float) or isinstance(value, int)
+
 
 class TestJsonTables(unittest.TestCase):
+
+    def compare_tables(self, test_name, expected_output_table, output_table):
+        self.assertEqual(len(expected_output_table), len(output_table), 'Inside json test: {}'.format(test_name))
+        for r in range(len(expected_output_table)):
+            self.assertEqual(len(expected_output_table[r]), len(output_table[r]), 'Inside json test: {}, Row: {}'.format(test_name, r))
+            for c in range(len(expected_output_table[r])):
+                expected_value = expected_output_table[r][c]
+                actual_value = output_table[r][c]
+                #self.assertEqual(expected_value, actual_value)
+                if (isinstance(expected_value, float) and has_numeric_type(actual_value)) or (has_numeric_type(expected_value) and isinstance(actual_value, float)):
+                    #self.assertAlmostEqual(expected_value, actual_value, 'Inside json test: {}, Row: {}, Column: {}, Expected: {}, Actual: {}'.format(test_name, r, c, repr(expected_value), repr(actual_value)))
+                    self.assertAlmostEqual(expected_value, actual_value)
+                else:
+                    self.assertEqual(expected_value, actual_value, 'Inside json test: {}, Row: {}, Column: {}, Expected: {}, Actual: {}'.format(test_name, r, c, repr(expected_value), repr(actual_value)))
+
+
 
     def process_test_case(self, test_case):
         test_name = test_case['test_name']
@@ -219,7 +238,8 @@ class TestJsonTables(unittest.TestCase):
             self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:
             output_table = output_writer.table
-            self.assertEqual(expected_output_table, output_table)
+            self.compare_tables(test_name, expected_output_table, output_table)
+            #self.assertEqual(expected_output_table, output_table)
 
 
     def test_json_tables(self):

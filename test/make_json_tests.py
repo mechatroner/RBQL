@@ -993,8 +993,7 @@ class TestEverything(unittest.TestCase):
 
 
 
-    def test_run22(self):
-        test_name = 'test22'
+        test_name = 'single_column_join_table'
 
         input_table = list()
         input_table.append(['100', 'magic carpet', 'nimbus 3000'])
@@ -1005,7 +1004,6 @@ class TestEverything(unittest.TestCase):
         input_table.append(['10', 'boat', 'yacht'])
         input_table.append(['200', 'plane', 'boeing 737'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         join_table = list()
         join_table.append(['bicycle'])
@@ -1013,32 +1011,22 @@ class TestEverything(unittest.TestCase):
         join_table.append(['plane'])
         join_table.append(['rocket'])
 
-        join_delim = ''
-        join_policy = 'monocolumn'
-        join_table_path = os.path.join(tempfile.gettempdir(), '{}_rhs_join_table.tsv'.format(test_name))
-        table_to_file(join_table, join_table_path, join_delim, join_policy)
-        update_index(rbql.table_index_path, [join_table_path, join_delim, join_policy, ''], 100)
-
         canonic_table = list()
         canonic_table.append(['5', 'car', 'lada'])
         canonic_table.append(['-20', 'car', 'ferrari'])
         canonic_table.append(['50', 'plane', 'tu-134'])
         canonic_table.append(['200', 'plane', 'boeing 737'])
 
-        query = r'select a1,a2,a3 left join ' + join_table_path + ' on a2 == b1 where b1 is not None'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query = r'select a1,a2,a3 left join B on a2 == b1 where b1 is not None'
+        query_js = r'select a1,a2,a3 left join B on a2 == b1 where b1 != null'
 
-        if TEST_JS:
-            query = r'select a1,a2,a3 left join ' + join_table_path + ' on a2 == b1 where b1 != null'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        error_msg = None
+        warnings = []
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run23(self):
-        test_name = 'test23'
+
+        test_name = 'aggregate_funcs_without_group_by'
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1051,24 +1039,19 @@ class TestEverything(unittest.TestCase):
         input_table.append(['car', '8', '100', '100'])
 
         canonic_table = list()
-        canonic_table.append(['100', '10', '8', '8', '8', '8', '800', '4.5', '5.25', '2.5'])
+        canonic_table.append(['100', 10, 8, 8, 8, 8, 800, 4.5, 5.25, 2.5])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select a3, MIN(int(a2) * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4)'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'select a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4)'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query_js = r'select a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4)'
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run24(self):
-        test_name = 'test24'
+
+        test_name = 'aggregate_funcs_with_group_by'
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1081,26 +1064,21 @@ class TestEverything(unittest.TestCase):
         input_table.append(['car', '8', '100', '100'])
 
         canonic_table = list()
-        canonic_table.append(['car', '100', '10', '8', '5', '5', '5', '500', '4.4', '7.44', '2'])
-        canonic_table.append(['cat', '100', '50', '6', '2', '2', '2', '200', '5.5', '0.25', '3'])
-        canonic_table.append(['dog', '100', '30', '3', '1', '1', '1', '100', '3.0', '0.0', '2'])
+        canonic_table.append(['car', '100', 10, 8, 5, 5, 5, 500, 4.4, 7.44, 2])
+        canonic_table.append(['cat', '100', 50, 6, 2, 2, 2, 200, 5.5, 0.25, 3])
+        canonic_table.append(['dog', '100', 30, 3, 1, 1, 1, 100, 3.0, 0.0, 2])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select a1, a3, MIN(int(a2) * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query_js = r'select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1'
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run25(self):
-        test_name = 'test25'
+
+        test_name = 'aggregate_funcs_with_group_by_and_where'
 
         input_table = list()
         input_table.append(['car', '1', '100', '1'])
@@ -1113,57 +1091,20 @@ class TestEverything(unittest.TestCase):
         input_table.append(['car', '8', '100', '100'])
 
         canonic_table = list()
-        canonic_table.append(['car', '100', '10', '8', '5', '5', '5', '500', '4.4', '7.44', '2'])
-        canonic_table.append(['dog', '100', '30', '3', '1', '1', '1', '100', '3.0', '0.0', '2'])
+        canonic_table.append(['car', '100', 10, 8, 5, 5, 5, 500, 4.4, 7.44, 2])
+        canonic_table.append(['dog', '100', 30, 3, 1, 1, 1, 100, 3.0, 0.0, 2])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'select a1, a3, MIN(int(a2) * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) where a1 != "cat" group by a1'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) where a1 != "cat" group by a1'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query_js = r'select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) where a1 != "cat" group by a1'
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run26(self):
-        test_name = 'test26'
 
-        input_table = list()
-        input_table.append(['5', 'haha', 'hoho'])
-        input_table.append(['-20', 'haha', 'hioho'])
-        input_table.append(['50', 'haha', 'dfdf'])
-        input_table.append(['20', 'haha', ''])
-
-        canonic_table = list()
-        canonic_table.append(['haha;', '5'])
-        canonic_table.append(['haha', '', '-20'])
-        canonic_table.append(['haha;', '50'])
-        canonic_table.append(['haha', '', '20'])
-
-        input_delim = ','
-        input_policy = 'simple'
-        output_delim = ','
-        output_policy = 'simple'
-
-        query = 'select a2 + "," if NR % 2 == 0 else a2 + ";", a1'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['delim_in_simple_output'], warnings)
-
-        if TEST_JS:
-            query = 'select NR % 2 == 0 ? a2 + "," : a2 + ";", a1'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['delim_in_simple_output'], warnings)
-
-
-    def test_run27(self):
-        test_name = 'test27'
+        test_name = 'test_NU_variable'
 
         input_table = list()
         input_table.append(['5', 'haha   asdf', 'hoho'])
@@ -1174,27 +1115,23 @@ class TestEverything(unittest.TestCase):
 
         canonic_table = list()
         canonic_table.append(['5', 'haha   asdf', 'hoho'])
-        canonic_table.append(['100', 'haha  asdf 1', 'dfdf'])
-        canonic_table.append(['100', 'haha    asdf 2', ''])
+        canonic_table.append([100, 'haha  asdf 1', 'dfdf'])
+        canonic_table.append([100, 'haha    asdf 2', ''])
         canonic_table.append(['-20', 'haha   asdf', 'hioho'])
-        canonic_table.append(['100', 'lol 3', 'hioho'])
+        canonic_table.append([100, 'lol 3', 'hioho'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
         query = r'update a2 = "{} {}".format(a2, NU) , a1 = 100 where int(a1) > 10'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = r'update a2 = a2 + " " + NU, a1 = 100 where parseInt(a1) > 10'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query_js = r'update a2 = a2 + " " + NU, a1 = 100 where parseInt(a1) > 10'
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run28(self):
-        test_name = 'test28'
+
+
+        test_name = 'single_column_to_multiple_columns'
 
         input_table = list()
         input_table.append(['cde'])
@@ -1203,33 +1140,22 @@ class TestEverything(unittest.TestCase):
         input_table.append(['efg'])
 
         canonic_table = list()
-        canonic_table.append(['cde,cde2'])
-        canonic_table.append(['abc,abc2'])
-        canonic_table.append(['"a,bc","a,bc2"'])
-        canonic_table.append(['efg,efg2'])
-
-        input_delim = ''
-        input_policy = 'monocolumn'
-        output_delim = ''
-        output_policy = 'monocolumn'
+        canonic_table.append(['cde', 'cde2'])
+        canonic_table.append(['abc', 'abc2'])
+        canonic_table.append(['a,bc', 'a,bc2'])
+        canonic_table.append(['efg', 'efg2'])
 
         query = r'select a1, a1 + "2"'
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, ['output_switch_to_csv'], warnings)
-
-        if TEST_JS:
-            query = r'select a1, a1 + "2"'
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, ['output_switch_to_csv'], warnings)
+        query_js = r'select a1, a1 + "2"'
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run29(self):
-        test_name = 'test29'
-        if not TEST_JS:
-            # JS inerpolation test
-            return
+
+
+        test_name = 'js_interpolation_test'
 
         input_table = list()
         input_table.append(['cde', 'hello'])
@@ -1241,12 +1167,14 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['mv abc world2 --opt1 --opt2'])
         canonic_table.append(['mv abc stack3 --opt1 --opt2'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
 
-        query = r'select `mv ${a1} ${a2 + NR} --opt1 --opt2`'
-        test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query = r'select "mv {} {} --opt1 --opt2".format(a1, a2 + str(NR))'
+        query_js = r'select `mv ${a1} ${a2 + NR} --opt1 --opt2`'
+        error_msg = None
+        warnings = []
+        join_table = None
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
+
 
 
     def test_run30(self):

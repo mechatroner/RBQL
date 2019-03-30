@@ -260,6 +260,7 @@ class CSVWriter:
 
     def mono_join(self, fields):
         if len(fields) > 1:
+            # FIXME add unit test
             raise RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
         return fields[0]
 
@@ -304,8 +305,10 @@ class CSVWriter:
     def get_warnings(self):
         result = list()
         if self.none_in_output:
+            # FIXME add unit test for this
             result.append('None values in output were replaced by empty strings')
         if self.delim_in_simple_output:
+            # FIXME add unit test for this
             result.append('Some output fields contain separator')
         return result
 
