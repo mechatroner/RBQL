@@ -338,7 +338,7 @@ def write_json_table(dst, indent, table_name, table):
     write_json_line(dst, indent, '"{}": ['.format(table_name))
     indent += 1
     for i in range(len(table)):
-        out_line = '    ' * indent + json.dumps(table[i])
+        out_line = '    ' * indent + json.dumps(table[i], ensure_ascii=False)
         if i + 1 < len(table):
             out_line += ','
         out_line += '\n'
@@ -357,7 +357,7 @@ def save_test_as_json(test_name, input_table, join_table, canonic_table, warning
     indent = 1
     write_json_line(f, indent, '{')
     indent += 1
-    write_json_line(f, indent, '"test_name": ' + json.dumps(test_name) + ',')
+    write_json_line(f, indent, '"test_name": ' + json.dumps(test_name, ensure_ascii=False) + ',')
     write_json_table(f, indent, 'input_table', input_table)
     if join_table:
         write_json_table(f, indent, 'join_table', join_table)
@@ -367,15 +367,15 @@ def save_test_as_json(test_name, input_table, join_table, canonic_table, warning
         normalized_warnings = normalize_warnings(warnings)
         write_json_line(f, indent, '"expected_warnings": [')
         for i in range(len(normalized_warnings)):
-            out_line = json.dumps(normalized_warnings[i])
+            out_line = json.dumps(normalized_warnings[i], ensure_ascii=False)
             if i + 1 < len(normalized_warnings):
                 out_line += ','
             write_json_line(f, indent + 1, out_line)
         write_json_line(f, indent, '],')
     if error_msg is not None:
-        write_json_line(f, indent, '"expected_error": ' + json.dumps(error_msg) + ',')
-    write_json_line(f, indent, '"query_python": ' + json.dumps(python_query) + ',')
-    write_json_line(f, indent, '"query_js": ' + json.dumps(js_query))
+        write_json_line(f, indent, '"expected_error": ' + json.dumps(error_msg, ensure_ascii=False) + ',')
+    write_json_line(f, indent, '"query_python": ' + json.dumps(python_query, ensure_ascii=False) + ',')
+    write_json_line(f, indent, '"query_js": ' + json.dumps(js_query, ensure_ascii=False))
     indent -= 1
     write_json_line(f, indent, '}', add_newline=False)
     json_data += f.getvalue()
@@ -390,6 +390,13 @@ class TestEverything(unittest.TestCase):
         for name in old_unused:
             script_path = os.path.join(tmp_dir, name)
             os.remove(script_path)
+
+    @classmethod
+    def tearDownClass(cls):
+        global json_data
+        json_data += '\n]\n'
+        with codecs.open('all_tests.json', 'w', encoding='utf-8') as f:
+            f.write(json_data)
 
 
     def compare_tables(self, canonic_table, test_table):
@@ -641,15 +648,9 @@ class TestEverything(unittest.TestCase):
         warnings = []
         save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
-        global json_data
-        json_data += '\n]\n'
-        with open('all_tests.json', 'w') as f:
-            f.write(json_data)
 
 
-
-    def test_run10(self):
-        test_name = 'test10'
+        test_name = 'test_OR'
 
         input_table = list()
         input_table.append(['5', 'haha', 'hoho'])
@@ -661,22 +662,16 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['5', 'haha', 'hoho'])
         canonic_table.append(['50', 'haha', 'dfdf'])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        error_msg = None
+        warnings = []
 
         query = 'select * where a3 =="hoho" or int(a1)==50 or a1 == "aaaa" or a2== "bbbbb" '
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
-
-        if TEST_JS:
-            query = 'select * where a3 =="hoho" || parseInt(a1)==50 || a1 == "aaaa" || a2== "bbbbb" '
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy)
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        query_js = 'select * where a3 =="hoho" || parseInt(a1)==50 || a1 == "aaaa" || a2== "bbbbb" '
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
-    def test_run11(self):
-        test_name = 'test11'
+
+        test_name = 'test_unicode_1'
 
         input_table = list()
         input_table.append(['5', 'Петр Первый', 'hoho'])
@@ -688,18 +683,13 @@ class TestEverything(unittest.TestCase):
         canonic_table.append(['50', 'Наполеон', 'dfdf'])
         canonic_table.append(['20', 'Наполеон', ''])
 
-        input_delim, input_policy, output_delim, output_policy = select_random_formats(input_table)
+        error_msg = None
+        warnings = []
 
         query = 'select * where a2== "Наполеон" '
-        test_table, warnings = run_conversion_test_py(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, csv_encoding='utf-8')
-        self.compare_tables(canonic_table, test_table)
-        compare_warnings(self, None, warnings)
+        query_js = 'select * where a2== "Наполеон" '
 
-        if TEST_JS:
-            query = 'select * where a2== "Наполеон" '
-            test_table, warnings = run_conversion_test_js(query, input_table, test_name, input_delim, input_policy, output_delim, output_policy, csv_encoding='utf-8')
-            self.compare_tables(canonic_table, test_table)
-            compare_warnings(self, None, warnings)
+        save_test_as_json(test_name, input_table, join_table, canonic_table, warnings, error_msg, query, query_js)
 
 
     def test_run12(self):

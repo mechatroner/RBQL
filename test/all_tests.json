@@ -176,5 +176,47 @@
         ],
         "query_python": "select len(b1), a2 strict left join B on a2 == b1",
         "query_js": "select b1.length,  a2 strict left join B on a2 == b1"
+    },
+    {
+        "test_name": "test_OR",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas"],
+            ["plane", "wings"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            ["5", "haha", "hoho"],
+            ["50", "haha", "dfdf"]
+        ],
+        "query_python": "select * where a3 ==\"hoho\" or int(a1)==50 or a1 == \"aaaa\" or a2== \"bbbbb\" ",
+        "query_js": "select * where a3 ==\"hoho\" || parseInt(a1)==50 || a1 == \"aaaa\" || a2== \"bbbbb\" "
+    },
+    {
+        "test_name": "test_unicode_1",
+        "input_table": [
+            ["5", "Петр Первый", "hoho"],
+            ["-20", "Екатерина Великая", "hioho"],
+            ["50", "Наполеон", "dfdf"],
+            ["20", "Наполеон", ""]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas"],
+            ["plane", "wings"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            ["50", "Наполеон", "dfdf"],
+            ["20", "Наполеон", ""]
+        ],
+        "query_python": "select * where a2== \"Наполеон\" ",
+        "query_js": "select * where a2== \"Наполеон\" "
     }
 ]
