@@ -17,6 +17,18 @@ def write_json_line(dst, indent, line, add_newline=True):
     dst.write(out_line)
 
 
+def normalize_warnings(warnings):
+    result = []
+    for warning in warnings:
+        if warning == 'input_fields_info':
+            result.append('inconsistent input records')
+        #elif warning == 'null_value_in_output':
+        #    result.append('NULL in output')
+        else:
+            assert False, 'unknown warning'
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser()
     #parser.add_argument('--verbose', action='store_true', help='Run in verbose mode')
@@ -56,6 +68,7 @@ def main():
                     warnings = [warnings]
                 else:
                     warnings = []
+                warnings = normalize_warnings(warnings)
                 expected_error = data_cur.get('canonic_error_msg', None)
                 if delim == 'TAB':
                     delim = '\t'
@@ -69,6 +82,16 @@ def main():
                     write_json_line(dst, indent, '"expected_output_table_path": ' + json.dumps(expected_output_table_path) + ',')
                 else:
                     write_json_line(dst, indent, '"expected_error": ' + json.dumps(expected_error) + ',')
+
+                if len(warnings):
+                    write_json_line(dst, indent, '"expected_warnings": [')
+                    for i in range(len(warnings)):
+                        out_line = json.dumps(warnings[i], ensure_ascii=False)
+                        if i + 1 < len(warnings):
+                            out_line += ','
+                        write_json_line(dst, indent + 1, out_line)
+                    write_json_line(dst, indent, '],')
+
                 write_json_line(dst, indent, '"csv_separator": ' + json.dumps(delim) + ',')
                 write_json_line(dst, indent, '"csv_policy": ' + json.dumps(policy) + ',')
                 write_json_line(dst, indent, '"csv_encoding": ' + json.dumps(encoding) + ',')
