@@ -29,6 +29,8 @@ from collections import defaultdict
 
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 
+# TODO Find a way to split this module into rbql.py and rbql_csv.py
+# Now it is only RbqlPyEnv that prevents such separation
 
 __version__ = '0.5.0'
 
@@ -45,16 +47,6 @@ WHERE = 'WHERE'
 LIMIT = 'LIMIT'
 EXCEPT = 'EXCEPT'
 
-
-default_csv_encoding = 'latin-1'
-
-rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
-user_home_dir = os.path.expanduser('~')
-table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
-table_index_path = os.path.join(user_home_dir, '.rbql_table_index')
-default_init_source_path = os.path.join(user_home_dir, '.rbql_init_source.py')
-
-py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8').read()
 
 
 class RbqlRutimeError(Exception):
@@ -441,6 +433,8 @@ def parse_to_py(query, join_tables_registry, user_init_code):
         py_meta_params['__RBQLMP__reverse_flag'] = 'False'
         py_meta_params['__RBQLMP__sort_flag'] = 'False'
 
+    rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
+    py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8').read()
     python_code = rbql_meta_format(py_script_body, py_meta_params)
     return (python_code, join_map)
 
@@ -466,7 +460,6 @@ class RbqlPyEnv:
         module_filename = '{}.py'.format(self.module_name)
         self.module_path = os.path.join(self.env_dir, module_filename)
         os.mkdir(self.env_dir)
-        shutil.copy(os.path.join(rbql_home_dir, 'csv_utils.py'), self.env_dir)
         return self
 
     def import_worker(self):
@@ -536,6 +529,7 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
             raise RbqlParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
 
         user_init_code = ''
+        default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if custom_init_path is not None:
             user_init_code = read_user_init_code(custom_init_path)
         elif os.path.exists(default_init_source_path):

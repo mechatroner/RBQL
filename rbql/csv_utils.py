@@ -9,6 +9,7 @@ import codecs
 
 PY3 = sys.version_info[0] == 3
 
+default_csv_encoding = 'latin-1'
 
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
