@@ -401,7 +401,24 @@ class TestRBQLWithCSV(unittest.TestCase):
 
     def process_test_case(self, test):
         test_name = test_case['test_name']
-        query = test_case.get('query_python', None)
+        query = test_case.get('query_python')
+        query_js = test_case.get('query_js')
+        input_table_path = test_case['input_table_path']
+        expected_output_table_path = test_case.get('expected_output_table_path')
+        expected_error = test_case.get('expected_error', None)
+        expected_warnings = test_case.get('expected_warnings', [])
+        delim = test_case['csv_separator']
+        policy = test_case['csv_policy']
+        encoding = test_case['csv_encoding']
+
+        input_iterator = TableIterator(input_table)
+        output_writer = TableWriter()
+        join_tables_registry = None if join_table is None else SingleTableTestRegistry(join_table)
+
+        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
+        warnings = sorted(normalize_warnings(warnings))
+        expected_warnings = sorted(expected_warnings)
+
 
     def test_json_scenarios(self):
         tests_file = os.path.join(script_dir, 'csv_unit_tests.json')
