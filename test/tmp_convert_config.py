@@ -45,6 +45,8 @@ def main():
                 assert data_cur['backend_language'] == 'js'
                 input_table_path = data_cur['src_table'] 
                 expected_output_table_path = data_cur['canonic_table'] 
+                input_table_path = os.path.join('csv_files', os.path.basename(input_table_path))
+                expected_output_table_path = os.path.join('csv_files', os.path.basename(expected_output_table_path))
                 query_python = data_before['query']
                 query_js = data_cur['query']
                 delim = data_before.get('delim', '\t')
@@ -61,7 +63,17 @@ def main():
                 encoding = data_before.get('encoding', 'latin-1')
                 dst.write('    {\n')
                 indent = 2
-                write_json_line(dst, indent, '"test_name": ' + json.dumps('test_{}'.format(il / 2 + 1), ensure_ascii=False) + ',')
+                write_json_line(dst, indent, '"test_name": ' + json.dumps('test_{}'.format(il / 2 + 1)) + ',')
+                write_json_line(dst, indent, '"input_table_path": ' + json.dumps(input_table_path) + ',')
+                if expected_error is None:
+                    write_json_line(dst, indent, '"expected_output_table_path": ' + json.dumps(expected_output_table_path) + ',')
+                else:
+                    write_json_line(dst, indent, '"expected_error": ' + json.dumps(expected_error) + ',')
+                write_json_line(dst, indent, '"csv_separator": ' + json.dumps(delim) + ',')
+                write_json_line(dst, indent, '"csv_policy": ' + json.dumps(policy) + ',')
+                write_json_line(dst, indent, '"csv_encoding": ' + json.dumps(encoding) + ',')
+                write_json_line(dst, indent, '"query_python": ' + json.dumps(query_python, ensure_ascii=False) + ',')
+                write_json_line(dst, indent, '"query_js": ' + json.dumps(query_js, ensure_ascii=False))
                 dst.write('    }')
                 if il + 1 < len(lines):
                     dst.write(',')
