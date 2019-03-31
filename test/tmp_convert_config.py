@@ -43,6 +43,22 @@ def main():
                 assert data_cur['src_table'] == data_before['src_table']
                 assert data_cur['canonic_table'] == data_before['canonic_table']
                 assert data_cur['backend_language'] == 'js'
+                input_table_path = data_cur['src_table'] 
+                expected_output_table_path = data_cur['canonic_table'] 
+                query_python = data_before['query']
+                query_js = data_cur['query']
+                delim = data_before.get('delim', '\t')
+                out_format = data_cur.get('out_format', 'input')
+                warnings = data_cur.get('warnings', None)
+                if warnings is not None:
+                    warnings = [warnings]
+                else:
+                    warnings = []
+                expected_error = data_cur.get('canonic_error_msg', None)
+                if delim == 'TAB':
+                    delim = '\t'
+                policy = 'quoted' if delim in [';', ','] else 'simple'
+                encoding = data_before.get('encoding', 'latin-1')
                 dst.write('    {\n')
                 indent = 2
                 write_json_line(dst, indent, '"test_name": ' + json.dumps('test_{}'.format(il / 2 + 1), ensure_ascii=False) + ',')
