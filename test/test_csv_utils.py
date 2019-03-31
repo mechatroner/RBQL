@@ -23,13 +23,13 @@ from rbql import csv_utils
 
 PY3 = sys.version_info[0] == 3
 
-# TODO separate csv_utils testing and rbql testing
-
 # FIXME add tests for all CSVRecordIterator warning types
 
 # FIXME replace "canonic" with "expected"
 
 # FIXME split on 2 files, rename, and put them into "test" module/directory, see https://stackoverflow.com/questions/1896918/running-unittest-with-typical-test-directory-structure
+
+# FIXME add test with multiple warnings
 
 ########################################################################################################
 # Below are some generic functions
@@ -395,4 +395,18 @@ class TestRecordIterator(unittest.TestCase):
             parsed_table = record_iterator._get_all_records()
         e = cm.exception
         self.assertTrue(str(e).find('Unable to decode input table as UTF-8') != -1)
+
+
+class TestRBQLWithCSV(unittest.TestCase):
+
+    def process_test_case(self, test):
+        test_name = test_case['test_name']
+        query = test_case.get('query_python', None)
+
+    def test_json_scenarios(self):
+        tests_file = os.path.join(script_dir, 'csv_unit_tests.json')
+        with open(tests_file) as f:
+            tests = json.loads(f.read())
+            for test in tests:
+                self.process_test_case(test)
 
