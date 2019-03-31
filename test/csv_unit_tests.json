@@ -1,0 +1,175 @@
+[
+    {
+        "test_name": "test_1",
+        "input_table_path": "csv_files/movies.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_1.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select a1, a2, a4, a8 where int(a8) == 142 order by int(a4) desc",
+        "query_js": "select a1, a2, a4, a8 where a8 * 1.0 == 142 order by parseInt(a4) desc"
+    },
+    {
+        "test_name": "test_2",
+        "input_table_path": "csv_files/movies.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_2.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select   DISTINCT a3 where int(a4) < 1960 ORDER    BY a3",
+        "query_js": "select   DISTINCT a3 where a4 < 1960 ORDER     BY a3"
+    },
+    {
+        "test_name": "test_3",
+        "input_table_path": "csv_files/movies.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_3.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "utf-8",
+        "query_python": "select * where a5 == 'Alejandro G. Iñárritu' order by len(a1)",
+        "query_js": "select * where a5 == 'Alejandro G. Iñárritu' order by a1.length"
+    },
+    {
+        "test_name": "test_4",
+        "input_table_path": "csv_files/movies.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_4.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select a1,a2,a7,b2,b3,b4 left join   ../test_datasets/countries.tsv  on  a2  ==   b1  where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010",
+        "query_js": "select a1,a2,a7,b2,b3,b4 left join   ../test_datasets/countries.tsv  on  a2  ==   b1  where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010"
+    },
+    {
+        "test_name": "test_5",
+        "input_table_path": "csv_files/movies_1.csv",
+        "expected_output_table_path": "csv_files/canonic_result_5.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted",
+        "csv_encoding": "latin-1",
+        "query_python": "select 'Movie: ' + a1, 2017 - int(a4), format(int(a8) / 60.0, '.2f'), 48 order by a5",
+        "query_js": "select 'Movie: ' + a1, 2017 - a4, (a8 / 60.0).toFixed(2), 48 order by a5"
+    },
+    {
+        "test_name": "test_6",
+        "input_table_path": "csv_files/planes.txt",
+        "expected_output_table_path": "csv_files/canonic_result_6.txt",
+        "csv_separator": ";",
+        "csv_policy": "quoted",
+        "csv_encoding": "latin-1",
+        "query_python": "SELECT * where a10 == a11",
+        "query_js": "SELECT * where a10 == a11"
+    },
+    {
+        "test_name": "test_7",
+        "input_table_path": "csv_files/movies.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_7.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select   top    10 a1,* order  by a1 desc",
+        "query_js": "select   top    10 a1,* order  by a1 desc"
+    },
+    {
+        "test_name": "test_8",
+        "input_table_path": "csv_files/planes.win",
+        "expected_output_table_path": "csv_files/canonic_result_8.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "SELECT * where len(a5)",
+        "query_js": "SELECT * where a5.length"
+    },
+    {
+        "test_name": "test_9",
+        "input_table_path": "csv_files/movies_variable_width.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_9.tsv",
+        "expected_warnings": [
+            "inconsistent input records"
+        ],
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select NR, a1, a3 where NF > 2",
+        "query_js": "select NR, a1, a3 where NF > 2"
+    },
+    {
+        "test_name": "test_10",
+        "input_table_path": "csv_files/movies_small.tsv",
+        "expected_error": "No \"b4\" column at line: 2 in \"B\" table",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select * inner join ./countries_variable_width.tsv on a2 == b4",
+        "query_js": "select * inner join ./countries_variable_width.tsv on a2 == b4"
+    },
+    {
+        "test_name": "test_11",
+        "input_table_path": "csv_files/movies_small.tsv",
+        "expected_output_table_path": "csv_files/empty_table.txt",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select a1, a2 where a1 == 'non-esisting-movie-title'",
+        "query_js": "select a1, a2 where a1 == 'non-esisting-movie-title'"
+    },
+    {
+        "test_name": "test_12",
+        "input_table_path": "csv_files/names.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_bin_order.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select * order by len(a1)",
+        "query_js": "select * order by a1.length"
+    },
+    {
+        "test_name": "test_13",
+        "input_table_path": "csv_files/names.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_unicode_order.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "utf-8",
+        "query_python": "select * order by len(a1)",
+        "query_js": "select * order by a1.length"
+    },
+    {
+        "test_name": "test_14",
+        "input_table_path": "csv_files/countries.tsv",
+        "expected_output_table_path": "csv_files/canonic_result_10.tsv",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select top 10 a1, * where len(a1) > 10",
+        "query_js": "select top 10 a1, * where a1.length > 10"
+    },
+    {
+        "test_name": "test_15",
+        "input_table_path": "csv_files/random_1.bin",
+        "expected_output_table_path": "csv_files/canonic_result_11.bin",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select top 20 a1, a2, a4 where int(a4) > 10 and a2 == 'delta' order by a1, a2 desc",
+        "query_js": "select top 20 a1, a2, a4 where a4 > 10 && a2 == 'delta' order by a1, a2 desc"
+    },
+    {
+        "test_name": "test_16",
+        "input_table_path": "csv_files/random_1.bin",
+        "expected_output_table_path": "csv_files/canonic_result_12.bin",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select top 15 * join random_join.bin on a4 == b1 where a2 == b2 and len(a1)>5 and b3.find('a') !=-1 order by a3 asc",
+        "query_js": "select top 15 * join random_join.bin on a4 == b1 where a2 == b2 && a1.length>5 && b3.indexOf('a') !=-1 order by a3 asc"
+    },
+    {
+        "test_name": "test_17",
+        "input_table_path": "csv_files/movies_2.csv",
+        "expected_output_table_path": "csv_files/canonic_result_13.tsv",
+        "csv_separator": ",",
+        "csv_policy": "quoted",
+        "csv_encoding": "latin-1",
+        "query_python": "select distinct a2",
+        "query_js": "select distinct a2"
+    }
+]
