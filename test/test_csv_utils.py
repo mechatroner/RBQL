@@ -449,10 +449,18 @@ class TestRBQLWithCSV(unittest.TestCase):
         error_info, warnings = rbql.csv_run(query, src_stream, delim, policy, dst_stream, out_delim, out_policy, encoding)
         src_stream.close()
         dst_stream.close()
+
+        print(error_info)
+        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}'.format(test_name))
+        if expected_error is not None:
+            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
+        else:
+            actual_md5 = calc_file_md5(output_table_path)
+            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, output_table_path))
+
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
-        actual_md5 = calc_file_md5(output_table_path)
-        self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, output_table_path))
+        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}'.format(test_name))
 
 
 

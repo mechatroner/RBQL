@@ -14,6 +14,8 @@ import shutil
 import time
 from collections import defaultdict
 
+import csv_utils #FIXME get rid of this dependency, see the roadmap below
+
 ##########################################################################
 #
 # RBQL: RainBow Query Language
