@@ -29,8 +29,8 @@ from collections import defaultdict
 
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 
-# TODO Find a way to split this module into rbql.py and rbql_csv.py
-# Now it is only RbqlPyEnv that prevents such separation
+# FIXME split this module into rbql.py and rbql_csv.py RbqlPyEnv is CSV agnostic. this is just a way Python operates - it needs a file system.
+# FIXME put rbql.py and template.py into "engine" subdirectory along with test_rbql.py test suite
 
 __version__ = '0.5.0'
 

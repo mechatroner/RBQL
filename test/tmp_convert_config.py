@@ -62,7 +62,7 @@ def main():
                 query_python = data_before['query']
                 query_js = data_cur['query']
                 delim = data_before.get('delim', '\t')
-                out_format = data_cur.get('out_format', 'input')
+                output_format = data_cur.get('out_format', 'input')
                 warnings = data_cur.get('warnings', None)
                 if warnings is not None:
                     warnings = [warnings]
@@ -95,6 +95,8 @@ def main():
                 write_json_line(dst, indent, '"csv_separator": ' + json.dumps(delim) + ',')
                 write_json_line(dst, indent, '"csv_policy": ' + json.dumps(policy) + ',')
                 write_json_line(dst, indent, '"csv_encoding": ' + json.dumps(encoding) + ',')
+                if output_format != 'input':
+                    write_json_line(dst, indent, '"output_format": ' + json.dumps(output_format) + ',')
                 write_json_line(dst, indent, '"query_python": ' + json.dumps(query_python, ensure_ascii=False) + ',')
                 write_json_line(dst, indent, '"query_js": ' + json.dumps(query_js, ensure_ascii=False))
                 dst.write('    }')

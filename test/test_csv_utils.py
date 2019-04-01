@@ -15,6 +15,7 @@ import importlib
 import codecs
 import io
 import subprocess
+import json
 
 import rbql
 from rbql import csv_utils
@@ -37,6 +38,29 @@ PY3 = sys.version_info[0] == 3
 
 
 line_separators = ['\n', '\r\n', '\r']
+
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+
+def normalize_warnings(warnings):
+    # TODO move into a common test lib module e.g. "tests_common.py"
+    result = []
+    for warning in warnings:
+        if warning.find('Number of fields in "input" table is not consistent') != -1:
+            result.append('inconsistent input records')
+        else:
+            assert False, 'unknown warning'
+    return result
+
+
+def calc_file_md5(fname):
+    import hashlib
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
 def xrange6(x):
@@ -399,31 +423,48 @@ class TestRecordIterator(unittest.TestCase):
 
 class TestRBQLWithCSV(unittest.TestCase):
 
-    def process_test_case(self, test):
+    def process_test_case(self, tests_dir, test_case):
         test_name = test_case['test_name']
         query = test_case.get('query_python')
         query_js = test_case.get('query_js')
         input_table_path = test_case['input_table_path']
-        expected_output_table_path = test_case.get('expected_output_table_path')
+        input_table_path = os.path.join(script_dir, input_table_path)
+        expected_output_table_path = test_case.get('expected_output_table_path', None)
+        if expected_output_table_path is not None:
+            expected_output_table_path = os.path.join(script_dir, expected_output_table_path)
+
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
         delim = test_case['csv_separator']
         policy = test_case['csv_policy']
         encoding = test_case['csv_encoding']
+        output_format = test_case.get('output_format', 'input')
+        expected_md5 = calc_file_md5(expected_output_table_path)
 
-        input_iterator = TableIterator(input_table)
-        output_writer = TableWriter()
-        join_tables_registry = None if join_table is None else SingleTableTestRegistry(join_table)
-
-        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
+        output_file_name = os.path.basename(expected_output_table_path)
+        output_table_path = os.path.join(tests_dir, output_file_name) 
+        src_stream = open(input_table_path, 'rb')
+        dst_stream = open(output_table_path, 'wb')
+        out_delim, out_policy = (delim, policy) if output_format == 'input' else csv_utils.interpret_named_csv_format(output_format)
+        error_info, warnings = rbql.csv_run(query, src_stream, delim, policy, dst_stream, out_delim, out_policy, encoding)
+        src_stream.close()
+        dst_stream.close()
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
+        actual_md5 = calc_file_md5(output_table_path)
+        self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, output_table_path))
+
 
 
     def test_json_scenarios(self):
         tests_file = os.path.join(script_dir, 'csv_unit_tests.json')
+        tmp_dir = tempfile.gettempdir()
+        tests_dir = 'rbql_csv_unit_tests_dir_{}_{}'.format(time.time(), random.randint(1, 100000000)).replace('.', '_')
+        tests_dir = os.path.join(tmp_dir, tests_dir)
+        os.mkdir(tests_dir)
         with open(tests_file) as f:
             tests = json.loads(f.read())
             for test in tests:
-                self.process_test_case(test)
+                self.process_test_case(tests_dir, test)
+        shutil.rmtree(tests_dir)
 

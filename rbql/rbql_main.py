@@ -72,7 +72,7 @@ def run_with_python(args, is_interactive):
     output_path = args.output
     init_source_file = args.init_source_file
     csv_encoding = args.encoding
-    args.output_delim, args.output_policy = interpret_format(args.out_format, delim, policy)
+    args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else csv_utils.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
     src_stream = open(input_path, 'rb') if input_path else sys.stdin

@@ -78,6 +78,7 @@ class SingleTableTestRegistry:
 
 
 def normalize_warnings(warnings):
+    # TODO move into a common test lib module e.g. "tests_common.py"
     result = []
     for warning in warnings:
         if warning.find('Number of fields in "input" table is not consistent') != -1:

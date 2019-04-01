@@ -34,6 +34,18 @@ def normalize_delim(delim):
     return delim
 
 
+def interpret_named_csv_format(format_name):
+    format_name = format_name.lower()
+    if format_name == 'monocolumn':
+        return ('', 'monocolumn')
+    if format_name == 'csv':
+        return (',', 'quoted')
+    if format_name == 'tsv':
+        return ('\t', 'simple')
+    raise RuntimeError('Unknown format name: "{}"'.format(format_name))
+
+
+
 def encode_input_stream(stream, encoding):
     if encoding is None:
         return stream
