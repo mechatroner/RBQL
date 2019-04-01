@@ -428,6 +428,9 @@ class TestRBQLWithCSV(unittest.TestCase):
         query = test_case.get('query_python')
         query_js = test_case.get('query_js')
         input_table_path = test_case['input_table_path']
+        csv_files_dir = os.path.join(script_dir, 'csv_files')
+        query = query.replace('###UT_CSVFILES_DIR###', csv_files_dir)
+        query_js = query_js.replace('###UT_CSVFILES_DIR###', csv_files_dir)
         input_table_path = os.path.join(script_dir, input_table_path)
         expected_output_table_path = test_case.get('expected_output_table_path', None)
         if expected_output_table_path is not None:
