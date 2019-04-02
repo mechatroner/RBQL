@@ -16,8 +16,10 @@ import codecs
 import io
 import subprocess
 import json
+import shutil
 
 import rbql
+from rbql import rbql_csv
 from rbql import csv_utils
 
 #This module must be both python2 and python3 compatible
@@ -451,11 +453,10 @@ class TestRBQLWithCSV(unittest.TestCase):
         src_stream = open(input_table_path, 'rb')
         dst_stream = open(output_table_path, 'wb')
         out_delim, out_policy = (delim, policy) if output_format == 'input' else csv_utils.interpret_named_csv_format(output_format)
-        error_info, warnings = rbql.csv_run(query, src_stream, delim, policy, dst_stream, out_delim, out_policy, encoding)
+        error_info, warnings = rbql_csv.csv_run(query, src_stream, delim, policy, dst_stream, out_delim, out_policy, encoding)
         src_stream.close()
         dst_stream.close()
 
-        print(error_info)
         self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}'.format(test_name))
         if expected_error is not None:
             self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))

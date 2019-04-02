@@ -14,7 +14,6 @@ import shutil
 import time
 from collections import defaultdict
 
-import csv_utils #FIXME get rid of this dependency, see the roadmap below
 
 ##########################################################################
 #
@@ -31,7 +30,6 @@ import csv_utils #FIXME get rid of this dependency, see the roadmap below
 
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 
-# FIXME split this module into rbql.py and rbql_csv.py RbqlPyEnv is CSV agnostic. this is just a way Python operates - it needs a file system.
 # FIXME put rbql.py and template.py into "engine" subdirectory along with test_rbql.py test suite
 
 __version__ = '0.5.0'
@@ -315,10 +313,6 @@ def translate_except_expression(except_expression):
     return 'select_except(afields, [{}])'.format(','.join(skip_indices))
 
 
-def is_ascii(s):
-    return all(ord(c) < 128 for c in s)
-
-
 class HashJoinMap:
     # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
     def __init__(self, record_iterator, key_index):
@@ -436,7 +430,8 @@ def parse_to_py(query, join_tables_registry, user_init_code):
         py_meta_params['__RBQLMP__sort_flag'] = 'False'
 
     rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
-    py_script_body = codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8').read()
+    with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
+        py_script_body = py_src.read()
     python_code = rbql_meta_format(py_script_body, py_meta_params)
     return (python_code, join_map)
 
@@ -511,39 +506,10 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
             worker_env.remove_env_dir()
             return (None, warnings)
     except Exception as e:
+        raise #FIXME
         error_info = exception_to_error_info(e)
         return (error_info, [])
     finally:
         input_iterator.finish()
         output_writer.finish()
-
-
-
-def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
-    try:
-        if input_delim == '"' and input_policy == 'quoted':
-            raise csv_utils.CSVHandlingError('Double quote delimiter is incompatible with "quoted" policy')
-        if input_delim != ' ' and input_policy == 'whitespace':
-            raise csv_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
-
-        if not is_ascii(query) and csv_encoding == 'latin-1':
-            # FIXME add unit test
-            raise RbqlParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
-
-        user_init_code = ''
-        default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
-        if custom_init_path is not None:
-            user_init_code = read_user_init_code(custom_init_path)
-        elif os.path.exists(default_init_source_path):
-            user_init_code = read_user_init_code(default_init_source_path)
-
-        join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
-        input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
-        output_writer = csv_utils.CSVWriter(output_stream, csv_encoding, output_delim, output_policy)
-        error_info, warnings = generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code, convert_only_dst)
-        return (error_info, warnings)
-    except Exception as e:
-        error_info = exception_to_error_info(e)
-        return (error_info, [])
-
 

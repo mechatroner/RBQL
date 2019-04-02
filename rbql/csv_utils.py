@@ -350,7 +350,8 @@ class CSVRecordIterator:
 
 
     def finish(self):
-        pass
+        if PY3 and self.encoding is not None:
+            self.stream.close() # FIXME test, especially with stdin. Make sure that we don't close stdin. Oops. Read docs why do we need to close the wrapper
 
 
     def _get_row_from_buffer(self):
@@ -462,7 +463,7 @@ class FileSystemCSVRegistry:
         table_path = find_table_path(table_id)
         if table_path is None:
             raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
-        src = codecs.open(table_path, encoding=self.csv_encoding)
+        src = open(table_path, 'rb')
         record_iterator = CSVRecordIterator(src, self.csv_encoding, self.delim, self.policy, table_name=table_id)
         return record_iterator
 
