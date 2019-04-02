@@ -14,7 +14,7 @@ import shutil
 import time
 from collections import defaultdict
 
-from . import rbql
+from . import engine
 from . import csv_utils
 
 
@@ -36,18 +36,18 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
         user_init_code = ''
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if custom_init_path is not None:
-            user_init_code = rbql.read_user_init_code(custom_init_path)
+            user_init_code = engine.read_user_init_code(custom_init_path)
         elif os.path.exists(default_init_source_path):
-            user_init_code = rbql.read_user_init_code(default_init_source_path)
+            user_init_code = engine.read_user_init_code(default_init_source_path)
 
         join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
         input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
         output_writer = csv_utils.CSVWriter(output_stream, csv_encoding, output_delim, output_policy)
-        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code, convert_only_dst)
+        error_info, warnings = engine.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code, convert_only_dst)
         join_tables_registry.finish()
         return (error_info, warnings)
     except Exception as e:
-        error_info = rbql.exception_to_error_info(e)
+        error_info = engine.exception_to_error_info(e)
         return (error_info, [])
 
 
