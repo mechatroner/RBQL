@@ -17,3 +17,5 @@ python2 -m unittest test.test_rbql
 die_if_error $?
 python3 -m unittest test.test_rbql
 die_if_error $?
+
+node test/unit_tests.js
