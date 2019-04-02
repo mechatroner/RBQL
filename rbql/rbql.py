@@ -506,7 +506,6 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
             worker_env.remove_env_dir()
             return (None, warnings)
     except Exception as e:
-        raise #FIXME
         error_info = exception_to_error_info(e)
         return (error_info, [])
     finally:
