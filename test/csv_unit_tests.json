@@ -97,7 +97,7 @@
     {
         "test_name": "test_10",
         "input_table_path": "csv_files/movies_small.tsv",
-        "expected_error": "No \"b4\" column at line: 2 in \"B\" table",
+        "expected_error": "No \"b4\" field at record: 2 in \"B\" table",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",

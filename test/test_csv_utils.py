@@ -435,6 +435,11 @@ class TestRBQLWithCSV(unittest.TestCase):
         expected_output_table_path = test_case.get('expected_output_table_path', None)
         if expected_output_table_path is not None:
             expected_output_table_path = os.path.join(script_dir, expected_output_table_path)
+            expected_md5 = calc_file_md5(expected_output_table_path)
+            output_file_name = os.path.basename(expected_output_table_path)
+            output_table_path = os.path.join(tests_dir, output_file_name) 
+        else:
+            output_table_path = os.path.join(tests_dir, 'expected_empty_file') 
 
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
@@ -442,10 +447,7 @@ class TestRBQLWithCSV(unittest.TestCase):
         policy = test_case['csv_policy']
         encoding = test_case['csv_encoding']
         output_format = test_case.get('output_format', 'input')
-        expected_md5 = calc_file_md5(expected_output_table_path)
 
-        output_file_name = os.path.basename(expected_output_table_path)
-        output_table_path = os.path.join(tests_dir, output_file_name) 
         src_stream = open(input_table_path, 'rb')
         dst_stream = open(output_table_path, 'wb')
         out_delim, out_policy = (delim, policy) if output_format == 'input' else csv_utils.interpret_named_csv_format(output_format)
