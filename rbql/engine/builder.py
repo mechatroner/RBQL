@@ -25,12 +25,12 @@ from collections import defaultdict
 
 # This module must be both python2 and python3 compatible
 
-# External functions: generic_run() and csv_run(), see at the bottom
+# This module works with records only. It is CSV-agnostic. 
+# Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 
-# FIXME put rbql.py and template.py into "engine" subdirectory along with test_rbql.py test suite
 
 __version__ = '0.5.0'
 
