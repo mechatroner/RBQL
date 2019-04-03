@@ -6,8 +6,9 @@ import sys
 import codecs
 import argparse
 
-from . import rbql
+from . import engine
 from . import csv_utils
+from . import _version
 
 
 PY3 = sys.version_info[0] == 3
@@ -25,17 +26,6 @@ def xrange6(x):
     if PY3:
         return range(x)
     return xrange(x)
-
-
-def interpret_format(format_name, input_delim, input_policy):
-    assert format_name in out_policy_names
-    if format_name == 'input':
-        return (input_delim, input_policy)
-    if format_name == 'monocolumn':
-        return ('', 'monocolumn')
-    if format_name == 'csv':
-        return (',', 'quoted')
-    return ('\t', 'simple')
 
 
 def get_default_policy(delim):
@@ -77,7 +67,7 @@ def run_with_python(args, is_interactive):
 
     src_stream = open(input_path, 'rb') if input_path else sys.stdin
     with csv_utils.OutputStreamManager(output_path) as dst:
-        error_info, warnings = rbql.csv_run(query, src_stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
+        error_info, warnings = engine.csv_run(query, src_stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
 
     if error_info is None:
         success = True
@@ -232,12 +222,12 @@ def main():
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     parser.add_argument('--convert-only', metavar='FILE', action='store', help='Only generate worker module and save to FILE do not run it')
-    parser.add_argument('--encoding', help='Manually set csv table encoding', default=rbql.default_csv_encoding, choices=['latin-1', 'utf-8'])
+    parser.add_argument('--encoding', help='Manually set csv table encoding', default=csv_utils.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--init-source-file', metavar='FILE', help='path to init source file to use instead of ~/.rbql_init_source.py')
     args = parser.parse_args()
 
     if args.version:
-        print(rbql.__version__)
+        print(_version.__version__)
         return
 
     if args.query:

@@ -6,6 +6,9 @@ const cli_rbql = require('../rbql-js/cli_rbql.js');
 const rbql = require('../rbql-js/rbql.js')
 
 
+// FIXME replace "canonic" with "expected"
+
+
 function unquote_field(field) {
     let rgx = /^ *"((?:[^"]*"")*[^"]*)" *$/;
     let match_obj = rgx.exec(field);

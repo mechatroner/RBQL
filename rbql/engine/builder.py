@@ -32,9 +32,6 @@ from collections import defaultdict
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 
 
-__version__ = '0.5.0'
-
-
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
