@@ -83,6 +83,7 @@ class OutputStreamManager:
 
     def __enter__(self):
         self.stream = codecs.open(self.output_path, 'wb') if self.output_path else sys.stdout
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:

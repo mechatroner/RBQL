@@ -6,8 +6,8 @@ import sys
 import codecs
 import argparse
 
-from . import engine
 from . import csv_utils
+from . import rbql_csv
 from . import _version
 
 
@@ -67,7 +67,7 @@ def run_with_python(args, is_interactive):
 
     src_stream = open(input_path, 'rb') if input_path else sys.stdin
     with csv_utils.OutputStreamManager(output_path) as dst:
-        error_info, warnings = engine.csv_run(query, src_stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
+        error_info, warnings = rbql_csv.csv_run(query, src_stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
 
     if error_info is None:
         success = True
