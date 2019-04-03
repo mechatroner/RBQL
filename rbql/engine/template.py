@@ -573,7 +573,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
             bad_idx = e.bad_idx
             raise RbqlRuntimeError('No "a' + str(bad_idx + 1) + '" field at record: ' + str(NR))
         except Exception as e:
-            raise RbqlRuntimeError('Error at record: ' + str(NR) + ', Details: ' + str(e))
+            raise RbqlRuntimeError('At record: ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
     return True
 

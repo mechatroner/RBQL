@@ -385,7 +385,7 @@ class CSVRecordIterator:
         self.buffer += ''.join(chunks)
 
 
-    def _get_row(self):
+    def get_row(self):
         try:
             row = self._get_row_from_buffer()
             if row is not None:
@@ -405,7 +405,7 @@ class CSVRecordIterator:
 
 
     def get_record(self):
-        line = self._get_row()
+        line = self.get_row()
         if line is None:
             return None
         if self.NR == 0:
@@ -426,7 +426,7 @@ class CSVRecordIterator:
     def _get_all_rows(self):
         result = []
         while True:
-            row = self._get_row()
+            row = self.get_row()
             if row is None:
                 break
             result.append(row)
