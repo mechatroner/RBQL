@@ -65,6 +65,8 @@ def run_with_python(args, is_interactive):
     args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else csv_utils.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
+    sys.stdout = csv_utils.encode_output_stream(sys.stdout, csv_encoding)
+
     src_stream = open(input_path, 'rb') if input_path else sys.stdin
     with csv_utils.OutputStreamManager(output_path) as dst:
         error_info, warnings = rbql_csv.csv_run(query, src_stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
@@ -100,7 +102,7 @@ def is_delimited_table(sampled_lines, delim, policy):
 
 def sample_lines(src_path, encoding):
     result = []
-    with codecs.open(src_path, encoding=encoding) as source:
+    with open(src_path, 'rb') as source:
         line_iterator = csv_utils.CSVRecordIterator(source, encoding, delim=None, policy=None)
         for _i in xrange6(10):
             line = line_iterator.get_row()
@@ -149,7 +151,7 @@ def print_colorized(records, delim, encoding, show_column_names):
                 colored_field = '{}{}'.format(color_code, field)
             out_fields.append(colored_field)
         out_line = delim.join(out_fields) + reset_color_code
-        print(out_line.encode(encoding, 'replace'))
+        print(out_line)
 
 
 def get_default_output_path(input_path, delim):
