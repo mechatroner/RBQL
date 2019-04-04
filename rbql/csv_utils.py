@@ -352,7 +352,7 @@ class CSVRecordIterator:
 
     def finish(self):
         if PY3 and self.encoding is not None:
-            self.stream.close() # FIXME test, especially with stdin. Make sure that we don't close stdin. Oops. Read docs why do we need to close the wrapper
+            self.stream.close() # If there is nothing left in output it can be safely closed
 
 
     def _get_row_from_buffer(self):
