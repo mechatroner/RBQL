@@ -318,10 +318,8 @@ class CSVWriter:
     def get_warnings(self):
         result = list()
         if self.none_in_output:
-            # FIXME add unit test for this
             result.append('None values in output were replaced by empty strings')
         if self.delim_in_simple_output:
-            # FIXME add unit test for this
             result.append('Some output fields contain separator')
         return result
 

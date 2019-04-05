@@ -154,6 +154,7 @@ def write_and_parse_back(table, encoding, delim, policy):
     line_separator = random.choice(line_separators)
     writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, line_separator)
     writer._write_all(table)
+    assert not len(writer.get_warnings())
     writer_stream.seek(0)
     record_iterator = csv_utils.CSVRecordIterator(writer_stream, encoding, delim=delim, policy=policy)
     parsed_table = record_iterator._get_all_records()
@@ -408,6 +409,23 @@ class TestRecordIterator(unittest.TestCase):
             writer._write_all(table)
         e = cm.exception
         self.assertTrue(str(e).find('some records have more than one field') != -1)
+
+
+    def test_output_warnings(self):
+        encoding = None
+        writer_stream = io.StringIO()
+        delim = ','
+        policy = 'simple'
+        table = [["hello,world", None], ["hello", "world"]]
+        writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, '\n')
+        writer._write_all(table)
+        writer_stream.seek(0)
+        actual_data = writer_stream.getvalue()
+        expected_data = 'hello,world,\nhello,world\n'
+        self.assertEqual(expected_data, actual_data)
+        actual_warnings = writer.get_warnings()
+        expected_warnings = ['None values in output were replaced by empty strings', 'Some output fields contain separator']
+        self.assertEqual(expected_warnings, actual_warnings)
 
 
     def test_utf_decoding_errors(self):
