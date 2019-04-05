@@ -17,6 +17,7 @@ import io
 import subprocess
 import json
 import shutil
+import copy
 
 import rbql
 from rbql import rbql_csv
@@ -448,6 +449,32 @@ class TestRecordIterator(unittest.TestCase):
             parsed_table = record_iterator._get_all_records()
         e = cm.exception
         self.assertTrue(str(e).find('Unable to decode input table as UTF-8') != -1)
+
+
+    def test_bom_warning(self):
+        table = list()
+        table.append([u'\xef\xbb\xbfcde', '1234'])
+        table.append(['abc', '1234'])
+        table.append(['abc', '1234'])
+        table.append(['efg', '100'])
+        table.append(['abc', '100'])
+        table.append(['cde', '12999'])
+        table.append(['aaa', '2000'])
+        table.append(['abc', '100'])
+        delim = ','
+        policy = 'simple'
+        encoding = 'latin-1'
+        csv_data = table_to_csv_string_random(table, delim, policy)
+        stream = io.BytesIO(csv_data.encode('latin-1'))
+        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
+        parsed_table = record_iterator._get_all_records()
+        expected_warnings = ['UTF-8 Byte Order Mark (BOM) was found and skipped in input table']
+        actual_warnings = record_iterator.get_warnings()
+        self.assertEqual(expected_warnings, actual_warnings)
+        expected_table = copy.deepcopy(table)
+        expected_table[0][0] = 'cde'
+        self.assertEqual(expected_table, parsed_table)
+
 
 
 class TestRBQLWithCSV(unittest.TestCase):
