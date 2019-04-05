@@ -148,7 +148,6 @@ def smart_split(src, dlm, policy, preserve_quotes):
     if policy == 'simple':
         return (src.split(dlm), False)
     if policy == 'whitespace':
-        # FIXME add unit test
         return (split_whitespace_separated_str(src, preserve_quotes), False)
     if policy == 'monocolumn':
         return ([src], False)
@@ -261,7 +260,6 @@ class CSVWriter:
         elif policy == 'monocolumn':
             self.join_func = self.mono_join
         elif policy == 'whitespace':
-            # FIXME add unit test
             self.join_func = self.simple_join
         else:
             raise RuntimeError('unknown output csv policy')
@@ -276,7 +274,6 @@ class CSVWriter:
 
     def mono_join(self, fields):
         if len(fields) > 1:
-            # FIXME add unit test
             raise RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
         return fields[0]
 

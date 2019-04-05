@@ -397,6 +397,19 @@ class TestRecordIterator(unittest.TestCase):
         self.assertEqual(table, parsed_table)
 
 
+    def test_monocolumn_write_failure(self):
+        encoding = None
+        writer_stream =  io.StringIO()
+        delim = None
+        policy = 'monocolumn'
+        table = [["this will not", "work"], ["as monocolumn", "table"]]
+        writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, '\n')
+        with self.assertRaises(Exception) as cm:
+            writer._write_all(table)
+        e = cm.exception
+        self.assertTrue(str(e).find('some records have more than one field') != -1)
+
+
     def test_utf_decoding_errors(self):
         table = [['hello', u'\x80\x81\xffThis unicode string encoded as latin-1 is not a valid utf-8\xaa\xbb\xcc'], ['hello', 'world']]
         delim = ','
