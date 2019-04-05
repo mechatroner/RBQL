@@ -174,5 +174,16 @@
         "output_format": "tsv",
         "query_python": "select distinct a2",
         "query_js": "select distinct a2"
+    },
+    {
+        "test_name": "test_18",
+        "input_table_path": "csv_files/movies_2.csv",
+        "expected_error": "To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary",
+        "csv_separator": ",",
+        "csv_policy": "quoted",
+        "csv_encoding": "latin-1",
+        "output_format": "tsv",
+        "query_python": "select * where a2 = 'Привет'",
+        "query_js": "select * where a2 = 'Привет'"
     }
 ]

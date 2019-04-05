@@ -25,13 +25,13 @@ def is_ascii(s):
 def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
     try:
         if input_delim == '"' and input_policy == 'quoted':
-            raise csv_utils.CSVHandlingError('Double quote delimiter is incompatible with "quoted" policy')
+            raise csv_utils.RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy')
         if input_delim != ' ' and input_policy == 'whitespace':
-            raise csv_utils.CSVHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
+            raise csv_utils.RbqlIOHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
 
         if not is_ascii(query) and csv_encoding == 'latin-1':
             # FIXME add unit test
-            raise csv_utils.CSVHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+            raise csv_utils.RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
 
         user_init_code = ''
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
