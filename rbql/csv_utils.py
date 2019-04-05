@@ -191,8 +191,8 @@ def quote_field(src, delim):
 
 
 def unquote_field(field):
-    field_rgx_external_whitespaces = re.compile('^ *"((?:[^"]*"")*[^"]*)" *$')
-    match_obj = field_rgx_external_whitespaces.match(field)
+    field_rgx_external_whitespaces_full = re.compile('^ *'+ field_regular_expression + ' *$')
+    match_obj = field_rgx_external_whitespaces_full.match(field)
     if match_obj is not None:
         return match_obj.group(1).replace('""', '"')
     return field
