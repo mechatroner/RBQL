@@ -43,6 +43,10 @@
         "test_name": "test_5",
         "input_table_path": "csv_files/movies_1.csv",
         "expected_output_table_path": "csv_files/canonic_result_5.csv",
+        "expected_warnings": [
+            "inconsistent input records",
+            "defective double quote escaping"
+        ],
         "csv_separator": ",",
         "csv_policy": "quoted",
         "csv_encoding": "latin-1",

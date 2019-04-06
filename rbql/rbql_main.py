@@ -18,8 +18,8 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-policy_names = ['csv', 'tsv', 'monocolumn']
-out_policy_names = policy_names + ['input']
+policy_names = ['quoted', 'simple', 'whitespace', 'monocolumn']
+out_format_names = ['csv', 'tsv', 'input']
 
 
 def xrange6(x):
@@ -218,7 +218,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--delim', help='Delimiter')
     parser.add_argument('--policy', help='csv split policy', choices=policy_names)
-    parser.add_argument('--out-format', help='output format', default='input', choices=out_policy_names)
+    parser.add_argument('--out-format', help='output format', default='input', choices=out_format_names)
     parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if not provided')
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')

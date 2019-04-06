@@ -48,6 +48,8 @@ def normalize_warnings(warnings):
     for warning in warnings:
         if warning.find('Number of fields in "input" table is not consistent') != -1:
             result.append('inconsistent input records')
+        elif warning.find('Defective double quote escaping') != -1:
+            result.append('defective double quote escaping')
         else:
             assert False, 'unknown warning'
     return result
