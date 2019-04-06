@@ -25,6 +25,9 @@ const default_init_source_path = path.join(user_home_dir, '.rbql_init_source.js'
 const default_csv_encoding = 'latin-1';
 
 
+// FIXME separate CSV-related logic from core RBQL model, the same way as it is already done with Python implementation
+
+
 class RBParsingError extends Error {}
 
 

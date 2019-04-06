@@ -45,14 +45,15 @@
         "expected_output_table_path": "csv_files/canonic_result_5.csv",
         "expected_warnings": [
             "inconsistent input records",
-            "defective double quote escaping"
+            "defective double quote escaping",
+            "null values in output were replaced"
         ],
         "csv_separator": ",",
         "csv_policy": "quoted",
         "csv_encoding": "latin-1",
         "output_format": "tsv",
-        "query_python": "select 'Movie: ' + a1, 2017 - int(a4), format(int(a8) / 60.0, '.2f'), 48 order by a5",
-        "query_js": "select 'Movie: ' + a1, 2017 - a4, (a8 / 60.0).toFixed(2), 48 order by a5"
+        "query_python": "select 'Movie: ' + a1, None, 2017 - int(a4), format(int(a8) / 60.0, '.2f'), 48 order by a5",
+        "query_js": "select 'Movie: ' + a1, null, 2017 - a4, (a8 / 60.0).toFixed(2), 48 order by a5"
     },
     {
         "test_name": "test_6",

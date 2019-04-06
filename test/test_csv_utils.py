@@ -27,9 +27,6 @@ from rbql import csv_utils
 
 PY3 = sys.version_info[0] == 3
 
-# FIXME add tests for all CSVRecordIterator warning types
-
-# FIXME add test with multiple warnings
 
 ########################################################################################################
 # Below are some generic functions
@@ -50,6 +47,8 @@ def normalize_warnings(warnings):
             result.append('inconsistent input records')
         elif warning.find('Defective double quote escaping') != -1:
             result.append('defective double quote escaping')
+        elif warning.find('None values in output were replaced by empty strings') != -1:
+            result.append('null values in output were replaced')
         else:
             assert False, 'unknown warning'
     return result
