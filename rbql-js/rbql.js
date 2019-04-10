@@ -557,7 +557,7 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_templa
 
 
 function parse_to_js(src_table_path, dst_table_path, query, js_dst, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
-    var js_template_text = fs.readFileSync(path.join(rbql_home_dir, 'template.js.raw'), 'utf-8');
+    var js_template_text = fs.readFileSync(path.join(rbql_home_dir, 'template.js'), 'utf-8');
     var result_script = parse_to_js_almost_web(src_table_path, dst_table_path, query, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path);
     fs.writeFileSync(js_dst, result_script);
 }
