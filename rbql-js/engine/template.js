@@ -726,6 +726,9 @@ function run_on_node(external_success_cb, external_error_cb) {
     var src_table_path = __RBQLMP__src_table_path;
     if (src_table_path != null) {
         input_reader = readline.createInterface({ input: fs.createReadStream(src_table_path, {encoding: csv_encoding}) });
+        // Should be the same as:
+        // input_reader = readline.createInterface({ input: fs.createReadStream(src_table_path) });
+        // input_reader.setEncoding(csv_encoding);
     } else {
         process.stdin.setEncoding(csv_encoding);
         input_reader = readline.createInterface({ input: process.stdin });
