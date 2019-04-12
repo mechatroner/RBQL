@@ -1,3 +1,5 @@
+const readline = require('readline');
+
 let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
 let field_rgx = new RegExp('^' + field_regular_expression);
 let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *')
@@ -83,13 +85,74 @@ function split_whitespace_separated_str(src, preserve_whitespaces=false) {
 function smart_split(src, dlm, policy, preserve_quotes) {
     if (policy === 'simple')
         return [src.split(dlm), false];
-    if (policy === 'monocolumn')
-        return [[src], false];
     if (policy === 'whitespace')
         return [split_whitespace_separated_str(src, preserve_quotes), false];
+    if (policy === 'monocolumn')
+        return [[src], false];
     return split_quoted_str(src, dlm, preserve_quotes);
 }
 
+
+function remove_utf8_bom(line, assumed_source_encoding) {
+    if (assumed_source_encoding == 'binary' && line.length >= 3 && line.charCodeAt(0) === 0xEF && line.charCodeAt(1) === 0xBB && line.charCodeAt(2) === 0xBF) {
+        return line.substring(3);
+    }
+    if (assumed_source_encoding == 'utf-8' && line.length >= 1 && line.charCodeAt(0) === 0xFEFF) {
+        return line.substring(1);
+    }
+    return line;
+}
+
+
+function CSVRecordIterator(stream, encoding, delim, policy, record_cb, finish_cb, row_cb, table_name='input') {
+    // FIXME do we really need a class for this? probably a single function will be enough, since we just start a reader with callbacks
+    this.stream = stream;
+    this.encoding = encoding;
+    if (this.encoding) {
+        this.stream.setEncoding(this.encoding);
+    }
+    this.delim = delim;
+    this.policy = policy;
+    this.table_name = table_name;
+    //this.record_cb = record_cb;
+    //this.finish_cb = finish_cb;
+    //this.row_cb = row_cb;
+    this.input_reader = readline.createInterface({ input: this.stream });
+
+    if (!row_cb) {
+        row_cb = function(line) {
+
+        }
+    }
+
+
+    // FIXME we probably don't need most of the functions below, because js version works with callbacks paradigm
+
+
+    this.finish = function() {
+    }
+
+    this._get_row_from_buffer = function() {
+    }
+
+    this._read_until_found = function() {
+    }
+
+    this.get_row = function() {
+    }
+
+    this.get_record = function() {
+    }
+
+    this._get_all_rows = function() {
+    }
+
+    this._get_all_records = function() {
+    }
+
+    this.get_warnings = function() {
+    }
+}
 
 
 module.exports.split_quoted_str = split_quoted_str;
