@@ -1,3 +1,330 @@
+try {
+__RBQLMP__user_init_code
+} catch (e) {
+    throw new Error('Exception while executing user-provided init code: ' + e);
+}
+
+
+var unfold_list = null;
+
+var module_was_used_failsafe = false;
+
+// Aggregators:
+var aggregation_stage = 0;
+var aggr_init_counter = 0;
+var functional_aggregators = [];
+
+var writer = null;
+
+var NU = 0; // NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
+
+
+function assert(condition, message) {
+    if (!condition) {
+        finish_processing_error(message);
+    }
+}
+
+
+function InternalBadFieldError(idx) {
+    this.idx = idx;
+    this.name = 'InternalBadFieldError';
+}
+
+
+function RbqlRuntimeError(error_msg) {
+    this.error_msg = error_msg;
+    this.name = 'RbqlError';
+}
+
+
+function safe_join_get(record, idx) {
+    if (idx - 1 < record.length) {
+        return record[idx - 1];
+    }
+    throw new InternalBadFieldError(idx - 1);
+}
+
+
+function safe_set(record, idx, value) {
+    if (idx - 1 < record.length) {
+        record[idx - 1] = value;
+    } else {
+        throw new InternalBadFieldError(idx - 1);
+    }
+}
+
+
+function Marker(marker_id, value) {
+    this.marker_id = marker_id;
+    this.value = value;
+    this.toString = function() {
+        throw new RbqlError('Unsupported aggregate expression');
+    }
+}
+
+
+function UNFOLD(vals) {
+    if (unfold_list !== null) {
+        // Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
+        throw new RbqlError('Only one UNFOLD is allowed per query');
+    }
+    unfold_list = vals;
+    return new UnfoldMarker();
+}
+
+
+
+function MinAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        // JS version doesn't need "NumHandler" hack like in Python impl because it has only one "number" type, no ints/floats
+        val = parseFloat(val);
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, val);
+        } else {
+            this.stats.set(key, Math.min(cur_aggr, val));
+        }
+    }
+
+    this.get_final = function(key) {
+        return this.stats.get(key);
+    }
+}
+
+
+
+function MaxAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        val = parseFloat(val);
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, val);
+        } else {
+            this.stats.set(key, Math.max(cur_aggr, val));
+        }
+    }
+
+    this.get_final = function(key) {
+        return this.stats.get(key);
+    }
+}
+
+
+function CountAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, 1);
+        } else {
+            this.stats.set(key, cur_aggr + 1);
+        }
+    }
+
+    this.get_final = function(key) {
+        return this.stats.get(key);
+    }
+}
+
+
+function SumAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        val = parseFloat(val);
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, val);
+        } else {
+            this.stats.set(key, cur_aggr + val);
+        }
+    }
+
+    this.get_final = function(key) {
+        return this.stats.get(key);
+    }
+}
+
+
+function AvgAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        val = parseFloat(val);
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, [val, 1]);
+        } else {
+            var cur_sum = cur_aggr[0];
+            var cur_cnt = cur_aggr[1];
+            this.stats.set(key, [cur_sum + val, cur_cnt + 1]);
+        }
+    }
+
+    this.get_final = function(key) {
+        var cur_aggr = this.stats.get(key);
+        var cur_sum = cur_aggr[0];
+        var cur_cnt = cur_aggr[1];
+        var avg = cur_sum / cur_cnt;
+        return avg;
+    }
+}
+
+
+function VarianceAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        val = parseFloat(val);
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, [val, val * val, 1]);
+        } else {
+            var cur_sum = cur_aggr[0];
+            var cur_sum_sq = cur_aggr[1];
+            var cur_cnt = cur_aggr[2];
+            this.stats.set(key, [cur_sum + val, cur_sum_sq + val * val, cur_cnt + 1]);
+        }
+    }
+
+    this.get_final = function(key) {
+        var cur_aggr = this.stats.get(key);
+        var cur_sum = cur_aggr[0];
+        var cur_sum_sq = cur_aggr[1];
+        var cur_cnt = cur_aggr[2];
+        var avg_val = cur_sum / cur_cnt;
+        var variance = cur_sum_sq / cur_cnt - avg_val * avg_val;
+        return variance;
+    }
+}
+
+
+function MedianAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        val = parseFloat(val);
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, [val]);
+        } else {
+            cur_aggr.push(val);
+            this.stats.set(key, cur_aggr); // Do we really need to do this? mutable cur_aggr already holds a reference to the value
+        }
+    }
+
+    this.get_final = function(key) {
+        var cur_aggr = this.stats.get(key);
+        cur_aggr.sort(function(a, b) { return a - b; });
+        var m = Math.floor(cur_aggr.length / 2);
+        if (cur_aggr.length % 2) {
+            return cur_aggr[m];
+        } else {
+            return (cur_aggr[m - 1] + cur_aggr[m]) / 2.0;
+        }
+    }
+}
+
+
+function FoldAggregator(post_proc) {
+    this.post_proc = post_proc;
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        let cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, [val]);
+        } else {
+            cur_aggr.push(val);
+            this.stats.set(key, cur_aggr); // Do we really need to do this? mutable cur_aggr already holds a reference to the value
+        }
+    }
+
+    this.get_final = function(key) {
+        let cur_aggr = this.stats.get(key);
+        return this.post_proc(cur_aggr);
+    }
+}
+
+
+function SubkeyChecker() {
+    this.subkeys = new Map();
+
+    this.increment = function(key, subkey) {
+        var old_subkey = this.subkeys.get(key);
+        if (old_subkey === undefined) {
+            this.subkeys.set(key, subkey);
+        } else if (old_subkey != subkey) {
+            throw 'Unable to group by "' + key + '", different values in output: "' + old_subkey + '" and "' + subkey + '"';
+        }
+    }
+
+    this.get_final = function(key) {
+        return this.subkeys.get(key);
+    }
+}
+
+
+function init_aggregator(generator_name, val, post_proc=null) {
+    aggregation_stage = 1;
+    assert(aggr_init_counter == functional_aggregators.length, 'Unable to process aggregation expression');
+    if (post_proc === null) {
+        functional_aggregators.push(new generator_name());
+    } else {
+        functional_aggregators.push(new generator_name(post_proc));
+    }
+    var res = new Marker(aggr_init_counter, val);
+    aggr_init_counter += 1;
+    return res;
+}
+
+
+function MIN(val) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.MinAggregator, val) : val;
+}
+
+
+function MAX(val) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.MaxAggregator, val) : val;
+}
+
+function COUNT(val) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.CountAggregator, 1) : 1;
+}
+
+function SUM(val) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.SumAggregator, val) : val;
+}
+
+function AVG(val) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.AvgAggregator, val) : val;
+}
+
+function VARIANCE(val) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.VarianceAggregator, val) : val;
+}
+
+function MEDIAN(val) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.MedianAggregator, val) : val;
+}
+
+function FOLD(val, post_proc = v => v.join('|')) {
+    return aggregation_stage < 2 ? init_aggregator(rbql_utils.FoldAggregator, val, post_proc) : val;
+}
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// OLD CODE:
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 const fs = require('fs');
 const readline = require('readline');
 const rbql_utils = require('__RBQLMP__rbql_home_dir/rbql_utils.js');

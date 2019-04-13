@@ -106,6 +106,7 @@ function remove_utf8_bom(line, assumed_source_encoding) {
 
 function CSVRecordIterator(stream, encoding, delim, policy, record_cb, finish_cb, row_cb, table_name='input') {
     // FIXME do we really need a class for this? probably a single function will be enough, since we just start a reader with callbacks
+    // But this is a generic interface! Maybe write a generic part first? Then requirements would be more clear. Start with the abstract engine.
     this.stream = stream;
     this.encoding = encoding;
     if (this.encoding) {
