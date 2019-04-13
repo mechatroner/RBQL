@@ -26,6 +26,14 @@ function assert(condition, message) {
 }
 
 
+function stable_compare(a, b) {
+    for (var i = 0; i < a.length; i++) {
+        if (a[i] !== b[i])
+            return a[i] < b[i] ? -1 : 1;
+    }
+}
+
+
 function InternalBadFieldError(idx) {
     this.idx = idx;
     this.name = 'InternalBadFieldError';
@@ -319,6 +327,76 @@ function FOLD(val, post_proc = v => v.join('|')) {
 }
 
 
+function add_to_set(dst_set, value) {
+    var len_before = dst_set.size;
+    dst_set.add(value);
+    return len_before != dst_set.size;
+}
+
+
+function TopWriter(subwriter) {
+    this.subwriter = subwriter;
+    this.NW = 0;
+
+    this.write = function(record) {
+        if (__RBQLMP__top_count !== null && this.NW >= __RBQLMP__top_count)
+            return false;
+        this.subwriter.write(record);
+        this.NW += 1;
+        return true;
+    }
+
+    this.finish = function() {
+        this.subwriter.finish();
+    }
+}
+
+
+function UniqWriter(subwriter) {
+    this.subwriter = subwriter;
+    this.seen = new Set();
+
+    this.write = function(record) {
+        // FIXME won't work with array as key
+        if (!add_to_set(this.seen, record))
+            return true;
+        if (!this.subwriter.write(record))
+            return false;
+        return true;
+    }
+
+    this.finish = function() {
+        this.subwriter.finish();
+    }
+}
+
+
+function UniqCountWriter(subwriter) {
+    this.subwriter = subwriter;
+    this.records = new Map();
+
+    this.write = function(record) {
+        // FIXME won't work with array as key
+        var old_val = this.records.get(record);
+        if (old_val) {
+            this.records.set(record, old_val + 1);
+        } else {
+            this.records.set(record, 1);
+        }
+        return true;
+    }
+
+    this.finish = function() {
+        for (var [record, count] of this.records) {
+            if (__RBQLMP__top_count !== null && NW >= __RBQLMP__top_count)
+                break;
+            record.unshift(count);
+            if (!this.subwriter.write(record))
+                break;
+        }
+        this.subwriter.finish();
+    }
+}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
