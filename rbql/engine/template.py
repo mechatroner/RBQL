@@ -32,6 +32,18 @@ PY3 = sys.version_info[0] == 3
 
 unfold_list = None
 
+module_was_used_failsafe = False
+
+# Aggregators:
+aggregation_stage = 0
+aggr_init_counter = 0
+functional_aggregators = list()
+
+writer = None
+
+NU = 0 # NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
+
+
 
 def iteritems6(x):
     if PY3:
@@ -65,18 +77,6 @@ def safe_set(record, idx, value):
         record[idx - 1] = value
     except IndexError as e:
         raise InternalBadFieldError(idx - 1)
-
-
-module_was_used_failsafe = False
-
-# Aggregators:
-aggregation_stage = 0
-aggr_init_counter = 0
-functional_aggregators = list()
-
-writer = None
-
-NU = 0 # NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
 
 
 class Marker(object):
@@ -533,16 +533,15 @@ def process_select(NR, NF, afields, rhs_records):
     return True
 
 
-process_function = process_select if __RBQLMP__is_select_query else process_update
-sql_join_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
-
-
 def rb_transform(input_iterator, join_map_impl, output_writer):
     global module_was_used_failsafe
     assert not module_was_used_failsafe
     module_was_used_failsafe = True
 
     global writer
+
+    process_function = process_select if __RBQLMP__is_select_query else process_update
+    sql_join_type = {'VOID': NoneJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
     if join_map_impl is not None:
         join_map_impl.build()
