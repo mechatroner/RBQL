@@ -208,19 +208,6 @@ class VarianceAggregator:
         return float(final_sum_of_squares) / final_cnt - (float(final_sum) / final_cnt) ** 2
 
 
-class FoldAggregator:
-    def __init__(self, post_proc):
-        self.stats = defaultdict(list)
-        self.post_proc = post_proc
-
-    def increment(self, key, val):
-        self.stats[key].append(val)
-
-    def get_final(self, key):
-        res = self.stats[key]
-        return self.post_proc(res)
-
-
 class MedianAggregator:
     def __init__(self):
         self.stats = defaultdict(list)
@@ -240,6 +227,19 @@ class MedianAggregator:
             a = sorted_vals[m - 1]
             b = sorted_vals[m]
             return a if a == b else (a + b) / 2.0
+
+
+class FoldAggregator:
+    def __init__(self, post_proc):
+        self.stats = defaultdict(list)
+        self.post_proc = post_proc
+
+    def increment(self, key, val):
+        self.stats[key].append(val)
+
+    def get_final(self, key):
+        res = self.stats[key]
+        return self.post_proc(res)
 
 
 class SubkeyChecker:
