@@ -577,7 +577,3 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
     return True
 
 
-if __name__ == '__main__':
-    main()
-
-
