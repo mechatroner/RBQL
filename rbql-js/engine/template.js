@@ -357,8 +357,7 @@ function UniqWriter(subwriter) {
     this.seen = new Set();
 
     this.write = function(record) {
-        // FIXME won't work with array as key
-        if (!add_to_set(this.seen, record))
+        if (!add_to_set(this.seen, JSON.stringify(record)))
             return true;
         if (!this.subwriter.write(record))
             return false;
@@ -376,20 +375,19 @@ function UniqCountWriter(subwriter) {
     this.records = new Map();
 
     this.write = function(record) {
-        // FIXME won't work with array as key
-        var old_val = this.records.get(record);
+        var key = JSON.stringify(record);
+        var old_val = this.records.get(key);
         if (old_val) {
-            this.records.set(record, old_val + 1);
+            old_val[0] += 1;
         } else {
-            this.records.set(record, 1);
+            this.records.set(key, [1, record]);
         }
         return true;
     }
 
     this.finish = function() {
-        for (var [record, count] of this.records) {
-            if (__RBQLMP__top_count !== null && NW >= __RBQLMP__top_count)
-                break;
+        for (var [key, value] of this.records) {
+            let [count, record] = value;
             record.unshift(count);
             if (!this.subwriter.write(record))
                 break;
@@ -398,6 +396,29 @@ function UniqCountWriter(subwriter) {
     }
 }
 
+
+function SortedWriter(subwriter) {
+    this.subwriter = subwriter;
+    this.unsorted_entries = [];
+
+    this.write = function(stable_entry) {
+        this.unsorted_entries.push(stable_entry);
+        return true;
+    }
+
+    this.finish = function() {
+        var unsorted_entries = this.unsorted_entries;
+        unsorted_entries.sort(stable_compare);
+        if (__RBQLMP__reverse_flag)
+            unsorted_entries.reverse();
+        for (var i = 0; i < unsorted_entries.length; i++) {
+            var entry = unsorted_entries[i];
+            if (!this.subwriter.write(entry[entry.length - 1]))
+                break;
+        }
+        this.subwriter.finish();
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // OLD CODE:
