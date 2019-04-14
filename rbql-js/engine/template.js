@@ -420,6 +420,76 @@ function SortedWriter(subwriter) {
     }
 }
 
+
+function AggregateWriter(subwriter) {
+    this.subwriter = subwriter;
+    this.aggregators = [];
+    this.aggregation_keys = new Set();
+
+    this.finish = function() {
+        var all_keys = Array.from(this.aggregation_keys);
+        all_keys.sort();
+        for (var i = 0; i < all_keys.length; i++) {
+            var key = all_keys[i];
+            var out_fields = [];
+            for (var ag of this.aggregators) {
+                out_fields.push(ag.get_final(key));
+            }
+            var out_record = output_join(out_fields, output_delim);
+            if (!this.subwriter.write(out_record))
+                break;
+        }
+        this.subwriter.finish();
+    }
+}
+
+
+
+function FakeJoiner(join_map) {
+    this.get_rhs = function(lhs_key) {
+        return [null];
+    }
+}
+
+
+function InnerJoiner(join_map) {
+    this.join_map = join_map;
+
+    this.get_rhs = function(lhs_key) {
+        return this.join_map.get_join_records(lhs_key);
+    }
+}
+
+
+function LeftJoiner(join_map) {
+    this.join_map = join_map;
+    this.null_record = [Array(join_map.max_record_len).fill(null)];
+
+    this.get_rhs = function(lhs_key) {
+        let result = this.join_map.get_join_records(lhs_key);
+        if (result.length == 0) {
+            return this.null_record;
+        }
+        return result;
+    }
+}
+
+
+function StrictLeftJoiner(join_map) {
+    this.join_map = join_map;
+
+    this.get_rhs = function(lhs_key) {
+        let result = this.join_map.get_join_records(lhs_key);
+        if (result.length != 1) {
+            throw new RbqlError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
+        }
+        return result;
+    }
+}
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // OLD CODE:
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
