@@ -488,6 +488,30 @@ function StrictLeftJoiner(join_map) {
 }
 
 
+function select_except(src, except_fields) {
+    let result = [];
+    for (let i = 0; i < src.length; i++) {
+        if (except_fields.indexOf(i) == -1)
+            result.push(src[i]);
+    }
+    return result;
+}
+
+
+function process_update(NF, afields, rhs_records) {
+    if (rhs_records.length > 1)
+        throw new RbqlError('More than one record in UPDATE query matched A-key in join table B');
+    var bfields = null;
+    if (rhs_records.length == 1)
+        bfields = rhs_records[0];
+    var up_fields = afields;
+    __RBQLMP__init_column_vars_select
+    if (rhs_records.length == 1 && (__RBQLMP__where_expression)) {
+        NU += 1;
+        __RBQLMP__update_statements
+    }
+    return writer.write(up_fields);
+}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
