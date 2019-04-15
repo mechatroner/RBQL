@@ -435,8 +435,7 @@ function AggregateWriter(subwriter) {
             for (var ag of this.aggregators) {
                 out_fields.push(ag.get_final(key));
             }
-            var out_record = output_join(out_fields, output_delim);
-            if (!this.subwriter.write(out_record))
+            if (!this.subwriter.write(out_fields))
                 break;
         }
         this.subwriter.finish();
@@ -512,6 +511,50 @@ function process_update(NF, afields, rhs_records) {
     }
     return writer.write(up_fields);
 }
+
+
+function select_simple(sort_key, out_fields) {
+    if (__RBQLMP__sort_flag) {
+        var sort_entry = sort_key.concat([NR, out_fields]);
+        if (!writer.write(sort_entry))
+            return false;
+    } else {
+        if (!writer.write(out_fields))
+            return false;
+    }
+    return true;
+}
+
+
+function select_aggregated(key, transparent_values) {
+    if (key !== null) {
+        key = JSON.stringify(key);
+    }
+    if (aggregation_stage === 1) {
+        if (!(writer instanceof TopWriter)) {
+            throw new RbqlError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
+        }
+        writer = new AggregateWriter(writer);
+        for (var i = 0; i < transparent_values.length; i++) {
+            var trans_value = transparent_values[i];
+            if (trans_value instanceof Marker) {
+                writer.aggregators.push(functional_aggregators[trans_value.marker_id]);
+                writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value.value);
+            } else {
+                writer.aggregators.push(new rbql_utils.SubkeyChecker());
+                writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value);
+            }
+        }
+        aggregation_stage = 2;
+    } else {
+        for (var i = 0; i < transparent_values.length; i++) {
+            var trans_value = transparent_values[i];
+            writer.aggregators[i].increment(key, trans_value);
+        }
+    }
+    writer.aggregation_keys.add(key)
+}
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
