@@ -556,6 +556,47 @@ function select_aggregated(key, transparent_values) {
 }
 
 
+function select_unfolded(sort_key, folded_fields) {
+    let out_fields = folded_fields.slice();
+    let unfold_pos = folded_fields.findIndex(val => val instanceof UnfoldMarker);
+    for (var i = 0; i < unfold_list.length; i++) {
+        out_fields[unfold_pos] = unfold_list[i];
+        if (!select_simple(sort_key, out_fields))
+            return false;
+    }
+    return true;
+}
+
+
+function process_select(NF, afields, rhs_records) {
+    for (var i = 0; i < rhs_records.length; i++) {
+        unfold_list = null;
+        var bfields = rhs_records[i];
+        var star_fields = afields;
+        if (bfields != null)
+            star_fields = afields.concat(bfields);
+        __RBQLMP__init_column_vars_update
+        if (!(__RBQLMP__where_expression))
+            continue;
+        // TODO wrap all user expression in try/catch block to improve error reporting
+        var out_fields = __RBQLMP__select_expression;
+        if (aggregation_stage > 0) {
+            var key = __RBQLMP__aggregation_key_expression;
+            select_aggregated(key, out_fields);
+        } else {
+            var sort_key = [__RBQLMP__sort_key_expression];
+            if (unfold_list !== null) {
+                if (!select_unfolded(sort_key, out_fields))
+                    return false;
+            } else {
+                if (!select_simple(sort_key, out_fields))
+                    return false;
+            }
+        }
+    }
+    return true;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // OLD CODE:
