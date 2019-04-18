@@ -153,12 +153,8 @@ def translate_select_expression_py(select_expression):
 
 
 def separate_string_literals_py(rbql_expression):
-    string_literals_regex = r'''(\"\"\"|\'\'\'|\"|\')((?<!\\)(\\\\)*\\\1|.)*?\1'''
-    return do_separate_string_literals(rbql_expression, string_literals_regex)
-
-
-def do_separate_string_literals(rbql_expression, string_literals_regex):
     # The regex is improved expression from here: https://stackoverflow.com/a/14366904/2898283
+    string_literals_regex = r'''(\"\"\"|\'\'\'|\"|\')((?<!\\)(\\\\)*\\\1|.)*?\1'''
     matches = list(re.finditer(string_literals_regex, rbql_expression))
     string_literals = list()
     format_parts = list()
