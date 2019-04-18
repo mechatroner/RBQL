@@ -30,6 +30,7 @@ from collections import defaultdict
 
 
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
+# TODO get rid of functions with "_py" suffix
 
 
 GROUP_BY = 'GROUP BY'
@@ -79,7 +80,7 @@ def rbql_meta_format(template_src, meta_params):
     return template_src
 
 
-def strip_py_comments(cline):
+def strip_comments(cline):
     cline = cline.strip()
     if cline.startswith('#'):
         return ''
@@ -122,7 +123,7 @@ def replace_star_count(aggregate_expression):
     return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression).lstrip(' ')
 
 
-def replace_star_vars_py(rbql_expression):
+def replace_star_vars(rbql_expression):
     rbql_expression = re.sub(r'(?:^|,) *\* *(?=, *\* *($|,))', '] + star_fields + [', rbql_expression)
     rbql_expression = re.sub(r'(?:^|,) *\* *(?:$|,)', '] + star_fields + [', rbql_expression)
     return rbql_expression
@@ -144,7 +145,7 @@ def translate_update_expression(update_expression, indent):
 
 def translate_select_expression_py(select_expression):
     translated = replace_star_count(select_expression)
-    translated = replace_star_vars_py(translated)
+    translated = replace_star_vars(translated)
     translated = translated.strip()
     if not len(translated):
         raise RbqlParsingError('"SELECT" expression is empty')
@@ -339,7 +340,7 @@ class HashJoinMap:
 
 def parse_to_py(query, join_tables_registry, user_init_code):
     rbql_lines = query.split('\n')
-    rbql_lines = [strip_py_comments(l) for l in rbql_lines]
+    rbql_lines = [strip_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
     full_rbql_expression = ' '.join(rbql_lines)
     column_vars = extract_column_vars(full_rbql_expression)

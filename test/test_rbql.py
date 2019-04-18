@@ -93,7 +93,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_comment_strip(self):
         a = ''' # a comment  '''
-        a_strp = rbql.strip_py_comments(a)
+        a_strp = rbql.strip_comments(a)
         self.assertEqual(a_strp, '')
 
 
