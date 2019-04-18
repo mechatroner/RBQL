@@ -79,13 +79,6 @@ def rbql_meta_format(template_src, meta_params):
     return template_src
 
 
-def remove_if_possible(file_path):
-    try:
-        os.remove(file_path)
-    except Exception:
-        pass
-
-
 def strip_py_comments(cline):
     cline = cline.strip()
     if cline.startswith('#'):
