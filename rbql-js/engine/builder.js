@@ -1,3 +1,370 @@
+// This module works with records only. It is CSV-agnostic. 
+// Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
+
+// TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
+// TODO get rid of functions with "_js" suffix
+
+const version = '0.5.0';
+
+const GROUP_BY = 'GROUP BY';
+const UPDATE = 'UPDATE';
+const SELECT = 'SELECT';
+const JOIN = 'JOIN';
+const INNER_JOIN = 'INNER JOIN';
+const LEFT_JOIN = 'LEFT JOIN';
+const STRICT_LEFT_JOIN = 'STRICT LEFT JOIN';
+const ORDER_BY = 'ORDER BY';
+const WHERE = 'WHERE';
+const LIMIT = 'LIMIT';
+const EXCEPT = 'EXCEPT';
+
+
+class RbqlParsingError extends Error {}
+class RbqlRutimeError extends Error {}
+class AssertionError extends Error {}
+
+
+function assert(condition, message=null) {
+    if (!condition) {
+        if (!message) {
+            message = 'Assertion error';
+        }
+        throw new AssertionError(message);
+    }
+}
+
+
+function get_all_matches(regexp, text) {
+    var result = [];
+    let match_obj = null;
+    while((match_obj = regexp.exec(text)) !== null) {
+        result.push(match_obj);
+    }
+    return result;
+}
+
+
+function replace_all(src, search, replacement) {
+    return src.split(search).join(replacement);
+}
+
+
+function str_strip(src) {
+    return src.replace(/^ +| +$/g, '');
+}
+
+
+// FIXME do we need to add exception_to_error_info() function? see python version...
+
+
+function rbql_meta_format(template_src, meta_params) {
+    for (var key in meta_params) {
+        if (!meta_params.hasOwnProperty(key))
+            continue;
+        var value = meta_params[key];
+        var template_src_upd = replace_all(template_src, key, value);
+        assert(template_src_upd != template_src);
+        template_src = template_src_upd;
+    }
+    return template_src;
+}
+
+
+function strip_comments(cline) {
+    cline = cline.trim();
+    if (cline.startsWith('//'))
+        return '';
+    return cline;
+}
+
+
+function parse_join_expression(src) {
+    var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
+    var match = rgx.exec(src);
+    if (match === null) {
+        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
+    }
+    var table_id = match[1];
+    var avar = match[2];
+    var bvar = match[3];
+    if (avar.charAt(0) == 'b') {
+        [avar, bvar] = [bvar, avar];
+    }
+    if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
+        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
+    }
+    avar = avar.substr(1);
+    bvar = bvar.substr(1);
+    var lhs_join_var = `safe_join_get(afields, ${avar})`;
+    var rhs_join_var = `safe_join_get(bfields, ${bvar})`;
+    return [table_id, lhs_join_var, rhs_join_var];
+}
+
+
+function generate_init_statements(column_vars, indent) {
+    var init_statements = [];
+    for (var i = 0; i < column_vars.length; i++) {
+        var var_name = column_vars[i];
+        var var_group = var_name.charAt(0);
+        var zero_based_idx = parseInt(var_name.substr(1)) - 1;
+        if (var_group == 'a') {
+            init_statements.push(`var ${var_name} = afields[${zero_based_idx}];`);
+        } else {
+            init_statements.push(`var ${var_name} = bfields === null ? undefined : bfields[${zero_based_idx}];`);
+        }
+    }
+    for (var i = 1; i < init_statements.length; i++) {
+        init_statements[i] = indent + init_statements[i];
+    }
+    return init_statements.join('\n');
+}
+
+
+function replace_star_count(aggregate_expression) {
+    var rgx = /(^|,) *COUNT\( *\* *\) *(?:$|(?=,))/g;
+    var result = aggregate_expression.replace(rgx, '$1 COUNT(1)');
+    return str_strip(result);
+}
+
+
+function replace_star_vars(rbql_expression) {
+    var middle_star_rgx = /(?:^|,) *\* *(?=, *\* *($|,))/g;
+    rbql_expression = rbql_expression.replace(middle_star_rgx, ']).concat(star_fields).concat([');
+    var last_star_rgx = /(?:^|,) *\* *(?:$|,)/g;
+    rbql_expression = rbql_expression.replace(last_star_rgx, ']).concat(star_fields).concat([');
+    return rbql_expression;
+}
+
+
+function translate_update_expression(update_expression, indent) {
+    var rgx = /(?:^|,) *a([1-9][0-9]*) *=(?=[^=])/g;
+    var translated = update_expression.replace(rgx, '\nsafe_set(up_fields, $1,');
+    var update_statements = translated.split('\n');
+    update_statements = update_statements.map(str_strip);
+    if (update_statements.length < 2 || update_statements[0] != '') {
+        throw new RbqlParsingError('Unable to parse "UPDATE" expression');
+    }
+    update_statements = update_statements.slice(1);
+    for (var i = 0; i < update_statements.length; i++) {
+        update_statements[i] = update_statements[i] + ')';
+    }
+    for (var i = 1; i < update_statements.length; i++) {
+        update_statements[i] = indent + update_statements[i];
+    }
+    var translated = update_statements.join('\n');
+    return translated;
+}
+
+
+function translate_select_expression_js(select_expression) {
+    var translated = replace_star_count(select_expression);
+    translated = replace_star_vars(translated);
+    translated = str_strip(translated);
+    if (!translated.length) {
+        throw new RbqlParsingError('"SELECT" expression is empty');
+    }
+    return `[].concat([${translated}])`;
+}
+
+
+function separate_string_literals_js(rbql_expression) {
+    // The regex consists of 3 almost identicall parts, the only difference is quote type
+    var rgx = /('(\\(\\\\)*'|[^'])*')|("(\\(\\\\)*"|[^"])*")|(`(\\(\\\\)*`|[^`])*`)/g;
+    var match_obj = null;
+    var format_parts = [];
+    var string_literals = [];
+    var idx_before = 0;
+    while((match_obj = rgx.exec(rbql_expression)) !== null) {
+        var literal_id = string_literals.length;
+        var string_literal = match_obj[0];
+        string_literals.push(string_literal);
+        var start_index = match_obj.index;
+        format_parts.push(rbql_expression.substring(idx_before, start_index));
+        format_parts.push(`###RBQL_STRING_LITERAL###${literal_id}`);
+        idx_before = rgx.lastIndex;
+    }
+    format_parts.push(rbql_expression.substring(idx_before));
+    var format_expression = format_parts.join('');
+    format_expression = format_expression.replace(/\t/g, ' ');
+    return [format_expression, string_literals];
+}
+
+
+function combine_string_literals(backend_expression, string_literals) {
+    for (var i = 0; i < string_literals.length; i++) {
+        backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL###${i}`, string_literals[i]);
+    }
+    return backend_expression;
+}
+
+
+function locate_statements(rbql_expression) {
+    let statement_groups = [];
+    statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
+    statement_groups.push([SELECT]);
+    statement_groups.push([ORDER_BY]);
+    statement_groups.push([WHERE]);
+    statement_groups.push([UPDATE]);
+    statement_groups.push([GROUP_BY]);
+    statement_groups.push([LIMIT]);
+    statement_groups.push([EXCEPT]);
+    var result = [];
+    for (var ig = 0; ig < statement_groups.length; ig++) {
+        for (var is = 0; is < statement_groups[ig].length; is++) {
+            var statement = statement_groups[ig][is];
+            var rgxp = new RegExp('(?:^| )' + replace_all(statement, ' ', ' *') + '(?= )', 'ig');
+            var matches = get_all_matches(rgxp, rbql_expression);
+            if (!matches.length)
+                continue;
+            if (matches.length > 1)
+                throw new RbqlParsingError(`More than one ${statement} statements found`);
+            assert(matches.length == 1);
+            var match = matches[0];
+            var match_str = match[0];
+            result.push([match.index, match.index + match_str.length, statement]);
+            break; // Break to avoid matching a sub-statement from the same group e.g. "INNER JOIN" -> "JOIN"
+        }
+    }
+    result.sort(function(a, b) { return a[0] - b[0]; });
+    return result;
+}
+
+
+function separate_actions(rbql_expression) {
+    rbql_expression = str_strip(rbql_expression);
+    var ordered_statements = locate_statements(rbql_expression);
+    var result = {};
+    for (var i = 0; i < ordered_statements.length; i++) {
+        var statement_start = ordered_statements[i][0];
+        var span_start = ordered_statements[i][1];
+        var statement = ordered_statements[i][2];
+        var span_end = i + 1 < ordered_statements.length ? ordered_statements[i + 1][0] : rbql_expression.length;
+        assert(statement_start < span_start);
+        assert(span_start <= span_end);
+        var span = rbql_expression.substring(span_start, span_end);
+        var statement_params = {};
+        if ([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN].indexOf(statement) != -1) {
+            statement_params['join_subtype'] = statement;
+            statement = JOIN;
+        }
+
+        if (statement == UPDATE) {
+            if (statement_start != 0)
+                throw new RbqlParsingError('UPDATE keyword must be at the beginning of the query');
+            span = span.replace(/^ *SET/i, '');
+        }
+
+        if (statement == ORDER_BY) {
+            span = span.replace(/ ASC *$/i, '');
+            var new_span = span.replace(/ DESC *$/i, '');
+            if (new_span != span) {
+                span = new_span;
+                statement_params['reverse'] = true;
+            } else {
+                statement_params['reverse'] = false;
+            }
+        }
+
+        if (statement == SELECT) {
+            if (statement_start != 0)
+                throw new RbqlParsingError('SELECT keyword must be at the beginning of the query');
+            var match = /^ *TOP *([0-9]+) /i.exec(span);
+            if (match !== null) {
+                statement_params['top'] = parseInt(match[1]);
+                span = span.substr(match.index + match[0].length);
+            }
+            match = /^ *DISTINCT *(COUNT)? /i.exec(span);
+            if (match !== null) {
+                statement_params['distinct'] = true;
+                if (match[1]) {
+                    statement_params['distinct_count'] = true;
+                }
+                span = span.substr(match.index + match[0].length);
+            }
+        }
+        statement_params['text'] = str_strip(span);
+        result[statement] = statement_params;
+    }
+    if (!result.hasOwnProperty(SELECT) && !result.hasOwnProperty(UPDATE)) {
+        throw new RbqlParsingError('Query must contain either SELECT or UPDATE statement');
+    }
+    assert(result.hasOwnProperty(SELECT) != result.hasOwnProperty(UPDATE));
+    return result;
+}
+
+
+function find_top(rb_actions) {
+    if (rb_actions.hasOwnProperty(LIMIT)) {
+        var result = parseInt(rb_actions[LIMIT]['text']);
+        if (isNaN(result)) {
+            throw new RbqlParsingError('LIMIT keyword must be followed by an integer');
+        }
+        return result;
+    }
+    var select_action = rb_actions[SELECT];
+    if (select_action && select_action.hasOwnProperty('top')) {
+        return select_action['top'];
+    }
+    return null;
+}
+
+
+function indent_user_init_code(user_init_code) {
+    let source_lines = user_init_code.split(/(?:\r\n)|\r|\n/);
+    source_lines = source_lines.map(line => '    ' + line);
+    return source_lines.join('\n');
+}
+
+
+function extract_column_vars(rbql_expression) {
+    var rgx = /(?:^|[^_a-zA-Z0-9])([ab][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))/g;
+    var result = [];
+    var seen = {};
+    var matches = get_all_matches(rgx, rbql_expression);
+    for (var i = 0; i < matches.length; i++) {
+        var var_name = matches[i][1];
+        if (!seen.hasOwnProperty(var_name)) {
+            result.push(var_name);
+            seen[var_name] = 1;
+        }
+    }
+    return result;
+}
+
+
+function translate_except_expression(except_expression) {
+    let skip_vars = except_expression.split(',');
+    let skip_indices = [];
+    let rgx = /^a[1-9][0-9]*$/;
+    for (let i = 0; i < skip_vars.length; i++) {
+        let skip_var = str_strip(skip_vars[i]);
+        let match = rgx.exec(skip_var);
+        if (match === null) {
+            throw new RbqlParsingError('Invalid EXCEPT syntax');
+        }
+        skip_indices.push(parseInt(skip_var.substring(1)) - 1);
+    }
+    skip_indices = skip_indices.sort((a, b) => a - b);
+    let indices_str = skip_indices.join(',');
+    return `select_except(afields, [${indices_str}])`;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+// OLD CODE IS BELOW
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
@@ -28,221 +395,10 @@ const default_csv_encoding = 'latin-1';
 // FIXME separate CSV-related logic from core RBQL model, the same way as it is already done with Python implementation
 
 
-class RBParsingError extends Error {}
+class RbqlParsingError extends Error {}
 
 
 class AssertionError extends Error {}
-
-
-function assert(condition, message=null) {
-    if (!condition) {
-        if (!message) {
-            message = 'Assertion error';
-        }
-        throw new AssertionError(message);
-    }
-}
-
-
-function strip_js_comments(cline) {
-    cline = cline.trim();
-    if (cline.startsWith('//'))
-        return '';
-    return cline;
-}
-
-
-function str_strip(src) {
-    return src.replace(/^ +| +$/g, '');
-}
-
-
-function replace_all(src, search, replacement) {
-    return src.split(search).join(replacement);
-}
-
-
-function escape_string_literal(src) {
-    src = replace_all(src, '\\', '\\\\');
-    src = replace_all(src, '\t', '\\t');
-    src = replace_all(src, "'", "\\'");
-    return src;
-}
-
-
-function extract_column_vars(rbql_expression) {
-    var rgx = /(?:^|[^_a-zA-Z0-9])([ab][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))/g;
-    var result = [];
-    var seen = {};
-    var matches = get_all_matches(rgx, rbql_expression);
-    for (var i = 0; i < matches.length; i++) {
-        var var_name = matches[i][1];
-        if (!seen.hasOwnProperty(var_name)) {
-            result.push(var_name);
-            seen[var_name] = 1;
-        }
-    }
-    return result;
-}
-
-
-function combine_string_literals(backend_expression, string_literals) {
-    for (var i = 0; i < string_literals.length; i++) {
-        backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL###${i}`, string_literals[i]);
-    }
-    return backend_expression;
-}
-
-
-function separate_string_literals_js(rbql_expression) {
-    // The regex consists of 3 almost identicall parts, the only difference is quote type
-    var rgx = /('(\\(\\\\)*'|[^'])*')|("(\\(\\\\)*"|[^"])*")|(`(\\(\\\\)*`|[^`])*`)/g;
-    var match_obj = null;
-    var format_parts = [];
-    var string_literals = [];
-    var idx_before = 0;
-    while((match_obj = rgx.exec(rbql_expression)) !== null) {
-        var literal_id = string_literals.length;
-        var string_literal = match_obj[0];
-        string_literals.push(string_literal);
-        var start_index = match_obj.index;
-        format_parts.push(rbql_expression.substring(idx_before, start_index));
-        format_parts.push(`###RBQL_STRING_LITERAL###${literal_id}`);
-        idx_before = rgx.lastIndex;
-    }
-    format_parts.push(rbql_expression.substring(idx_before));
-    var format_expression = format_parts.join('');
-    format_expression = format_expression.replace(/\t/g, ' ');
-    return [format_expression, string_literals];
-}
-
-
-function get_all_matches(regexp, text) {
-    var result = [];
-    let match_obj = null;
-    while((match_obj = regexp.exec(text)) !== null) {
-        result.push(match_obj);
-    }
-    return result;
-}
-
-
-function locate_statements(rbql_expression) {
-    let statement_groups = [];
-    statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
-    statement_groups.push([SELECT]);
-    statement_groups.push([ORDER_BY]);
-    statement_groups.push([WHERE]);
-    statement_groups.push([UPDATE]);
-    statement_groups.push([GROUP_BY]);
-    statement_groups.push([LIMIT]);
-    statement_groups.push([EXCEPT]);
-    var result = [];
-    for (var ig = 0; ig < statement_groups.length; ig++) {
-        for (var is = 0; is < statement_groups[ig].length; is++) {
-            var statement = statement_groups[ig][is];
-            var rgxp = new RegExp('(?:^| )' + replace_all(statement, ' ', ' *') + '(?= )', 'ig');
-            var matches = get_all_matches(rgxp, rbql_expression);
-            if (!matches.length)
-                continue;
-            if (matches.length > 1)
-                throw new RBParsingError(`More than one ${statement} statements found`);
-            assert(matches.length == 1);
-            var match = matches[0];
-            var match_str = match[0];
-            result.push([match.index, match.index + match_str.length, statement]);
-            break; // Break to avoid matching a sub-statement from the same group e.g. "INNER JOIN" -> "JOIN"
-        }
-    }
-    result.sort(function(a, b) { return a[0] - b[0]; });
-    return result;
-}
-
-
-function parse_join_expression(src) {
-    var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
-    var match = rgx.exec(src);
-    if (match === null) {
-        throw new RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
-    }
-    var table_id = match[1];
-    var avar = match[2];
-    var bvar = match[3];
-    if (avar.charAt(0) == 'b') {
-        [avar, bvar] = [bvar, avar];
-    }
-    if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
-        throw new RBParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
-    }
-    avar = avar.substr(1);
-    bvar = bvar.substr(1);
-    var lhs_join_var = `safe_join_get(afields, ${avar})`;
-    var rhs_join_var = `safe_join_get(bfields, ${bvar})`;
-    return [table_id, lhs_join_var, rhs_join_var];
-}
-
-
-function separate_actions(rbql_expression) {
-    rbql_expression = str_strip(rbql_expression);
-    var ordered_statements = locate_statements(rbql_expression);
-    var result = {};
-    for (var i = 0; i < ordered_statements.length; i++) {
-        var statement_start = ordered_statements[i][0];
-        var span_start = ordered_statements[i][1];
-        var statement = ordered_statements[i][2];
-        var span_end = i + 1 < ordered_statements.length ? ordered_statements[i + 1][0] : rbql_expression.length;
-        assert(statement_start < span_start);
-        assert(span_start <= span_end);
-        var span = rbql_expression.substring(span_start, span_end);
-        var statement_params = {};
-        if ([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN].indexOf(statement) != -1) {
-            statement_params['join_subtype'] = statement;
-            statement = JOIN;
-        }
-
-        if (statement == UPDATE) {
-            if (statement_start != 0)
-                throw new RBParsingError('UPDATE keyword must be at the beginning of the query');
-            span = span.replace(/^ *SET/i, '');
-        }
-
-        if (statement == ORDER_BY) {
-            span = span.replace(/ ASC *$/i, '');
-            var new_span = span.replace(/ DESC *$/i, '');
-            if (new_span != span) {
-                span = new_span;
-                statement_params['reverse'] = true;
-            } else {
-                statement_params['reverse'] = false;
-            }
-        }
-
-        if (statement == SELECT) {
-            if (statement_start != 0)
-                throw new RBParsingError('SELECT keyword must be at the beginning of the query');
-            var match = /^ *TOP *([0-9]+) /i.exec(span);
-            if (match !== null) {
-                statement_params['top'] = parseInt(match[1]);
-                span = span.substr(match.index + match[0].length);
-            }
-            match = /^ *DISTINCT *(COUNT)? /i.exec(span);
-            if (match !== null) {
-                statement_params['distinct'] = true;
-                if (match[1]) {
-                    statement_params['distinct_count'] = true;
-                }
-                span = span.substr(match.index + match[0].length);
-            }
-        }
-        statement_params['text'] = str_strip(span);
-        result[statement] = statement_params;
-    }
-    if (!result.hasOwnProperty(SELECT) && !result.hasOwnProperty(UPDATE)) {
-        throw new RBParsingError('Query must contain either SELECT or UPDATE statement');
-    }
-    assert(result.hasOwnProperty(SELECT) != result.hasOwnProperty(UPDATE));
-    return result;
-}
 
 
 function expanduser(filepath) {
@@ -303,126 +459,6 @@ function normalize_delim(delim) {
 }
 
 
-function translate_update_expression(update_expression, indent) {
-    var rgx = /(?:^|,) *a([1-9][0-9]*) *=(?=[^=])/g;
-    var translated = update_expression.replace(rgx, '\nsafe_set(up_fields, $1,');
-    var update_statements = translated.split('\n');
-    update_statements = update_statements.map(str_strip);
-    if (update_statements.length < 2 || update_statements[0] != '') {
-        throw new RBParsingError('Unable to parse "UPDATE" expression');
-    }
-    update_statements = update_statements.slice(1);
-    for (var i = 0; i < update_statements.length; i++) {
-        update_statements[i] = update_statements[i] + ')';
-    }
-    for (var i = 1; i < update_statements.length; i++) {
-        update_statements[i] = indent + update_statements[i];
-    }
-    var translated = update_statements.join('\n');
-    return translated;
-}
-
-
-function find_top(rb_actions) {
-    if (rb_actions.hasOwnProperty(LIMIT)) {
-        var result = parseInt(rb_actions[LIMIT]['text']);
-        if (isNaN(result)) {
-            throw new RBParsingError('LIMIT keyword must be followed by an integer');
-        }
-        return result;
-    }
-    var select_action = rb_actions[SELECT];
-    if (select_action && select_action.hasOwnProperty('top')) {
-        return select_action['top'];
-    }
-    return null;
-}
-
-
-function replace_star_count(aggregate_expression) {
-    var rgx = /(^|,) *COUNT\( *\* *\) *(?:$|(?=,))/g;
-    var result = aggregate_expression.replace(rgx, '$1 COUNT(1)');
-    return str_strip(result);
-}
-
-function replace_star_vars_js(rbql_expression) {
-    var middle_star_rgx = /(?:^|,) *\* *(?=, *\* *($|,))/g;
-    rbql_expression = rbql_expression.replace(middle_star_rgx, ']).concat(star_fields).concat([');
-    var last_star_rgx = /(?:^|,) *\* *(?:$|,)/g;
-    rbql_expression = rbql_expression.replace(last_star_rgx, ']).concat(star_fields).concat([');
-    return rbql_expression;
-}
-
-
-function translate_select_expression_js(select_expression) {
-    var translated = replace_star_count(select_expression);
-    translated = replace_star_vars_js(translated);
-    translated = str_strip(translated);
-    if (!translated.length) {
-        throw new RBParsingError('"SELECT" expression is empty');
-    }
-    return `[].concat([${translated}])`;
-}
-
-
-function rbql_meta_format(template_src, meta_params) {
-    for (var key in meta_params) {
-        if (!meta_params.hasOwnProperty(key))
-            continue;
-        var value = meta_params[key];
-        var template_src_upd = replace_all(template_src, key, value);
-        assert(template_src_upd != template_src);
-        template_src = template_src_upd;
-    }
-    return template_src;
-}
-
-
-function generate_init_statements(column_vars, indent) {
-    var init_statements = [];
-    for (var i = 0; i < column_vars.length; i++) {
-        var var_name = column_vars[i];
-        var var_group = var_name.charAt(0);
-        var zero_based_idx = parseInt(var_name.substr(1)) - 1;
-        if (var_group == 'a') {
-            init_statements.push(`var ${var_name} = afields[${zero_based_idx}];`);
-        } else {
-            init_statements.push(`var ${var_name} = bfields === null ? undefined : bfields[${zero_based_idx}];`);
-        }
-    }
-    for (var i = 1; i < init_statements.length; i++) {
-        init_statements[i] = indent + init_statements[i];
-    }
-    return init_statements.join('\n');
-}
-
-
-function make_user_init_code(rbql_init_source_path) {
-    let content = fs.readFileSync(rbql_init_source_path, 'utf-8');
-    let source_lines = content.split(/(?:\r\n)|\r|\n/);
-    source_lines = source_lines.map(line => '    ' + line);
-    return source_lines.join('\n');
-}
-
-
-function translate_except_expression(except_expression) {
-    let skip_vars = except_expression.split(',');
-    let skip_indices = [];
-    let rgx = /^a[1-9][0-9]*$/;
-    for (let i = 0; i < skip_vars.length; i++) {
-        let skip_var = str_strip(skip_vars[i]);
-        let match = rgx.exec(skip_var);
-        if (match === null) {
-            throw new RBParsingError('Invalid EXCEPT syntax');
-        }
-        skip_indices.push(parseInt(skip_var.substring(1)) - 1);
-    }
-    skip_indices = skip_indices.sort((a, b) => a - b);
-    let indices_str = skip_indices.join(',');
-    return `select_except(afields, [${indices_str}])`;
-}
-
-
 function is_ascii(str) {
     return /^[\x00-\x7F]*$/.test(str);
 }
@@ -430,14 +466,14 @@ function is_ascii(str) {
 
 function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_template_text, input_delim, input_policy, out_delim, out_policy, csv_encoding, custom_init_path=null) {
     if (input_delim == '"' && input_policy == 'quoted')
-        throw new RBParsingError('Double quote delimiter is incompatible with "quoted" policy');
+        throw new RbqlParsingError('Double quote delimiter is incompatible with "quoted" policy');
     if (csv_encoding == 'latin-1')
         csv_encoding = 'binary';
     if (!is_ascii(query) && csv_encoding == 'binary') {
-        throw new RBParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
+        throw new RbqlParsingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
     }
     let rbql_lines = query.split('\n');
-    rbql_lines = rbql_lines.map(strip_js_comments);
+    rbql_lines = rbql_lines.map(strip_comments);
     rbql_lines = rbql_lines.filter(line => line.length);
     var full_rbql_expression = rbql_lines.join(' ');
     var column_vars = extract_column_vars(full_rbql_expression);
@@ -464,7 +500,7 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_templa
 
     if (rb_actions.hasOwnProperty(GROUP_BY)) {
         if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
-            throw new RBParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
+            throw new RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
         var aggregation_key_expression = rb_actions[GROUP_BY]['text'];
         js_meta_params['__RBQLMP__aggregation_key_expression'] = '[' + combine_string_literals(aggregation_key_expression, string_literals) + ']';
     } else {
@@ -475,7 +511,7 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_templa
         var [rhs_table_id, lhs_join_var, rhs_join_var] = parse_join_expression(rb_actions[JOIN]['text']);
         var rhs_table_path = find_table_path(rhs_table_id);
         if (!rhs_table_path) {
-            throw new RBParsingError(`Unable to find join B table: ${rhs_table_id}`);
+            throw new RbqlParsingError(`Unable to find join B table: ${rhs_table_id}`);
         }
         var [join_delim, join_policy] = [input_delim, input_policy];
         var join_format_record = get_index_record(table_index_path, rhs_table_path)
@@ -501,7 +537,7 @@ function parse_to_js_almost_web(src_table_path, dst_table_path, query, js_templa
     if (rb_actions.hasOwnProperty(WHERE)) {
         var where_expression = rb_actions[WHERE]['text'];
         if (/[^!=]=[^=]/.exec(where_expression)) {
-            throw new RBParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "==" or "==="');
+            throw new RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "==" or "==="');
         }
         js_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals);
     } else {
@@ -622,7 +658,7 @@ module.exports.default_csv_encoding = default_csv_encoding;
 module.exports.parse_to_js = parse_to_js;
 module.exports.parse_to_js_almost_web = parse_to_js_almost_web;
 module.exports.make_warnings_human_readable = make_warnings_human_readable;
-module.exports.strip_js_comments = strip_js_comments;
+module.exports.strip_comments = strip_comments;
 module.exports.separate_string_literals_js = separate_string_literals_js;
 module.exports.translate_select_expression_js = translate_select_expression_js;
 module.exports.translate_except_expression = translate_except_expression;
