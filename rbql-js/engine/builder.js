@@ -4,6 +4,8 @@
 // TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 // TODO get rid of functions with "_js" suffix
 
+// TODO rewrite with async/await ?
+
 const version = '0.5.0';
 
 const GROUP_BY = 'GROUP BY';
@@ -348,6 +350,65 @@ function translate_except_expression(except_expression) {
     let indices_str = skip_indices.join(',');
     return `select_except(afields, [${indices_str}])`;
 }
+
+
+function HashJoinMap(record_iterator, key_index) {
+    this.max_record_len = 0;
+    this.hash_map = new Map();
+    this.record_iterator = record_iterator;
+    this.key_index = key_index;
+    this.error_msg = null;
+    this.external_error_handler = null;
+    this.external_success_handler = null;
+    this.nr = 0;
+
+    this.finish_build = function() {
+        if (this.error_msg === null) {
+            this.external_success_handler();
+        } else {
+            this.external_error_handler(error_msg);
+        }
+    }
+
+    this.add_record = function(record) {
+        this.nr += 1;
+        let num_fields = record.length;
+        this.max_record_len = Math.max(this.max_record_len, num_fields);
+        if (this.key_index >= num_fields) {
+            // FIXME unit test this condition
+            this.error_msg = `No "b ${this.key_index + 1)}" field at record: ${this.nr} in "B" table`;
+            this.record_iterator.finish();
+        }
+        let key = record[this.key_index];
+        let key_records = this.hash_map.get(key);
+        if (key_records === undefined) {
+            this.hash_map.set(key, [record]);
+        } else {
+            key_records.push(record);
+        }
+    }
+
+    this.build = function(success_callback, error_callback) {
+        this.external_success_handler = success_callback;
+        this.external_error_handler = error_callback;
+        this.record_iterator.set_record_callback(this.add_record);
+        this.record_iterator.set_finish_callback(this.finish_build);
+    }
+
+    this.get_join_records = function(key) {
+        let result = this.hash_map.get(key);
+        if (result === undefined)
+            return [];
+        return result;
+    }
+
+    this.get_warnings = function() {
+        return this.record_iterator.get_warnings();
+    }
+}
+
+
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -669,7 +669,7 @@ function do_rb_transform(input_iterator, join_map_impl, output_writer) {
     var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
     if (join_map_impl !== null)
-        join_map_impl.build();
+        join_map_impl.build(); // FIXME this an async function, use callback to continue
     join_map = sql_join_type(join_map_impl);
 
     writer = TopWriter(output_writer);
