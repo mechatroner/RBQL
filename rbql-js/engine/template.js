@@ -664,13 +664,12 @@ function do_process_record(record) {
 }
 
 
-function do_rb_transform(input_iterator, join_map_impl, output_writer) {
+function do_rb_transform(input_iterator, output_writer) {
     process_function = __RBQLMP__is_select_query ? process_select : process_update;
     var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
-    if (join_map_impl !== null)
-        join_map_impl.build(); // FIXME this an async function, use callback to continue
-    join_map = sql_join_type(join_map_impl);
+    if (external_join_map_impl !== null)
+        join_map = sql_join_type(external_join_map_impl);
 
     writer = TopWriter(output_writer);
 
@@ -683,7 +682,6 @@ function do_rb_transform(input_iterator, join_map_impl, output_writer) {
     if (__RBQLMP__sort_flag)
         writer = SortedWriter(writer);
 
-    input_iterator.set_finish_callback(finish_processing_success);
     input_iterator.set_record_callback(process_record);
 }
 
@@ -695,6 +693,8 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
     external_writer = output_writer;
     external_join_map_impl = join_map_impl;
 
+    input_iterator.set_finish_callback(finish_processing_success);
+
     if (module_was_used_failsafe) {
         finish_processing_error('Module can only be used once');
         return;
@@ -702,7 +702,12 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
     module_was_used_failsafe = true;
 
     try {
-        do_rb_transform(input_iterator, join_map_impl, output_writer);
+        if (join_map_impl !== null) {
+            join_map_impl.build(function() { do_rb_transform(input_iterator, output_writer); }, finish_processing_error);
+        } else {
+            do_rb_transform(input_iterator, output_writer);
+        }
+
     } catch (e) {
         if (e instanceof RbqlRutimeError) {
             finish_processing_error(e.error_msg);
