@@ -22,6 +22,11 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
+def read_user_init_code(rbql_init_source_path):
+    with open(rbql_init_source_path) as src:
+        return src.read()
+
+
 def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
     try:
         if input_delim == '"' and input_policy == 'quoted':
@@ -35,9 +40,9 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
         user_init_code = ''
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if custom_init_path is not None:
-            user_init_code = engine.read_user_init_code(custom_init_path)
+            user_init_code = read_user_init_code(custom_init_path)
         elif os.path.exists(default_init_source_path):
-            user_init_code = engine.read_user_init_code(default_init_source_path)
+            user_init_code = read_user_init_code(default_init_source_path)
 
         join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
         input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)

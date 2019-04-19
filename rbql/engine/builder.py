@@ -276,11 +276,6 @@ def indent_user_init_code(user_init_code):
     return '\n'.join(source_lines) + '\n'
 
 
-def read_user_init_code(rbql_init_source_path):
-    with open(rbql_init_source_path) as src:
-        return src.read()
-
-
 def extract_column_vars(rbql_expression):
     rgx = '(?:^|[^_a-zA-Z0-9])([ab][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'
     matches = list(re.finditer(rgx, rbql_expression))
