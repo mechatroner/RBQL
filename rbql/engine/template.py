@@ -67,9 +67,9 @@ def safe_get(record, idx):
 
 def safe_join_get(record, idx):
     try:
-        return record[idx - 1]
+        return record[idx]
     except IndexError as e:
-        raise InternalBadFieldError(idx - 1)
+        raise InternalBadFieldError(idx)
 
 
 def safe_set(record, idx, value):

@@ -133,10 +133,10 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_join_parsing(self):
         join_part = '/path/to/the/file.tsv on a1 == b3'
-        self.assertEqual(('/path/to/the/file.tsv', 'safe_join_get(afields, 1)', 2), rbql.parse_join_expression(join_part))
+        self.assertEqual(('/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2), rbql.parse_join_expression(join_part))
 
         join_part = ' file.tsv on b20== a12  '
-        self.assertEqual(('file.tsv', 'safe_join_get(afields, 12)', 19), rbql.parse_join_expression(join_part))
+        self.assertEqual(('file.tsv', 'safe_join_get(afields, 11)', 19), rbql.parse_join_expression(join_part))
 
         join_part = '/path/to/the/file.tsv on a1==a12  '
         with self.assertRaises(Exception) as cm:

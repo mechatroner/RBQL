@@ -98,7 +98,7 @@ def parse_join_expression(src):
         avar, bvar = bvar, avar
     if avar[0] != 'a' or bvar[0] != 'b':
         raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
-    lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]))
+    lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]) - 1)
     rhs_key_index = int(bvar[1:]) - 1
     return (table_id, lhs_join_var, rhs_key_index)
 
