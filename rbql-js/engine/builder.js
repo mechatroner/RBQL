@@ -1,10 +1,21 @@
+const external_js_template_text = codegeneration_pseudo_function_include_combine("template.js");
+// ^ The expression above will cause builder.js and tempalte.js to be combined to autogenerate engine.js: builder.js + template.js -> ../engine.js
+// Expression is written as a function to pacify the linter. 
+// Unit tests will ensure that engine.js is indeed a concatenation of builder.js and template.js
+
+
 // This module works with records only. It is CSV-agnostic. 
 // Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
+
 
 // TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 // TODO get rid of functions with "_js" suffix
 
 // TODO rewrite with async/await ?
+
+// FIXME concatenate template.js and builder.js into the third file: package.js
+// Unit tests will make sure that package.js is indeed concatenation of template.js and builder.js.
+// This hack will simplify interface
 
 const version = '0.5.0';
 
@@ -407,94 +418,7 @@ function HashJoinMap(record_iterator, key_index) {
 }
 
 
-//def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
-//    rbql_lines = query.split('\n')
-//    rbql_lines = [strip_comments(l) for l in rbql_lines]
-//    rbql_lines = [l for l in rbql_lines if len(l)]
-//    full_rbql_expression = ' '.join(rbql_lines)
-//    column_vars = extract_column_vars(full_rbql_expression)
-//    format_expression, string_literals = separate_string_literals_py(full_rbql_expression)
-//    rb_actions = separate_actions(format_expression)
-//
-//    py_meta_params = dict()
-//    py_meta_params['__RBQLMP__user_init_code'] = user_init_code
-//
-//    if ORDER_BY in rb_actions and UPDATE in rb_actions:
-//        raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries')
-//
-//    if GROUP_BY in rb_actions:
-//        if ORDER_BY in rb_actions or UPDATE in rb_actions:
-//            raise RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
-//        aggregation_key_expression = rb_actions[GROUP_BY]['text']
-//        py_meta_params['__RBQLMP__aggregation_key_expression'] = '({},)'.format(combine_string_literals(aggregation_key_expression, string_literals))
-//    else:
-//        py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
-//
-//    join_map = None
-//    if JOIN in rb_actions:
-//        rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
-//        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
-//        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
-//        join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
-//        if join_record_iterator is None:
-//            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
-//        join_map = HashJoinMap(join_record_iterator, rhs_key_index)
-//    else:
-//        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
-//        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
-//
-//    if WHERE in rb_actions:
-//        where_expression = rb_actions[WHERE]['text']
-//        if re.search(r'[^!=]=[^=]', where_expression) is not None:
-//            raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="')
-//        py_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals)
-//    else:
-//        py_meta_params['__RBQLMP__where_expression'] = 'True'
-//
-//    if UPDATE in rb_actions:
-//        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
-//        py_meta_params['__RBQLMP__writer_type'] = 'simple'
-//        py_meta_params['__RBQLMP__select_expression'] = 'None'
-//        py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
-//        py_meta_params['__RBQLMP__is_select_query'] = 'False'
-//        py_meta_params['__RBQLMP__top_count'] = 'None'
-//
-//    py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' ' * 8)
-//    py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' ' * 4)
-//
-//    if SELECT in rb_actions:
-//        top_count = find_top(rb_actions)
-//        py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
-//        if 'distinct_count' in rb_actions[SELECT]:
-//            py_meta_params['__RBQLMP__writer_type'] = 'uniq_count'
-//        elif 'distinct' in rb_actions[SELECT]:
-//            py_meta_params['__RBQLMP__writer_type'] = 'uniq'
-//        else:
-//            py_meta_params['__RBQLMP__writer_type'] = 'simple'
-//        if EXCEPT in rb_actions:
-//            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'])
-//        else:
-//            select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
-//            py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
-//        py_meta_params['__RBQLMP__update_statements'] = 'pass'
-//        py_meta_params['__RBQLMP__is_select_query'] = 'True'
-//
-//    if ORDER_BY in rb_actions:
-//        order_expression = rb_actions[ORDER_BY]['text']
-//        py_meta_params['__RBQLMP__sort_key_expression'] = combine_string_literals(order_expression, string_literals)
-//        py_meta_params['__RBQLMP__reverse_flag'] = 'True' if rb_actions[ORDER_BY]['reverse'] else 'False'
-//        py_meta_params['__RBQLMP__sort_flag'] = 'True'
-//    else:
-//        py_meta_params['__RBQLMP__sort_key_expression'] = 'None'
-//        py_meta_params['__RBQLMP__reverse_flag'] = 'False'
-//        py_meta_params['__RBQLMP__sort_flag'] = 'False'
-//
-//    python_code = rbql_meta_format(py_template_text, py_meta_params)
-//    return (python_code, join_map)
-
-
 function parse_to_js(query, js_template_text, join_tables_registry, user_init_code) {
-    // FIXME
     let rbql_lines = query.split('\n');
     rbql_lines = rbql_lines.map(strip_comments);
     rbql_lines = rbql_lines.filter(line => line.length);
@@ -518,46 +442,18 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         js_meta_params['__RBQLMP__aggregation_key_expression'] = 'null';
     }
 
-
-//    join_map = None
-//    if JOIN in rb_actions:
-//        rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
-//        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
-//        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
-//        join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
-//        if join_record_iterator is None:
-//            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
-//        join_map = HashJoinMap(join_record_iterator, rhs_key_index)
-//    else:
-//        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
-//        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
-
     let join_map = null;
     if (rb_actions.hasOwnProperty(JOIN)) {
         var [rhs_table_id, lhs_join_var, rhs_key_index] = parse_join_expression(rb_actions[JOIN]['text']);
-        var rhs_table_path = find_table_path(rhs_table_id);
-        if (!rhs_table_path) {
-            throw new RbqlParsingError(`Unable to find join B table: ${rhs_table_id}`);
-        }
-        var [join_delim, join_policy] = [input_delim, input_policy];
-        var join_format_record = get_index_record(table_index_path, rhs_table_path)
-        if (join_format_record && join_format_record.length >= 3) {
-            join_delim = normalize_delim(join_format_record[1]);
-            join_policy = join_format_record[2];
-        }
         js_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype'];
-        js_meta_params['__RBQLMP__rhs_table_path'] = "'" + escape_string_literal(rhs_table_path) + "'";
         js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
-        js_meta_params['__RBQLMP__rhs_join_var'] = rhs_join_var;
-        js_meta_params['__RBQLMP__join_delim'] = escape_string_literal(join_delim);
-        js_meta_params['__RBQLMP__join_policy'] = join_policy;
+        let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
+        if (!join_record_iterator)
+            throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`)
+        join_map = HashJoinMap(join_record_iterator, rhs_key_index);
     } else {
         js_meta_params['__RBQLMP__join_operation'] = 'VOID';
-        js_meta_params['__RBQLMP__rhs_table_path'] = 'null';
         js_meta_params['__RBQLMP__lhs_join_var'] = 'null';
-        js_meta_params['__RBQLMP__rhs_join_var'] = 'null';
-        js_meta_params['__RBQLMP__join_delim'] = '';
-        js_meta_params['__RBQLMP__join_policy'] = '';
     }
 
     if (rb_actions.hasOwnProperty(WHERE)) {
@@ -613,9 +509,53 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         js_meta_params['__RBQLMP__reverse_flag'] = 'false';
         js_meta_params['__RBQLMP__sort_flag'] = 'false';
     }
-    var result_script = rbql_meta_format(js_template_text, js_meta_params);
-    return result_script;
+    var js_code = rbql_meta_format(js_template_text, js_meta_params);
+    return [js_code, join_map];
 }
+
+
+//def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
+//    # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
+//    try:
+//        user_init_code = indent_user_init_code(user_init_code)
+//        rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
+//        with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
+//            py_template_text = py_src.read()
+//        python_code, join_map = parse_to_py(query, py_template_text, join_tables_registry, user_init_code)
+//        if convert_only_dst is not None:
+//            write_python_module(python_code, convert_only_dst)
+//            return (None, [])
+//        with RbqlPyEnv() as worker_env:
+//            write_python_module(python_code, worker_env.module_path)
+//            # TODO find a way to report module_path if exception is thrown.
+//            # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir.
+//            # It would point to the last module if lauch failed, or just a dangling ref.
+//            # Generated modules are not re-runnable by themselves now anyway.
+//            rbconvert = worker_env.import_worker()
+//            success = rbconvert.rb_transform(input_iterator, join_map, output_writer)
+//            assert success, 'Unexpected error during RBQL query execution'
+//            input_warnings = input_iterator.get_warnings()
+//            join_warnings = join_map.get_warnings() if join_map is not None else []
+//            output_warnings = output_writer.get_warnings()
+//            warnings = input_warnings + join_warnings + output_warnings
+//            worker_env.remove_env_dir()
+//            return (None, warnings)
+//    except Exception as e:
+//        error_info = exception_to_error_info(e)
+//        return (error_info, [])
+//    finally:
+//        input_iterator.finish()
+//        output_writer.finish()
+
+
+
+function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_cb, join_tables_registry=null, user_init_code='', convert_only_dst=null) {
+    user_init_code = indent_user_init_code(user_init_code);
+    let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
+}
+
+
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
