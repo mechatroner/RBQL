@@ -329,7 +329,7 @@ class HashJoinMap:
 
 
 
-def parse_to_py(query, join_tables_registry, user_init_code):
+def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
     rbql_lines = query.split('\n')
     rbql_lines = [strip_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
@@ -411,10 +411,7 @@ def parse_to_py(query, join_tables_registry, user_init_code):
         py_meta_params['__RBQLMP__reverse_flag'] = 'False'
         py_meta_params['__RBQLMP__sort_flag'] = 'False'
 
-    rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
-    with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
-        py_script_body = py_src.read()
-    python_code = rbql_meta_format(py_script_body, py_meta_params)
+    python_code = rbql_meta_format(py_template_text, py_meta_params)
     return (python_code, join_map)
 
 
@@ -468,7 +465,10 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     try:
         user_init_code = indent_user_init_code(user_init_code)
-        python_code, join_map = parse_to_py(query, join_tables_registry, user_init_code)
+        rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
+        with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
+            py_template_text = py_src.read()
+        python_code, join_map = parse_to_py(query, py_template_text, join_tables_registry, user_init_code)
         if convert_only_dst is not None:
             write_python_module(python_code, convert_only_dst)
             return (None, [])
