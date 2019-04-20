@@ -86,10 +86,10 @@ function RbqlRuntimeError(error_msg) {
 
 
 function safe_join_get(record, idx) {
-    if (idx - 1 < record.length) {
-        return record[idx - 1];
+    if (idx < record.length) {
+        return record[idx];
     }
-    throw new InternalBadFieldError(idx - 1);
+    throw new InternalBadFieldError(idx);
 }
 
 

@@ -95,11 +95,10 @@ function parse_join_expression(src) {
     if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
         throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
     }
-    avar = avar.substr(1);
-    bvar = bvar.substr(1);
+    avar = parseInt(avar.substr(1)) - 1;
     var lhs_join_var = `safe_join_get(afields, ${avar})`;
-    var rhs_join_var = `safe_join_get(bfields, ${bvar})`;
-    return [table_id, lhs_join_var, rhs_join_var];
+    let rhs_key_index = parseInt(bvar.substr(1)) - 1;
+    return [table_id, lhs_join_var, rhs_key_index];
 }
 
 
@@ -408,6 +407,215 @@ function HashJoinMap(record_iterator, key_index) {
 }
 
 
+//def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
+//    rbql_lines = query.split('\n')
+//    rbql_lines = [strip_comments(l) for l in rbql_lines]
+//    rbql_lines = [l for l in rbql_lines if len(l)]
+//    full_rbql_expression = ' '.join(rbql_lines)
+//    column_vars = extract_column_vars(full_rbql_expression)
+//    format_expression, string_literals = separate_string_literals_py(full_rbql_expression)
+//    rb_actions = separate_actions(format_expression)
+//
+//    py_meta_params = dict()
+//    py_meta_params['__RBQLMP__user_init_code'] = user_init_code
+//
+//    if ORDER_BY in rb_actions and UPDATE in rb_actions:
+//        raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries')
+//
+//    if GROUP_BY in rb_actions:
+//        if ORDER_BY in rb_actions or UPDATE in rb_actions:
+//            raise RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
+//        aggregation_key_expression = rb_actions[GROUP_BY]['text']
+//        py_meta_params['__RBQLMP__aggregation_key_expression'] = '({},)'.format(combine_string_literals(aggregation_key_expression, string_literals))
+//    else:
+//        py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
+//
+//    join_map = None
+//    if JOIN in rb_actions:
+//        rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
+//        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
+//        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
+//        join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
+//        if join_record_iterator is None:
+//            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
+//        join_map = HashJoinMap(join_record_iterator, rhs_key_index)
+//    else:
+//        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
+//        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
+//
+//    if WHERE in rb_actions:
+//        where_expression = rb_actions[WHERE]['text']
+//        if re.search(r'[^!=]=[^=]', where_expression) is not None:
+//            raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="')
+//        py_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals)
+//    else:
+//        py_meta_params['__RBQLMP__where_expression'] = 'True'
+//
+//    if UPDATE in rb_actions:
+//        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
+//        py_meta_params['__RBQLMP__writer_type'] = 'simple'
+//        py_meta_params['__RBQLMP__select_expression'] = 'None'
+//        py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
+//        py_meta_params['__RBQLMP__is_select_query'] = 'False'
+//        py_meta_params['__RBQLMP__top_count'] = 'None'
+//
+//    py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' ' * 8)
+//    py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' ' * 4)
+//
+//    if SELECT in rb_actions:
+//        top_count = find_top(rb_actions)
+//        py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
+//        if 'distinct_count' in rb_actions[SELECT]:
+//            py_meta_params['__RBQLMP__writer_type'] = 'uniq_count'
+//        elif 'distinct' in rb_actions[SELECT]:
+//            py_meta_params['__RBQLMP__writer_type'] = 'uniq'
+//        else:
+//            py_meta_params['__RBQLMP__writer_type'] = 'simple'
+//        if EXCEPT in rb_actions:
+//            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'])
+//        else:
+//            select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
+//            py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
+//        py_meta_params['__RBQLMP__update_statements'] = 'pass'
+//        py_meta_params['__RBQLMP__is_select_query'] = 'True'
+//
+//    if ORDER_BY in rb_actions:
+//        order_expression = rb_actions[ORDER_BY]['text']
+//        py_meta_params['__RBQLMP__sort_key_expression'] = combine_string_literals(order_expression, string_literals)
+//        py_meta_params['__RBQLMP__reverse_flag'] = 'True' if rb_actions[ORDER_BY]['reverse'] else 'False'
+//        py_meta_params['__RBQLMP__sort_flag'] = 'True'
+//    else:
+//        py_meta_params['__RBQLMP__sort_key_expression'] = 'None'
+//        py_meta_params['__RBQLMP__reverse_flag'] = 'False'
+//        py_meta_params['__RBQLMP__sort_flag'] = 'False'
+//
+//    python_code = rbql_meta_format(py_template_text, py_meta_params)
+//    return (python_code, join_map)
+
+
+function parse_to_js(query, js_template_text, join_tables_registry, user_init_code) {
+    // FIXME
+    let rbql_lines = query.split('\n');
+    rbql_lines = rbql_lines.map(strip_comments);
+    rbql_lines = rbql_lines.filter(line => line.length);
+    var full_rbql_expression = rbql_lines.join(' ');
+    var column_vars = extract_column_vars(full_rbql_expression);
+    var [format_expression, string_literals] = separate_string_literals_js(full_rbql_expression);
+    var rb_actions = separate_actions(format_expression);
+
+    var js_meta_params = {};
+    js_meta_params['__RBQLMP__user_init_code'] = user_init_code;
+
+    if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
+        throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');
+
+    if (rb_actions.hasOwnProperty(GROUP_BY)) {
+        if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
+            throw new RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
+        var aggregation_key_expression = rb_actions[GROUP_BY]['text'];
+        js_meta_params['__RBQLMP__aggregation_key_expression'] = '[' + combine_string_literals(aggregation_key_expression, string_literals) + ']';
+    } else {
+        js_meta_params['__RBQLMP__aggregation_key_expression'] = 'null';
+    }
+
+
+//    join_map = None
+//    if JOIN in rb_actions:
+//        rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
+//        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
+//        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
+//        join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
+//        if join_record_iterator is None:
+//            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
+//        join_map = HashJoinMap(join_record_iterator, rhs_key_index)
+//    else:
+//        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
+//        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
+
+    let join_map = null;
+    if (rb_actions.hasOwnProperty(JOIN)) {
+        var [rhs_table_id, lhs_join_var, rhs_key_index] = parse_join_expression(rb_actions[JOIN]['text']);
+        var rhs_table_path = find_table_path(rhs_table_id);
+        if (!rhs_table_path) {
+            throw new RbqlParsingError(`Unable to find join B table: ${rhs_table_id}`);
+        }
+        var [join_delim, join_policy] = [input_delim, input_policy];
+        var join_format_record = get_index_record(table_index_path, rhs_table_path)
+        if (join_format_record && join_format_record.length >= 3) {
+            join_delim = normalize_delim(join_format_record[1]);
+            join_policy = join_format_record[2];
+        }
+        js_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype'];
+        js_meta_params['__RBQLMP__rhs_table_path'] = "'" + escape_string_literal(rhs_table_path) + "'";
+        js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
+        js_meta_params['__RBQLMP__rhs_join_var'] = rhs_join_var;
+        js_meta_params['__RBQLMP__join_delim'] = escape_string_literal(join_delim);
+        js_meta_params['__RBQLMP__join_policy'] = join_policy;
+    } else {
+        js_meta_params['__RBQLMP__join_operation'] = 'VOID';
+        js_meta_params['__RBQLMP__rhs_table_path'] = 'null';
+        js_meta_params['__RBQLMP__lhs_join_var'] = 'null';
+        js_meta_params['__RBQLMP__rhs_join_var'] = 'null';
+        js_meta_params['__RBQLMP__join_delim'] = '';
+        js_meta_params['__RBQLMP__join_policy'] = '';
+    }
+
+    if (rb_actions.hasOwnProperty(WHERE)) {
+        var where_expression = rb_actions[WHERE]['text'];
+        if (/[^!=]=[^=]/.exec(where_expression)) {
+            throw new RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "==" or "==="');
+        }
+        js_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals);
+    } else {
+        js_meta_params['__RBQLMP__where_expression'] = 'true';
+    }
+
+
+    if (rb_actions.hasOwnProperty(UPDATE)) {
+        var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
+        js_meta_params['__RBQLMP__writer_type'] = 'simple';
+        js_meta_params['__RBQLMP__select_expression'] = 'null';
+        js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
+        js_meta_params['__RBQLMP__is_select_query'] = 'false';
+        js_meta_params['__RBQLMP__top_count'] = 'null';
+    }
+
+    js_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' '.repeat(4));
+    js_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' '.repeat(8));
+
+    if (rb_actions.hasOwnProperty(SELECT)) {
+        var top_count = find_top(rb_actions);
+        js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
+        if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
+            js_meta_params['__RBQLMP__writer_type'] = 'uniq_count';
+        } else if (rb_actions[SELECT].hasOwnProperty('distinct')) {
+            js_meta_params['__RBQLMP__writer_type'] = 'uniq';
+        } else {
+            js_meta_params['__RBQLMP__writer_type'] = 'simple';
+        }
+        if (rb_actions.hasOwnProperty(EXCEPT)) {
+            js_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text']);
+        } else {
+            let select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
+            js_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals);
+        }
+        js_meta_params['__RBQLMP__update_statements'] = '';
+        js_meta_params['__RBQLMP__is_select_query'] = 'true';
+    }
+
+    if (rb_actions.hasOwnProperty(ORDER_BY)) {
+        var order_expression = rb_actions[ORDER_BY]['text'];
+        js_meta_params['__RBQLMP__sort_key_expression'] = combine_string_literals(order_expression, string_literals);
+        js_meta_params['__RBQLMP__reverse_flag'] = rb_actions[ORDER_BY]['reverse'] ? 'true' : 'false';
+        js_meta_params['__RBQLMP__sort_flag'] = 'true';
+    } else {
+        js_meta_params['__RBQLMP__sort_key_expression'] = 'null';
+        js_meta_params['__RBQLMP__reverse_flag'] = 'false';
+        js_meta_params['__RBQLMP__sort_flag'] = 'false';
+    }
+    var result_script = rbql_meta_format(js_template_text, js_meta_params);
+    return result_script;
+}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
