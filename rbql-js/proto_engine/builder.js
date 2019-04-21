@@ -376,7 +376,7 @@ function HashJoinMap(record_iterator, key_index) {
         if (this.error_msg === null) {
             this.external_success_handler();
         } else {
-            this.external_error_handler(error_msg);
+            this.external_error_handler('IO handling', error_msg);
         }
     }
 
@@ -548,10 +548,26 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
 //        output_writer.finish()
 
 
+function load_module_from_string(module_name, node_module_string) {
+    var module = {'exports': {}};
+    eval('(function(){' + node_module_string + '})()');
+    eval(`${module_name} = module.exports;`);
+}
 
-function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_cb, join_tables_registry=null, user_init_code='', convert_only_dst=null) {
-    user_init_code = indent_user_init_code(user_init_code);
-    let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
+
+function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_handler, join_tables_registry=null, user_init_code='') {
+    try {
+        user_init_code = indent_user_init_code(user_init_code);
+        let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
+        load_module_from_string('rbql_worker', js_code);
+        rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_cb, external_error_handler);
+    } catch (e) {
+        if (e instanceof RbqlParsingError) {
+            external_error_handler('query parsing', e.error_msg);
+        } else {
+            external_error_handler('unexpected', 'Unexpected exception: ' + e);
+        }
+    }
 }
 
 

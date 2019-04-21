@@ -35,7 +35,7 @@ function finish_processing_error(error_msg) {
     finished_with_error = true;
     // Stopping input_iterator to trigger exit procedure.
     external_input_iterator.finish();
-    external_error_handler(error_msg);
+    external_error_handler('query execution', error_msg);
 }
 
 
