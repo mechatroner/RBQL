@@ -8,6 +8,10 @@ function die(error_msg) {
 }
 
 
+function test_query_parsing() {
+}
+
+
 function main() {
     console.log('Starting JS unit tests');
     let engine_text_current = build_engine.read_engine_text();
