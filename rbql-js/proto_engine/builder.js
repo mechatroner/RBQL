@@ -386,7 +386,7 @@ function HashJoinMap(record_iterator, key_index) {
         this.max_record_len = Math.max(this.max_record_len, num_fields);
         if (this.key_index >= num_fields) {
             // FIXME unit test this condition
-            this.error_msg = `No "b ${this.key_index + 1)}" field at record: ${this.nr} in "B" table`;
+            this.error_msg = `No "b${this.key_index + 1}" field at record: ${this.nr} in "B" table`;
             this.record_iterator.finish();
         }
         let key = record[this.key_index];
@@ -538,3 +538,4 @@ function generic_run(query, input_iterator, output_writer, external_success_cb, 
 
 
 module.exports.generic_run = generic_run;
+module.exports.strip_comments = strip_comments;

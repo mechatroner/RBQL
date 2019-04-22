@@ -1,5 +1,6 @@
 const fs = require('fs');
 const build_engine = require('../rbql-js/build_engine.js')
+var engine = null; // FIXME
 
 
 function die(error_msg) {
@@ -8,17 +9,39 @@ function die(error_msg) {
 }
 
 
-function test_query_parsing() {
+function assert(condition, message = null) {
+    if (!condition) {
+        throw message || "Assertion failed";
+    }
+}
+
+
+function test_comment_strip() {
+    let a = ` // a comment  `;
+    let a_strp = engine.strip_comments(a);
+    assert(a_strp === '');
+}
+
+
+function test_rbql_query_parsing() {
+    test_comment_strip();
 }
 
 
 function main() {
     console.log('Starting JS unit tests');
+    // FIXME test this outside in test_build.js script because we are already importing engine here
     let engine_text_current = build_engine.read_engine_text();
     let engine_text_expected = build_engine.build_engine_text();
     if (engine_text_current != engine_text_expected) {
         die("engine.js must be rebuild from template.js and builder.js");
     }
+
+    engine = require('../rbql-js/engine.js')
+
+    test_rbql_query_parsing();
+
+
     console.log('Finished JS unit tests');
 }
 
