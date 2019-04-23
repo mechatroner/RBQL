@@ -27,6 +27,25 @@ function arrays_are_equal(a, b) {
 }
 
 
+function objects_are_equal(a, b) {
+    if (a === b)
+        return true;
+    if (a == null || typeof a != 'object' || b == null || typeof b != 'object')
+        return false;
+    var num_props_in_a = 0;
+    var num_props_in_b = 0;
+    for (var prop in a)
+         num_props_in_a += 1;
+    for (var prop in b) {
+        num_props_in_b += 1;
+        if (!(prop in a) || !objects_are_equal(a[prop], b[prop]))
+            return false;
+    }
+    return num_props_in_a == num_props_in_b;
+}
+
+
+
 function test_comment_strip() {
     let a = ` // a comment  `;
     let a_strp = engine.strip_comments(a);
@@ -56,7 +75,7 @@ function test_separate_actions() {
         let query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and parseInt(b3) == 100 order by parseInt(a7) desc ';
         let expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': 'INNER JOIN'}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and parseInt(b3) == 100'}, 'ORDER BY': {'text': 'parseInt(a7)', 'reverse': true}};
         let test_res = engine.separate_actions(query);
-        assert(JSON.stringify(test_res, Object.keys(test_res).sort()) == JSON.stringify(expected_res, Object.keys(expected_res).sort()));
+        assert(objects_are_equal(test_res, expected_res));
 }
 
 
