@@ -539,3 +539,5 @@ function generic_run(query, input_iterator, output_writer, external_success_cb, 
 
 module.exports.generic_run = generic_run;
 module.exports.strip_comments = strip_comments;
+module.exports.separate_string_literals_js = separate_string_literals_js;
+module.exports.combine_string_literals = combine_string_literals;

@@ -97,7 +97,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(a_strp, '')
 
 
-    def test_literals_replacement(self):
+    def test_string_literals_separation(self):
         #TODO generate some random examples: Generate some strings randomly and then parse them
         test_cases = list()
         test_cases.append((r'Select 100 order by a1', []))

@@ -16,6 +16,17 @@ function assert(condition, message = null) {
 }
 
 
+function arrays_are_equal(a, b) {
+    if (a.length != b.length)
+        return false;
+    for (var i = 0; i < a.length; i++) {
+        if (a[i] !== b[i])
+            return false;
+    }
+    return true;
+}
+
+
 function test_comment_strip() {
     let a = ` // a comment  `;
     let a_strp = engine.strip_comments(a);
@@ -25,6 +36,24 @@ function test_comment_strip() {
 
 function test_rbql_query_parsing() {
     test_comment_strip();
+}
+
+
+function test_string_literals_separation() {
+    let test_cases = [];
+    test_cases.push(['Select 100 order by a1', []]);
+    test_cases.push(['Select `hello` order by a1', ['`hello`']]);
+    test_cases.push(['Select "hello", 100 order by a1', ['"hello"']]);
+    test_cases.push(['Select "hello", *, "world" 100 order by a1 desc', ['"hello"', '"world"']])
+    test_cases.push(['Select "hello", "world", "hello \\" world", "hello \\\\\\" world", "hello \\\\\\\\\\\\\\" world" order by "world"', ['"hello"', '"world"', '"hello \\" world"', '"hello \\\\\\" world"', '"hello \\\\\\\\\\\\\\" world"', '"world"']])
+    for (let i = 0; i < test_cases.length; i++) {
+        let test_case = test_cases[i];
+        let query = test_case[0];
+        let expected_literals = test_case[1];
+        let [format_expression, string_literals] = engine.separate_string_literals_js(query);
+        assert(arrays_are_equal(expected_literals, string_literals));
+        assert(query == engine.combine_string_literals(format_expression, string_literals));
+    }
 }
 
 
@@ -40,6 +69,7 @@ function main() {
     engine = require('../rbql-js/engine.js')
 
     test_rbql_query_parsing();
+    test_string_literals_separation();
 
 
     console.log('Finished JS unit tests');
@@ -74,17 +104,6 @@ main();
 //    return fields.map(unquote_field);
 //}
 //
-//
-//
-//function arrays_are_equal(a, b) {
-//    if (a.length != b.length)
-//        return false;
-//    for (var i = 0; i < a.length; i++) {
-//        if (a[i] !== b[i])
-//            return false;
-//    }
-//    return true;
-//}
 //
 //
 //function assert(condition, message = null) {
@@ -137,7 +156,7 @@ main();
 //}
 //
 //
-//function test_separate_string_literals() {
+//function test_string_literals_separation() {
 //    let query = 'Select `hello` order by a1';
 //    let [format_expression, string_literals] = rbql.separate_string_literals_js(query);
 //    assert(arrays_are_equal(['`hello`'], string_literals));
@@ -274,7 +293,7 @@ main();
 //    test_split();
 //    test_split_whitespaces();
 //    test_comments_strip();
-//    test_separate_string_literals();
+//    test_string_literals_separation();
 //    test_select_expression_translation();
 //    test_except_expression_translation();
 //}
