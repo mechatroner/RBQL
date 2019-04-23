@@ -79,10 +79,25 @@ function test_separate_actions() {
 }
 
 
+function test_except_parsing() {
+    let except_part = '';
+
+    except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8';
+    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === engine.translate_except_expression(except_part));
+
+    except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  ';
+    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === engine.translate_except_expression(except_part));
+
+    except_part = 'a1';
+    assert('select_except(afields, [0])' === engine.translate_except_expression(except_part));
+}
+
+
 function test_rbql_query_parsing() {
     test_comment_strip();
     test_string_literals_separation();
     test_separate_actions();
+    test_except_parsing();
 }
 
 

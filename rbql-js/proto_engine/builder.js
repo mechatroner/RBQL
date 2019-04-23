@@ -542,3 +542,4 @@ module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;
 module.exports.separate_string_literals_js = separate_string_literals_js;
 module.exports.combine_string_literals = combine_string_literals;
+module.exports.translate_except_expression = translate_except_expression;
