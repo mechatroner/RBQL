@@ -545,3 +545,4 @@ module.exports.combine_string_literals = combine_string_literals;
 module.exports.translate_except_expression = translate_except_expression;
 module.exports.parse_join_expression = parse_join_expression;
 module.exports.translate_update_expression = translate_update_expression;
+module.exports.translate_select_expression_js = translate_select_expression_js;
