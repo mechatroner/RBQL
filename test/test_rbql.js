@@ -80,7 +80,7 @@ function test_separate_actions() {
 
 
 function test_except_parsing() {
-    let except_part = '';
+    let except_part = null;
 
     except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8';
     assert('select_except(afields, [0,1,2,3,4,5,6,7])' === engine.translate_except_expression(except_part));
@@ -93,11 +93,43 @@ function test_except_parsing() {
 }
 
 
+function test_join_parsing() {
+    let join_part = null;
+    let catched = false;
+    join_part = '/path/to/the/file.tsv on a1 == b3';
+    assert(arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2], engine.parse_join_expression(join_part)));
+
+    join_part = ' file.tsv on b20== a12  ';
+    assert(arrays_are_equal(['file.tsv', 'safe_join_get(afields, 11)', 19], engine.parse_join_expression(join_part)));
+
+    join_part = '/path/to/the/file.tsv on a1==a12  ';
+    catched = false;
+    try {
+        engine.parse_join_expression(join_part);
+    } catch (e) {
+        catched = true;
+        assert(e.toString().indexOf('Invalid join syntax') != -1);
+    }
+    assert(catched);
+
+    join_part = ' Bon b1 == a12 ';
+    catched = false;
+    try {
+        engine.parse_join_expression(join_part);
+    } catch (e) {
+        catched = true;
+        assert(e.toString().indexOf('Invalid join syntax') != -1);
+    }
+    assert(catched);
+}
+
+
 function test_rbql_query_parsing() {
     test_comment_strip();
     test_string_literals_separation();
     test_separate_actions();
     test_except_parsing();
+    test_join_parsing();
 }
 
 
