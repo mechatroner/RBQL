@@ -124,12 +124,27 @@ function test_join_parsing() {
 }
 
 
+function test_update_translation() {
+    let rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  ';
+    let indent = ' '.repeat(8);
+    let expected_dst = [];
+    expected_dst.push('safe_set(up_fields, 1,  a2  + b3)');
+    expected_dst.push(indent + 'safe_set(up_fields, 2,a4  if b3 == a2 else a8)');
+    expected_dst.push(indent + 'safe_set(up_fields, 8,   100)');
+    expected_dst.push(indent + 'safe_set(up_fields, 30,200/3 + 1)');
+    expected_dst = expected_dst.join('\n');
+    let test_dst = engine.translate_update_expression(rbql_src, indent);
+    assert(test_dst == expected_dst);
+}
+
+
 function test_rbql_query_parsing() {
     test_comment_strip();
     test_string_literals_separation();
     test_separate_actions();
     test_except_parsing();
     test_join_parsing();
+    test_update_translation();
 }
 
 
