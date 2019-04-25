@@ -537,6 +537,37 @@ function generic_run(query, input_iterator, output_writer, external_success_cb, 
 }
 
 
+function make_inconsistent_num_fields_warning(table_name, inconsistent_records_info) {
+    // FIXME see python implementation, this is just a stub
+    return `Number of fields in "${table_name}" table is not consistent: `;
+}
+
+
+function TableIterator(input_table) {
+    this.input_table = input_table;
+    this.NR = 0;
+    this.fields_info = new Object();
+    // FIXME this should use callbacks
+
+    this.get_record = function() {
+        if (this.NR >= this.input_table.length)
+            return null;
+        let record = this.input_table[this.NR];
+        this.NR += 1;
+        let num_fields = record.length;
+        if (!this.fields_info.hasOwnProperty(num_fields))
+            this.fields_info[num_fields] = NR;
+        return record;
+    }
+
+    this.get_warnings = function() {
+        if (Object.keys(this.fields_info).length > 1)
+            return [make_inconsistent_num_fields_warning('input', this.fields_info)];
+        return [];
+    }
+}
+
+
 module.exports.generic_run = generic_run;
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;
@@ -546,3 +577,4 @@ module.exports.translate_except_expression = translate_except_expression;
 module.exports.parse_join_expression = parse_join_expression;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
+module.exports.TableIterator = TableIterator;

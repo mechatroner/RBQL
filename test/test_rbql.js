@@ -27,6 +27,17 @@ function arrays_are_equal(a, b) {
 }
 
 
+function tables_are_equal(a, b) {
+    if (a.length != b.length)
+        return false;
+    for (var i = 0; i < a.length; i++) {
+        if (!arrays_are_equal(a[i], b[i]))
+            return false;
+    }
+    return true;
+}
+
+
 function objects_are_equal(a, b) {
     if (a === b)
         return true;
@@ -176,6 +187,87 @@ function test_select_translation() {
 }
 
 
+//class TestJsonTables(unittest.TestCase):
+//
+//    def process_test_case(self, test_case):
+//        test_name = test_case['test_name']
+//        #print(test_name)
+//        query = test_case.get('query_python', None)
+//        if query is None:
+//            self.assertTrue(test_case.get('query_js', None) is not None)
+//            return # Skip this test
+//        input_table = test_case['input_table']
+//        join_table = test_case.get('join_table', None)
+//        user_init_code = test_case.get('python_init_code', '')
+//        expected_output_table = test_case.get('expected_output_table', None)
+//        expected_error = test_case.get('expected_error', None)
+//        expected_warnings = test_case.get('expected_warnings', [])
+//        input_iterator = TableIterator(input_table)
+//        output_writer = TableWriter()
+//        join_tables_registry = None if join_table is None else SingleTableTestRegistry(join_table)
+//
+//        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
+//
+//        warnings = sorted(normalize_warnings(warnings))
+//        expected_warnings = sorted(expected_warnings)
+//        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}'.format(test_name))
+//        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}'.format(test_name))
+//        if expected_error is not None:
+//            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
+//        else:
+//            output_table = output_writer.table
+//            round_floats(expected_output_table)
+//            round_floats(output_table)
+//            self.assertEqual(expected_output_table, output_table)
+//
+//
+//    def test_json_tables(self):
+//        tests_file = os.path.join(script_dir, 'rbql_unit_tests.json')
+//        with open(tests_file) as f:
+//            tests = json.loads(f.read())
+//            for test in tests:
+//                self.process_test_case(test)
+
+
+function get_default(obj, key, default_value) {
+    if (obj.hasOwnProperty(key))
+        return obj[key];
+    return default_value;
+}
+
+
+function process_test_case(test_case) {
+    let test_name = test_case['test_name'];
+    let query = test_case['query_js'];
+    let input_table = test_case['input_table'];
+    let expected_output_table = get_default(test_case, 'expected_output_table', null);
+    let expected_error = get_default(test_case, 'expected_error', null);
+    let input_iterator = engine.TableIterator(input_table);
+    let output_writer = engine.TableWriter();
+    let error_handler = function(error_msg) {
+        assert(error_msg === expected_error);
+    }
+    let success_handler = function(warnings) {
+        assert(warnings.length == 0); //FIXME just a stub
+        let output_table = output_writer.table;
+        assert(tables_are_equal(expected_output_table, output_table));
+    }
+}
+
+
+function test_json_tables() {
+    let tests_file_path = 'rbql_unit_tests.json';
+    let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
+    for (let test_id = 0; test_id < tests.length; test_id++) {
+        console.log('running rbql test #' + test_id);
+        let test = tests[test_id];
+        process_test_case(test);
+        if (test_id >= 0)
+            break; // FIXME
+    }
+}
+
+
 function test_rbql_query_parsing() {
     test_comment_strip();
     test_string_literals_separation();
@@ -184,6 +276,7 @@ function test_rbql_query_parsing() {
     test_join_parsing();
     test_update_translation();
     test_select_translation();
+    test_json_tables();
 }
 
 
