@@ -403,6 +403,7 @@ function HashJoinMap(record_iterator, key_index) {
         this.external_error_handler = error_callback;
         this.record_iterator.set_record_callback(this.add_record);
         this.record_iterator.set_finish_callback(this.finish_build);
+        this.record_iterator.start();
     }
 
     this.get_join_records = function(key) {
@@ -547,7 +548,27 @@ function TableIterator(input_table) {
     this.input_table = input_table;
     this.NR = 0;
     this.fields_info = new Object();
-    // FIXME this should use callbacks
+    this.external_record_callback = null;
+    this.external_finish_callback = null;
+
+    this.set_record_callback = function(external_record_callback) {
+        this.external_record_callback = external_record_callback;
+    }
+
+    this.set_finish_callback = function(external_finish_callback) {
+        this.external_finish_callback = external_finish_callback;
+    }
+
+    this.start = function() {
+        while (true) {
+            let record = this.get_record();
+            if (record === null) {
+                this.external_finish_callback();
+            } else {
+                this.external_record_callback(record);
+            }
+        }
+    }
 
     this.get_record = function() {
         if (this.NR >= this.input_table.length)

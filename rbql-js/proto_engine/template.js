@@ -683,6 +683,7 @@ function do_rb_transform(input_iterator, output_writer) {
         writer = SortedWriter(writer);
 
     input_iterator.set_record_callback(process_record);
+    input_iterator.start();
 }
 
 
