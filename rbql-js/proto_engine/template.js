@@ -333,36 +333,36 @@ function init_aggregator(generator_name, val, post_proc=null) {
 
 
 function MIN(val) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.MinAggregator, val) : val;
+    return aggregation_stage < 2 ? init_aggregator(MinAggregator, val) : val;
 }
 
 
 function MAX(val) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.MaxAggregator, val) : val;
+    return aggregation_stage < 2 ? init_aggregator(MaxAggregator, val) : val;
 }
 
 function COUNT(val) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.CountAggregator, 1) : 1;
+    return aggregation_stage < 2 ? init_aggregator(CountAggregator, 1) : 1;
 }
 
 function SUM(val) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.SumAggregator, val) : val;
+    return aggregation_stage < 2 ? init_aggregator(SumAggregator, val) : val;
 }
 
 function AVG(val) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.AvgAggregator, val) : val;
+    return aggregation_stage < 2 ? init_aggregator(AvgAggregator, val) : val;
 }
 
 function VARIANCE(val) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.VarianceAggregator, val) : val;
+    return aggregation_stage < 2 ? init_aggregator(VarianceAggregator, val) : val;
 }
 
 function MEDIAN(val) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.MedianAggregator, val) : val;
+    return aggregation_stage < 2 ? init_aggregator(MedianAggregator, val) : val;
 }
 
 function FOLD(val, post_proc = v => v.join('|')) {
-    return aggregation_stage < 2 ? init_aggregator(rbql_utils.FoldAggregator, val, post_proc) : val;
+    return aggregation_stage < 2 ? init_aggregator(FoldAggregator, val, post_proc) : val;
 }
 
 
@@ -580,7 +580,7 @@ function select_aggregated(key, transparent_values) {
                 writer.aggregators.push(functional_aggregators[trans_value.marker_id]);
                 writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value.value);
             } else {
-                writer.aggregators.push(new rbql_utils.SubkeyChecker());
+                writer.aggregators.push(new SubkeyChecker());
                 writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value);
             }
         }
@@ -669,18 +669,18 @@ function do_rb_transform(input_iterator, output_writer) {
     var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
     if (external_join_map_impl !== null)
-        join_map = sql_join_type(external_join_map_impl);
+        join_map = new sql_join_type(external_join_map_impl);
 
-    writer = TopWriter(output_writer);
+    writer = new TopWriter(output_writer);
 
     if ('__RBQLMP__writer_type' == 'uniq') {
-        writer = UniqWriter(writer);
+        writer = new UniqWriter(writer);
     } else if ('__RBQLMP__writer_type' == 'uniq_count') {
-        writer = UniqCountWriter(writer);
+        writer = new UniqCountWriter(writer);
     }
 
     if (__RBQLMP__sort_flag)
-        writer = SortedWriter(writer);
+        writer = new SortedWriter(writer);
 
     input_iterator.set_record_callback(process_record);
     input_iterator.start();

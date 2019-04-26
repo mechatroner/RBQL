@@ -451,7 +451,7 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`)
-        join_map = HashJoinMap(join_record_iterator, rhs_key_index);
+        join_map = new HashJoinMap(join_record_iterator, rhs_key_index);
     } else {
         js_meta_params['__RBQLMP__join_operation'] = 'VOID';
         js_meta_params['__RBQLMP__lhs_join_var'] = 'null';
@@ -524,7 +524,7 @@ function load_module_from_string(module_name, node_module_string) {
 
 function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_handler, join_tables_registry=null, user_init_code='') {
     try {
-        let user_init_code = indent_user_init_code(user_init_code);
+        user_init_code = indent_user_init_code(user_init_code);
         let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
         load_module_from_string('rbql_worker', js_code);
         rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_cb, external_error_handler);
@@ -550,25 +550,36 @@ function TableIterator(input_table) {
     this.fields_info = new Object();
     this.external_record_callback = null;
     this.external_finish_callback = null;
+    this.finished = false;
+
 
     this.set_record_callback = function(external_record_callback) {
         this.external_record_callback = external_record_callback;
     }
 
+
     this.set_finish_callback = function(external_finish_callback) {
         this.external_finish_callback = external_finish_callback;
     }
 
+
     this.start = function() {
-        while (true) {
+        while (!this.finished) {
             let record = this.get_record();
             if (record === null) {
-                this.external_finish_callback();
+                this.finish();
             } else {
                 this.external_record_callback(record);
             }
         }
     }
+
+
+    this.finish = function() {
+        this.finished = true;
+        this.external_finish_callback();
+    }
+
 
     this.get_record = function() {
         if (this.NR >= this.input_table.length)
@@ -589,6 +600,23 @@ function TableIterator(input_table) {
 }
 
 
+function TableWriter() {
+    this.table = [];
+
+    this.write = function(fields) {
+        this.table.push(fields);
+    }
+
+    this.finish = function() {
+    }
+
+    this.get_warnings = function() {
+        return [];
+    }
+}
+
+
+
 module.exports.generic_run = generic_run;
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;
@@ -599,3 +627,4 @@ module.exports.parse_join_expression = parse_join_expression;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
 module.exports.TableIterator = TableIterator;
+module.exports.TableWriter = TableWriter;

@@ -2,6 +2,7 @@ const fs = require('fs');
 const build_engine = require('../rbql-js/build_engine.js')
 var engine = null; // FIXME
 
+// FIXME delete all debug console.log statements at the end
 
 function die(error_msg) {
     console.error('Error: ' + error_msg);
@@ -242,16 +243,22 @@ function process_test_case(test_case) {
     let input_table = test_case['input_table'];
     let expected_output_table = get_default(test_case, 'expected_output_table', null);
     let expected_error = get_default(test_case, 'expected_error', null);
-    let input_iterator = engine.TableIterator(input_table);
-    let output_writer = engine.TableWriter();
-    let error_handler = function(error_msg) {
+    let input_iterator = new engine.TableIterator(input_table);
+    let output_writer = new engine.TableWriter();
+    let error_handler = function(error_type, error_msg) {
+        console.log("finished_with_error"); //FOR_DEBUG
+        console.log("error_type:" + error_type + ", error_msg:" + error_msg); //FOR_DEBUG
+        console.trace();
         assert(error_msg === expected_error);
     }
     let success_handler = function(warnings) {
+        console.log("finished_with_success"); //FOR_DEBUG
+        assert(error_msg === expected_error);
         assert(warnings.length == 0); //FIXME just a stub
         let output_table = output_writer.table;
         assert(tables_are_equal(expected_output_table, output_table));
     }
+    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler);
 }
 
 
