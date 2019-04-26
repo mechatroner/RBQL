@@ -515,18 +515,35 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
 }
 
 
-function load_module_from_string(module_name, node_module_string) {
+function load_module_from_string(module_name, js_code) {
     var module = {'exports': {}};
-    eval('(function(){' + node_module_string + '})()');
+    eval('(function(){' + js_code + '})()');
     eval(`${module_name} = module.exports;`);
 }
 
 
-function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_handler, join_tables_registry=null, user_init_code='') {
+function load_module_from_file(js_code) {
+    let os = require('os');
+    let path = require('path');
+    let fs = require('fs');
+    var tmp_dir = os.tmpdir();
+    var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
+    let tmp_worker_module_path = path.join(tmp_dir, script_filename);
+    fs.writeFileSync(tmp_worker_module_path, js_code);
+    let worker_module = require(tmp_worker_module_path);
+    return worker_module;
+}
+
+
+function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_handler, join_tables_registry=null, user_init_code='', load_template_from_file=false) {
     try {
         user_init_code = indent_user_init_code(user_init_code);
         let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
-        load_module_from_string('rbql_worker', js_code);
+        if (load_module_from_file) {
+            rbql_worker = load_module_from_file(js_code);
+        } else {
+            load_module_from_string('rbql_worker', js_code);
+        }
         rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_cb, external_error_handler);
     } catch (e) {
         if (e instanceof RbqlParsingError) {

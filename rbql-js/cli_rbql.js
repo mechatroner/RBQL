@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+
+// FIXME use cli_parser.js
+
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
