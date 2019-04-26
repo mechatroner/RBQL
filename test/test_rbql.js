@@ -1,6 +1,8 @@
 const fs = require('fs');
-const build_engine = require('../rbql-js/build_engine.js')
+const build_engine = require('../rbql-js/build_engine.js');
+const cli_parser = require('../rbql-js/cli_parser.js');
 var engine = null; // FIXME
+var debug_mode = false;
 
 // FIXME delete all debug console.log statements at the end
 
@@ -258,7 +260,8 @@ function process_test_case(test_case) {
         let output_table = output_writer.table;
         assert(tables_are_equal(expected_output_table, output_table));
     }
-    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler);
+    console.log("debug_mode:" + debug_mode); //FOR_DEBUG
+    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, node_debug_mode=debug_mode);
 }
 
 
@@ -289,7 +292,19 @@ function test_rbql_query_parsing() {
 
 function main() {
     console.log('Starting JS unit tests');
-    // FIXME test this outside in test_build.js script because we are already importing engine here
+
+    var scheme = {
+        '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine'},
+        '--dbg': {'boolean': true, 'help': 'Run tests in debug mode (require worker template from a tmp module file)'}
+    };
+    var args = cli_parser.parse_cmd_args(process.argv, scheme);
+
+    if (args.hasOwnProperty('auto-rebuild-engine')) {
+        build_engine.build_engine();
+    }
+
+    debug_mode = args.hasOwnProperty('dbg');
+
     let engine_text_current = build_engine.read_engine_text();
     let engine_text_expected = build_engine.build_engine_text();
     if (engine_text_current != engine_text_expected) {
