@@ -536,15 +536,12 @@ function load_module_from_file(js_code) {
 
 
 function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_handler, join_tables_registry=null, user_init_code='', node_debug_mode=false) {
-    console.log("node_debug_mode:" + node_debug_mode); //FOR_DEBUG
     try {
         user_init_code = indent_user_init_code(user_init_code);
         let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
         if (node_debug_mode) {
-            console.log("loading-from-file"); //FOR_DEBUG
             rbql_worker = load_module_from_file(js_code);
         } else {
-            console.log("loading-from-string"); //FOR_DEBUG
             rbql_worker = load_module_from_file(js_code);
             load_module_from_string('rbql_worker', js_code);
         }

@@ -260,8 +260,7 @@ function process_test_case(test_case) {
         let output_table = output_writer.table;
         assert(tables_are_equal(expected_output_table, output_table));
     }
-    console.log("debug_mode:" + debug_mode); //FOR_DEBUG
-    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, node_debug_mode=debug_mode);
+    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, null, '', debug_mode);
 }
 
 
