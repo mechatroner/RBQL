@@ -17,6 +17,9 @@ const external_js_template_text = codegeneration_pseudo_function_include_combine
 // Unit tests will make sure that package.js is indeed concatenation of template.js and builder.js.
 // This hack will simplify interface
 
+// FIXME replace prototypes with classes: this improves readability
+
+
 const version = '0.5.0';
 
 const GROUP_BY = 'GROUP BY';
@@ -33,7 +36,6 @@ const EXCEPT = 'EXCEPT';
 
 
 class RbqlParsingError extends Error {}
-class RbqlRutimeError extends Error {}
 class AssertionError extends Error {}
 
 

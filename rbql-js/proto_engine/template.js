@@ -5,6 +5,16 @@ __RBQLMP__user_init_code
 }
 
 
+class RbqlRuntimeError extends Error {}
+
+
+function InternalBadFieldError(idx) {
+    this.idx = idx;
+    this.name = 'InternalBadFieldError';
+}
+
+
+
 var unfold_list = null;
 
 var module_was_used_failsafe = false;
@@ -47,7 +57,7 @@ function finish_processing_success() {
         var join_warnings = external_join_map_impl ? external_join_map_impl.get_warnings() : [];
         var warnings = join_warnings.concat(external_writer.get_warnings()).concat(external_input_iterator.get_warnings());
     } catch (e) {
-        if (e instanceof RbqlRutimeError) {
+        if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.error_msg);
         } else {
             finish_processing_error('Unexpected exception: ' + e);
@@ -73,18 +83,6 @@ function stable_compare(a, b) {
 }
 
 
-function InternalBadFieldError(idx) {
-    this.idx = idx;
-    this.name = 'InternalBadFieldError';
-}
-
-
-function RbqlRuntimeError(error_msg) {
-    this.error_msg = error_msg;
-    this.name = 'RbqlRuntimeError';
-}
-
-
 function safe_join_get(record, idx) {
     if (idx < record.length) {
         return record[idx];
@@ -106,7 +104,7 @@ function Marker(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
     this.toString = function() {
-        throw new RbqlRutimeError('Unsupported aggregate expression');
+        throw new RbqlRuntimeError('Unsupported aggregate expression');
     }
 }
 
@@ -114,7 +112,7 @@ function Marker(marker_id, value) {
 function UNFOLD(vals) {
     if (unfold_list !== null) {
         // Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
-        throw new RbqlRutimeError('Only one UNFOLD is allowed per query');
+        throw new RbqlRuntimeError('Only one UNFOLD is allowed per query');
     }
     unfold_list = vals;
     return new UnfoldMarker();
@@ -519,7 +517,7 @@ function StrictLeftJoiner(join_map) {
     this.get_rhs = function(lhs_key) {
         let result = this.join_map.get_join_records(lhs_key);
         if (result.length != 1) {
-            throw new RbqlRutimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
+            throw new RbqlRuntimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
         }
         return result;
     }
@@ -538,7 +536,7 @@ function select_except(src, except_fields) {
 
 function process_update(NF, afields, rhs_records) {
     if (rhs_records.length > 1)
-        throw new RbqlRutimeError('More than one record in UPDATE query matched A-key in join table B');
+        throw new RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B');
     var bfields = null;
     if (rhs_records.length == 1)
         bfields = rhs_records[0];
@@ -571,7 +569,7 @@ function select_aggregated(key, transparent_values) {
     }
     if (aggregation_stage === 1) {
         if (!(writer instanceof TopWriter)) {
-            throw new RbqlRutimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
+            throw new RbqlRuntimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
         }
         writer = new AggregateWriter(writer);
         for (var i = 0; i < transparent_values.length; i++) {
@@ -645,7 +643,7 @@ function process_record(record) {
     } catch (e) {
         if (e instanceof BadFieldError) {
             finish_processing_error('No "a' + (e.idx + 1) + '" column at record: ' + NR);
-        } else if (e instanceof RbqlRutimeError) {
+        } else if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.error_msg);
         } else {
             finish_processing_error('Unexpected exception while processing record ' + NR + ': "' + e + '"');
@@ -710,7 +708,7 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
         }
 
     } catch (e) {
-        if (e instanceof RbqlRutimeError) {
+        if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.error_msg);
         } else {
             finish_processing_error('Unexpected exception: ' + e);
