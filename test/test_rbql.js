@@ -16,7 +16,7 @@ function assert(condition, message = null) {
     if (!condition) {
         if (debug_mode)
             console.trace();
-        throw message || "Assertion failed";
+        die(message || "Assertion failed");
     }
 }
 
@@ -241,12 +241,17 @@ function get_default(obj, key, default_value) {
 }
 
 
-function process_test_case(test_case) {
+function process_test_case(tests, test_id) {
+    if (test_id >= tests.length)
+        return;
+    console.log('running rbql test #' + test_id);
+    let test_case = tests[test_id];
     let test_name = test_case['test_name'];
     let query = test_case['query_js'];
     let input_table = test_case['input_table'];
     let expected_output_table = get_default(test_case, 'expected_output_table', null);
     let expected_error = get_default(test_case, 'expected_error', null);
+    let expected_warnings = get_default(test_case, 'expected_warnings', []);
     let input_iterator = new engine.TableIterator(input_table);
     let output_writer = new engine.TableWriter();
     let error_handler = function(error_type, error_msg) {
@@ -254,13 +259,16 @@ function process_test_case(test_case) {
         console.log("error_type:" + error_type + ", error_msg:" + error_msg); //FOR_DEBUG
         //console.trace();
         assert(error_msg === expected_error);
+        process_test_case(tests, test_id + 1);
     }
     let success_handler = function(warnings) {
         console.log("finished_with_success"); //FOR_DEBUG
         assert(expected_error === null);
-        assert(warnings.length == 0); //FIXME just a stub
+        //assert(arrays_are_equal(warnings, expected_warnings));
+        assert(warnings.length == 0); //FIXME
         let output_table = output_writer.table;
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
+        process_test_case(tests, test_id + 1);
     }
     engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, null, '', debug_mode);
 }
@@ -269,13 +277,12 @@ function process_test_case(test_case) {
 function test_json_tables() {
     let tests_file_path = 'rbql_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
-    for (let test_id = 0; test_id < tests.length; test_id++) {
-        console.log('running rbql test #' + test_id);
-        let test = tests[test_id];
-        process_test_case(test);
-        if (test_id >= 0)
-            break; // FIXME
-    }
+    process_test_case(tests, 0);
+    //for (let test_id = 0; test_id < tests.length; test_id++) {
+    //    console.log('running rbql test #' + test_id);
+    //    let test = tests[test_id];
+    //    process_test_case(test);
+    //}
 }
 
 
