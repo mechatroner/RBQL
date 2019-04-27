@@ -611,7 +611,7 @@ function TableIterator(input_table) {
         this.NR += 1;
         let num_fields = record.length;
         if (!this.fields_info.hasOwnProperty(num_fields))
-            this.fields_info[num_fields] = NR;
+            this.fields_info[num_fields] = this.NR;
         return record;
     }
 

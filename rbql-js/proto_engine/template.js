@@ -27,6 +27,7 @@ var functional_aggregators = [];
 var writer = null;
 
 var NU = 0; // NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
+var NR = 0;
 
 var finished_with_error = false;
 
@@ -57,6 +58,7 @@ function finish_processing_success() {
         var join_warnings = external_join_map_impl ? external_join_map_impl.get_warnings() : [];
         var warnings = join_warnings.concat(external_writer.get_warnings()).concat(external_input_iterator.get_warnings());
     } catch (e) {
+        //console.log("e.stack:" + e.stack); //FOR_DEBUG
         if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.error_msg);
         } else {
@@ -636,12 +638,13 @@ function process_select(NF, afields, rhs_records) {
 
 
 function process_record(record) {
+    NR += 1;
     if (finished_with_error)
         return; // Sometimes linereader still calls "line" callback even after "close()" method has been called.
     try {
         do_process_record(record);
     } catch (e) {
-        if (e instanceof BadFieldError) {
+        if (e instanceof InternalBadFieldError) {
             finish_processing_error('No "a' + (e.idx + 1) + '" column at record: ' + NR);
         } else if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.error_msg);
@@ -655,6 +658,7 @@ function process_record(record) {
 function do_process_record(record) {
     if (join_map != null)
         rhs_records = join_function(__RBQLMP__lhs_join_var);
+    let NF = record.length;
     if (!process_function(NF, record, rhs_records)) {
         external_input_iterator.finish();
         return;
