@@ -260,7 +260,7 @@ function process_test_case(test_case) {
         assert(expected_error === null);
         assert(warnings.length == 0); //FIXME just a stub
         let output_table = output_writer.table;
-        assert(tables_are_equal(expected_output_table, output_table));
+        assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
     }
     engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, null, '', debug_mode);
 }
