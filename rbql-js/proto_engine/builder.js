@@ -378,7 +378,7 @@ function HashJoinMap(record_iterator, key_index) {
         if (this.error_msg === null) {
             this.external_success_handler();
         } else {
-            this.external_error_handler('IO handling', error_msg);
+            this.external_error_handler('IO handling', this.error_msg);
         }
     }
 
@@ -550,7 +550,7 @@ function generic_run(query, input_iterator, output_writer, external_success_cb, 
         rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_cb, external_error_handler);
     } catch (e) {
         if (e instanceof RbqlParsingError) {
-            external_error_handler('query parsing', e.error_msg);
+            external_error_handler('query parsing', e.message);
         } else {
             if (node_debug_mode) {
                 console.log(e.stack);

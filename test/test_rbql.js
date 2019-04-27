@@ -14,6 +14,8 @@ function die(error_msg) {
 
 function assert(condition, message = null) {
     if (!condition) {
+        if (debug_mode)
+            console.trace();
         throw message || "Assertion failed";
     }
 }
@@ -250,12 +252,12 @@ function process_test_case(test_case) {
     let error_handler = function(error_type, error_msg) {
         console.log("finished_with_error"); //FOR_DEBUG
         console.log("error_type:" + error_type + ", error_msg:" + error_msg); //FOR_DEBUG
-        console.trace();
+        //console.trace();
         assert(error_msg === expected_error);
     }
     let success_handler = function(warnings) {
         console.log("finished_with_success"); //FOR_DEBUG
-        assert(error_msg === expected_error);
+        assert(expected_error === null);
         assert(warnings.length == 0); //FIXME just a stub
         let output_table = output_writer.table;
         assert(tables_are_equal(expected_output_table, output_table));

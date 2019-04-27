@@ -5,6 +5,10 @@ __RBQLMP__user_init_code
 }
 
 
+//function RbqlRuntimeError(error_msg) {
+//    this.error_msg = error_msg;
+//    this.name = 'RbqlRuntimeError';
+//}
 class RbqlRuntimeError extends Error {}
 
 
@@ -60,7 +64,7 @@ function finish_processing_success() {
     } catch (e) {
         //console.log("e.stack:" + e.stack); //FOR_DEBUG
         if (e instanceof RbqlRuntimeError) {
-            finish_processing_error(e.error_msg);
+            finish_processing_error(e.message);
         } else {
             finish_processing_error('Unexpected exception: ' + e);
         }
@@ -647,7 +651,7 @@ function process_record(record) {
         if (e instanceof InternalBadFieldError) {
             finish_processing_error('No "a' + (e.idx + 1) + '" column at record: ' + NR);
         } else if (e instanceof RbqlRuntimeError) {
-            finish_processing_error(e.error_msg);
+            finish_processing_error(e.message);
         } else {
             finish_processing_error('Unexpected exception while processing record ' + NR + ': "' + e + '"');
         }
@@ -656,8 +660,7 @@ function process_record(record) {
 
 
 function do_process_record(record) {
-    if (join_map != null)
-        rhs_records = join_function(__RBQLMP__lhs_join_var);
+    let rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var);
     let NF = record.length;
     if (!process_function(NF, record, rhs_records)) {
         external_input_iterator.finish();
@@ -670,8 +673,7 @@ function do_rb_transform(input_iterator, output_writer) {
     process_function = __RBQLMP__is_select_query ? process_select : process_update;
     var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
-    if (external_join_map_impl !== null)
-        join_map = new sql_join_type(external_join_map_impl);
+    join_map = new sql_join_type(external_join_map_impl);
 
     writer = new TopWriter(output_writer);
 
@@ -705,15 +707,16 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
     module_was_used_failsafe = true;
 
     try {
-        if (join_map_impl !== null) {
-            join_map_impl.build(function() { do_rb_transform(input_iterator, output_writer); }, finish_processing_error);
+        if (external_join_map_impl !== null) {
+            external_join_map_impl.build(function() { do_rb_transform(input_iterator, output_writer); }, finish_processing_error);
         } else {
             do_rb_transform(input_iterator, output_writer);
         }
 
     } catch (e) {
+        //console.log("e.stack:" + e.stack); //FOR_DEBUG
         if (e instanceof RbqlRuntimeError) {
-            finish_processing_error(e.error_msg);
+            finish_processing_error(e.message);
         } else {
             finish_processing_error('Unexpected exception: ' + e);
         }
