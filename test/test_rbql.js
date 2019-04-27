@@ -1,7 +1,7 @@
 const fs = require('fs');
 const build_engine = require('../rbql-js/build_engine.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
-var engine = null; // FIXME
+var engine = null;
 var debug_mode = false;
 
 // FIXME delete all debug console.log statements at the end
@@ -60,6 +60,18 @@ function objects_are_equal(a, b) {
     return num_props_in_a == num_props_in_b;
 }
 
+
+function normalize_warnings(warnings) {
+    let result = [];
+    for (let warning of warnings) {
+        if (warning.indexOf('Number of fields in "input" table is not consistent') != -1) {
+            result.push('inconsistent input records');
+        } else {
+            assert(false, 'Unknown warning');
+        }
+    }
+    return result;
+}
 
 
 function test_comment_strip() {
@@ -255,17 +267,13 @@ function process_test_case(tests, test_id) {
     let input_iterator = new engine.TableIterator(input_table);
     let output_writer = new engine.TableWriter();
     let error_handler = function(error_type, error_msg) {
-        console.log("finished_with_error"); //FOR_DEBUG
-        console.log("error_type:" + error_type + ", error_msg:" + error_msg); //FOR_DEBUG
-        //console.trace();
         assert(error_msg === expected_error);
         process_test_case(tests, test_id + 1);
     }
     let success_handler = function(warnings) {
-        console.log("finished_with_success"); //FOR_DEBUG
         assert(expected_error === null);
-        //assert(arrays_are_equal(warnings, expected_warnings));
-        assert(warnings.length == 0); //FIXME
+        warnings = normalize_warnings(warnings).sort();
+        assert(arrays_are_equal(expected_warnings, warnings));
         let output_table = output_writer.table;
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tests, test_id + 1);
@@ -278,11 +286,6 @@ function test_json_tables() {
     let tests_file_path = 'rbql_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
     process_test_case(tests, 0);
-    //for (let test_id = 0; test_id < tests.length; test_id++) {
-    //    console.log('running rbql test #' + test_id);
-    //    let test = tests[test_id];
-    //    process_test_case(test);
-    //}
 }
 
 
