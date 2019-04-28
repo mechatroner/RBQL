@@ -25,8 +25,10 @@ function arrays_are_equal(a, b) {
     if (a.length != b.length)
         return false;
     for (var i = 0; i < a.length; i++) {
-        if (a[i] !== b[i])
+        if (a[i] !== b[i]) {
+            //console.log('mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
             return false;
+        }
     }
     return true;
 }
@@ -256,9 +258,9 @@ function get_default(obj, key, default_value) {
 function process_test_case(tests, test_id) {
     if (test_id >= tests.length)
         return;
-    console.log('running rbql test #' + test_id);
     let test_case = tests[test_id];
     let test_name = test_case['test_name'];
+    console.log('running rbql test: ' + test_name);
     let query = test_case['query_js'];
     let input_table = test_case['input_table'];
     let expected_output_table = get_default(test_case, 'expected_output_table', null);

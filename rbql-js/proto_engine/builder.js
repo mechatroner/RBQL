@@ -122,9 +122,9 @@ function generate_init_statements(column_vars, indent) {
         var var_group = var_name.charAt(0);
         var zero_based_idx = parseInt(var_name.substr(1)) - 1;
         if (var_group == 'a') {
-            init_statements.push(`var ${var_name} = afields[${zero_based_idx}];`);
+            init_statements.push(`var ${var_name} = safe_get(afields, ${zero_based_idx});`);
         } else {
-            init_statements.push(`var ${var_name} = bfields === null ? undefined : bfields[${zero_based_idx}];`);
+            init_statements.push(`var ${var_name} = bfields === null ? null : safe_get(bfields, ${zero_based_idx});`);
         }
     }
     for (var i = 1; i < init_statements.length; i++) {

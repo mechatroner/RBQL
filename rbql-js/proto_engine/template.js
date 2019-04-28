@@ -89,6 +89,11 @@ function stable_compare(a, b) {
 }
 
 
+function safe_get(record, idx) {
+    return idx < record.length ? record[idx] : null;
+}
+
+
 function safe_join_get(record, idx) {
     if (idx < record.length) {
         return record[idx];
