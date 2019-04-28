@@ -107,11 +107,11 @@ def generate_init_statements(column_vars, indent):
     init_statements = []
     for var_name in column_vars:
         var_group = var_name[0]
-        one_based_idx = int(var_name[1:])
+        zero_based_idx = int(var_name[1:]) - 1
         if var_group == 'a':
-            init_statements.append('{} = safe_get(afields, {})'.format(var_name, one_based_idx))
+            init_statements.append('{} = safe_get(afields, {})'.format(var_name, zero_based_idx))
         if var_group == 'b':
-            init_statements.append('{} = safe_get(bfields, {}) if bfields is not None else None'.format(var_name, one_based_idx))
+            init_statements.append('{} = safe_get(bfields, {}) if bfields is not None else None'.format(var_name, zero_based_idx))
     for i in range(1, len(init_statements)):
         init_statements[i] = indent + init_statements[i]
     result = '\n'.join(init_statements)

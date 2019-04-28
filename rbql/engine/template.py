@@ -61,8 +61,7 @@ class RbqlRuntimeError(Exception):
 
 
 def safe_get(record, idx):
-    zero_based_idx = idx - 1
-    return record[zero_based_idx] if zero_based_idx < len(record) else None
+    return record[idx] if idx < len(record) else None
 
 
 def safe_join_get(record, idx):
