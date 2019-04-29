@@ -271,7 +271,8 @@ function process_test_case(tests, test_id) {
     let output_writer = new engine.TableWriter();
     let join_tables_registry = join_table === null ? null : new engine.SingleTableRegistry(join_table);
     let error_handler = function(error_type, error_msg) {
-        assert(error_msg === expected_error);
+        assert(expected_error);
+        assert(error_msg.indexOf(expected_error) != -1);
         process_test_case(tests, test_id + 1);
     }
     let success_handler = function(warnings) {
