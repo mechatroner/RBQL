@@ -673,10 +673,10 @@ function process_record(record) {
 }
 
 
-function do_process_record(record) {
+function do_process_record(afields) {
     let rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var);
-    let NF = record.length;
-    if (!process_function(NF, record, rhs_records)) {
+    let NF = afields.length;
+    if (!process_function(NF, afields, rhs_records)) {
         external_input_iterator.finish();
         return;
     }
