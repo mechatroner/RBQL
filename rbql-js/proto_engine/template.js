@@ -44,6 +44,7 @@ var external_join_map_impl = null;
 
 var process_function = null;
 var join_map = null;
+var node_debug_mode_flag = false;
 
 
 function finish_processing_error(error_msg) {
@@ -66,6 +67,10 @@ function finish_processing_success() {
         if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.message);
         } else {
+            if (node_debug_mode_flag) {
+                console.log('Unexpected exception, dumping stack trace:');
+                console.log(e.stack);
+            }
             finish_processing_error('Unexpected exception: ' + e);
         }
         return;
@@ -658,6 +663,10 @@ function process_record(record) {
         } else if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.message);
         } else {
+            if (node_debug_mode_flag) {
+                console.log('Unexpected exception, dumping stack trace:');
+                console.log(e.stack);
+            }
             finish_processing_error('Unexpected exception while processing record ' + NR + ': "' + e + '"');
         }
     }
@@ -696,7 +705,8 @@ function do_rb_transform(input_iterator, output_writer) {
 }
 
 
-function rb_transform(input_iterator, join_map_impl, output_writer, external_success_cb, external_error_cb) {
+function rb_transform(input_iterator, join_map_impl, output_writer, external_success_cb, external_error_cb, node_debug_mode=false) {
+    node_debug_mode_flag = node_debug_mode;
     external_success_handler = external_success_cb;
     external_error_handler = external_error_cb;
     external_input_iterator = input_iterator;
@@ -723,6 +733,10 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
         if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.message);
         } else {
+            if (node_debug_mode_flag) {
+                console.log('Unexpected exception, dumping stack trace:');
+                console.log(e.stack);
+            }
             finish_processing_error('Unexpected exception: ' + e);
         }
     }

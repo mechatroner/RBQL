@@ -263,11 +263,13 @@ function process_test_case(tests, test_id) {
     console.log('running rbql test: ' + test_name);
     let query = test_case['query_js'];
     let input_table = test_case['input_table'];
+    let join_table = get_default(test_case, 'join_table', null);
     let expected_output_table = get_default(test_case, 'expected_output_table', null);
     let expected_error = get_default(test_case, 'expected_error', null);
     let expected_warnings = get_default(test_case, 'expected_warnings', []);
     let input_iterator = new engine.TableIterator(input_table);
     let output_writer = new engine.TableWriter();
+    let join_tables_registry = join_table === null ? null : new engine.SingleTableRegistry(join_table);
     let error_handler = function(error_type, error_msg) {
         assert(error_msg === expected_error);
         process_test_case(tests, test_id + 1);
@@ -280,7 +282,7 @@ function process_test_case(tests, test_id) {
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tests, test_id + 1);
     }
-    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, null, '', debug_mode);
+    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, '', debug_mode);
 }
 
 

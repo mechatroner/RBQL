@@ -36,6 +36,7 @@ const EXCEPT = 'EXCEPT';
 
 
 class RbqlParsingError extends Error {}
+class RbqlIOHandlingError extends Error {}
 class AssertionError extends Error {}
 
 
@@ -403,8 +404,8 @@ function HashJoinMap(record_iterator, key_index) {
     this.build = function(success_callback, error_callback) {
         this.external_success_handler = success_callback;
         this.external_error_handler = error_callback;
-        this.record_iterator.set_record_callback(this.add_record);
-        this.record_iterator.set_finish_callback(this.finish_build);
+        this.record_iterator.set_record_callback((record) => { this.add_record(record); });
+        this.record_iterator.set_finish_callback(() => { this.finish_build(); });
         this.record_iterator.start();
     }
 
@@ -547,12 +548,13 @@ function generic_run(query, input_iterator, output_writer, external_success_cb, 
             rbql_worker = load_module_from_file(js_code);
             load_module_from_string('rbql_worker', js_code);
         }
-        rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_cb, external_error_handler);
+        rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_cb, external_error_handler, node_debug_mode);
     } catch (e) {
         if (e instanceof RbqlParsingError) {
             external_error_handler('query parsing', e.message);
         } else {
             if (node_debug_mode) {
+                console.log('Unexpected exception, dumping stack trace:');
                 console.log(e.stack);
             }
             external_error_handler('unexpected', 'Unexpected exception: ' + e);
@@ -639,6 +641,19 @@ function TableWriter() {
 }
 
 
+function SingleTableRegistry(table, table_id='B') {
+    this.table = table;
+    this.table_id = 'B';
+
+    this.get_iterator_by_table_id = function(table_id) {
+        if (table_id !== this.table_id) {
+            throw new RbqlIOHandlingError(`Unable to find join table: "${table_id}"`);
+        }
+        return new TableIterator(this.table);
+    }
+}
+
+
 
 module.exports.generic_run = generic_run;
 module.exports.strip_comments = strip_comments;
@@ -651,3 +666,4 @@ module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
 module.exports.TableIterator = TableIterator;
 module.exports.TableWriter = TableWriter;
+module.exports.SingleTableRegistry = SingleTableRegistry;
