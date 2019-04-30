@@ -21,12 +21,24 @@ function assert(condition, message = null) {
 }
 
 
+function round_floats(src_table) {
+    for (let r = 0; r < src_table.length; r++) {
+        for (let c = 0; c < src_table[r].length; c++) {
+            if ((typeof src_table[r][c]) == 'number' && !(src_table[r][c] === parseInt(src_table[r][c], 10))) {
+                src_table[r][c] = parseFloat(src_table[r][c].toFixed(3));
+            }
+        }
+    }
+}
+
+
+
 function arrays_are_equal(a, b) {
     if (a.length != b.length)
         return false;
     for (var i = 0; i < a.length; i++) {
         if (a[i] !== b[i]) {
-            //console.log('mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
+            console.log('mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
             return false;
         }
     }
@@ -280,6 +292,7 @@ function process_test_case(tests, test_id) {
         warnings = normalize_warnings(warnings).sort();
         assert(arrays_are_equal(expected_warnings, warnings));
         let output_table = output_writer.table;
+        round_floats(output_table);
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tests, test_id + 1);
     }

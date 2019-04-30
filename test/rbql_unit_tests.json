@@ -568,7 +568,7 @@
             ["20", "haha", ""]
         ],
         "expected_output_table": [
-            ["2"]
+            [2]
         ],
         "query_python": null,
         "query_js": "select NR where a3 === \"hioho\""
