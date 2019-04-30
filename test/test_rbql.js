@@ -276,6 +276,7 @@ function process_test_case(tests, test_id) {
     let query = test_case['query_js'];
     let input_table = test_case['input_table'];
     let join_table = get_default(test_case, 'join_table', null);
+    let user_init_code = get_default(test_case, 'js_init_code', '');
     let expected_output_table = get_default(test_case, 'expected_output_table', null);
     let expected_error = get_default(test_case, 'expected_error', null);
     let expected_warnings = get_default(test_case, 'expected_warnings', []);
@@ -296,7 +297,7 @@ function process_test_case(tests, test_id) {
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tests, test_id + 1);
     }
-    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, '', debug_mode);
+    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
 }
 
 

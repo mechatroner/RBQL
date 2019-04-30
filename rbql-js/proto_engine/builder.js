@@ -19,6 +19,8 @@ const external_js_template_text = codegeneration_pseudo_function_include_combine
 
 // FIXME replace prototypes with classes: this improves readability
 
+// FIXME rename engine.js -> rbql.js
+
 
 const version = '0.5.0';
 
