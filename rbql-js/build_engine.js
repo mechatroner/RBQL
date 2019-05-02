@@ -31,8 +31,7 @@ function escape_string_literal_backtick(src) {
 
 function read_engine_text() {
     try {
-        // FIXME rename to rbql_engine.js ?
-        return fs.readFileSync(path.join(rbql_home_dir, 'engine.js'), 'utf-8');
+        return fs.readFileSync(path.join(rbql_home_dir, 'rbql.js'), 'utf-8');
     } catch (e) {
         return '';
     }
@@ -53,7 +52,7 @@ function build_engine_text() {
 
 function build_engine() {
     let engine_text = build_engine_text();
-    fs.writeFileSync(path.join(rbql_home_dir, 'engine.js'), engine_text, 'utf-8');
+    fs.writeFileSync(path.join(rbql_home_dir, 'rbql.js'), engine_text, 'utf-8');
 }
 
 

@@ -1,7 +1,7 @@
 const external_js_template_text = codegeneration_pseudo_function_include_combine("template.js");
-// ^ The expression above will cause builder.js and tempalte.js to be combined to autogenerate engine.js: builder.js + template.js -> ../engine.js
+// ^ The expression above will cause builder.js and tempalte.js to be combined to autogenerate rbql.js: builder.js + template.js -> ../rbql.js
 // Expression is written as a function to pacify the linter. 
-// Unit tests will ensure that engine.js is indeed a concatenation of builder.js and template.js
+// Unit tests will ensure that rbql.js is indeed a concatenation of builder.js and template.js
 
 
 // This module works with records only. It is CSV-agnostic. 
@@ -13,8 +13,6 @@ const external_js_template_text = codegeneration_pseudo_function_include_combine
 
 
 // FIXME replace prototypes with classes: this improves readability
-
-// FIXME rename engine.js -> rbql.js
 
 
 const version = '0.5.0';

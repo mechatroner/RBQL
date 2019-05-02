@@ -1,7 +1,7 @@
 const fs = require('fs');
 const build_engine = require('../rbql-js/build_engine.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
-var engine = null;
+var rbql = null;
 var debug_mode = false;
 
 // FIXME delete all debug console.log statements at the end
@@ -90,7 +90,7 @@ function normalize_warnings(warnings) {
 
 function test_comment_strip() {
     let a = ` // a comment  `;
-    let a_strp = engine.strip_comments(a);
+    let a_strp = rbql.strip_comments(a);
     assert(a_strp === '');
 }
 
@@ -106,9 +106,9 @@ function test_string_literals_separation() {
         let test_case = test_cases[i];
         let query = test_case[0];
         let expected_literals = test_case[1];
-        let [format_expression, string_literals] = engine.separate_string_literals_js(query);
+        let [format_expression, string_literals] = rbql.separate_string_literals_js(query);
         assert(arrays_are_equal(expected_literals, string_literals));
-        assert(query == engine.combine_string_literals(format_expression, string_literals));
+        assert(query == rbql.combine_string_literals(format_expression, string_literals));
     }
 }
 
@@ -116,7 +116,7 @@ function test_string_literals_separation() {
 function test_separate_actions() {
         let query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and parseInt(b3) == 100 order by parseInt(a7) desc ';
         let expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': 'INNER JOIN'}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and parseInt(b3) == 100'}, 'ORDER BY': {'text': 'parseInt(a7)', 'reverse': true}};
-        let test_res = engine.separate_actions(query);
+        let test_res = rbql.separate_actions(query);
         assert(objects_are_equal(test_res, expected_res));
 }
 
@@ -125,13 +125,13 @@ function test_except_parsing() {
     let except_part = null;
 
     except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8';
-    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === engine.translate_except_expression(except_part));
+    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
 
     except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  ';
-    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === engine.translate_except_expression(except_part));
+    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
 
     except_part = 'a1';
-    assert('select_except(afields, [0])' === engine.translate_except_expression(except_part));
+    assert('select_except(afields, [0])' === rbql.translate_except_expression(except_part));
 }
 
 
@@ -139,15 +139,15 @@ function test_join_parsing() {
     let join_part = null;
     let catched = false;
     join_part = '/path/to/the/file.tsv on a1 == b3';
-    assert(arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2], engine.parse_join_expression(join_part)));
+    assert(arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2], rbql.parse_join_expression(join_part)));
 
     join_part = ' file.tsv on b20== a12  ';
-    assert(arrays_are_equal(['file.tsv', 'safe_join_get(afields, 11)', 19], engine.parse_join_expression(join_part)));
+    assert(arrays_are_equal(['file.tsv', 'safe_join_get(afields, 11)', 19], rbql.parse_join_expression(join_part)));
 
     join_part = '/path/to/the/file.tsv on a1==a12  ';
     catched = false;
     try {
-        engine.parse_join_expression(join_part);
+        rbql.parse_join_expression(join_part);
     } catch (e) {
         catched = true;
         assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -157,7 +157,7 @@ function test_join_parsing() {
     join_part = ' Bon b1 == a12 ';
     catched = false;
     try {
-        engine.parse_join_expression(join_part);
+        rbql.parse_join_expression(join_part);
     } catch (e) {
         catched = true;
         assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -175,7 +175,7 @@ function test_update_translation() {
     expected_dst.push(indent + 'safe_set(up_fields, 8,   100)');
     expected_dst.push(indent + 'safe_set(up_fields, 30,200/3 + 1)');
     expected_dst = expected_dst.join('\n');
-    let test_dst = engine.translate_update_expression(rbql_src, indent);
+    let test_dst = rbql.translate_update_expression(rbql_src, indent);
     assert(test_dst == expected_dst);
 }
 
@@ -187,77 +187,35 @@ function test_select_translation() {
     let canonic_dst = null;
 
     rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * ';
-    test_dst = engine.translate_select_expression_js(rbql_src);
+    test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     assert(canonic_dst === test_dst, 'translation 1');
 
     rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * ';
-    test_dst = engine.translate_select_expression_js(rbql_src);
+    test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     assert(canonic_dst === test_dst, 'translation 2');
 
     rbql_src = ' * ';
-    test_dst = engine.translate_select_expression_js(rbql_src);
+    test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([])';
     assert(canonic_dst === test_dst);
 
     rbql_src = ' *,* ';
-    test_dst = engine.translate_select_expression_js(rbql_src);
+    test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     assert(canonic_dst === test_dst);
 
     rbql_src = ' *,*, * ';
-    test_dst = engine.translate_select_expression_js(rbql_src);
+    test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     assert(canonic_dst === test_dst);
 
     rbql_src = ' *,*, * , *';
-    test_dst = engine.translate_select_expression_js(rbql_src);
+    test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     assert(canonic_dst === test_dst);
 }
-
-
-//class TestJsonTables(unittest.TestCase):
-//
-//    def process_test_case(self, test_case):
-//        test_name = test_case['test_name']
-//        #print(test_name)
-//        query = test_case.get('query_python', None)
-//        if query is None:
-//            self.assertTrue(test_case.get('query_js', None) is not None)
-//            return # Skip this test
-//        input_table = test_case['input_table']
-//        join_table = test_case.get('join_table', None)
-//        user_init_code = test_case.get('python_init_code', '')
-//        expected_output_table = test_case.get('expected_output_table', None)
-//        expected_error = test_case.get('expected_error', None)
-//        expected_warnings = test_case.get('expected_warnings', [])
-//        input_iterator = TableIterator(input_table)
-//        output_writer = TableWriter()
-//        join_tables_registry = None if join_table is None else SingleTableTestRegistry(join_table)
-//
-//        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
-//
-//        warnings = sorted(normalize_warnings(warnings))
-//        expected_warnings = sorted(expected_warnings)
-//        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}'.format(test_name))
-//        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}'.format(test_name))
-//        if expected_error is not None:
-//            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
-//        else:
-//            output_table = output_writer.table
-//            round_floats(expected_output_table)
-//            round_floats(output_table)
-//            self.assertEqual(expected_output_table, output_table)
-//
-//
-//    def test_json_tables(self):
-//        tests_file = os.path.join(script_dir, 'rbql_unit_tests.json')
-//        with open(tests_file) as f:
-//            tests = json.loads(f.read())
-//            for test in tests:
-//                self.process_test_case(test)
 
 
 function get_default(obj, key, default_value) {
@@ -280,9 +238,9 @@ function process_test_case(tests, test_id) {
     let expected_output_table = get_default(test_case, 'expected_output_table', null);
     let expected_error = get_default(test_case, 'expected_error', null);
     let expected_warnings = get_default(test_case, 'expected_warnings', []);
-    let input_iterator = new engine.TableIterator(input_table);
-    let output_writer = new engine.TableWriter();
-    let join_tables_registry = join_table === null ? null : new engine.SingleTableRegistry(join_table);
+    let input_iterator = new rbql.TableIterator(input_table);
+    let output_writer = new rbql.TableWriter();
+    let join_tables_registry = join_table === null ? null : new rbql.SingleTableRegistry(join_table);
     let error_handler = function(error_type, error_msg) {
         assert(expected_error);
         assert(error_msg.indexOf(expected_error) != -1);
@@ -297,7 +255,7 @@ function process_test_case(tests, test_id) {
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tests, test_id + 1);
     }
-    engine.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
+    rbql.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
 }
 
 
@@ -338,10 +296,10 @@ function main() {
     let engine_text_current = build_engine.read_engine_text();
     let engine_text_expected = build_engine.build_engine_text();
     if (engine_text_current != engine_text_expected) {
-        die("engine.js must be rebuild from template.js and builder.js");
+        die("rbql.js must be rebuild from template.js and builder.js");
     }
 
-    engine = require('../rbql-js/engine.js')
+    rbql = require('../rbql-js/rbql.js')
 
     test_rbql_query_parsing();
 
