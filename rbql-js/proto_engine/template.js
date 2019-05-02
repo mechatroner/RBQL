@@ -5,10 +5,6 @@ __RBQLMP__user_init_code
 }
 
 
-//function RbqlRuntimeError(error_msg) {
-//    this.error_msg = error_msg;
-//    this.name = 'RbqlRuntimeError';
-//}
 class RbqlRuntimeError extends Error {}
 
 
@@ -279,7 +275,6 @@ function MedianAggregator() {
             this.stats.set(key, [val]);
         } else {
             cur_aggr.push(val);
-            this.stats.set(key, cur_aggr); // Do we really need to do this? mutable cur_aggr already holds a reference to the value
         }
     }
 
@@ -306,7 +301,6 @@ function FoldAggregator(post_proc) {
             this.stats.set(key, [val]);
         } else {
             cur_aggr.push(val);
-            this.stats.set(key, cur_aggr); // Do we really need to do this? mutable cur_aggr already holds a reference to the value
         }
     }
 
@@ -657,7 +651,7 @@ function process_select(NF, afields, rhs_records) {
 function process_record(record) {
     NR += 1;
     if (finished_with_error)
-        return; // Sometimes linereader still calls "line" callback even after "close()" method has been called.
+        return;
     try {
         do_process_record(record);
     } catch (e) {
@@ -732,7 +726,6 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
         }
 
     } catch (e) {
-        //console.log("e.stack:" + e.stack); //FOR_DEBUG
         if (e instanceof RbqlRuntimeError) {
             finish_processing_error(e.message);
         } else {

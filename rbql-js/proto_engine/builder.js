@@ -11,11 +11,6 @@ const external_js_template_text = codegeneration_pseudo_function_include_combine
 // TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 // TODO get rid of functions with "_js" suffix
 
-// TODO rewrite with async/await ?
-
-// FIXME concatenate template.js and builder.js into the third file: package.js
-// Unit tests will make sure that package.js is indeed concatenation of template.js and builder.js.
-// This hack will simplify interface
 
 // FIXME replace prototypes with classes: this improves readability
 
