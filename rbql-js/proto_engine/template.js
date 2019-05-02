@@ -125,6 +125,9 @@ function Marker(marker_id, value) {
 }
 
 
+function UnfoldMarker() {}
+
+
 function UNFOLD(vals) {
     if (unfold_list !== null) {
         // Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
@@ -614,7 +617,7 @@ function select_unfolded(sort_key, folded_fields) {
     let unfold_pos = folded_fields.findIndex(val => val instanceof UnfoldMarker);
     for (var i = 0; i < unfold_list.length; i++) {
         out_fields[unfold_pos] = unfold_list[i];
-        if (!select_simple(sort_key, out_fields))
+        if (!select_simple(sort_key, out_fields.slice()))
             return false;
     }
     return true;
