@@ -104,9 +104,13 @@ function remove_utf8_bom(line, assumed_source_encoding) {
 }
 
 
-function CSVRecordIterator(stream, encoding, delim, policy, record_cb, finish_cb, row_cb, table_name='input') {
-    // FIXME do we really need a class for this? probably a single function will be enough, since we just start a reader with callbacks
-    // But this is a generic interface! Maybe write a generic part first? Then requirements would be more clear. Start with the abstract engine.
+function make_inconsistent_num_fields_warning(table_name, inconsistent_records_info) {
+    // FIXME see python implementation, this is just a stub
+    return `Number of fields in "${table_name}" table is not consistent: `;
+}
+
+
+function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') {
     this.stream = stream;
     this.encoding = encoding;
     if (this.encoding) {
@@ -115,43 +119,71 @@ function CSVRecordIterator(stream, encoding, delim, policy, record_cb, finish_cb
     this.delim = delim;
     this.policy = policy;
     this.table_name = table_name;
-    //this.record_cb = record_cb;
-    //this.finish_cb = finish_cb;
-    //this.row_cb = row_cb;
-    this.input_reader = readline.createInterface({ input: this.stream });
+    this.line_reader = null;
 
-    if (!row_cb) {
-        row_cb = function(line) {
+    this.external_record_callback = null;
+    this.external_finish_callback = null;
+    this.line_reader_closed = false;
+    this.finished = false;
 
+    this.utf8_bom_removed = false;
+    this.first_defective_line = null;
+
+    this.fields_info = new Object();
+    this.NR = 0;
+
+    this.set_record_callback = function(external_record_callback) {
+        this.external_record_callback = external_record_callback;
+    }
+
+
+    this.set_finish_callback = function(external_finish_callback) {
+        this.external_finish_callback = external_finish_callback;
+    }
+
+
+    this.process_line = function(line) {
+        if (this.finished) {
+            return;
+        }
+        if (this.NR === 0) {
+            var clean_line = remove_utf8_bom(line, this.encoding);
+            if (clean_line != line) {
+                line = clean_line;
+                this.utf8_bom_removed = true;
+            }
+        }
+        this.NR += 1;
+        var [record, warning] = smart_split(line, this.delim, this.policy, false);
+        if (warning && this.first_defective_line === null)
+            this.first_defective_line = this.NR;
+        let num_fields = record.length;
+        if (!this.fields_info.hasOwnProperty(num_fields))
+            this.fields_info[num_fields] = this.NR:
+        this.external_record_callback(record);
+    }
+
+    this.start = function() {
+        this.line_reader = readline.createInterface({ input: this.stream });
+        this.line_reader.on('line', (line) => { this.process_line(line); });
+        this.line_reader.on('close', () => { this.line_reader_closed = true; this.finish(); });
+    }
+
+    this.finish = function() {
+        if (!this.line_reader_closed) {
+            this.line_reader_closed = true;
+            this.line_reader.close();
+        }
+        if (!finished) {
+            this.finished = true;
+            this.external_finish_callback();
         }
     }
 
-
-    // FIXME we probably don't need most of the functions below, because js version works with callbacks paradigm
-
-
-    this.finish = function() {
-    }
-
-    this._get_row_from_buffer = function() {
-    }
-
-    this._read_until_found = function() {
-    }
-
-    this.get_row = function() {
-    }
-
-    this.get_record = function() {
-    }
-
-    this._get_all_rows = function() {
-    }
-
-    this._get_all_records = function() {
-    }
-
     this.get_warnings = function() {
+        if (Object.keys(this.fields_info).length > 1)
+            return [make_inconsistent_num_fields_warning('input', this.fields_info)];
+        return [];
     }
 }
 

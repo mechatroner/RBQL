@@ -65,9 +65,6 @@ function str_strip(src) {
 }
 
 
-// FIXME do we need to add exception_to_error_info() function? see python version...
-
-
 function rbql_meta_format(template_src, meta_params) {
     for (var key in meta_params) {
         if (!meta_params.hasOwnProperty(key))
