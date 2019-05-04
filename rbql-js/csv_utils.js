@@ -1,3 +1,4 @@
+const fs = require('fs');
 const readline = require('readline');
 
 
@@ -122,6 +123,50 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
     // FIXME see python implementation, this is just a stub
     return `Number of fields in "${table_name}" table is not consistent: `;
 }
+
+
+function try_read_index(index_path) {
+    var content = null;
+    try {
+        content = fs.readFileSync(index_path, 'utf-8');
+    } catch (e) {
+        return [];
+    }
+    var lines = content.split('\n');
+    var records = [];
+    for (var i = 0; i < lines.length; i++) {
+        if (!lines[i])
+            continue;
+        var record = lines[i].split('\t');
+        records.push(record);
+    }
+    return records;
+}
+
+
+function get_index_record(index_path, key) {
+    var records = try_read_index(index_path);
+    for (var i = 0; i < records.length; i++) {
+        if (records[i].length && records[i][0] == key) {
+            return records[i];
+        }
+    }
+    return null;
+}
+
+
+function find_table_path(table_id) {
+    var candidate_path = expanduser(table_id);
+    if (fs.existsSync(candidate_path)) {
+        return candidate_path;
+    }
+    var name_record = get_index_record(table_names_settings_path, table_id);
+    if (name_record && name_record.length > 1 && fs.existsSync(name_record[1])) {
+        return name_record[1];
+    }
+    return null;
+}
+
 
 
 function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') {
@@ -277,8 +322,37 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
 }
 
 
+
+function FileSystemCSVRegistry(delim, policy, encoding) {
+    this.delim = delim;
+    this.policy = policy;
+    this.encoding = encoding;
+    this.stream = null;
+    this.record_iterator = null;
+
+    this.get_iterator_by_table_id = function(table_id) {
+        let table_path = find_table_path(table_id);
+        if (table_path === null) {
+            throw new RbqlIOHandlingError(`Unable to find join table "${table_id}"`);
+            // FIXME unit test this error
+        }
+        this.stream = fs.createReadStream(table_path);
+        this.record_iterator = new CSVRecordIterator(this.stream, this.encoding, this.delim, this.policy, table_id);
+        return this.record_iterator;
+    }
+
+    this.finish = function() {
+        if (this.record_iterator !== null)
+            this.record_iterator.finish();
+    }
+}
+
+
+
+
 module.exports.split_quoted_str = split_quoted_str;
 module.exports.split_whitespace_separated_str = split_whitespace_separated_str;
 module.exports.smart_split = smart_split;
 module.exports.CSVRecordIterator = CSVRecordIterator;
 module.exports.CSVWriter = CSVWriter;
+module.exports.FileSystemCSVRegistry = FileSystemCSVRegistry;
