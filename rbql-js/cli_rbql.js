@@ -8,7 +8,9 @@ const fs = require('fs');
 const readline = require('readline');
 
 const rbql = require('./rbql.js');
-const rbql_utils = require('./rbql_utils.js');
+const csv_utils = require('./csv_utils.js');
+const rbq_csv = require('./rbql_csv.js');
+const cli_parser = require('./cli_parser.js');
 
 
 function die(error_msg) {
@@ -42,60 +44,6 @@ function show_warning(msg) {
     } else {
         console.error('Warning: ' + msg);
     }
-}
-
-
-function show_help(scheme) {
-    console.log('Options:\n');
-    for (var k in scheme) {
-        console.log(k);
-        if (scheme[k].hasOwnProperty('default')) {
-            console.log('    Default: "' + scheme[k]['default'] + '"');
-        }
-        console.log('    ' + scheme[k]['help']);
-        console.log();
-    }
-}
-
-
-function normalize_cli_key(cli_key) {
-    return cli_key.replace(/^-*/, '');
-}
-
-
-function parse_cmd_args(cmd_args, scheme) {
-    var result = {};
-    for (var arg_key in scheme) {
-        var arg_info = scheme[arg_key];
-        if (arg_info.hasOwnProperty('default'))
-            result[normalize_cli_key(arg_key)] = arg_info['default'];
-    }
-    cmd_args = cmd_args.slice(2);
-    var i = 0;
-    while(i < cmd_args.length) {
-        var arg_key = cmd_args[i];
-        if (arg_key == '--help') {
-            show_help(scheme);
-            process.exit(0);
-        }
-        i += 1;
-        if (!scheme.hasOwnProperty(arg_key)) {
-            die(`unknown argument: ${arg_key}`);
-        }
-        var arg_info = scheme[arg_key];
-        var normalized_key = normalize_cli_key(arg_key);
-        if (arg_info['boolean']) {
-            result[normalized_key] = true;
-            continue;    
-        }
-        if (i >= cmd_args.length) {
-            die(`no CLI value for key: ${arg_key}`);
-        }
-        var arg_value = cmd_args[i];
-        i += 1;
-        result[normalized_key] = arg_value;
-    }
-    return result;
 }
 
 
@@ -156,9 +104,10 @@ function report_warnings_json(warnings) {
 }
 
 
-function report_error_json(error_msg) {
+function report_error_json(error_type, error_msg) {
     let report = new Object();
-    report.error = error_msg
+    report.error_type = error_type;
+    report.error = error_msg;
     process.stderr.write(JSON.stringify(report));
     if (fs.existsSync(tmp_worker_module_path)) {
         console.log('\nGenerated module was saved here: ' + tmp_worker_module_path);
@@ -166,11 +115,11 @@ function report_error_json(error_msg) {
 }
 
 
-function finish_query_with_error(error_msg) {
+function finish_query_with_error(error_type, error_msg) {
     if (error_format == 'hr') {
-        show_error(error_msg);
+        show_error(error_type + ': ' + error_msg);
     } else {
-        report_error_json(error_msg);
+        report_error_json(error_type, error_msg);
     }
     if (!interactive_mode) {
         process.exit(1);
@@ -203,7 +152,7 @@ function is_delimited_table(sampled_lines, delim, policy) {
         return false;
     let num_fields = null;
     for (var i = 0; i < sampled_lines.length; i++) {
-        let [fields, warning] = rbql_utils.smart_split(sampled_lines[i], delim, policy, true);
+        let [fields, warning] = csv_utils.smart_split(sampled_lines[i], delim, policy, true);
         if (warning)
             return false;
         if (num_fields === null)
@@ -228,11 +177,12 @@ function sample_lines(table_path, callback_func) {
 
 
 function sample_records(table_path, delim, policy, callback_func) {
+    // FIXME rewrite with record iterator
     sample_lines(table_path, (sampled_lines) => {
         let records = [];
         let bad_lines = [];
         for (var i = 0; i < sampled_lines.length; i++) {
-            let [fields, warning] = rbql_utils.smart_split(sampled_lines[i], delim, policy, true);
+            let [fields, warning] = csv_utils.smart_split(sampled_lines[i], delim, policy, true);
             if (warning)
                 bad_lines.push(i + 1);
             records.push(fields);
@@ -299,7 +249,7 @@ function run_with_js(args) {
     var policy = args['policy'] ? args['policy'] : get_default_policy(delim);
     var query = args['query'];
     if (!query) {
-        finish_query_with_error('Parsing Error: RBQL query is empty');
+        finish_query_with_error('Parsing Error', 'RBQL query is empty');
         return;
     }
     var input_path = get_default(args, 'input', null);
@@ -311,21 +261,24 @@ function run_with_js(args) {
     if (output_delim === null) {
         [output_delim, output_policy] = interpret_format(args['out-format'], delim, policy);
     }
-    var tmp_dir = os.tmpdir();
-    var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
-    tmp_worker_module_path = path.join(tmp_dir, script_filename);
-    try {
-        rbql.parse_to_js(input_path, output_path, query, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file);
-    } catch (e) {
-        finish_query_with_error('Parsing Error: ' + get_error_message(e));
-        return;
-    }
-    if (args.hasOwnProperty('parse-only')) {
-        console.log('Worker module location: ' + tmp_worker_module_path);
-        return;
-    }
-    var worker_module = require(tmp_worker_module_path);
-    worker_module.run_on_node((warnings) => { handle_worker_success(warnings, output_path, delim, policy); }, finish_query_with_error);
+
+
+
+    //var tmp_dir = os.tmpdir();
+    //var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
+    //tmp_worker_module_path = path.join(tmp_dir, script_filename);
+    //try {
+    //    rbql.parse_to_js(input_path, output_path, query, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file);
+    //} catch (e) {
+    //    finish_query_with_error('Parsing Error', get_error_message(e));
+    //    return;
+    //}
+    //if (args.hasOwnProperty('parse-only')) {
+    //    console.log('Worker module location: ' + tmp_worker_module_path);
+    //    return;
+    //}
+    //var worker_module = require(tmp_worker_module_path);
+    //worker_module.run_on_node((warnings) => { handle_worker_success(warnings, output_path, delim, policy); }, finish_query_with_error);
 }
 
 
@@ -410,7 +363,7 @@ function main() {
         '--version': {'boolean': true, 'help': 'Script language to use in query'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
     };
-    var args = parse_cmd_args(process.argv, scheme);
+    var args = cli_parser.parse_cmd_args(process.argv, scheme);
 
     if (args.hasOwnProperty('version')) {
         console.log(rbql.version);
@@ -430,7 +383,6 @@ function main() {
     }
 }
 
-module.exports.parse_cmd_args = parse_cmd_args;
 
 if (require.main === module) {
     main();
