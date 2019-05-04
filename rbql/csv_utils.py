@@ -450,10 +450,10 @@ class CSVRecordIterator:
 
 
 class FileSystemCSVRegistry:
-    def __init__(self, delim, policy, csv_encoding):
+    def __init__(self, delim, policy, encoding):
         self.delim = delim
         self.policy = policy
-        self.csv_encoding = csv_encoding
+        self.encoding = encoding
         self.src = None
         self.record_iterator = None
 
@@ -462,7 +462,7 @@ class FileSystemCSVRegistry:
         if table_path is None:
             raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
         self.src = open(table_path, 'rb')
-        self.record_iterator = CSVRecordIterator(self.src, self.csv_encoding, self.delim, self.policy, table_name=table_id)
+        self.record_iterator = CSVRecordIterator(self.src, self.encoding, self.delim, self.policy, table_name=table_id)
         return self.record_iterator
 
     def finish(self):
