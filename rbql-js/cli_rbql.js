@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-// FIXME use cli_parser.js
-
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
@@ -12,6 +10,7 @@ const csv_utils = require('./csv_utils.js');
 const rbq_csv = require('./rbql_csv.js');
 const cli_parser = require('./cli_parser.js');
 
+// FIXME cleanup unused functions in this file
 
 function die(error_msg) {
     console.error('Error: ' + error_msg);

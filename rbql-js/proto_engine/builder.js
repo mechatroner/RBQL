@@ -443,6 +443,7 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         var [rhs_table_id, lhs_join_var, rhs_key_index] = parse_join_expression(rb_actions[JOIN]['text']);
         js_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype'];
         js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
+        // FIXME handle situations when join_tables_registry is null
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`)
@@ -530,7 +531,7 @@ function load_module_from_file(js_code) {
 }
 
 
-function generic_run(query, input_iterator, output_writer, external_success_cb, external_error_handler, join_tables_registry=null, user_init_code='', node_debug_mode=false) {
+function generic_run(query, input_iterator, output_writer, external_success_handler, external_error_handler, join_tables_registry=null, user_init_code='', node_debug_mode=false) {
     try {
         user_init_code = indent_user_init_code(user_init_code);
         let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
@@ -540,7 +541,7 @@ function generic_run(query, input_iterator, output_writer, external_success_cb, 
             rbql_worker = load_module_from_file(js_code);
             load_module_from_string('rbql_worker', js_code);
         }
-        rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_cb, external_error_handler, node_debug_mode);
+        rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_handler, external_error_handler, node_debug_mode);
     } catch (e) {
         if (e instanceof RbqlParsingError) {
             external_error_handler('query parsing', e.message);

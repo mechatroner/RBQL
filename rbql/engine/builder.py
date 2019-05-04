@@ -357,6 +357,7 @@ def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
         rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
         py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
         py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
+        # FIXME handle situations when join_tables_registry is None
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))

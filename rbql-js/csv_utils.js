@@ -341,7 +341,9 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
         return this.record_iterator;
     }
 
+
     this.finish = function() {
+        // FIXME do we really need this function? may be it's better to close the iterator? what about Python version?
         if (this.record_iterator !== null)
             this.record_iterator.finish();
     }
