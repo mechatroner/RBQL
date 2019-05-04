@@ -1,5 +1,9 @@
 const readline = require('readline');
 
+
+class RbqlIOHandlingError extends Error {}
+
+
 let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
 let field_rgx = new RegExp('^' + field_regular_expression);
 let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *')
@@ -46,6 +50,16 @@ function split_quoted_str(src, dlm, preserve_quotes=false) {
     if (src.charAt(src.length - 1) == dlm)
         result.push('');
     return [result, warning];
+}
+
+
+function quote_field(src, delim) {
+    if (src.indexOf('"') != -1 || src.indexOf(delim) != -1) {
+        var escaped = src.replace(/"/g, '""');
+        escaped = '"' + escaped + '"';
+        return escaped;
+    }
+    return src;
 }
 
 
@@ -188,6 +202,83 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 }
 
 
+function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
+    this.stream = stream;
+    if (encoding)
+        this.stream.setDefaultEncoding(encoding);
+    this.delim = delim;
+    this.policy = policy;
+    this.line_separator = line_separator;
+
+    this.null_in_output = false;
+    this.delim_in_simple_output = false;
+
+
+    this.quoted_join = function(fields) {
+        var quoted_fields = fields.map(function(v) { return quote_field(String(v), this.delim); });
+        return quoted_fields.join(this.delim);
+    }
+
+    this.mono_join = function(fields) {
+        if (fields.length > 1) {
+            throw new RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field');
+        }
+        return fields[0];
+    }
+
+    this.simple_join = function(fields) {
+        var res = fields.join(this.delim);
+        if (fields.join('').indexOf(this.delim) != -1) {
+            this.delim_in_simple_output = true;
+        }
+        return res;
+    }
+
+    if (policy == 'simple') {
+        this.output_join = this.simple_join;
+    } else if (policy == 'quoted') {
+        this.output_join = this.quoted_join;
+    } else if (policy == 'monocolumn') {
+        this.output_join = this.mono_join;
+    } else if (policy == 'whitespace') {
+        this.output_join = this.simple_join;
+    } else {
+        throw new RbqlIOHandlingError('Unknown output csv policy');
+    }
+
+    this.replace_null_values = function(out_fields) {
+        for (var i = 0; i < out_fields.length; i++) {
+            if (out_fields[i] == null) {
+                this.null_in_output = true;
+                out_fields[i] = '';
+            }
+        }
+    }
+
+    this.write = function(fields) {
+        this.replace_null_values(fields);
+        this stream.write(this.output_join(fields));
+        this.stream.write(this.line_separator);
+    }
+    
+    this.finish = function() {
+        // Looks like there is no way to flush the stream
+    }
+
+    this.get_warnings = function() {
+        let result = [];
+        if (this.null_in_output)
+            result.push('None values in output were replaced by empty strings');
+        if (this.delim_in_simple_output)
+            result.push('Some output fields contain separator');
+        return result;
+    }
+
+}
+
+
 module.exports.split_quoted_str = split_quoted_str;
 module.exports.split_whitespace_separated_str = split_whitespace_separated_str;
 module.exports.smart_split = smart_split;
+module.exports.CSVRecordIterator = CSVRecordIterator;
+module.exports.CSVWriter = CSVWriter;
