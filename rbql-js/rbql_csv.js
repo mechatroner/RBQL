@@ -18,7 +18,7 @@ function read_user_init_code(rbql_init_source_path) {
 }
 
 
-function csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, external_success_handler, external_error_handler, custom_init_path=null, node_debug_mode) {
+function csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, external_success_handler, external_error_handler, custom_init_path=null, node_debug_mode=false) {
     try {
         if (input_delim == '"' && input_policy == 'quoted') {
             external_error_handler('IO handling', 'Double quote delimiter is incompatible with "quoted" policy');
