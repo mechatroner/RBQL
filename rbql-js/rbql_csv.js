@@ -1,5 +1,6 @@
 const fs = require('fs');
 const os = require('os');
+const path = require('path');
 
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
@@ -17,7 +18,7 @@ function read_user_init_code(rbql_init_source_path) {
 }
 
 
-function csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, external_success_handler, external_error_handler, custom_init_path=null) {
+function csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, external_success_handler, external_error_handler, custom_init_path=null, node_debug_mode) {
     try {
         if (input_delim == '"' && input_policy == 'quoted') {
             external_error_handler('IO handling', 'Double quote delimiter is incompatible with "quoted" policy');
@@ -42,8 +43,12 @@ function csv_run(query, input_stream, input_delim, input_policy, output_stream, 
         let input_iterator = new csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy);
         let output_writer = new csv_utils.CSVWriter(output_stream, csv_encoding, output_delim, output_policy);
 
-        rbql.generic_run(query, input_iterator, output_writer, external_success_handler, external_error_handler, join_tables_registry, user_init_code);
+        rbql.generic_run(query, input_iterator, output_writer, external_success_handler, external_error_handler, join_tables_registry, user_init_code, node_debug_mode);
     } catch (e) {
+        if (node_debug_mode) {
+            console.log('Unexpected exception, dumping stack trace:');
+            console.log(e.stack);
+        }
         external_error_handler('unexpected', String(e));
     }
 }

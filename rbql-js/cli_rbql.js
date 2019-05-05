@@ -265,7 +265,7 @@ function run_with_js(args) {
         handle_query_success(warnings, output_path, delim, policy);
     }
 
-    rbq_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file);
+    rbq_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file, args['debug-mode']);
 }
 
 
@@ -349,6 +349,7 @@ function main() {
         '--parse-only': {'boolean': true, 'help': 'Create worker module and exit'},
         '--version': {'boolean': true, 'help': 'Script language to use in query'},
         '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine', 'hidden': true},
+        '--debug-mode': {'boolean': true, 'help': 'Run in debug mode', 'hidden': true},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
     };
     var args = cli_parser.parse_cmd_args(process.argv, scheme);
