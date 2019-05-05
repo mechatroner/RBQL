@@ -5,9 +5,9 @@ const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
 
-const rbql = require('./rbql.js');
+var rbql = null;
+var rbq_csv = null;
 const csv_utils = require('./csv_utils.js');
-const rbq_csv = require('./rbql_csv.js');
 const cli_parser = require('./cli_parser.js');
 
 // FIXME cleanup unused functions in this file
@@ -348,17 +348,27 @@ function main() {
         '--error-format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format'},
-        '--encoding': {'default': rbql.default_csv_encoding, 'help': 'Manually set csv table encoding'},
+        '--encoding': {'default': 'latin-1', 'help': 'Manually set csv table encoding'},
         '--parse-only': {'boolean': true, 'help': 'Create worker module and exit'},
         '--version': {'boolean': true, 'help': 'Script language to use in query'},
+        '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine', 'hidden': true},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
     };
     var args = cli_parser.parse_cmd_args(process.argv, scheme);
+
+    if (args.hasOwnProperty('auto-rebuild-engine')) {
+        let build_engine = require('./build_engine.js');
+        build_engine.build_engine();
+    }
+
+    rbql = require('./rbql.js');
+    rbq_csv = require('./rbql_csv.js');
 
     if (args.hasOwnProperty('version')) {
         console.log(rbql.version);
         process.exit(0);
     }
+
     if (args.encoding == 'latin-1')
         args.encoding = 'binary';
 

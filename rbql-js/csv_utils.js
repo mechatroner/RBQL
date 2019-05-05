@@ -218,7 +218,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
             this.first_defective_line = this.NR;
         let num_fields = record.length;
         if (!this.fields_info.hasOwnProperty(num_fields))
-            this.fields_info[num_fields] = this.NR:
+            this.fields_info[num_fields] = this.NR;
         this.external_record_callback(record);
     }
 
@@ -302,7 +302,7 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
 
     this.write = function(fields) {
         this.replace_null_values(fields);
-        this stream.write(this.output_join(fields));
+        this.stream.write(this.output_join(fields));
         this.stream.write(this.line_separator);
     }
     

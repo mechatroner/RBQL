@@ -648,6 +648,7 @@ function SingleTableRegistry(table, table_id='B') {
 
 
 
+module.exports.version = version;
 module.exports.generic_run = generic_run;
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;

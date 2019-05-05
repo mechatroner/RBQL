@@ -12,6 +12,9 @@ function normalize_cli_key(cli_key) {
 function show_help(scheme) {
     console.log('Options:\n');
     for (var k in scheme) {
+        if (scheme[k].hasOwnProperty('hidden')) {
+            continue;
+        }
         console.log(k);
         if (scheme[k].hasOwnProperty('default')) {
             console.log('    Default: "' + scheme[k]['default'] + '"');
