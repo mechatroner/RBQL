@@ -233,7 +233,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
             this.line_reader_closed = true;
             this.line_reader.close();
         }
-        if (!finished) {
+        if (!this.finished) {
             this.finished = true;
             this.external_finish_callback();
         }
@@ -258,9 +258,9 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
     this.null_in_output = false;
     this.delim_in_simple_output = false;
 
-
     this.quoted_join = function(fields) {
-        var quoted_fields = fields.map(function(v) { return quote_field(String(v), this.delim); });
+        let delim = this.delim;
+        var quoted_fields = fields.map(function(v) { return quote_field(String(v), delim); });
         return quoted_fields.join(this.delim);
     }
 
