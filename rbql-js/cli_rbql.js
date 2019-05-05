@@ -17,6 +17,7 @@ function die(error_msg) {
     process.exit(1);
 }
 
+let out_format_names = ['csv', 'tsv', 'monocolumn', 'input'];
 
 var tmp_worker_module_path = null;
 var error_format = 'hr';
@@ -56,7 +57,9 @@ function normalize_delim(delim) {
 
 
 function interpret_format(format_name, input_delim, input_policy) {
-    rbql.assert(['csv', 'tsv', 'monocolumn', 'input'].indexOf(format_name) != -1, 'unknown format');
+    if (out_format_names.indexOf(format_name) == -1) {
+        die("Unknown output format name. Must be one of the following: " + out_format_names.join(','));
+    }
     if (format_name == 'input')
         return [input_delim, input_policy];
     if (format_name == 'monocolumn')
@@ -75,16 +78,6 @@ function get_default(src, key, default_val) {
 function cleanup_tmp() {
     if (fs.existsSync(tmp_worker_module_path)) {
         fs.unlinkSync(tmp_worker_module_path);
-    }
-}
-
-
-function report_warnings_hr(warnings) {
-    if (warnings !== null) {
-        let hr_warnings = rbql.make_warnings_human_readable(warnings);
-        for (let i = 0; i < hr_warnings.length; i++) {
-            show_warning(hr_warnings[i]);
-        }
     }
 }
 
@@ -226,7 +219,11 @@ function print_colorized(records, delim, show_column_names) {
 function handle_query_success(warnings, output_path, delim, policy) {
     cleanup_tmp();
     if (error_format == 'hr') {
-        report_warnings_hr(warnings);
+        if (warnings !== null) {
+            for (let i = 0; i < warnings.length; i++) {
+                show_warning(warnings[i]);
+            }
+        }
         if (interactive_mode) {
             user_input_reader.close();
             sample_records(output_path, delim, policy, (records, bad_lines) => {
@@ -344,7 +341,7 @@ function main() {
         '--output': {'help': 'Write output table to FILE instead of stdout'},
         '--delim': {'default': 'TAB', 'help': 'Delimiter'},
         '--policy': {'help': 'Split policy'},
-        '--out-format': {'default': 'input', 'help': 'Output format'},
+        '--out-format': {'default': 'input', 'help': 'Output format, available values: ' + out_format_names.join(',')},
         '--error-format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format'},
