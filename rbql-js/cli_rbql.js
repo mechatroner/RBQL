@@ -223,7 +223,7 @@ function print_colorized(records, delim, show_column_names) {
 }
 
 
-function handle_worker_success(warnings, output_path, delim, policy) {
+function handle_query_success(warnings, output_path, delim, policy) {
     cleanup_tmp();
     if (error_format == 'hr') {
         report_warnings_hr(warnings);
@@ -261,23 +261,14 @@ function run_with_js(args) {
         [output_delim, output_policy] = interpret_format(args['out-format'], delim, policy);
     }
 
+    let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
+    let output_stream = output_path === null ? process.stdout : fs.createWriteStream(output_path);
 
+    let handle_success = function(warnings) {
+        handle_query_success(warnings, output_path, delim, policy);
+    }
 
-    //var tmp_dir = os.tmpdir();
-    //var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
-    //tmp_worker_module_path = path.join(tmp_dir, script_filename);
-    //try {
-    //    rbql.parse_to_js(input_path, output_path, query, tmp_worker_module_path, delim, policy, output_delim, output_policy, csv_encoding, init_source_file);
-    //} catch (e) {
-    //    finish_query_with_error('Parsing Error', get_error_message(e));
-    //    return;
-    //}
-    //if (args.hasOwnProperty('parse-only')) {
-    //    console.log('Worker module location: ' + tmp_worker_module_path);
-    //    return;
-    //}
-    //var worker_module = require(tmp_worker_module_path);
-    //worker_module.run_on_node((warnings) => { handle_worker_success(warnings, output_path, delim, policy); }, finish_query_with_error);
+    rbq_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file);
 }
 
 
