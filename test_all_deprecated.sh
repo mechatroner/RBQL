@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+
+# FIXME delete this file
+
 cleanup_tmp_files() {
     rm random_ut.csv 2> /dev/null
     rm tmp_out.csv 2> /dev/null

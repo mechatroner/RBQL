@@ -266,7 +266,7 @@ function test_json_tables() {
 }
 
 
-function test_rbql_query_parsing() {
+function test_everything() {
     test_comment_strip();
     test_string_literals_separation();
     test_separate_actions();
@@ -301,7 +301,7 @@ function main() {
 
     rbql = require('../rbql-js/rbql.js')
 
-    test_rbql_query_parsing();
+    test_everything();
 
 
     console.log('Finished JS unit tests');
