@@ -56,20 +56,6 @@ function normalize_delim(delim) {
 }
 
 
-function interpret_format(format_name, input_delim, input_policy) {
-    if (out_format_names.indexOf(format_name) == -1) {
-        die("Unknown output format name. Must be one of the following: " + out_format_names.join(','));
-    }
-    if (format_name == 'input')
-        return [input_delim, input_policy];
-    if (format_name == 'monocolumn')
-        return ['', 'monocolumn'];
-    if (format_name == 'csv')
-        return [',', 'quoted'];
-    return ['\t', 'simple'];
-}
-
-
 function get_default(src, key, default_val) {
     return src.hasOwnProperty(key) ? src[key] : default_val;
 }
@@ -254,8 +240,9 @@ function run_with_js(args) {
     var output_delim = get_default(args, 'out-delim', null);
     var output_policy = get_default(args, 'out-policy', null);
     let init_source_file = get_default(args, 'init-source-file', null);
+    let output_format = args['out-format'];
     if (output_delim === null) {
-        [output_delim, output_policy] = interpret_format(args['out-format'], delim, policy);
+        [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : csv_utils.interpret_named_csv_format(output_format);
     }
 
     let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);

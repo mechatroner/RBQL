@@ -9,6 +9,20 @@ let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
 let field_rgx = new RegExp('^' + field_regular_expression);
 let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *')
 
+
+function interpret_named_csv_format(format_name) {
+    let format_name = format_name.toLowerCase(); 
+    if (format_name == 'monocolumn')
+        return ['', 'monocolumn'];
+    if (format_name == 'csv')
+        return [',', 'quoted'];
+    if (format_name == 'tsv')
+        return ['\t', 'simple'];
+    throw new RbqlIOHandlingError(`Unknown format name: "${format_name}"`);
+}
+
+
+
 function extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result) {
     var warning = false;
     let src_cur = src.substring(cidx);
@@ -375,3 +389,4 @@ module.exports.CSVWriter = CSVWriter;
 module.exports.FileSystemCSVRegistry = FileSystemCSVRegistry;
 module.exports.unquote_field = unquote_field;
 module.exports.unquote_fields = unquote_fields;
+module.exports.interpret_named_csv_format = interpret_named_csv_format;

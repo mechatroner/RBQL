@@ -144,10 +144,91 @@ function test_unquote() {
 
 }
 
+
+//function process_test_case(tests, test_id) {
+//    if (test_id >= tests.length)
+//        return;
+//    let test_case = tests[test_id];
+//    let test_name = test_case['test_name'];
+//    console.log('running rbql test: ' + test_name);
+//    let query = test_case['query_js'];
+//    let input_table = test_case['input_table'];
+//    let join_table = get_default(test_case, 'join_table', null);
+//    let user_init_code = get_default(test_case, 'js_init_code', '');
+//    let expected_output_table = get_default(test_case, 'expected_output_table', null);
+//    let expected_error = get_default(test_case, 'expected_error', null);
+//    let expected_warnings = get_default(test_case, 'expected_warnings', []);
+//    let input_iterator = new rbql.TableIterator(input_table);
+//    let output_writer = new rbql.TableWriter();
+//    let join_tables_registry = join_table === null ? null : new rbql.SingleTableRegistry(join_table);
+//    let error_handler = function(error_type, error_msg) {
+//        assert(expected_error);
+//        assert(error_msg.indexOf(expected_error) != -1);
+//        process_test_case(tests, test_id + 1);
+//    }
+//    let success_handler = function(warnings) {
+//        assert(expected_error === null);
+//        warnings = normalize_warnings(warnings).sort();
+//        assert(arrays_are_equal(expected_warnings, warnings));
+//        let output_table = output_writer.table;
+//        round_floats(output_table);
+//        assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
+//        process_test_case(tests, test_id + 1);
+//    }
+//    rbql.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
+//}
+
+
+function process_test_case(tests, test_id) {
+    if (test_id >= tests.length)
+        return;
+    let test_case = tests[test_id];
+    let test_name = test_case['test_name'];
+    console.log('Running rbql test: ' + test_name);
+    let query = test_case['query_js'];
+    let input_table_path = test_case['input_table_path'];
+    let expected_output_table_path = get_default(test_case, 'expected_output_table_path', null);
+    let expected_error = get_default(test_case, 'expected_error', null);
+    let expected_warnings = get_default(test_case, 'expected_warnings', []);
+    let delim = test_case['csv_separator'];
+    let policy = test_case['csv_policy'];
+    let encoding = test_case['csv_encoding'];
+    let output_format = get_default(test_case, 'output_format', 'input');
+    let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : csv_utils.interpret_named_csv_format(output_format);
+
+    let input_iterator = new rbql.TableIterator(input_table);
+    let output_writer = new rbql.TableWriter();
+    let join_tables_registry = join_table === null ? null : new rbql.SingleTableRegistry(join_table);
+    let error_handler = function(error_type, error_msg) {
+        assert(expected_error);
+        assert(error_msg.indexOf(expected_error) != -1);
+        process_test_case(tests, test_id + 1);
+    }
+    let success_handler = function(warnings) {
+        assert(expected_error === null);
+        warnings = normalize_warnings(warnings).sort();
+        assert(arrays_are_equal(expected_warnings, warnings));
+        let output_table = output_writer.table;
+        round_floats(output_table);
+        assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
+        process_test_case(tests, test_id + 1);
+    }
+    rbql.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
+}
+
+
+function test_json_scenarios() {
+    let tests_file_path = 'csv_unit_tests.json';
+    let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
+    process_test_case(tests, 0);
+}
+
+
 function test_all() {
     test_unquote();
     test_split();
     test_split_whitespaces();
+    test_json_scenarios();
 }
 
 
