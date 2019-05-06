@@ -64,6 +64,21 @@ function quote_field(src, delim) {
 }
 
 
+function unquote_field(field) {
+    let rgx = /^ *"((?:[^"]*"")*[^"]*)" *$/;
+    let match_obj = rgx.exec(field);
+    if (match_obj !== null) {
+        return match_obj[1].replace(/""/g, '"');;
+    }
+    return field;
+}
+
+
+function unquote_fields(fields) {
+    return fields.map(unquote_field);
+}
+
+
 function occurrences(string, subString, allowOverlapping=false) {
     // @author Vitim.us https://gist.github.com/victornpb/7736865
 
@@ -358,3 +373,5 @@ module.exports.smart_split = smart_split;
 module.exports.CSVRecordIterator = CSVRecordIterator;
 module.exports.CSVWriter = CSVWriter;
 module.exports.FileSystemCSVRegistry = FileSystemCSVRegistry;
+module.exports.unquote_field = unquote_field;
+module.exports.unquote_fields = unquote_fields;
