@@ -179,9 +179,11 @@ function test_unquote() {
 //}
 
 
-function process_test_case(tests, test_id) {
-    if (test_id >= tests.length)
+function process_test_case(tmp_tests_dir, tests, test_id) {
+    if (test_id >= tests.length) {
+        // FIXME remove tmp_tests_dir
         return;
+    }
     let test_case = tests[test_id];
     let test_name = test_case['test_name'];
     console.log('Running rbql test: ' + test_name);
@@ -196,13 +198,17 @@ function process_test_case(tests, test_id) {
     let output_format = get_default(test_case, 'output_format', 'input');
     let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : csv_utils.interpret_named_csv_format(output_format);
 
+    let input_stream = fs.createReadStream(input_table_path);
+    let output_stream = output_path === null ? process.stdout : fs.createWriteStream(output_path);
+
+
     let input_iterator = new rbql.TableIterator(input_table);
     let output_writer = new rbql.TableWriter();
     let join_tables_registry = join_table === null ? null : new rbql.SingleTableRegistry(join_table);
     let error_handler = function(error_type, error_msg) {
         assert(expected_error);
         assert(error_msg.indexOf(expected_error) != -1);
-        process_test_case(tests, test_id + 1);
+        process_test_case(tmp_tests_dir, tests, test_id + 1);
     }
     let success_handler = function(warnings) {
         assert(expected_error === null);
@@ -211,7 +217,7 @@ function process_test_case(tests, test_id) {
         let output_table = output_writer.table;
         round_floats(output_table);
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
-        process_test_case(tests, test_id + 1);
+        process_test_case(tmp_tests_dir, tests, test_id + 1);
     }
     rbql.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
 }
@@ -220,7 +226,10 @@ function process_test_case(tests, test_id) {
 function test_json_scenarios() {
     let tests_file_path = 'csv_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
-    process_test_case(tests, 0);
+    let tmp_tests_dir = 'rbql_csv_unit_tests_dir_js_' + String(Math.random()).replace('.', '_');
+    let tmp_tests_dir = path.join(os.tmpdir(), tmp_tests_dir);
+    fs.mkdirSync(tmp_tests_dir);
+    process_test_case(tmp_tests_dir, tests, 0);
 }
 
 

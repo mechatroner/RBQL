@@ -480,7 +480,7 @@ class TestRecordIterator(unittest.TestCase):
 
 class TestRBQLWithCSV(unittest.TestCase):
 
-    def process_test_case(self, tests_dir, test_case):
+    def process_test_case(self, tmp_tests_dir, test_case):
         test_name = test_case['test_name']
         query = test_case.get('query_python')
         query_js = test_case.get('query_js')
@@ -494,9 +494,9 @@ class TestRBQLWithCSV(unittest.TestCase):
             expected_output_table_path = os.path.join(script_dir, expected_output_table_path)
             expected_md5 = calc_file_md5(expected_output_table_path)
             output_file_name = os.path.basename(expected_output_table_path)
-            output_table_path = os.path.join(tests_dir, output_file_name) 
+            output_table_path = os.path.join(tmp_tests_dir, output_file_name) 
         else:
-            output_table_path = os.path.join(tests_dir, 'expected_empty_file') 
+            output_table_path = os.path.join(tmp_tests_dir, 'expected_empty_file') 
 
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
@@ -528,12 +528,12 @@ class TestRBQLWithCSV(unittest.TestCase):
     def test_json_scenarios(self):
         tests_file = os.path.join(script_dir, 'csv_unit_tests.json')
         tmp_dir = tempfile.gettempdir()
-        tests_dir = 'rbql_csv_unit_tests_dir_{}_{}'.format(time.time(), random.randint(1, 100000000)).replace('.', '_')
-        tests_dir = os.path.join(tmp_dir, tests_dir)
-        os.mkdir(tests_dir)
+        tmp_tests_dir = 'rbql_csv_unit_tests_dir_{}_{}'.format(time.time(), random.randint(1, 100000000)).replace('.', '_')
+        tmp_tests_dir = os.path.join(tmp_dir, tmp_tests_dir)
+        os.mkdir(tmp_tests_dir)
         with open(tests_file) as f:
             tests = json.loads(f.read())
             for test in tests:
-                self.process_test_case(tests_dir, test)
-        shutil.rmtree(tests_dir)
+                self.process_test_case(tmp_tests_dir, test)
+        shutil.rmtree(tmp_tests_dir)
 
