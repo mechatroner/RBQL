@@ -491,9 +491,9 @@ class TestRBQLWithCSV(unittest.TestCase):
             expected_output_table_path = os.path.join(script_dir, expected_output_table_path)
             expected_md5 = calc_file_md5(expected_output_table_path)
             output_file_name = os.path.basename(expected_output_table_path)
-            output_table_path = os.path.join(tmp_tests_dir, output_file_name) 
+            actual_output_table_path = os.path.join(tmp_tests_dir, output_file_name) 
         else:
-            output_table_path = os.path.join(tmp_tests_dir, 'expected_empty_file') 
+            actual_output_table_path = os.path.join(tmp_tests_dir, 'expected_empty_file') 
 
         expected_error = test_case.get('expected_error', None)
         expected_warnings = test_case.get('expected_warnings', [])
@@ -503,7 +503,7 @@ class TestRBQLWithCSV(unittest.TestCase):
         output_format = test_case.get('output_format', 'input')
 
         src_stream = open(input_table_path, 'rb')
-        dst_stream = open(output_table_path, 'wb')
+        dst_stream = open(actual_output_table_path, 'wb')
         out_delim, out_policy = (delim, policy) if output_format == 'input' else csv_utils.interpret_named_csv_format(output_format)
         error_info, warnings = rbql_csv.csv_run(query, src_stream, delim, policy, dst_stream, out_delim, out_policy, encoding)
         src_stream.close()
@@ -513,8 +513,8 @@ class TestRBQLWithCSV(unittest.TestCase):
         if expected_error is not None:
             self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:
-            actual_md5 = calc_file_md5(output_table_path)
-            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, output_table_path))
+            actual_md5 = calc_file_md5(actual_output_table_path)
+            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, actual_output_table_path))
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)

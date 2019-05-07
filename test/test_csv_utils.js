@@ -2,6 +2,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
+const crypto = require('crypto');
 
 var rbql = null;
 var rbq_csv = null;
@@ -11,6 +12,40 @@ const build_engine = require('../rbql-js/build_engine.js');
 
 
 // FIXME add record iterator tests, see python version
+
+const script_dir = __dirname;
+
+function rmtree(root_path) {
+    if (fs.existsSync(root_path)) {
+        fs.readdirSync(root_path).forEach(function(file_name, index) {
+            let child_path = path.join(root_path, file_name);
+            if (fs.lstatSync(child_path).isDirectory()) {
+                rmtree(child_path);
+            } else {
+                fs.unlinkSync(child_path);
+            }
+        });
+        fs.rmdirSync(root_path);
+    }
+};
+
+
+function get_default(obj, key, default_value) {
+    if (obj.hasOwnProperty(key))
+        return obj[key];
+    return default_value;
+}
+
+
+function calc_str_md5(str) {
+    return crypto.createHash('md5').update(str, 'utf-8').digest('hex');
+}
+
+
+function calc_file_md5(file_path) {
+    let data = fs.readFileSync(file_path, 'utf-8');
+    return calc_str_md5(data);
+}
 
 
 function arrays_are_equal(a, b) {
@@ -181,13 +216,16 @@ function test_unquote() {
 
 function process_test_case(tmp_tests_dir, tests, test_id) {
     if (test_id >= tests.length) {
-        // FIXME remove tmp_tests_dir
+        rmtree(tmp_tests_dir);
         return;
     }
     let test_case = tests[test_id];
     let test_name = test_case['test_name'];
     console.log('Running rbql test: ' + test_name);
+
     let query = test_case['query_js'];
+    query = query.replace('###UT_TESTS_DIR###', script_dir);
+
     let input_table_path = test_case['input_table_path'];
     let expected_output_table_path = get_default(test_case, 'expected_output_table_path', null);
     let expected_error = get_default(test_case, 'expected_error', null);
@@ -197,11 +235,21 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
     let encoding = test_case['csv_encoding'];
     let output_format = get_default(test_case, 'output_format', 'input');
     let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : csv_utils.interpret_named_csv_format(output_format);
+    let actual_output_table_path = null;
+    let expected_md5 = null;
+    if (expected_output_table_path !== null) {
+        let output_file_name = path.basename(expected_output_table_path);
+        expected_output_table_path = path.join(script_dir, expected_output_table_path);
+        actual_output_table_path = path.join(tmp_tests_dir, output_file_name);
+        expected_md5 = calc_file_md5(expected_output_table_path);
+    } else {
+        actual_output_table_path = path.join(tmp_tests_dir, 'expected_empty_file');
+    }
 
     let input_stream = fs.createReadStream(input_table_path);
-    let output_stream = output_path === null ? process.stdout : fs.createWriteStream(output_path);
-
-
+    let output_stream = fs.createWriteStream(actual_output_table_path);
+    
+    
     let input_iterator = new rbql.TableIterator(input_table);
     let output_writer = new rbql.TableWriter();
     let join_tables_registry = join_table === null ? null : new rbql.SingleTableRegistry(join_table);
@@ -219,6 +267,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tmp_tests_dir, tests, test_id + 1);
     }
+    
     rbql.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
 }
 
@@ -227,7 +276,7 @@ function test_json_scenarios() {
     let tests_file_path = 'csv_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
     let tmp_tests_dir = 'rbql_csv_unit_tests_dir_js_' + String(Math.random()).replace('.', '_');
-    let tmp_tests_dir = path.join(os.tmpdir(), tmp_tests_dir);
+    tmp_tests_dir = path.join(os.tmpdir(), tmp_tests_dir);
     fs.mkdirSync(tmp_tests_dir);
     process_test_case(tmp_tests_dir, tests, 0);
 }
