@@ -36,8 +36,8 @@
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
-        "query_python": "select a1,a2,a7,b2,b3,b4 left join   ###UT_CSVFILES_DIR###/countries.tsv  on  a2  ==   b1  where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010",
-        "query_js": "select a1,a2,a7,b2,b3,b4 left join   ###UT_CSVFILES_DIR###/countries.tsv  on  a2  ==   b1  where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010"
+        "query_python": "select a1,a2,a7,b2,b3,b4 left join   ###UT_TESTS_DIR###/csv_files/countries.tsv  on  a2  ==   b1  where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010",
+        "query_js": "select a1,a2,a7,b2,b3,b4 left join   ###UT_TESTS_DIR###/csv_files/countries.tsv  on  a2  ==   b1  where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010"
     },
     {
         "test_name": "test_5",
@@ -106,8 +106,8 @@
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
-        "query_python": "select * inner join ###UT_CSVFILES_DIR###/countries_variable_width.tsv on a2 == b4",
-        "query_js": "select * inner join ###UT_CSVFILES_DIR###/countries_variable_width.tsv on a2 == b4"
+        "query_python": "select * inner join ###UT_TESTS_DIR###/csv_files/countries_variable_width.tsv on a2 == b4",
+        "query_js": "select * inner join ###UT_TESTS_DIR###/csv_files/countries_variable_width.tsv on a2 == b4"
     },
     {
         "test_name": "test_11",
@@ -166,8 +166,8 @@
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
-        "query_python": "select top 15 * join ###UT_CSVFILES_DIR###/random_join.bin on a4 == b1 where a2 == b2 and len(a1)>5 and b3.find('a') !=-1 order by a3 asc",
-        "query_js": "select top 15 * join ###UT_CSVFILES_DIR###/random_join.bin on a4 == b1 where a2 == b2 && a1.length>5 && b3.indexOf('a') !=-1 order by a3 asc"
+        "query_python": "select top 15 * join ###UT_TESTS_DIR###/csv_files/random_join.bin on a4 == b1 where a2 == b2 and len(a1)>5 and b3.find('a') !=-1 order by a3 asc",
+        "query_js": "select top 15 * join ###UT_TESTS_DIR###/csv_files/random_join.bin on a4 == b1 where a2 == b2 && a1.length>5 && b3.indexOf('a') !=-1 order by a3 asc"
     },
     {
         "test_name": "test_17",
