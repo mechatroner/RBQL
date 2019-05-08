@@ -43,11 +43,13 @@ var join_map = null;
 var node_debug_mode_flag = false;
 
 
-function finish_processing_error(error_msg) {
+function finish_processing_error(error_type, error_msg) {
+    if (finished_with_error)
+        return;
     finished_with_error = true;
     // Stopping input_iterator to trigger exit procedure.
     external_input_iterator.finish();
-    external_error_handler('query execution', error_msg);
+    external_error_handler(error_type, error_msg);
 }
 
 
@@ -61,13 +63,13 @@ function finish_processing_success() {
     } catch (e) {
         //console.log("e.stack:" + e.stack); //FOR_DEBUG
         if (e instanceof RbqlRuntimeError) {
-            finish_processing_error(e.message);
+            finish_processing_error('query execution', e.message);
         } else {
             if (node_debug_mode_flag) {
                 console.log('Unexpected exception, dumping stack trace:');
                 console.log(e.stack);
             }
-            finish_processing_error('Unexpected exception: ' + e);
+            finish_processing_error('unexpected', String(e));
         }
         return;
     }
@@ -77,7 +79,7 @@ function finish_processing_success() {
 
 function assert(condition, message) {
     if (!condition) {
-        finish_processing_error(message);
+        finish_processing_error('unexpected', message);
     }
 }
 
@@ -656,15 +658,15 @@ function process_record(record) {
         do_process_record(record);
     } catch (e) {
         if (e instanceof InternalBadFieldError) {
-            finish_processing_error('No "a' + (e.idx + 1) + '" column at record: ' + NR);
+            finish_processing_error('query execution', 'No "a' + (e.idx + 1) + '" column at record: ' + NR);
         } else if (e instanceof RbqlRuntimeError) {
-            finish_processing_error(e.message);
+            finish_processing_error('query execution', e.message);
         } else {
             if (node_debug_mode_flag) {
                 console.log('Unexpected exception, dumping stack trace:');
                 console.log(e.stack);
             }
-            finish_processing_error('Unexpected exception while processing record ' + NR + ': "' + e + '"');
+            finish_processing_error('unexpected', `At record: ${NR}, Details: ${String(e)}`);
         }
     }
 }
@@ -713,7 +715,7 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
     input_iterator.set_finish_callback(finish_processing_success);
 
     if (module_was_used_failsafe) {
-        finish_processing_error('Module can only be used once');
+        finish_processing_error('unexpected', 'Module can only be used once');
         return;
     }
     module_was_used_failsafe = true;
@@ -727,13 +729,13 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
 
     } catch (e) {
         if (e instanceof RbqlRuntimeError) {
-            finish_processing_error(e.message);
+            finish_processing_error('query execution', e.message);
         } else {
             if (node_debug_mode_flag) {
                 console.log('Unexpected exception, dumping stack trace:');
                 console.log(e.stack);
             }
-            finish_processing_error('Unexpected exception: ' + e);
+            finish_processing_error('unexpected', String(e));
         }
     }
 }
