@@ -1,6 +1,7 @@
 const fs = require('fs');
 const build_engine = require('../rbql-js/build_engine.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
+const test_common = require('./test_common.js');
 var rbql = null;
 var debug_mode = false;
 
@@ -18,73 +19,6 @@ function assert(condition, message = null) {
             console.trace();
         die(message || "Assertion failed");
     }
-}
-
-
-function round_floats(src_table) {
-    for (let r = 0; r < src_table.length; r++) {
-        for (let c = 0; c < src_table[r].length; c++) {
-            if ((typeof src_table[r][c]) == 'number' && !(src_table[r][c] === parseInt(src_table[r][c], 10))) {
-                src_table[r][c] = parseFloat(src_table[r][c].toFixed(3));
-            }
-        }
-    }
-}
-
-
-
-function arrays_are_equal(a, b) {
-    if (a.length != b.length)
-        return false;
-    for (var i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) {
-            console.log('mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
-            return false;
-        }
-    }
-    return true;
-}
-
-
-function tables_are_equal(a, b) {
-    if (a.length != b.length)
-        return false;
-    for (var i = 0; i < a.length; i++) {
-        if (!arrays_are_equal(a[i], b[i]))
-            return false;
-    }
-    return true;
-}
-
-
-function objects_are_equal(a, b) {
-    if (a === b)
-        return true;
-    if (a == null || typeof a != 'object' || b == null || typeof b != 'object')
-        return false;
-    var num_props_in_a = 0;
-    var num_props_in_b = 0;
-    for (var prop in a)
-         num_props_in_a += 1;
-    for (var prop in b) {
-        num_props_in_b += 1;
-        if (!(prop in a) || !objects_are_equal(a[prop], b[prop]))
-            return false;
-    }
-    return num_props_in_a == num_props_in_b;
-}
-
-
-function normalize_warnings(warnings) {
-    let result = [];
-    for (let warning of warnings) {
-        if (warning.indexOf('Number of fields in "input" table is not consistent') != -1) {
-            result.push('inconsistent input records');
-        } else {
-            assert(false, 'Unknown warning');
-        }
-    }
-    return result;
 }
 
 
@@ -107,7 +41,7 @@ function test_string_literals_separation() {
         let query = test_case[0];
         let expected_literals = test_case[1];
         let [format_expression, string_literals] = rbql.separate_string_literals_js(query);
-        assert(arrays_are_equal(expected_literals, string_literals));
+        assert(test_common.arrays_are_equal(expected_literals, string_literals));
         assert(query == rbql.combine_string_literals(format_expression, string_literals));
     }
 }
@@ -117,7 +51,7 @@ function test_separate_actions() {
         let query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and parseInt(b3) == 100 order by parseInt(a7) desc ';
         let expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': 'INNER JOIN'}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and parseInt(b3) == 100'}, 'ORDER BY': {'text': 'parseInt(a7)', 'reverse': true}};
         let test_res = rbql.separate_actions(query);
-        assert(objects_are_equal(test_res, expected_res));
+        assert(test_common.objects_are_equal(test_res, expected_res));
 }
 
 
@@ -139,10 +73,10 @@ function test_join_parsing() {
     let join_part = null;
     let catched = false;
     join_part = '/path/to/the/file.tsv on a1 == b3';
-    assert(arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2], rbql.parse_join_expression(join_part)));
+    assert(test_common.arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2], rbql.parse_join_expression(join_part)));
 
     join_part = ' file.tsv on b20== a12  ';
-    assert(arrays_are_equal(['file.tsv', 'safe_join_get(afields, 11)', 19], rbql.parse_join_expression(join_part)));
+    assert(test_common.arrays_are_equal(['file.tsv', 'safe_join_get(afields, 11)', 19], rbql.parse_join_expression(join_part)));
 
     join_part = '/path/to/the/file.tsv on a1==a12  ';
     catched = false;
@@ -218,13 +152,6 @@ function test_select_translation() {
 }
 
 
-function get_default(obj, key, default_value) {
-    if (obj.hasOwnProperty(key))
-        return obj[key];
-    return default_value;
-}
-
-
 function process_test_case(tests, test_id) {
     if (test_id >= tests.length)
         return;
@@ -233,11 +160,11 @@ function process_test_case(tests, test_id) {
     console.log('running rbql test: ' + test_name);
     let query = test_case['query_js'];
     let input_table = test_case['input_table'];
-    let join_table = get_default(test_case, 'join_table', null);
-    let user_init_code = get_default(test_case, 'js_init_code', '');
-    let expected_output_table = get_default(test_case, 'expected_output_table', null);
-    let expected_error = get_default(test_case, 'expected_error', null);
-    let expected_warnings = get_default(test_case, 'expected_warnings', []);
+    let join_table = test_common.get_default(test_case, 'join_table', null);
+    let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
+    let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
+    let expected_error = test_common.get_default(test_case, 'expected_error', null);
+    let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
     let input_iterator = new rbql.TableIterator(input_table);
     let output_writer = new rbql.TableWriter();
     let join_tables_registry = join_table === null ? null : new rbql.SingleTableRegistry(join_table);
@@ -248,11 +175,11 @@ function process_test_case(tests, test_id) {
     }
     let success_handler = function(warnings) {
         assert(expected_error === null);
-        warnings = normalize_warnings(warnings).sort();
-        assert(arrays_are_equal(expected_warnings, warnings));
+        warnings = test_common.normalize_warnings(warnings).sort();
+        assert(test_common.arrays_are_equal(expected_warnings, warnings));
         let output_table = output_writer.table;
-        round_floats(output_table);
-        assert(tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
+        test_common.round_floats(output_table);
+        assert(test_common.tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tests, test_id + 1);
     }
     rbql.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
