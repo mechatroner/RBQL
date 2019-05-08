@@ -218,7 +218,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
     this.external_record_callback = null;
     this.external_finish_callback = null;
-    this.line_reader_closed = false;
+    this.line_reader_closed = true;
     this.finished = false;
 
     this.utf8_bom_removed = false;
@@ -260,6 +260,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
     this.start = function() {
         this.line_reader = readline.createInterface({ input: this.stream });
+        this.line_reader_closed = false;
         this.line_reader.on('line', (line) => { this.process_line(line); });
         this.line_reader.on('close', () => { this.line_reader_closed = true; this.finish(); });
     }

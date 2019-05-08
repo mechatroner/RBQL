@@ -594,8 +594,10 @@ function TableIterator(input_table) {
 
 
     this.finish = function() {
-        this.finished = true;
-        this.external_finish_callback();
+        if (!this.finished) {
+            this.finished = true;
+            this.external_finish_callback();
+        }
     }
 
 
