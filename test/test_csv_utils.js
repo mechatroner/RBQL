@@ -5,7 +5,7 @@ const readline = require('readline');
 const crypto = require('crypto');
 
 var rbql = null;
-var rbq_csv = null;
+var rbql_csv = null;
 const csv_utils = require('../rbql-js/csv_utils.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
 const build_engine = require('../rbql-js/build_engine.js');
@@ -172,9 +172,13 @@ function test_unquote() {
 }
 
 
+// FIXME add unit test with BOM mark in file
+
+
 function process_test_case(tmp_tests_dir, tests, test_id) {
     if (test_id >= tests.length) {
         rmtree(tmp_tests_dir);
+        console.log('Finished JS unit tests');
         return;
     }
     let test_case = tests[test_id];
@@ -187,7 +191,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
     let input_table_path = test_case['input_table_path'];
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
-    let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
+    let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
     let delim = test_case['csv_separator'];
     let policy = test_case['csv_policy'];
     let encoding = test_case['csv_encoding'];
@@ -218,8 +222,9 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         assert(test_common.arrays_are_equal(expected_warnings, warnings));
         let actual_md5 = calc_file_md5(expected_output_table_path);
         assert(expected_md5 == actual_md5, `md5 missmatch. Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
+        process_test_case(tmp_tests_dir, tests, test_id + 1);
     }
-    rbq_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, csv_encoding, success_handler, error_handler, null, debug_mode);
+    rbql_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, encoding, success_handler, error_handler, null, debug_mode);
 }
 
 
@@ -268,9 +273,6 @@ function main() {
     rbql_csv = require('../rbql-js/rbql_csv.js')
 
     test_all();
-
-
-    console.log('Finished JS unit tests');
 }
 
 

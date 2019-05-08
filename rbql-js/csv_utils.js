@@ -11,7 +11,7 @@ let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expres
 
 
 function interpret_named_csv_format(format_name) {
-    let format_name = format_name.toLowerCase(); 
+    format_name = format_name.toLowerCase(); 
     if (format_name == 'monocolumn')
         return ['', 'monocolumn'];
     if (format_name == 'csv')
@@ -20,7 +20,6 @@ function interpret_named_csv_format(format_name) {
         return ['\t', 'simple'];
     throw new RbqlIOHandlingError(`Unknown format name: "${format_name}"`);
 }
-
 
 
 function extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result) {
@@ -154,6 +153,14 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
 }
 
 
+function expanduser(filepath) {
+    if (filepath.charAt(0) === '~') {
+        return path.join(process.env.HOME, filepath.slice(1));
+    }
+    return filepath;
+}
+
+
 function try_read_index(index_path) {
     var content = null;
     try {
@@ -269,9 +276,14 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     }
 
     this.get_warnings = function() {
+        let result = [];
+        if (this.first_defective_line !== null)
+            result.push(`Defective double quote escaping in ${this.table_name} table. E.g. at line ${this.first_defective_line}`);
+        if (this.utf8_bom_removed)
+            result.push(`UTF-8 Byte Order Mark (BOM) was found and skipped in ${this.table_name} table`);
         if (Object.keys(this.fields_info).length > 1)
-            return [make_inconsistent_num_fields_warning('input', this.fields_info)];
-        return [];
+            result.push(make_inconsistent_num_fields_warning('input', this.fields_info));
+        return result;
     }
 }
 
