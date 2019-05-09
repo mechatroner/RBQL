@@ -443,10 +443,11 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         var [rhs_table_id, lhs_join_var, rhs_key_index] = parse_join_expression(rb_actions[JOIN]['text']);
         js_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype'];
         js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
-        // FIXME handle situations when join_tables_registry is null
+        if (join_tables_registry === null)
+            throw new RbqlParsingError('JOIN operations were disabled');
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
-            throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`)
+            throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
         join_map = new HashJoinMap(join_record_iterator, rhs_key_index);
     } else {
         js_meta_params['__RBQLMP__join_operation'] = 'VOID';
