@@ -1,5 +1,7 @@
+const os = require('os');
 const fs = require('fs');
 const readline = require('readline');
+const path = require('path');
 
 
 class RbqlIOHandlingError extends Error {}
@@ -156,7 +158,7 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
 
 function expanduser(filepath) {
     if (filepath.charAt(0) === '~') {
-        return path.join(process.env.HOME, filepath.slice(1));
+        return path.join(os.homedir(), filepath.slice(1));
     }
     return filepath;
 }
@@ -197,6 +199,7 @@ function find_table_path(table_id) {
     if (fs.existsSync(candidate_path)) {
         return candidate_path;
     }
+    let table_names_settings_path = path.join(os.homedir(), '.rbql_table_names');
     var name_record = get_index_record(table_names_settings_path, table_id);
     if (name_record && name_record.length > 1 && fs.existsSync(name_record[1])) {
         return name_record[1];
