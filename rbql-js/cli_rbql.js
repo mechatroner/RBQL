@@ -351,6 +351,9 @@ function main() {
 
     if (args.hasOwnProperty('query')) {
         interactive_mode = false;
+        if (!args.delim) {
+            die('Separator must be provided with "--delim" option in non-interactive mode');
+        }
         run_with_js(args);
     } else {
         interactive_mode = true;

@@ -234,7 +234,7 @@ def main():
 
     if args.query:
         if args.delim is None:
-            show_error('generic', 'Separator must be provided in non-interactive mode with "--delim" option', is_interactive=False)
+            show_error('generic', 'Separator must be provided with "--delim" option in non-interactive mode', is_interactive=False)
             sys.exit(1)
         success = run_with_python(args, is_interactive=False)
         if not success:
