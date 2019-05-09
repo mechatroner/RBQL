@@ -303,8 +303,8 @@ function start_preview_mode(args) {
         policy = args['policy'] ? args['policy'] : get_default_policy(delim);
         show_preview(args, input_path, delim, policy);
     } else {
-        sample_lines(input_path, (sampled_lines) => { 
-            let [delim, policy] = autodetect_delim_policy(input_path, sampled_lines); 
+        sample_lines(input_path, (sampled_lines) => {
+            let [delim, policy] = autodetect_delim_policy(input_path, sampled_lines);
             show_preview(args, input_path, delim, policy);
         });
     }

@@ -24,7 +24,7 @@ function assert(condition, message=null) {
 
 
 function interpret_named_csv_format(format_name) {
-    format_name = format_name.toLowerCase(); 
+    format_name = format_name.toLowerCase();
     if (format_name == 'monocolumn')
         return ['', 'monocolumn'];
     if (format_name == 'csv')
@@ -351,7 +351,7 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
         this.stream.write(this.output_join(fields));
         this.stream.write(this.line_separator);
     };
-    
+
     this.finish = function() {
         // Looks like there is no way to flush the stream
     };

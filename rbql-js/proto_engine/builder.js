@@ -1,10 +1,10 @@
 const external_js_template_text = codegeneration_pseudo_function_include_combine("template.js");
 // ^ The expression above will cause builder.js and tempalte.js to be combined to autogenerate rbql.js: builder.js + template.js -> ../rbql.js
-// Expression is written as a function to pacify the linter. 
+// Expression is written as a function to pacify the linter.
 // Unit tests will ensure that rbql.js is indeed a concatenation of builder.js and template.js
 
 
-// This module works with records only. It is CSV-agnostic. 
+// This module works with records only. It is CSV-agnostic.
 // Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
