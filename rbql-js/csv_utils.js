@@ -3,11 +3,22 @@ const readline = require('readline');
 
 
 class RbqlIOHandlingError extends Error {}
+class AssertionError extends Error {}
 
 
 let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
 let field_rgx = new RegExp('^' + field_regular_expression);
-let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *')
+let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *');
+
+
+function assert(condition, message=null) {
+    if (!condition) {
+        if (!message) {
+            message = 'Assertion error';
+        }
+        throw new AssertionError(message);
+    }
+}
 
 
 function interpret_named_csv_format(format_name) {
