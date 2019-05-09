@@ -50,6 +50,8 @@ EXCEPT = 'EXCEPT'
 class RbqlRutimeError(Exception):
     pass
 
+class RbqlIOHandlingError(Exception):
+    pass
 
 class RbqlParsingError(Exception):
     pass
@@ -462,7 +464,6 @@ class RbqlPyEnv:
 
 
 
-
 def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     try:
@@ -496,3 +497,65 @@ def generic_run(query, input_iterator, output_writer, join_tables_registry=None,
         input_iterator.finish()
         output_writer.finish()
 
+
+
+
+def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
+    assert len(inconsistent_records_info) > 1
+    inconsistent_records_info = inconsistent_records_info.items()
+    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
+    num_fields_1, record_num_1 = inconsistent_records_info[0]
+    num_fields_2, record_num_2 = inconsistent_records_info[1]
+    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
+    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
+    return warn_msg
+
+
+class TableIterator:
+    def __init__(self, table):
+        self.table = table
+        self.NR = 0
+        self.fields_info = dict()
+
+    def finish(self):
+        pass
+
+    def get_record(self):
+        if self.NR >= len(self.table):
+            return None
+        record = self.table[self.NR]
+        self.NR += 1
+        num_fields = len(record)
+        if num_fields not in self.fields_info:
+            self.fields_info[num_fields] = self.NR
+        return record
+
+    def get_warnings(self):
+        if len(self.fields_info) > 1:
+            return [make_inconsistent_num_fields_warning('input', self.fields_info)]
+        return []
+
+
+class TableWriter:
+    def __init__(self):
+        self.table = []
+
+    def write(self, fields):
+        self.table.append(fields)
+
+    def finish(self):
+        pass
+
+    def get_warnings(self):
+        return []
+
+
+class SingleTableRegistry:
+    def __init__(self, table, table_name='B'):
+        self.table = table
+        self.table_name = table_name
+
+    def get_iterator_by_table_id(self, table_id):
+        if table_id != self.table_name:
+            raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
+        return TableIterator(self.table)

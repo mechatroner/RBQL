@@ -12,7 +12,7 @@ const external_js_template_text = codegeneration_pseudo_function_include_combine
 // TODO get rid of functions with "_js" suffix
 
 
-// FIXME replace prototypes with classes: this improves readability
+// TODO replace prototypes with classes: this improves readability
 
 
 const version = '0.5.0';
