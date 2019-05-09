@@ -558,8 +558,20 @@ function generic_run(query, input_iterator, output_writer, external_success_hand
 
 
 function make_inconsistent_num_fields_warning(table_name, inconsistent_records_info) {
-    // FIXME see python implementation, this is just a stub
-    return `Number of fields in "${table_name}" table is not consistent: `;
+    let keys = Object.keys(inconsistent_records_info);
+    let entries = [];
+    for (let i = 0; i < keys.length; i++) {
+        let key = keys[i];
+        let record_id = inconsistent_records_info[key];
+        entries.push([record_id, key]);
+    }
+    entries.sort(function(a, b) { return a[0] - b[0]; });
+    assert(entries.length > 1);
+    let [record_1, num_fields_1] = entries[0];
+    let [record_2, num_fields_2] = entries[1];
+    let warn_msg = `Number of fields in "${table_name}" table is not consistent: `;
+    warn_msg += `e.g. record ${record_1} -> ${num_fields_1} fields, record ${record_2} -> ${num_fields_2} fields`;
+    return warn_msg;
 }
 
 
