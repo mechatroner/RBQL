@@ -233,12 +233,12 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
     this.set_record_callback = function(external_record_callback) {
         this.external_record_callback = external_record_callback;
-    }
+    };
 
 
     this.set_finish_callback = function(external_finish_callback) {
         this.external_finish_callback = external_finish_callback;
-    }
+    };
 
 
     this.process_line = function(line) {
@@ -260,14 +260,14 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         if (!this.fields_info.hasOwnProperty(num_fields))
             this.fields_info[num_fields] = this.NR;
         this.external_record_callback(record);
-    }
+    };
 
     this.start = function() {
         this.line_reader = readline.createInterface({ input: this.stream });
         this.line_reader_closed = false;
         this.line_reader.on('line', (line) => { this.process_line(line); });
         this.line_reader.on('close', () => { this.line_reader_closed = true; this.finish(); });
-    }
+    };
 
     this.finish = function() {
         if (!this.line_reader_closed) {
@@ -278,7 +278,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
             this.finished = true;
             this.external_finish_callback();
         }
-    }
+    };
 
     this.get_warnings = function() {
         let result = [];
@@ -289,7 +289,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         if (Object.keys(this.fields_info).length > 1)
             result.push(make_inconsistent_num_fields_warning('input', this.fields_info));
         return result;
-    }
+    };
 }
 
 
@@ -308,14 +308,14 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
         let delim = this.delim;
         var quoted_fields = fields.map(function(v) { return quote_field(String(v), delim); });
         return quoted_fields.join(this.delim);
-    }
+    };
 
     this.mono_join = function(fields) {
         if (fields.length > 1) {
             throw new RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field');
         }
         return fields[0];
-    }
+    };
 
     this.simple_join = function(fields) {
         var res = fields.join(this.delim);
@@ -323,7 +323,7 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
             this.delim_in_simple_output = true;
         }
         return res;
-    }
+    };
 
     if (policy == 'simple') {
         this.output_join = this.simple_join;
@@ -344,17 +344,17 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
                 out_fields[i] = '';
             }
         }
-    }
+    };
 
     this.write = function(fields) {
         this.replace_null_values(fields);
         this.stream.write(this.output_join(fields));
         this.stream.write(this.line_separator);
-    }
+    };
     
     this.finish = function() {
         // Looks like there is no way to flush the stream
-    }
+    };
 
     this.get_warnings = function() {
         let result = [];
@@ -363,7 +363,7 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
         if (this.delim_in_simple_output)
             result.push('Some output fields contain separator');
         return result;
-    }
+    };
 
 }
 
@@ -385,14 +385,14 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
         this.stream = fs.createReadStream(table_path);
         this.record_iterator = new CSVRecordIterator(this.stream, this.encoding, this.delim, this.policy, table_id);
         return this.record_iterator;
-    }
+    };
 
 
     this.finish = function() {
         // FIXME do we really need this function? may be it's better to close the iterator? what about Python version?
         if (this.record_iterator !== null)
             this.record_iterator.finish();
-    }
+    };
 }
 
 

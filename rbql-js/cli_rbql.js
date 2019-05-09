@@ -240,7 +240,7 @@ function run_with_js(args) {
 
     let handle_success = function(warnings) {
         handle_query_success(warnings, output_path, delim, policy);
-    }
+    };
 
     rbq_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file, args['debug-mode']);
 }
@@ -271,10 +271,10 @@ function show_preview(args, input_path, delim, policy) {
     args.delim = delim;
     args.policy = policy;
     sample_records(input_path, delim, policy, (records, bad_lines) => {
-        console.log('Input table preview:')
-        console.log('====================================')
-        print_colorized(records, delim, true)
-        console.log('====================================\n')
+        console.log('Input table preview:');
+        console.log('====================================');
+        print_colorized(records, delim, true);
+        console.log('====================================\n');
         if (bad_lines.length)
             show_warning('Some input lines have quoting errors. Line numbers: ' + bad_lines.join(','));
         if (!args.output) {

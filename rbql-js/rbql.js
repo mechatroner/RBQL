@@ -1119,7 +1119,7 @@ function HashJoinMap(record_iterator, key_index) {
         } else {
             this.external_error_handler('IO handling', this.error_msg);
         }
-    }
+    };
 
     this.add_record = function(record) {
         this.nr += 1;
@@ -1137,7 +1137,7 @@ function HashJoinMap(record_iterator, key_index) {
         } else {
             key_records.push(record);
         }
-    }
+    };
 
     this.build = function(success_callback, error_callback) {
         this.external_success_handler = success_callback;
@@ -1145,18 +1145,18 @@ function HashJoinMap(record_iterator, key_index) {
         this.record_iterator.set_record_callback((record) => { this.add_record(record); });
         this.record_iterator.set_finish_callback(() => { this.finish_build(); });
         this.record_iterator.start();
-    }
+    };
 
     this.get_join_records = function(key) {
         let result = this.hash_map.get(key);
         if (result === undefined)
             return [];
         return result;
-    }
+    };
 
     this.get_warnings = function() {
         return this.record_iterator.get_warnings();
-    }
+    };
 }
 
 
@@ -1333,12 +1333,12 @@ function TableIterator(input_table) {
 
     this.set_record_callback = function(external_record_callback) {
         this.external_record_callback = external_record_callback;
-    }
+    };
 
 
     this.set_finish_callback = function(external_finish_callback) {
         this.external_finish_callback = external_finish_callback;
-    }
+    };
 
 
     this.start = function() {
@@ -1350,7 +1350,7 @@ function TableIterator(input_table) {
                 this.external_record_callback(record);
             }
         }
-    }
+    };
 
 
     this.finish = function() {
@@ -1358,7 +1358,7 @@ function TableIterator(input_table) {
             this.finished = true;
             this.external_finish_callback();
         }
-    }
+    };
 
 
     this.get_record = function() {
@@ -1370,13 +1370,13 @@ function TableIterator(input_table) {
         if (!this.fields_info.hasOwnProperty(num_fields))
             this.fields_info[num_fields] = this.NR;
         return record;
-    }
+    };
 
     this.get_warnings = function() {
         if (Object.keys(this.fields_info).length > 1)
             return [make_inconsistent_num_fields_warning('input', this.fields_info)];
         return [];
-    }
+    };
 }
 
 
@@ -1385,14 +1385,14 @@ function TableWriter() {
 
     this.write = function(fields) {
         this.table.push(fields);
-    }
+    };
 
     this.finish = function() {
-    }
+    };
 
     this.get_warnings = function() {
         return [];
-    }
+    };
 }
 
 
@@ -1405,7 +1405,7 @@ function SingleTableRegistry(table, table_id='B') {
             throw new RbqlIOHandlingError(`Unable to find join table: "${table_id}"`);
         }
         return new TableIterator(this.table);
-    }
+    };
 }
 
 
