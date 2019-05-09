@@ -42,7 +42,7 @@ def show_error(error_type, error_msg, is_interactive):
         full_msg = '{}Error [{}]:{} {}'.format(u'\u001b[31;1m', error_type, u'\u001b[0m', error_msg)
         print(full_msg)
     else:
-        eprint('{}: {}'.format(error_type, error_msg))
+        eprint('Error [{}]: {}'.format(error_type, error_msg))
 
 
 def show_warning(msg, is_interactive):
@@ -54,7 +54,7 @@ def show_warning(msg, is_interactive):
 
 
 def run_with_python(args, is_interactive):
-    delim = csv_utils.normalize_delim(args.delim) if args.delim is not None else '\t'
+    delim = csv_utils.normalize_delim(args.delim)
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
     convert_only = args.convert_only
@@ -233,6 +233,9 @@ def main():
         return
 
     if args.query:
+        if args.delim is None:
+            show_error('generic', 'Separator must be provided in non-interactive mode with "--delim" option', is_interactive=False)
+            sys.exit(1)
         success = run_with_python(args, is_interactive=False)
         if not success:
             sys.exit(1)
