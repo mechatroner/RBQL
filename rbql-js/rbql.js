@@ -1282,6 +1282,7 @@ function generic_run(query, input_iterator, output_writer, external_success_hand
     try {
         user_init_code = indent_user_init_code(user_init_code);
         let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
+        let rbql_worker = null;
         if (node_debug_mode) {
             rbql_worker = load_module_from_file(js_code);
         } else {
@@ -1397,7 +1398,7 @@ function TableWriter() {
 
 function SingleTableRegistry(table, table_id='B') {
     this.table = table;
-    this.table_id = 'B';
+    this.table_id = table_id;
 
     this.get_iterator_by_table_id = function(table_id) {
         if (table_id !== this.table_id) {

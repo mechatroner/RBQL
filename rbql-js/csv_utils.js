@@ -92,7 +92,7 @@ function unquote_field(field) {
     let rgx = /^ *"((?:[^"]*"")*[^"]*)" *$/;
     let match_obj = rgx.exec(field);
     if (match_obj !== null) {
-        return match_obj[1].replace(/""/g, '"');;
+        return match_obj[1].replace(/""/g, '"');
     }
     return field;
 }
@@ -100,28 +100,6 @@ function unquote_field(field) {
 
 function unquote_fields(fields) {
     return fields.map(unquote_field);
-}
-
-
-function occurrences(string, subString, allowOverlapping=false) {
-    // @author Vitim.us https://gist.github.com/victornpb/7736865
-
-    string += "";
-    subString += "";
-    if (subString.length <= 0) return (string.length + 1);
-
-    var n = 0,
-        pos = 0,
-        step = allowOverlapping ? 1 : subString.length;
-
-    while (true) {
-        pos = string.indexOf(subString, pos);
-        if (pos >= 0) {
-            ++n;
-            pos += step;
-        } else break;
-    }
-    return n;
 }
 
 

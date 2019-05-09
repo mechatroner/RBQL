@@ -5,8 +5,6 @@ const test_common = require('./test_common.js');
 var rbql = null;
 var debug_mode = false;
 
-// FIXME delete all debug console.log statements at the end
-
 function die(error_msg) {
     console.error('Error: ' + error_msg);
     process.exit(1);
