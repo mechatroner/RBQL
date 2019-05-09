@@ -5,8 +5,6 @@ const path = require('path');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
-class RbqlIOHandlingError extends Error {}
-
 
 function is_ascii(str) {
     return /^[\x00-\x7F]*$/.test(str);

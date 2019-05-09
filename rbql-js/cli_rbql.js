@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-const os = require('os');
-const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
 
@@ -106,13 +104,6 @@ function finish_query_with_error(error_type, error_msg) {
 }
 
 
-function get_error_message(error) {
-    if (error && error.message)
-        return error.message;
-    return String(error);
-}
-
-
 function get_default_policy(delim) {
     if ([';', ','].indexOf(delim) != -1) {
         return 'quoted';
@@ -211,7 +202,7 @@ function handle_query_success(warnings, output_path, delim, policy) {
         }
         if (interactive_mode) {
             user_input_reader.close();
-            sample_records(output_path, delim, policy, (records, bad_lines) => {
+            sample_records(output_path, delim, policy, (records, _bad_lines) => {
                 console.log('\nOutput table preview:');
                 console.log('====================================');
                 print_colorized(records, delim, false);
