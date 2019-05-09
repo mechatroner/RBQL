@@ -10,7 +10,6 @@ var rbq_csv = null;
 const csv_utils = require('./csv_utils.js');
 const cli_parser = require('./cli_parser.js');
 
-// FIXME cleanup unused functions in this file
 
 function die(error_msg) {
     console.error('Error: ' + error_msg);
@@ -135,7 +134,7 @@ function is_delimited_table(sampled_lines, delim, policy) {
             return false;
         if (num_fields === null)
             num_fields = fields.length;
-        if (num_fields != fields.length)
+        if (num_fields < 2 || num_fields != fields.length)
             return false;
     }
     return true;
@@ -326,7 +325,7 @@ function main() {
         '--query': {'help': 'Query string in rbql'},
         '--input': {'help': 'Read csv table from FILE instead of stdin'},
         '--output': {'help': 'Write output table to FILE instead of stdout'},
-        '--delim': {'default': 'TAB', 'help': 'Delimiter'},
+        '--delim': {'help': 'Delimiter'},
         '--policy': {'help': 'Split policy'},
         '--out-format': {'default': 'input', 'help': 'Output format, available values: ' + out_format_names.join(',')},
         '--error-format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},

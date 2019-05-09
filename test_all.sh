@@ -31,6 +31,8 @@ python3 -m unittest test.test_rbql
 die_if_error $?
 
 
+# FIXME add random binary table test, see old version
+
 py_rbql_version=$( python -m rbql --version )
 
 has_node="yes"
