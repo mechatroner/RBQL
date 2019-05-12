@@ -145,12 +145,12 @@ function test_split_whitespaces() {
     test_cases.push(['', [], false])
     test_cases.push(['   a   b  c d ', ['a', 'b', 'c', 'd'], false])
 
-    test_cases.push(['hello world', ['hello ','world'], true])
-    test_cases.push(['hello   world', ['hello   ','world'], true])
-    test_cases.push(['   hello   world   ', ['   hello   ','world   '], true])
+    test_cases.push(['hello world', ['hello','world'], true])
+    test_cases.push(['hello   world', ['hello  ','world'], true])
+    test_cases.push(['   hello   world   ', ['   hello  ','world   '], true])
     test_cases.push(['     ', [], true])
     test_cases.push(['', [], true])
-    test_cases.push(['   a   b  c d ', ['   a   ', 'b  ', 'c ', 'd '], true])
+    test_cases.push(['   a   b  c d ', ['   a  ', 'b ', 'c', 'd '], true])
 
     for (let i = 0; i < test_cases.length; i++) {
         let [src, canonic_dst, preserve_whitespaces] = test_cases[i];
@@ -221,7 +221,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         warnings = test_common.normalize_warnings(warnings).sort();
         assert(test_common.arrays_are_equal(expected_warnings, warnings));
         let actual_md5 = calc_file_md5(expected_output_table_path);
-        assert(expected_md5 == actual_md5, `md5 missmatch. Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
+        assert(expected_md5 == actual_md5, `md5 mismatch. Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
         process_test_case(tmp_tests_dir, tests, test_id + 1);
     }
     rbql_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, encoding, success_handler, error_handler, null, debug_mode);
