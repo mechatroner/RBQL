@@ -115,6 +115,23 @@ function get_default_policy(delim) {
 }
 
 
+function is_delimited_table(sampled_lines, delim, policy) {
+    if (sampled_lines.length < 10)
+        return false;
+    let num_fields = null;
+    for (var i = 0; i < sampled_lines.length; i++) {
+        let [fields, warning] = csv_utils.smart_split(sampled_lines[i], delim, policy, true);
+        if (warning)
+            return false;
+        if (num_fields === null)
+            num_fields = fields.length;
+        if (num_fields < 2 || num_fields != fields.length)
+            return false;
+    }
+    return true;
+}
+
+
 function sample_lines(table_path, callback_func) {
     let input_reader = readline.createInterface({ input: fs.createReadStream(table_path) });
     let sampled_lines = [];
@@ -147,7 +164,7 @@ function autodetect_delim_policy(table_path, sampled_lines) {
     let autodetection_dialects = [['\t', 'simple'], [',', 'quoted'], [';', 'quoted']];
     for (var i = 0; i < autodetection_dialects.length; i++) {
         let [delim, policy] = autodetection_dialects[i];
-        if (csv_utils.is_delimited_table(sampled_lines, delim, policy))
+        if (is_delimited_table(sampled_lines, delim, policy))
             return [delim, policy];
     }
     if (table_path.endsWith('.csv'))
