@@ -401,6 +401,21 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
 }
 
 
+function is_delimited_table(sampled_lines, delim, policy) {
+    if (sampled_lines.length < 10)
+        return false;
+    let num_fields = null;
+    for (var i = 0; i < sampled_lines.length; i++) {
+        let [fields, warning] = csv_utils.smart_split(sampled_lines[i], delim, policy, true);
+        if (warning)
+            return false;
+        if (num_fields === null)
+            num_fields = fields.length;
+        if (num_fields < 2 || num_fields != fields.length)
+            return false;
+    }
+    return true;
+}
 
 
 module.exports.split_quoted_str = split_quoted_str;
@@ -412,3 +427,4 @@ module.exports.FileSystemCSVRegistry = FileSystemCSVRegistry;
 module.exports.unquote_field = unquote_field;
 module.exports.unquote_fields = unquote_fields;
 module.exports.interpret_named_csv_format = interpret_named_csv_format;
+module.exports.is_delimited_table = is_delimited_table;
