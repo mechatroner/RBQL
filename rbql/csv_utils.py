@@ -95,14 +95,14 @@ class OutputStreamManager:
             pass
 
 
-def extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result):
+def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result):
     warning = False
     rgx = field_rgx_external_whitespaces if allow_external_whitespaces else field_rgx
     match_obj = rgx.match(src, cidx)
     if match_obj is not None:
         match_end = match_obj.span()[1]
         if match_end == len(src) or src[match_end] == dlm:
-            if preserve_quotes:
+            if preserve_quotes_and_whitespaces:
                 result.append(match_obj.group(0))
             else:
                 result.append(match_obj.group(1).replace('""', '"'))
@@ -118,7 +118,7 @@ def extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, ci
 
 
 
-def split_quoted_str(src, dlm, preserve_quotes=False):
+def split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=False):
     assert dlm != '"'
     if src.find('"') == -1: # Optimization for most common case
         return (src.split(dlm), False)
@@ -127,7 +127,7 @@ def split_quoted_str(src, dlm, preserve_quotes=False):
     warning = False
     allow_external_whitespaces = dlm != ' '
     while cidx < len(src):
-        extraction_report = extract_next_field(src, dlm, preserve_quotes, allow_external_whitespaces, cidx, result)
+        extraction_report = extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result)
         cidx = extraction_report[0]
         warning = warning or extraction_report[1]
 
@@ -144,14 +144,14 @@ def split_whitespace_separated_str(src, preserve_whitespaces=False):
     return result
 
 
-def smart_split(src, dlm, policy, preserve_quotes):
+def smart_split(src, dlm, policy, preserve_quotes_and_whitespaces):
     if policy == 'simple':
         return (src.split(dlm), False)
     if policy == 'whitespace':
-        return (split_whitespace_separated_str(src, preserve_quotes), False)
+        return (split_whitespace_separated_str(src, preserve_quotes_and_whitespaces), False)
     if policy == 'monocolumn':
         return ([src], False)
-    return split_quoted_str(src, dlm, preserve_quotes)
+    return split_quoted_str(src, dlm, preserve_quotes_and_whitespaces)
 
 
 def extract_line_from_data(data):
@@ -409,7 +409,7 @@ class CSVRecordIterator:
                 line = clean_line
                 self.utf8_bom_removed = True
         self.NR += 1
-        record, warning = smart_split(line, self.delim, self.policy, preserve_quotes=False)
+        record, warning = smart_split(line, self.delim, self.policy, preserve_quotes_and_whitespaces=False)
         if warning and self.first_defective_line is None:
             self.first_defective_line = self.NR
         num_fields = len(record)
