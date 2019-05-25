@@ -380,7 +380,6 @@ function HashJoinMap(record_iterator, key_index) {
         let num_fields = record.length;
         this.max_record_len = Math.max(this.max_record_len, num_fields);
         if (this.key_index >= num_fields) {
-            // FIXME unit test this condition
             this.error_msg = `No "b${this.key_index + 1}" field at record: ${this.nr} in "B" table`;
             this.record_iterator.finish();
         }
