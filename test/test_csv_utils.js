@@ -172,7 +172,7 @@ function test_unquote() {
 }
 
 
-// FIXME add unit test with BOM mark in file
+// TODO add BOM test like "test_bom_warning" function in python version
 
 
 function process_test_case(tmp_tests_dir, tests, test_id) {

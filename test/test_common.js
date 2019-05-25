@@ -60,6 +60,8 @@ function normalize_warnings(warnings) {
             result.push('defective double quote escaping');
         } else if (warning.indexOf('None values in output were replaced by empty strings') != -1) {
             result.push('null values in output were replaced');
+        } else if (warning === 'UTF-8 Byte Order Mark (BOM) was found and skipped in input table') {
+            result.push('BOM removed from input');
         } else {
             assert(false, 'Unknown warning');
         }
