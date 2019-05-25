@@ -385,7 +385,6 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
         let table_path = find_table_path(table_id);
         if (table_path === null) {
             throw new RbqlIOHandlingError(`Unable to find join table "${table_id}"`);
-            // FIXME unit test this error
         }
         this.stream = fs.createReadStream(table_path);
         this.record_iterator = new CSVRecordIterator(this.stream, this.encoding, this.delim, this.policy, table_id);
