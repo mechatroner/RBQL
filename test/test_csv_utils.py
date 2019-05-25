@@ -49,6 +49,8 @@ def normalize_warnings(warnings):
             result.append('defective double quote escaping')
         elif warning.find('None values in output were replaced by empty strings') != -1:
             result.append('null values in output were replaced')
+        elif warning == 'UTF-8 Byte Order Mark (BOM) was found and skipped in input table':
+            result.append('BOM removed from input')
         else:
             assert False, 'unknown warning'
     return result

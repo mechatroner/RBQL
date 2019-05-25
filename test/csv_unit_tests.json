@@ -41,11 +41,12 @@
     },
     {
         "test_name": "test_5",
-        "input_table_path": "csv_files/movies_1.csv",
+        "input_table_path": "csv_files/movies_1_bom.csv",
         "expected_output_table_path": "csv_files/canonic_result_5.csv",
         "expected_warnings": [
             "inconsistent input records",
             "defective double quote escaping",
+            "BOM removed from input",
             "null values in output were replaced"
         ],
         "csv_separator": ",",
