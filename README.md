@@ -19,7 +19,8 @@ RBQL is a technology which provides SQL-like language that supports _SELECT_ and
 
 #### Limitations:
 
-* RBQL doesn't support nested queries, but they can be emulated with 2 or more consecutive queries.
+* RBQL doesn't support nested queries, but they can be emulated with consecutive queries
+* Number of tables in all JOIN queries is always 2 (input table and join table), use consecutive queries to join 3 or more tables
 
 ### Supported SQL Keywords (Keywords are case insensitive)
 
