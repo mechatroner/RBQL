@@ -267,6 +267,21 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         this.external_record_callback(record);
     };
 
+
+    this._get_all_records = function(external_records_callback) {
+        let records = [];
+        let record_callback = function(record) {
+            records.push(record);
+        };
+        let finish_callback = function() {
+            external_records_callback(records);
+        };
+        this.set_record_callback(record_callback);
+        this.set_finish_callback(finish_callback);
+        this.start();
+    };
+
+
     this.start = function() {
         this.line_reader = readline.createInterface({ input: this.stream });
         this.line_reader_closed = false;

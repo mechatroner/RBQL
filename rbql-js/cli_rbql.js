@@ -145,7 +145,7 @@ function sample_lines(table_path, callback_func) {
 
 
 function sample_records(table_path, delim, policy, callback_func) {
-    // FIXME rewrite with record iterator
+    // TODO rewrite with record iterator to support newlines in fields
     sample_lines(table_path, (sampled_lines) => {
         let records = [];
         let bad_lines = [];

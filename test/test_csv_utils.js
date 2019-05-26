@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
 const crypto = require('crypto');
+const stream = require('stream');
 
 var rbql = null;
 var rbql_csv = null;
@@ -171,6 +172,29 @@ function test_unquote() {
 
 }
 
+function test_whitespace_separated_parsing() {
+    let data_lines = [];
+    data_lines.push('hello world');
+    data_lines.push('   hello   world  ');
+    data_lines.push('hello   world  ');
+    data_lines.push('  hello   ');
+    data_lines.push('  hello   world');
+    let expected_table = [['hello', 'world'], ['hello', 'world'], ['hello', 'world'], ['hello'], ['hello', 'world']];
+    let csv_data = data_lines.join('\n');
+    let input_stream = new stream.Readable();
+    input_stream.push(csv_data);
+    input_stream.push(null);
+    let delim = ' ';
+    let policy = 'whitespace';
+    let encoding = null;
+    let record_iterator = new csv_utils.CSVRecordIterator(input_stream, encoding, delim, policy);
+    record_iterator._get_all_records(function(output_table) {
+        assert(test_common.tables_are_equal(expected_table, output_table), 'Expected and output tables mismatch');
+        // FIXME implement and use "write_and_parse_back" function, see python code
+    });
+}
+
+
 
 // TODO add BOM test like "test_bom_warning" function in python version
 
@@ -242,6 +266,7 @@ function test_all() {
     test_unquote();
     test_split();
     test_split_whitespaces();
+    test_whitespace_separated_parsing();
     test_json_scenarios();
 }
 
