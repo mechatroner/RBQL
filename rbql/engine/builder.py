@@ -32,6 +32,7 @@ from collections import defaultdict
 # TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 # TODO get rid of functions with "_py" suffix
 
+# FIXME make sure f'foo {a} {b} bar' python format strings are handled correctly
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'

@@ -18,6 +18,10 @@ const test_common = require('./test_common.js');
 const script_dir = __dirname;
 var debug_mode = false;
 
+
+const line_separators = ['\n', '\r\n', '\r'];
+
+
 function rmtree(root_path) {
     if (fs.existsSync(root_path)) {
         fs.readdirSync(root_path).forEach(function(file_name, index) {
@@ -31,6 +35,11 @@ function rmtree(root_path) {
         fs.rmdirSync(root_path);
     }
 };
+
+
+function random_choice(values) {
+    return values[Math.floor(Math.random() * values.length)];
+}
 
 
 function calc_str_md5(str) {
@@ -67,6 +76,45 @@ function compare_splits(src, test_dst, canonic_dst, test_warning, canonic_warnin
         console.error('Canonic warning: ' + canonic_warning + ', Test warning: ' + test_warning);
         process.exit(1);
     }
+}
+
+
+
+function PseudoWritable() {
+    this.data_chunks = [];
+    this.encoding = 'utf-8';
+
+    this.setDefaultEncoding = function(encoding) {
+        this.encoding = encoding;
+    }
+
+    this.write = function(data) {
+        this.data_chunks.push(data);
+    };
+
+    this.get_data = function() {
+        return Buffer.from(this.data_chunks.join(''), this.encoding);
+    };
+}
+
+
+function write_and_parse_back(table, encoding, delim, policy) {
+    // "encoding" is a wrong term, should be called "serialization_algorithm" instead
+    if (encoding === null)
+        encoding = 'utf-8'; // Writing js string in utf-8 then reading back should be a lossless operation? Or not?
+    let writer_stream = new PseudoWritable();
+    let line_separator = random_choice(line_separators);
+    let writer = new csv_utils.CSVWriter(writer_stream, encoding, delim, policy, line_separator);
+    writer._write_all(table);
+    assert(writer.get_warnings().length === 0);
+    let data_buffer = writer_stream.get_data();
+    let input_stream = new stream.Readable();
+    input_stream.push(data_buffer);
+    input_stream.push(null);
+    let record_iterator = new csv_utils.CSVRecordIterator(input_stream, encoding, delim, policy);
+    record_iterator._get_all_records(function(output_table) {
+        assert(test_common.tables_are_equal(table, output_table), 'Expected and output tables mismatch');
+    });
 }
 
 
@@ -172,6 +220,7 @@ function test_unquote() {
 
 }
 
+
 function test_whitespace_separated_parsing() {
     let data_lines = [];
     data_lines.push('hello world');
@@ -190,7 +239,7 @@ function test_whitespace_separated_parsing() {
     let record_iterator = new csv_utils.CSVRecordIterator(input_stream, encoding, delim, policy);
     record_iterator._get_all_records(function(output_table) {
         assert(test_common.tables_are_equal(expected_table, output_table), 'Expected and output tables mismatch');
-        // FIXME implement and use "write_and_parse_back" function, see python code
+        write_and_parse_back(expected_table, encoding, delim, policy);
     });
 }
 
