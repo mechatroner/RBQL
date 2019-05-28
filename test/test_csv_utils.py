@@ -315,13 +315,13 @@ class TestSplitMethods(unittest.TestCase):
 
 
 class TestLineSplit(unittest.TestCase):
-    def test_split_custom(self):
+    def test_split_lines_custom(self):
         test_cases = list()
         test_cases.append(('', []))
         test_cases.append(('hello', ['hello']))
         test_cases.append(('hello\nworld', ['hello', 'world']))
         test_cases.append(('hello\rworld\n', ['hello', 'world']))
-        test_cases.append(('hello\r\nworld\r', ['hello', 'world']))
+        test_cases.append(('hello\r\nworld\rhello world\nhello\n', ['hello', 'world', 'hello world', 'hello']))
         for tc in test_cases:
             src, expected_res = tc
             stream, encoding = string_to_randomly_encoded_stream(src)

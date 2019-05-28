@@ -98,6 +98,15 @@ function PseudoWritable() {
 }
 
 
+function string_to_randomly_encoded_stream(src_str) {
+    let encoding = random_choice(['utf-8', 'binary']);
+    let input_stream = new stream.Readable();
+    input_stream.push(Buffer.from(src_str, encoding));
+    input_stream.push(null);
+    return [input_stream, encoding];
+}
+
+
 function write_and_parse_back(table, encoding, delim, policy) {
     // "encoding" is a wrong term, should be called "serialization_algorithm" instead
     if (encoding === null)
@@ -244,6 +253,23 @@ function test_whitespace_separated_parsing() {
 }
 
 
+function test_split_lines_custom() {
+    let test_cases = [];
+    test_cases.push(['', []]);
+    test_cases.push(['hello', ['hello']]);
+    test_cases.push(['hello\nworld', ['hello', 'world']]);
+    test_cases.push(['hello\rworld\n', ['hello', 'world']]);
+    test_cases.push(['hello\r\nworld\rhello world\nhello\n', ['hello', 'world', 'hello world', 'hello']]);
+    for (let tc of test_cases) {
+        let [src, expected_res] = tc;
+        let [stream, encoding] = string_to_randomly_encoded_stream(src);
+        let line_iterator = new csv_utils.CSVRecordIterator(stream, encoding, null, null);
+        line_iterator._get_all_lines(function(test_res) {
+            assert(test_common.arrays_are_equal(expected_res, test_res));
+        });
+    }
+}
+
 
 // TODO add BOM test like "test_bom_warning" function in python version
 
@@ -316,6 +342,7 @@ function test_all() {
     test_split();
     test_split_whitespaces();
     test_whitespace_separated_parsing();
+    test_split_lines_custom();
     test_json_scenarios();
 }
 

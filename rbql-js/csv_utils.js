@@ -227,6 +227,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
     this.external_record_callback = null;
     this.external_finish_callback = null;
+    this.external_line_callback = null;
     this.line_reader_closed = true;
     this.finished = false;
 
@@ -243,6 +244,10 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
     this.set_finish_callback = function(external_finish_callback) {
         this.external_finish_callback = external_finish_callback;
+    };
+
+    this._set_line_callback = function(external_line_callback) {
+        this.external_line_callback = external_line_callback;
     };
 
 
@@ -282,10 +287,28 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     };
 
 
+    this._get_all_lines = function(external_lines_callback) {
+        let lines = [];
+        let line_callback = function(line) {
+            lines.push(line);
+        };
+        let finish_callback = function() {
+            external_lines_callback(lines);
+        };
+        this._set_line_callback(line_callback);
+        this.set_finish_callback(finish_callback);
+        this.start();
+    };
+
+
     this.start = function() {
         this.line_reader = readline.createInterface({ input: this.stream });
         this.line_reader_closed = false;
-        this.line_reader.on('line', (line) => { this.process_line(line); });
+        if (!this.external_line_callback) {
+            this.line_reader.on('line', (line) => { this.process_line(line); });
+        } else {
+            this.line_reader.on('line', (line) => { this.external_line_callback(line); });
+        }
         this.line_reader.on('close', () => { this.line_reader_closed = true; this.finish(); });
     };
 
