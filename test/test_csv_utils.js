@@ -271,6 +271,10 @@ function test_split_lines_custom() {
 }
 
 
+// FIXME add corrupted utf-8 js-only csv file test that demonstrates data loss
+// FIXME the same test for python should fail with predictable error
+
+
 // TODO add BOM test like "test_bom_warning" function in python version
 
 
@@ -319,7 +323,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         assert(expected_error === null);
         warnings = test_common.normalize_warnings(warnings).sort();
         assert(test_common.arrays_are_equal(expected_warnings, warnings));
-        let actual_md5 = calc_file_md5(expected_output_table_path);
+        let actual_md5 = calc_file_md5(actual_output_table_path);
         assert(expected_md5 == actual_md5, `md5 mismatch. Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
         process_test_case(tmp_tests_dir, tests, test_id + 1);
     }

@@ -386,20 +386,22 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_monocolumn_separated_parsing(self):
-        table = list()
-        for irow in xrange6(20):
-            table.append([make_random_decoded_binary_csv_entry(0, 20, restricted_chars=['\r', '\n'])])
-        csv_data = table_to_csv_string_random(table, None, 'monocolumn')
-        stream = io.StringIO(csv_data)
-        delim = None
-        policy = 'monocolumn'
-        encoding = None
-        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
-        parsed_table = record_iterator._get_all_records()
-        self.assertEqual(table, parsed_table)
+        for i in xrange(100):
+            # FIXME this test fails
+            table = list()
+            for irow in xrange6(20):
+                table.append([make_random_decoded_binary_csv_entry(0, 20, restricted_chars=['\r', '\n'])])
+            csv_data = table_to_csv_string_random(table, None, 'monocolumn')
+            stream = io.StringIO(csv_data)
+            delim = None
+            policy = 'monocolumn'
+            encoding = None
+            record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
+            parsed_table = record_iterator._get_all_records()
+            self.assertEqual(table, parsed_table)
 
-        parsed_table = write_and_parse_back(table, encoding, delim, policy)
-        self.assertEqual(table, parsed_table)
+            parsed_table = write_and_parse_back(table, encoding, delim, policy)
+            self.assertEqual(table, parsed_table)
 
 
     def test_monocolumn_write_failure(self):
@@ -478,6 +480,9 @@ class TestRecordIterator(unittest.TestCase):
         expected_table[0][0] = 'cde'
         self.assertEqual(expected_table, parsed_table)
 
+
+# FIXME add monocolumn csv file test
+# FIXME add whitespace csv file test
 
 
 class TestRBQLWithCSV(unittest.TestCase):
