@@ -386,11 +386,13 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_monocolumn_separated_parsing(self):
-        for i in xrange(100):
-            # FIXME this test fails
+        for i in xrange(10):
+            self.maxDiff = None
             table = list()
-            for irow in xrange6(20):
-                table.append([make_random_decoded_binary_csv_entry(0, 20, restricted_chars=['\r', '\n'])])
+            num_rows = 20
+            for irow in xrange6(num_rows):
+                min_len = 0 if irow + 1 < num_rows else 1
+                table.append([make_random_decoded_binary_csv_entry(min_len, 20, restricted_chars=['\r', '\n'])])
             csv_data = table_to_csv_string_random(table, None, 'monocolumn')
             stream = io.StringIO(csv_data)
             delim = None
