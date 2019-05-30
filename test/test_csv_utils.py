@@ -386,7 +386,7 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_monocolumn_separated_parsing(self):
-        for i in xrange(10):
+        for i in xrange6(10):
             self.maxDiff = None
             table = list()
             num_rows = 20

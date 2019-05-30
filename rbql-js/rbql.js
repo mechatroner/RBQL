@@ -59,11 +59,12 @@ function finish_processing_success() {
     if (finished_with_error)
         return;
     try {
-        writer.finish();
-        var join_warnings = external_join_map_impl ? external_join_map_impl.get_warnings() : [];
-        var warnings = join_warnings.concat(external_writer.get_warnings()).concat(external_input_iterator.get_warnings());
+        writer.finish(() => {
+            var join_warnings = external_join_map_impl ? external_join_map_impl.get_warnings() : [];
+            var warnings = join_warnings.concat(external_writer.get_warnings()).concat(external_input_iterator.get_warnings());
+            external_success_handler(warnings);
+        });
     } catch (e) {
-        //console.log("e.stack:" + e.stack); //FOR_DEBUG
         if (e instanceof RbqlRuntimeError) {
             finish_processing_error('query execution', e.message);
         } else {
@@ -75,7 +76,6 @@ function finish_processing_success() {
         }
         return;
     }
-    external_success_handler(warnings);
 }
 
 
@@ -400,8 +400,8 @@ function TopWriter(subwriter) {
         return true;
     }
 
-    this.finish = function() {
-        this.subwriter.finish();
+    this.finish = function(after_finish_callback) {
+        this.subwriter.finish(after_finish_callback);
     }
 }
 
@@ -418,8 +418,8 @@ function UniqWriter(subwriter) {
         return true;
     }
 
-    this.finish = function() {
-        this.subwriter.finish();
+    this.finish = function(after_finish_callback) {
+        this.subwriter.finish(after_finish_callback);
     }
 }
 
@@ -439,14 +439,14 @@ function UniqCountWriter(subwriter) {
         return true;
     }
 
-    this.finish = function() {
+    this.finish = function(after_finish_callback) {
         for (var [key, value] of this.records) {
             let [count, record] = value;
             record.unshift(count);
             if (!this.subwriter.write(record))
                 break;
         }
-        this.subwriter.finish();
+        this.subwriter.finish(after_finish_callback);
     }
 }
 
@@ -460,7 +460,7 @@ function SortedWriter(subwriter) {
         return true;
     }
 
-    this.finish = function() {
+    this.finish = function(after_finish_callback) {
         var unsorted_entries = this.unsorted_entries;
         unsorted_entries.sort(stable_compare);
         if (__RBQLMP__reverse_flag)
@@ -470,7 +470,7 @@ function SortedWriter(subwriter) {
             if (!this.subwriter.write(entry[entry.length - 1]))
                 break;
         }
-        this.subwriter.finish();
+        this.subwriter.finish(after_finish_callback);
     }
 }
 
@@ -480,7 +480,7 @@ function AggregateWriter(subwriter) {
     this.aggregators = [];
     this.aggregation_keys = new Set();
 
-    this.finish = function() {
+    this.finish = function(after_finish_callback) {
         var all_keys = Array.from(this.aggregation_keys);
         all_keys.sort();
         for (var i = 0; i < all_keys.length; i++) {
@@ -492,7 +492,7 @@ function AggregateWriter(subwriter) {
             if (!this.subwriter.write(out_fields))
                 break;
         }
-        this.subwriter.finish();
+        this.subwriter.finish(after_finish_callback);
     }
 }
 

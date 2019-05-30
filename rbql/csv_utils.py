@@ -310,6 +310,7 @@ class CSVWriter:
 
     def finish(self):
         try:
+            # TODO looks like we can use self.stream.close() instead of self.stream.flush() if we fix writer_stream getvalue() issue in tests
             self.stream.flush()
         except Exception:
             pass

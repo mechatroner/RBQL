@@ -340,6 +340,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
 function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
     this.stream = stream;
+    this.encoding = encoding;
     if (encoding)
         this.stream.setDefaultEncoding(encoding);
     this.delim = delim;
@@ -411,8 +412,8 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
     }
 
 
-    this.finish = function() {
-        // Looks like there is no way to flush the stream
+    this.finish = function(after_finish_callback) {
+        this.stream.end('', this.encoding, after_finish_callback);
     };
 
 
