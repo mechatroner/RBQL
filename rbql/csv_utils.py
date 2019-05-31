@@ -76,25 +76,6 @@ def encode_output_stream(stream, encoding):
         return codecs.getwriter(encoding)(stream)
 
 
-class OutputStreamManager:
-    def __init__(self, output_path):
-        self.output_path = output_path
-        self.stream = None
-
-    def __enter__(self):
-        self.stream = codecs.open(self.output_path, 'wb') if self.output_path else sys.stdout
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            if self.output_path:
-                self.stream.close()
-            else:
-                self.stream.flush()
-        except Exception:
-            pass
-
-
 def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result):
     warning = False
     rgx = field_rgx_external_whitespaces if allow_external_whitespaces else field_rgx
@@ -248,11 +229,12 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 
 
 class CSVWriter:
-    def __init__(self, stream, encoding, delim, policy, line_separator='\n'):
+    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n'):
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = encode_output_stream(stream, encoding)
         self.line_separator = line_separator
         self.delim = delim
+        self.close_stream_on_finish = close_stream_on_finish
         if policy == 'simple':
             self.join_func = self.simple_join
         elif policy == 'quoted':
@@ -310,8 +292,10 @@ class CSVWriter:
 
     def finish(self):
         try:
-            # TODO looks like we can use self.stream.close() instead of self.stream.flush() if we fix writer_stream getvalue() issue in tests
-            self.stream.flush()
+            if self.close_stream_on_finish:
+                self.stream.close()
+            else:
+                self.stream.flush()
         except Exception:
             pass
 
@@ -327,10 +311,11 @@ class CSVWriter:
 
 
 class CSVRecordIterator:
-    def __init__(self, stream, encoding, delim, policy, table_name='input', chunk_size=1024):
+    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, table_name='input', chunk_size=1024):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = encode_input_stream(stream, encoding)
+        self.close_stream_on_finish = close_stream_on_finish
         self.delim = delim
         self.policy = policy
         self.table_name = table_name
@@ -343,12 +328,12 @@ class CSVRecordIterator:
         self.fields_info = dict()
 
         self.utf8_bom_removed = False
-        self.first_defective_line = None # TODO use line # instead of record # when "\n" is done
+        self.first_defective_line = None # TODO use line # instead of record # when "\n" in fields parsing is implemented
 
 
     def finish(self):
-        if PY3 and self.encoding is not None:
-            self.stream.close() # If there is nothing left in output it can be safely closed
+        if self.close_stream_on_finish:
+            self.stream.close()
 
 
     def _get_row_from_buffer(self):
@@ -455,21 +440,17 @@ class FileSystemCSVRegistry:
         self.delim = delim
         self.policy = policy
         self.encoding = encoding
-        self.stream = None
         self.record_iterator = None
 
     def get_iterator_by_table_id(self, table_id):
         table_path = find_table_path(table_id)
         if table_path is None:
             raise RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
-        self.stream = open(table_path, 'rb')
-        self.record_iterator = CSVRecordIterator(self.stream, self.encoding, self.delim, self.policy, table_name=table_id)
+        self.record_iterator = CSVRecordIterator(open(table_path, 'rb'), True, self.encoding, self.delim, self.policy, table_name=table_id)
         return self.record_iterator
 
     def finish(self):
         if self.record_iterator is not None:
             self.record_iterator.finish()
-        if self.stream is not None:
-            self.stream.close()
 
 

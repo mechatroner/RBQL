@@ -65,11 +65,7 @@ def run_with_python(args, is_interactive):
     args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else csv_utils.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
-    sys.stdout = csv_utils.encode_output_stream(sys.stdout, csv_encoding)
-
-    src_stream = open(input_path, 'rb') if input_path else sys.stdin
-    with csv_utils.OutputStreamManager(output_path) as dst:
-        error_info, warnings = rbql_csv.csv_run(query, src_stream, delim, policy, dst.stream, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
+    error_info, warnings = rbql_csv.csv_run(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
 
     if error_info is None:
         success = True
@@ -102,13 +98,13 @@ def is_delimited_table(sampled_lines, delim, policy):
 
 def sample_lines(src_path, encoding):
     result = []
-    with open(src_path, 'rb') as source:
-        line_iterator = csv_utils.CSVRecordIterator(source, encoding, delim=None, policy=None)
-        for _i in xrange6(10):
-            line = line_iterator.get_row()
-            if line is None:
-                break
-            result.append(line)
+    source = open(src_path, 'rb')
+    line_iterator = csv_utils.CSVRecordIterator(source, True, encoding, delim=None, policy=None)
+    for _i in xrange6(10):
+        line = line_iterator.get_row()
+        if line is None:
+            break
+        result.append(line)
     return result
 
 

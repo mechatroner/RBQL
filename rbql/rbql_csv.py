@@ -7,7 +7,6 @@ import sys
 import os
 import re
 import importlib
-import codecs
 import tempfile
 import random
 import shutil
@@ -27,8 +26,11 @@ def read_user_init_code(rbql_init_source_path):
         return src.read()
 
 
-def csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
+def csv_run(query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
     try:
+        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
+        input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
+
         if input_delim == '"' and input_policy == 'quoted':
             raise csv_utils.RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy')
         if input_delim != ' ' and input_policy == 'whitespace':
@@ -45,8 +47,8 @@ def csv_run(query, input_stream, input_delim, input_policy, output_stream, outpu
             user_init_code = read_user_init_code(default_init_source_path)
 
         join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
-        input_iterator = csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
-        output_writer = csv_utils.CSVWriter(output_stream, csv_encoding, output_delim, output_policy)
+        input_iterator = csv_utils.CSVRecordIterator(input_stream, close_input_on_finish, csv_encoding, input_delim, input_policy)
+        output_writer = csv_utils.CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy)
         error_info, warnings = engine.generic_run(query, input_iterator, output_writer, join_tables_registry, user_init_code, convert_only_dst)
         join_tables_registry.finish()
         return (error_info, warnings)

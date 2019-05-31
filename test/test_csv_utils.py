@@ -156,11 +156,11 @@ def string_to_randomly_encoded_stream(src_str):
 def write_and_parse_back(table, encoding, delim, policy):
     writer_stream = io.BytesIO() if encoding is not None else io.StringIO()
     line_separator = random.choice(line_separators)
-    writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, line_separator)
+    writer = csv_utils.CSVWriter(writer_stream, False, encoding, delim, policy, line_separator)
     writer._write_all(table)
     assert not len(writer.get_warnings())
     writer_stream.seek(0)
-    record_iterator = csv_utils.CSVRecordIterator(writer_stream, encoding, delim=delim, policy=policy)
+    record_iterator = csv_utils.CSVRecordIterator(writer_stream, True, encoding, delim=delim, policy=policy)
     parsed_table = record_iterator._get_all_records()
     return parsed_table
 
@@ -325,7 +325,7 @@ class TestLineSplit(unittest.TestCase):
         for tc in test_cases:
             src, expected_res = tc
             stream, encoding = string_to_randomly_encoded_stream(src)
-            line_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=None, policy=None, chunk_size=6)
+            line_iterator = csv_utils.CSVRecordIterator(stream, True, encoding, delim=None, policy=None, chunk_size=6)
             test_res = line_iterator._get_all_rows()
             self.assertEqual(expected_res, test_res)
 
@@ -339,7 +339,7 @@ class TestLineSplit(unittest.TestCase):
                 token = random.choice(source_tokens)
                 src += token
             stream, encoding = string_to_randomly_encoded_stream(src)
-            line_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=None, policy=None, chunk_size=chunk_size)
+            line_iterator = csv_utils.CSVRecordIterator(stream, True, encoding, delim=None, policy=None, chunk_size=chunk_size)
             test_res = line_iterator._get_all_rows()
             expected_res = src.splitlines()
             self.assertEqual(expected_res, test_res)
@@ -356,7 +356,7 @@ class TestRecordIterator(unittest.TestCase):
             csv_data = table_to_csv_string_random(table, delim, policy)
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
-            record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim=delim, policy=policy)
+            record_iterator = csv_utils.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
             parsed_table = record_iterator._get_all_records()
             self.assertEqual(table, parsed_table)
 
@@ -377,7 +377,7 @@ class TestRecordIterator(unittest.TestCase):
         delim = ' '
         policy = 'whitespace'
         encoding = None
-        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
+        record_iterator = csv_utils.CSVRecordIterator(stream, True, encoding, delim, policy)
         parsed_table = record_iterator._get_all_records()
         self.assertEqual(expected_table, parsed_table)
 
@@ -398,7 +398,7 @@ class TestRecordIterator(unittest.TestCase):
             delim = None
             policy = 'monocolumn'
             encoding = None
-            record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
+            record_iterator = csv_utils.CSVRecordIterator(stream, True, encoding, delim, policy)
             parsed_table = record_iterator._get_all_records()
             self.assertEqual(table, parsed_table)
 
@@ -412,7 +412,7 @@ class TestRecordIterator(unittest.TestCase):
         delim = None
         policy = 'monocolumn'
         table = [["this will not", "work"], ["as monocolumn", "table"]]
-        writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, '\n')
+        writer = csv_utils.CSVWriter(writer_stream, True, encoding, delim, policy, '\n')
         with self.assertRaises(Exception) as cm:
             writer._write_all(table)
         e = cm.exception
@@ -425,7 +425,7 @@ class TestRecordIterator(unittest.TestCase):
         delim = ','
         policy = 'simple'
         table = [["hello,world", None], ["hello", "world"]]
-        writer = csv_utils.CSVWriter(writer_stream, encoding, delim, policy, '\n')
+        writer = csv_utils.CSVWriter(writer_stream, False, encoding, delim, policy, '\n')
         writer._write_all(table)
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
@@ -443,7 +443,7 @@ class TestRecordIterator(unittest.TestCase):
         encoding = 'latin-1'
         csv_data = table_to_csv_string_random(table, delim, policy)
         stream = io.BytesIO(csv_data.encode('latin-1'))
-        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
+        record_iterator = csv_utils.CSVRecordIterator(stream, True, encoding, delim, policy)
         parsed_table = record_iterator._get_all_records()
         self.assertEqual(table, parsed_table)
 
@@ -451,7 +451,7 @@ class TestRecordIterator(unittest.TestCase):
         self.assertEqual(table, parsed_table)
 
         stream = io.BytesIO(csv_data.encode('latin-1'))
-        record_iterator = csv_utils.CSVRecordIterator(stream, 'utf-8', delim=delim, policy=policy)
+        record_iterator = csv_utils.CSVRecordIterator(stream, True, 'utf-8', delim=delim, policy=policy)
         with self.assertRaises(Exception) as cm:
             parsed_table = record_iterator._get_all_records()
         e = cm.exception
@@ -473,7 +473,7 @@ class TestRecordIterator(unittest.TestCase):
         encoding = 'latin-1'
         csv_data = table_to_csv_string_random(table, delim, policy)
         stream = io.BytesIO(csv_data.encode('latin-1'))
-        record_iterator = csv_utils.CSVRecordIterator(stream, encoding, delim, policy)
+        record_iterator = csv_utils.CSVRecordIterator(stream, True, encoding, delim, policy)
         parsed_table = record_iterator._get_all_records()
         expected_warnings = ['UTF-8 Byte Order Mark (BOM) was found and skipped in input table']
         actual_warnings = record_iterator.get_warnings()
@@ -511,12 +511,8 @@ class TestRBQLWithCSV(unittest.TestCase):
         encoding = test_case['csv_encoding']
         output_format = test_case.get('output_format', 'input')
 
-        src_stream = open(input_table_path, 'rb')
-        dst_stream = open(actual_output_table_path, 'wb')
         out_delim, out_policy = (delim, policy) if output_format == 'input' else csv_utils.interpret_named_csv_format(output_format)
-        error_info, warnings = rbql_csv.csv_run(query, src_stream, delim, policy, dst_stream, out_delim, out_policy, encoding)
-        src_stream.close()
-        dst_stream.close()
+        error_info, warnings = rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding)
 
         self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}'.format(test_name))
         if expected_error is not None:
