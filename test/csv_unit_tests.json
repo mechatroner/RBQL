@@ -211,5 +211,15 @@
         "csv_encoding": "latin-1",
         "query_python": "select top 20 a1 + ' ' + str(NR)",
         "query_js": "select top 20 a1 + ' ' + NR"
+    },
+    {
+        "test_name": "test_21",
+        "input_table_path": "csv_files/whitespace_separated_pids.txt",
+        "expected_output_table_path": "csv_files/whitespace_result_set_1.txt",
+        "csv_separator": " ",
+        "csv_policy": "whitespace",
+        "csv_encoding": "latin-1",
+        "query_python": "select a2, FOLD(a1) where NR > 1 group by a2",
+        "query_js": "select a2, FOLD(a1) where NR > 1 group by a2"
     }
 ]

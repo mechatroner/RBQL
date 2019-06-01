@@ -483,9 +483,6 @@ class TestRecordIterator(unittest.TestCase):
         self.assertEqual(expected_table, parsed_table)
 
 
-# FIXME add monocolumn csv file test
-# FIXME add whitespace csv file test
-
 
 class TestRBQLWithCSV(unittest.TestCase):
 
