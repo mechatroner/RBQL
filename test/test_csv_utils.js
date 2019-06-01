@@ -108,12 +108,11 @@ function string_to_randomly_encoded_stream(src_str) {
 
 
 function write_and_parse_back(table, encoding, delim, policy) {
-    // "encoding" is a wrong term, should be called "serialization_algorithm" instead
     if (encoding === null)
         encoding = 'utf-8'; // Writing js string in utf-8 then reading back should be a lossless operation? Or not?
     let writer_stream = new PseudoWritable();
     let line_separator = random_choice(line_separators);
-    let writer = new csv_utils.CSVWriter(writer_stream, encoding, delim, policy, line_separator);
+    let writer = new csv_utils.CSVWriter(writer_stream, true, encoding, delim, policy, line_separator);
     writer._write_all(table);
     assert(writer.get_warnings().length === 0);
     let data_buffer = writer_stream.get_data();
@@ -310,9 +309,6 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
     } else {
         actual_output_table_path = path.join(tmp_tests_dir, 'expected_empty_file');
     }
-
-    let input_stream = fs.createReadStream(input_table_path);
-    let output_stream = fs.createWriteStream(actual_output_table_path);
     
     let error_handler = function(error_type, error_msg) {
         assert(expected_error);
@@ -327,7 +323,8 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         assert(expected_md5 == actual_md5, `md5 mismatch. Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
         process_test_case(tmp_tests_dir, tests, test_id + 1);
     }
-    rbql_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, encoding, success_handler, error_handler, null, debug_mode);
+
+    rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, success_handler, error_handler, null, debug_mode);
 }
 
 

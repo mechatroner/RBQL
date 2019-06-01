@@ -235,14 +235,11 @@ function run_with_js(args) {
         [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : csv_utils.interpret_named_csv_format(output_format);
     }
 
-    let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
-    let output_stream = output_path === null ? process.stdout : fs.createWriteStream(output_path);
-
     let handle_success = function(warnings) {
         handle_query_success(warnings, output_path, delim, policy);
     };
 
-    rbq_csv.csv_run(query, input_stream, delim, policy, output_stream, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file, args['debug-mode']);
+    rbq_csv.csv_run(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file, args['debug-mode']);
 }
 
 

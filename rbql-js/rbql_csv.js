@@ -16,8 +16,10 @@ function read_user_init_code(rbql_init_source_path) {
 }
 
 
-function csv_run(query, input_stream, input_delim, input_policy, output_stream, output_delim, output_policy, csv_encoding, external_success_handler, external_error_handler, custom_init_path=null, node_debug_mode=false) {
+function csv_run(query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, external_success_handler, external_error_handler, custom_init_path=null, node_debug_mode=false) {
     try {
+        let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
+        let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
         if (input_delim == '"' && input_policy == 'quoted') {
             external_error_handler('IO handling', 'Double quote delimiter is incompatible with "quoted" policy');
             return;
@@ -39,7 +41,7 @@ function csv_run(query, input_stream, input_delim, input_policy, output_stream, 
 
         let join_tables_registry = new csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding);
         let input_iterator = new csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy);
-        let output_writer = new csv_utils.CSVWriter(output_stream, csv_encoding, output_delim, output_policy);
+        let output_writer = new csv_utils.CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
         rbql.generic_run(query, input_iterator, output_writer, external_success_handler, external_error_handler, join_tables_registry, user_init_code, node_debug_mode);
     } catch (e) {

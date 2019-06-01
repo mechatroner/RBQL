@@ -338,7 +338,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 }
 
 
-function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
+function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n') {
     this.stream = stream;
     this.encoding = encoding;
     if (encoding)
@@ -346,6 +346,7 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
     this.delim = delim;
     this.policy = policy;
     this.line_separator = line_separator;
+    this.close_stream_on_finish = close_stream_on_finish;
 
     this.null_in_output = false;
     this.delim_in_simple_output = false;
@@ -413,7 +414,11 @@ function CSVWriter(stream, encoding, delim, policy, line_separator='\n') {
 
 
     this.finish = function(after_finish_callback) {
-        this.stream.end('', this.encoding, after_finish_callback);
+        if (this.close_stream_on_finish) {
+            this.stream.end('', this.encoding, after_finish_callback);
+        } else {
+            setTimeout(after_finish_callback, 0);
+        }
     };
 
 
