@@ -221,5 +221,14 @@
         "csv_encoding": "latin-1",
         "query_python": "select a2, FOLD(a1) where NR > 1 group by a2",
         "query_js": "select a2, FOLD(a1) where NR > 1 group by a2"
+    },
+    {
+        "test_name": "test_utf-8_error_python",
+        "input_table_path": "csv_files/random_1.bin",
+        "expected_error": "Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "utf-8",
+        "query_python": "select top 20 * where a2 == 'gamma'"
     }
 ]
