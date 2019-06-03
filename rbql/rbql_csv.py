@@ -27,6 +27,8 @@ def read_user_init_code(rbql_init_source_path):
 
 
 def csv_run(query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
+    output_stream, close_output_on_finish = (None, False)
+    input_stream, close_input_on_finish = (None, False)
     try:
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
@@ -55,5 +57,10 @@ def csv_run(query, input_path, input_delim, input_policy, output_path, output_de
     except Exception as e:
         error_info = engine.exception_to_error_info(e)
         return (error_info, [])
+    finally:
+        if close_input_on_finish:
+            input_stream.close()
+        if close_output_on_finish:
+            output_stream.close()
 
 
