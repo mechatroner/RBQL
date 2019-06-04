@@ -285,9 +285,13 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
     }
     let test_case = tests[test_id];
     let test_name = test_case['test_name'];
-    console.log('Running rbql test: ' + test_name);
 
     let query = test_case['query_js'];
+    if (!query)  {
+        process_test_case(tmp_tests_dir, tests, test_id + 1);
+        return;
+    }
+    console.log('Running rbql test: ' + test_name);
     query = query.replace('###UT_TESTS_DIR###', script_dir);
 
     let input_table_path = test_case['input_table_path'];

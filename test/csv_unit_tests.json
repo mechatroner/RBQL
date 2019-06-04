@@ -230,5 +230,15 @@
         "csv_policy": "simple",
         "csv_encoding": "utf-8",
         "query_python": "select top 20 * where a2 == 'gamma'"
+    },
+    {
+        "comment": "Ideally this test should fail, but it succeeds because JS doesn't fail on corrupted encoding",
+        "test_name": "test_utf-8_data_loss_js",
+        "input_table_path": "csv_files/random_1.bin",
+        "expected_output_table_path": "csv_files/lossy_binary.txt",
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "utf-8",
+        "query_js": "select top 20 * where a2 == 'gamma'"
     }
 ]
