@@ -222,6 +222,8 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('"a"aa" a,bbb",ccc,ddd', (['"a"aa" a', 'bbb"', 'ccc', 'ddd'], True)))
         test_cases.append(('"aa, bb, cc",ccc",ddd', (['aa, bb, cc', 'ccc"', 'ddd'], True)))
         test_cases.append(('hello,world,"', (['hello', 'world', '"'], True)))
+        test_cases.append((' aaa, " aaa, bbb " , ccc , ddd ', ([' aaa', ' aaa, bbb ', ' ccc ', ' ddd '], False)))
+        test_cases.append((' aaa ,bbb ,ccc , ddd ', ([' aaa ', 'bbb ', 'ccc ', ' ddd '], False)))
         for tc in test_cases:
             src = tc[0]
             expected_dst = tc[1]
@@ -488,7 +490,9 @@ class TestRBQLWithCSV(unittest.TestCase):
 
     def process_test_case(self, tmp_tests_dir, test_case):
         test_name = test_case['test_name']
-        query = test_case.get('query_python')
+        query = test_case.get('query_python', None)
+        if query is None:
+            return
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
         input_table_path = os.path.join(script_dir, input_table_path)
