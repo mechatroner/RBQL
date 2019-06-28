@@ -173,6 +173,8 @@ function test_split() {
     test_cases.push(['"a"aa" a,bbb",ccc,ddd', ['"a"aa" a', 'bbb"','ccc', 'ddd'], true]);
     test_cases.push(['"aa, bb, cc",ccc",ddd', ['aa, bb, cc','ccc"', 'ddd'], true]);
     test_cases.push(['hello,world,"', ['hello','world', '"'], true]);
+    test_cases.push([' aaa, " aaa, bbb " , ccc , ddd ', [' aaa', ' aaa, bbb ', ' ccc ', ' ddd '], false])
+    test_cases.push([' aaa ,bbb ,ccc , ddd ', [' aaa ', 'bbb ', 'ccc ', ' ddd '], false])
 
     for (let i = 0; i < test_cases.length; i++) {
         let [src, canonic_dst, canonic_warning] = test_cases[i];
