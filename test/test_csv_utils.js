@@ -154,6 +154,10 @@ function process_random_test_line(line) {
 
 
 function test_split() {
+
+    assert(test_common.arrays_are_equal(csv_utils.split_quoted_str(' aaa, " aaa, bbb " , ccc , ddd ', ',', true)[0], [' aaa', ' " aaa, bbb " ', ' ccc ', ' ddd ']))
+    assert(test_common.arrays_are_equal(csv_utils.split_quoted_str(' aaa, " aaa, bbb " , ccc , ddd ', ',', false)[0], [' aaa', ' aaa, bbb ', ' ccc ', ' ddd ']))
+
     var test_cases = [];
     test_cases.push(['hello,world', ['hello','world'], false]);
     test_cases.push(['hello,"world"', ['hello','world'], false]);

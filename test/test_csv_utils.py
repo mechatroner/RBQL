@@ -203,6 +203,10 @@ def generate_random_decoded_binary_table(max_num_rows, max_num_cols):
 
 class TestSplitMethods(unittest.TestCase):
     def test_split(self):
+        self.assertEqual(csv_utils.split_quoted_str(' aaa, " aaa, bbb " , ccc , ddd ', ',', True)[0], [' aaa', ' " aaa, bbb " ', ' ccc ', ' ddd '])
+        self.assertEqual(csv_utils.split_quoted_str(' aaa, " aaa, bbb " , ccc , ddd ', ',', False)[0], [' aaa', ' aaa, bbb ', ' ccc ', ' ddd '])
+
+
         test_cases = list()
         test_cases.append(('hello,world', (['hello', 'world'], False)))
         test_cases.append(('hello,"world"', (['hello', 'world'], False)))
@@ -224,6 +228,7 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('hello,world,"', (['hello', 'world', '"'], True)))
         test_cases.append((' aaa, " aaa, bbb " , ccc , ddd ', ([' aaa', ' aaa, bbb ', ' ccc ', ' ddd '], False)))
         test_cases.append((' aaa ,bbb ,ccc , ddd ', ([' aaa ', 'bbb ', 'ccc ', ' ddd '], False)))
+
         for tc in test_cases:
             src = tc[0]
             expected_dst = tc[1]
