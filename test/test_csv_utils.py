@@ -261,12 +261,12 @@ class TestSplitMethods(unittest.TestCase):
         test_cases.append(('', ([], False)))
         test_cases.append(('   a   b  c d ', (['a', 'b', 'c', 'd'], False)))
 
-        test_cases.append(('hello world', (['hello ', 'world'], True)))
-        test_cases.append(('hello   world', (['hello   ', 'world'], True)))
-        test_cases.append(('   hello   world   ', (['   hello   ', 'world   '], True)))
+        test_cases.append(('hello world', (['hello', 'world'], True)))
+        test_cases.append(('hello   world', (['hello  ', 'world'], True)))
+        test_cases.append(('   hello   world   ', (['   hello  ', 'world   '], True)))
         test_cases.append(('     ', ([], True)))
         test_cases.append(('', ([], True)))
-        test_cases.append(('   a   b  c d ', (['   a   ', 'b  ', 'c ', 'd '], True)))
+        test_cases.append(('   a   b  c d ', (['   a  ', 'b ', 'c', 'd '], True)))
 
         for tc in test_cases:
             src = tc[0]

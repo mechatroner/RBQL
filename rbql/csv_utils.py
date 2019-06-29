@@ -122,6 +122,9 @@ def split_whitespace_separated_str(src, preserve_whitespaces=False):
     result = []
     for m in rgxp.finditer(src):
         result.append(m.group())
+    if preserve_whitespaces and len(result) > 1:
+        for i in range(len(result) - 1):
+            result[i] = result[i][:-1]
     return result
 
 
