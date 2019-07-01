@@ -34,8 +34,6 @@ die_if_error $?
 
 PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
 
-# FIXME test random_tmp_table.txt from js
-
 
 py_rbql_version=$( python -m rbql --version )
 
@@ -54,6 +52,9 @@ if [ "$has_node" == "yes" ] ; then
         exit 1
     fi
     cd test
+
+    node test_csv_utils.js --run-random-csv-mode ../random_tmp_table.txt
+    die_if_error $?
 
     node test_rbql.js --auto-rebuild-engine
     die_if_error $?

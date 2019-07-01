@@ -249,10 +249,6 @@ function test_split_lines_custom() {
 }
 
 
-// FIXME add corrupted utf-8 js-only csv file test that demonstrates data loss
-// FIXME the same test for python should fail with predictable error
-
-
 // TODO add BOM test like "test_bom_warning" function in python version
 
 
