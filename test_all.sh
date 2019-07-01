@@ -16,6 +16,7 @@ die_if_error() {
 
 cleanup_tmp_files() {
     rm tmp_out.csv 2> /dev/null
+    rm random_tmp_table.txt 2> /dev/null
 }
 
 cleanup_tmp_files
@@ -31,7 +32,10 @@ python3 -m unittest test.test_rbql
 die_if_error $?
 
 
-# FIXME add random binary table test, see old version
+PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
+
+# FIXME test random_tmp_table.txt from js
+
 
 py_rbql_version=$( python -m rbql --version )
 

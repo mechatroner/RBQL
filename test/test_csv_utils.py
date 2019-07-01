@@ -201,6 +201,36 @@ def generate_random_decoded_binary_table(max_num_rows, max_num_cols):
     return result
 
 
+def make_random_csv_fields_naive(num_fields, max_field_len):
+    available = [',', '"', 'a', 'b', 'c', 'd']
+    result = list()
+    for fn in range(num_fields):
+        flen = natural_random(0, max_field_len)
+        chosen = list()
+        for i in range(flen):
+            chosen.append(random.choice(available))
+        result.append(''.join(chosen))
+    return result
+
+
+
+def make_random_csv_records_naive():
+    result = list()
+    for num_test in xrange6(1000):
+        num_fields = random.randint(1, 11)
+        max_field_len = 25
+        fields = make_random_csv_fields_naive(num_fields, max_field_len)
+        csv_line = random_smart_join(fields, ',', 'quoted')
+        defective_escaping = random.randint(0, 1)
+        if defective_escaping:
+            defect_pos = random.randint(0, len(csv_line))
+            csv_line = csv_line[:defect_pos] + '"' + csv_line[defect_pos:]
+        result.append((fields, csv_line, defective_escaping))
+    return result
+
+
+
+
 class TestSplitMethods(unittest.TestCase):
     def test_split(self):
         self.assertEqual(csv_utils.split_quoted_str(' aaa, " aaa, bbb " , ccc , ddd ', ',', True)[0], [' aaa', ' " aaa, bbb " ', ' ccc ', ' ddd '])
@@ -275,37 +305,9 @@ class TestSplitMethods(unittest.TestCase):
             self.assertEqual(test_dst, expected_dst)
 
 
-    def make_random_csv_fields_naive(self, num_fields, max_field_len):
-        available = [',', '"', 'a', 'b', 'c', 'd']
-        result = list()
-        for fn in range(num_fields):
-            flen = natural_random(0, max_field_len)
-            chosen = list()
-            for i in range(flen):
-                chosen.append(random.choice(available))
-            result.append(''.join(chosen))
-        return result
-
-
-
-    def make_random_csv_records_naive(self):
-        result = list()
-        for num_test in xrange6(1000):
-            num_fields = random.randint(1, 11)
-            max_field_len = 25
-            fields = self.make_random_csv_fields_naive(num_fields, max_field_len)
-            csv_line = random_smart_join(fields, ',', 'quoted')
-            defective_escaping = random.randint(0, 1)
-            if defective_escaping:
-                defect_pos = random.randint(0, len(csv_line))
-                csv_line = csv_line[:defect_pos] + '"' + csv_line[defect_pos:]
-            result.append((fields, csv_line, defective_escaping))
-        return result
-
-
 
     def test_random(self):
-        random_records = self.make_random_csv_records_naive()
+        random_records = make_random_csv_records_naive()
         for ir, rec in enumerate(random_records):
             expected_fields = rec[0]
             escaped_entry = rec[1]
@@ -545,3 +547,24 @@ class TestRBQLWithCSV(unittest.TestCase):
                 self.process_test_case(tmp_tests_dir, test)
         shutil.rmtree(tmp_tests_dir)
 
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--create_random_csv_table', metavar='FILE', help='create random csv table')
+    args = parser.parse_args()
+
+    if args.create_random_csv_table is not None:
+        dst_path = args.create_random_csv_table
+        random_records = make_random_csv_records_naive()
+        with open(dst_path, 'w') as dst:
+            for rec in random_records:
+                canonic_fields = rec[0]
+                escaped_entry = rec[1]
+                canonic_warning = rec[2]
+                dst.write('{}\t{}\t{}\n'.format(escaped_entry, canonic_warning, ';'.join(canonic_fields)))
+        return
+
+
+
+if __name__ == '__main__':
+    main()

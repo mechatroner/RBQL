@@ -126,33 +126,6 @@ function write_and_parse_back(table, encoding, delim, policy) {
 }
 
 
-function process_random_test_line(line) {
-    // FIXME fix random test
-    var records = line.split('\t');
-    assert(records.length == 3);
-    var escaped_entry = records[0];
-    var canonic_warning = parseInt(records[1]);
-    assert(canonic_warning == 0 || canonic_warning == 1);
-    canonic_warning = Boolean(canonic_warning);
-    var canonic_dst = records[2].split(';');
-    var split_result = csv_utils.split_quoted_str(escaped_entry, ',');
-    var test_dst = split_result[0];
-    var test_warning = split_result[1];
-
-    var split_result_preserved = csv_utils.split_quoted_str(escaped_entry, ',', true);
-    assert(test_warning === split_result_preserved[1]);
-    assert(split_result_preserved[0].join(',') === escaped_entry);
-    if (!canonic_warning) {
-        assert(test_common.arrays_are_equal(csv_utils.unquote_fields(split_result_preserved[0]), test_dst));
-    }
-    if (!canonic_warning) {
-        compare_splits(escaped_entry, test_dst, canonic_dst, test_warning, canonic_warning);
-    }
-}
-
-
-
-
 function test_split() {
 
     assert(test_common.arrays_are_equal(csv_utils.split_quoted_str(' aaa, " aaa, bbb " , ccc , ddd ', ',', true)[0], [' aaa', ' " aaa, bbb " ', ' ccc ', ' ddd ']))
@@ -358,12 +331,46 @@ function test_all() {
 }
 
 
+function process_random_test_line(line) {
+    var records = line.split('\t');
+    assert(records.length == 3);
+    var escaped_entry = records[0];
+    var canonic_warning = parseInt(records[1]);
+    assert(canonic_warning == 0 || canonic_warning == 1);
+    canonic_warning = Boolean(canonic_warning);
+    var canonic_dst = records[2].split(';');
+    var split_result = csv_utils.split_quoted_str(escaped_entry, ',');
+    var test_dst = split_result[0];
+    var test_warning = split_result[1];
+
+    var split_result_preserved = csv_utils.split_quoted_str(escaped_entry, ',', true);
+    assert(test_warning === split_result_preserved[1]);
+    assert(split_result_preserved[0].join(',') === escaped_entry);
+    if (!canonic_warning) {
+        assert(test_common.arrays_are_equal(csv_utils.unquote_fields(split_result_preserved[0]), test_dst));
+    }
+    if (!canonic_warning) {
+        compare_splits(escaped_entry, test_dst, canonic_dst, test_warning, canonic_warning);
+    }
+}
+
+
+function run_random_csv_mode(random_csv_table_path) {
+    lineReader = readline.createInterface({ input: fs.createReadStream(random_csv_table_path, {encoding: 'binary'}) });
+    lineReader.on('line', process_random_test_line);
+    lineReader.on('close', function () {
+        console.log('Finished split unit test');
+    });
+}
+
+
 
 
 function main() {
     console.log('Starting JS unit tests');
 
     var scheme = {
+        '--run-random-csv-mode': {'help': 'run in random csv mode'},
         '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine'},
         '--dbg': {'boolean': true, 'help': 'Run tests in debug mode (require worker template from a tmp module file)'}
     };
@@ -371,6 +378,12 @@ function main() {
 
     if (args.hasOwnProperty('auto-rebuild-engine')) {
         build_engine.build_engine();
+    }
+
+    if (args.hasOwnProperty('run-random-csv-mode')) {
+        let random_table_path = args['run-random-csv-mode'];
+        run_random_csv_mode(random_table_path);
+        return;
     }
 
     debug_mode = args.hasOwnProperty('dbg');
