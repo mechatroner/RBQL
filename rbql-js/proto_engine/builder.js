@@ -8,7 +8,6 @@ const external_js_template_text = codegeneration_pseudo_function_include_combine
 // Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-// TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 // TODO get rid of functions with "_js" suffix
 
 

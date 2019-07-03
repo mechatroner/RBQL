@@ -18,7 +18,6 @@ from collections import OrderedDict, defaultdict
 
 
 # TODO implement arrays passing to output_writer, e.g. for FOLD()
-# TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 
 
 try:

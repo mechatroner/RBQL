@@ -29,10 +29,8 @@ from collections import defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-# TODO rename STRICT_LEFT_JOIN -> STRICT_JOIN
 # TODO get rid of functions with "_py" suffix
 
-# FIXME make sure f'foo {a} {b} bar' python format strings are handled correctly
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
