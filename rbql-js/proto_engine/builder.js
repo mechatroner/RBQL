@@ -638,7 +638,8 @@ function TableWriter(external_table) {
         this.table.push(fields);
     };
 
-    this.finish = function() {
+    this.finish = function(after_finish_callback) {
+        after_finish_callback();
     };
 
     this.get_warnings = function() {

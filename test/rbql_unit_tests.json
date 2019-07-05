@@ -692,5 +692,21 @@
         "expected_error": "No \"b5\" field at record: 1 in \"B\" table",
         "query_python": "select NR, * inner join B on a2 == b5 where b2 != \"haha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
         "query_js": "select NR, * inner join B on a2 == b5 where   b2 !=  \"haha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+    },
+    {
+        "test_name": "test_mixed_type_records_int_string",
+        "input_table": [
+            ["car", 100],
+            ["dog", 200],
+            ["foo bar", 20],
+            ["dog dog", 9]
+        ],
+        "expected_output_table": [
+            ["dog dog", 9],
+            ["foo bar", 20],
+            ["car", 100],
+            ["dog", 200]
+        ],
+        "query_js": "select * order by a2"
     }
 ]

@@ -1285,7 +1285,6 @@ function generic_run(user_query, input_iterator, output_writer, success_handler,
         if (node_debug_mode) {
             rbql_worker = load_module_from_file(js_code);
         } else {
-            rbql_worker = load_module_from_file(js_code);
             load_module_from_string('rbql_worker', js_code);
         }
         rbql_worker.rb_transform(input_iterator, join_map, output_writer, success_handler, error_handler, node_debug_mode);
@@ -1386,7 +1385,8 @@ function TableWriter(external_table) {
         this.table.push(fields);
     };
 
-    this.finish = function() {
+    this.finish = function(after_finish_callback) {
+        after_finish_callback();
     };
 
     this.get_warnings = function() {

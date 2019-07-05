@@ -188,6 +188,7 @@ function process_test_case(tests, test_id) {
 function test_json_tables() {
     let tests_file_path = 'rbql_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
+    //FIXME assertion failure without --dbg
     process_test_case(tests, 0);
 }
 
