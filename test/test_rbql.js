@@ -6,8 +6,6 @@ var rbql = null;
 var debug_mode = false;
 
 
-// FIXME add js-only rbql unit test with mixed type records (integer, floats, lists) and see if it works
-
 
 function die(error_msg) {
     console.error('Error: ' + error_msg);
@@ -188,7 +186,6 @@ function process_test_case(tests, test_id) {
 function test_json_tables() {
     let tests_file_path = 'rbql_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
-    //FIXME assertion failure without --dbg
     process_test_case(tests, 0);
 }
 
