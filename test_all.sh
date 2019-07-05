@@ -2,7 +2,7 @@
 
 dir_name=$( basename "$PWD" )
 
-if [ "$dir_name" != "RBQL" ] ; then
+if [ "$dir_name" != "RBQL" ] && [ "$dir_name" != "rbql_core" ] ; then
     echo "Error: This test must be run from RBQL dir. Exiting"
     exit 1
 fi
