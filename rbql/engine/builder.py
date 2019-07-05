@@ -31,6 +31,7 @@ from collections import defaultdict
 
 # TODO get rid of functions with "_py" suffix
 
+# FIXME add table_run interface just like in js version
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -463,14 +464,14 @@ class RbqlPyEnv:
 
 
 
-def generic_run(query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
+def generic_run(user_query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     try:
         user_init_code = indent_user_init_code(user_init_code)
         rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
         with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
             py_template_text = py_src.read()
-        python_code, join_map = parse_to_py(query, py_template_text, join_tables_registry, user_init_code)
+        python_code, join_map = parse_to_py(user_query, py_template_text, join_tables_registry, user_init_code)
         if convert_only_dst is not None:
             write_python_module(python_code, convert_only_dst)
             return (None, [])

@@ -530,10 +530,10 @@ function load_module_from_file(js_code) {
 }
 
 
-function generic_run(query, input_iterator, output_writer, external_success_handler, external_error_handler, join_tables_registry=null, user_init_code='', node_debug_mode=false) {
+function generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry=null, user_init_code='', node_debug_mode=false) {
     try {
         user_init_code = indent_user_init_code(user_init_code);
-        let [js_code, join_map] = parse_to_js(query, external_js_template_text, join_tables_registry, user_init_code);
+        let [js_code, join_map] = parse_to_js(user_query, external_js_template_text, join_tables_registry, user_init_code);
         let rbql_worker = null;
         if (node_debug_mode) {
             rbql_worker = load_module_from_file(js_code);
@@ -541,16 +541,16 @@ function generic_run(query, input_iterator, output_writer, external_success_hand
             rbql_worker = load_module_from_file(js_code);
             load_module_from_string('rbql_worker', js_code);
         }
-        rbql_worker.rb_transform(input_iterator, join_map, output_writer, external_success_handler, external_error_handler, node_debug_mode);
+        rbql_worker.rb_transform(input_iterator, join_map, output_writer, success_handler, error_handler, node_debug_mode);
     } catch (e) {
         if (e instanceof RbqlParsingError) {
-            external_error_handler('query parsing', e.message);
+            error_handler('query parsing', e.message);
         } else {
             if (node_debug_mode) {
                 console.log('Unexpected exception, dumping stack trace:');
                 console.log(e.stack);
             }
-            external_error_handler('unexpected', 'Unexpected exception: ' + e);
+            error_handler('unexpected', 'Unexpected exception: ' + e);
         }
     }
 }
@@ -632,8 +632,8 @@ function TableIterator(input_table) {
 }
 
 
-function TableWriter() {
-    this.table = [];
+function TableWriter(external_table) {
+    this.table = external_table;
 
     this.write = function(fields) {
         this.table.push(fields);
@@ -661,9 +661,23 @@ function SingleTableRegistry(table, table_id='B') {
 }
 
 
+function table_run(user_query, input_table, output_table, success_handler, error_handler, join_table=null, user_init_code='', node_debug_mode=false) {
+    let input_iterator = new TableIterator(input_table);
+    let output_writer = new TableWriter(output_table);
+    let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table);
+    generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, node_debug_mode);
+}
+
+
 
 module.exports.version = version;
 module.exports.generic_run = generic_run;
+module.exports.table_run = table_run;
+
+module.exports.TableIterator = TableIterator;
+module.exports.TableWriter = TableWriter;
+module.exports.SingleTableRegistry = SingleTableRegistry;
+
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;
 module.exports.separate_string_literals_js = separate_string_literals_js;
@@ -672,6 +686,4 @@ module.exports.translate_except_expression = translate_except_expression;
 module.exports.parse_join_expression = parse_join_expression;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
-module.exports.TableIterator = TableIterator;
-module.exports.TableWriter = TableWriter;
-module.exports.SingleTableRegistry = SingleTableRegistry;
+

@@ -16,18 +16,18 @@ function read_user_init_code(rbql_init_source_path) {
 }
 
 
-function csv_run(query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, external_success_handler, external_error_handler, custom_init_path=null, node_debug_mode=false) {
+function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, success_handler, error_handler, custom_init_path=null, node_debug_mode=false) {
     try {
         let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
         let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
         if (input_delim == '"' && input_policy == 'quoted') {
-            external_error_handler('IO handling', 'Double quote delimiter is incompatible with "quoted" policy');
+            error_handler('IO handling', 'Double quote delimiter is incompatible with "quoted" policy');
             return;
         }
         if (csv_encoding == 'latin-1')
             csv_encoding = 'binary';
-        if (!is_ascii(query) && csv_encoding == 'binary') {
-            external_error_handler('IO handling', 'To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
+        if (!is_ascii(user_query) && csv_encoding == 'binary') {
+            error_handler('IO handling', 'To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
             return;
         }
 
@@ -43,13 +43,13 @@ function csv_run(query, input_path, input_delim, input_policy, output_path, outp
         let input_iterator = new csv_utils.CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy);
         let output_writer = new csv_utils.CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
-        rbql.generic_run(query, input_iterator, output_writer, external_success_handler, external_error_handler, join_tables_registry, user_init_code, node_debug_mode);
+        rbql.generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, node_debug_mode);
     } catch (e) {
         if (node_debug_mode) {
             console.log('Unexpected exception, dumping stack trace:');
             console.log(e.stack);
         }
-        external_error_handler('unexpected', String(e));
+        error_handler('unexpected', String(e));
     }
 }
 

@@ -5,6 +5,10 @@ const test_common = require('./test_common.js');
 var rbql = null;
 var debug_mode = false;
 
+
+// FIXME add js-only rbql unit test with mixed type records (integer, floats, lists) and see if it works
+
+
 function die(error_msg) {
     console.error('Error: ' + error_msg);
     process.exit(1);
@@ -163,9 +167,7 @@ function process_test_case(tests, test_id) {
     let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
-    let input_iterator = new rbql.TableIterator(input_table);
-    let output_writer = new rbql.TableWriter();
-    let join_tables_registry = join_table === null ? null : new rbql.SingleTableRegistry(join_table);
+    let output_table = [];
     let error_handler = function(error_type, error_msg) {
         assert(expected_error);
         assert(error_msg.indexOf(expected_error) != -1);
@@ -175,12 +177,11 @@ function process_test_case(tests, test_id) {
         assert(expected_error === null);
         warnings = test_common.normalize_warnings(warnings).sort();
         assert(test_common.arrays_are_equal(expected_warnings, warnings));
-        let output_table = output_writer.table;
         test_common.round_floats(output_table);
         assert(test_common.tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
         process_test_case(tests, test_id + 1);
     }
-    rbql.generic_run(query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, debug_mode);
+    rbql.table_run(query, input_table, output_table, success_handler, error_handler, join_table, user_init_code, debug_mode);
 }
 
 
