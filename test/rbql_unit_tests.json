@@ -708,5 +708,21 @@
             ["dog", 200]
         ],
         "query_js": "select * order by a2"
+    },
+    {
+        "test_name": "test_non_mixed_records_js",
+        "input_table": [
+            ["car", "100"],
+            ["dog", "200"],
+            ["foo bar", "20"],
+            ["dog dog", "9"]
+        ],
+        "expected_output_table": [
+            ["car", "100"],
+            ["foo bar", "20"],
+            ["dog", "200"],
+            ["dog dog", "9"]
+        ],
+        "query_js": "select * order by a2"
     }
 ]
