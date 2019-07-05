@@ -510,13 +510,6 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
 }
 
 
-function load_module_from_string(module_name, js_code) {
-    var module = {'exports': {}};
-    eval('(function(){' + js_code + '})()');
-    eval(`${module_name} = module.exports;`);
-}
-
-
 function load_module_from_file(js_code) {
     let os = require('os');
     let path = require('path');
@@ -538,7 +531,9 @@ function generic_run(user_query, input_iterator, output_writer, success_handler,
         if (node_debug_mode) {
             rbql_worker = load_module_from_file(js_code);
         } else {
-            load_module_from_string('rbql_worker', js_code);
+            let module = {'exports': {}};
+            eval('(function(){' + js_code + '})()');
+            rbql_worker = module.exports;
         }
         rbql_worker.rb_transform(input_iterator, join_map, output_writer, success_handler, error_handler, node_debug_mode);
     } catch (e) {

@@ -37,7 +37,7 @@ function build_engine_text(for_web) {
     let engine_body = builder_text.replace(marker, escape_string_literal_backtick(template_text)); 
     if (for_web) {
         engine_body = "let module = {'exports': {}};\n" + 'rbql = module.exports;\n' + engine_body;
-        engine_body = '( function() {\n' + engine_body + ')';
+        engine_body = '( function() {\n' + engine_body + '})()';
         engine_body = 'let rbql = null;\n' + engine_body;
     }
     let engine_text = do_not_edit_warning + engine_body + '\n\n' + do_not_edit_warning;
