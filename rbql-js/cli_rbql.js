@@ -320,7 +320,6 @@ function main() {
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format'},
         '--encoding': {'default': 'latin-1', 'help': 'Manually set csv table encoding'},
-        '--parse-only': {'boolean': true, 'help': 'Create worker module and exit'},
         '--version': {'boolean': true, 'help': 'Script language to use in query'},
         '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine', 'hidden': true},
         '--debug-mode': {'boolean': true, 'help': 'Run in debug mode', 'hidden': true},
@@ -328,7 +327,7 @@ function main() {
     };
     var args = cli_parser.parse_cmd_args(process.argv, scheme);
 
-    if (args.hasOwnProperty('auto-rebuild-engine')) {
+    if (args['auto-rebuild-engine']) {
         let build_engine = require('./build_engine.js');
         build_engine.build_engine();
     }
@@ -336,7 +335,7 @@ function main() {
     rbql = require('./rbql.js');
     rbq_csv = require('./rbql_csv.js');
 
-    if (args.hasOwnProperty('version')) {
+    if (args['version']) {
         console.log(rbql.version);
         process.exit(0);
     }

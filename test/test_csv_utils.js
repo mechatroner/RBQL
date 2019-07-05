@@ -372,7 +372,7 @@ function main() {
     };
     var args = cli_parser.parse_cmd_args(process.argv, scheme);
 
-    if (args.hasOwnProperty('auto-rebuild-engine')) {
+    if (args['auto-rebuild-engine']) {
         build_engine.build_engine();
     }
 
@@ -382,7 +382,7 @@ function main() {
         return;
     }
 
-    debug_mode = args.hasOwnProperty('dbg');
+    debug_mode = args['dbg'];
 
     let engine_text_current = build_engine.read_engine_text();
     let engine_text_expected = build_engine.build_engine_text();

@@ -31,6 +31,8 @@ function parse_cmd_args(cmd_args, scheme) {
         var arg_info = scheme[arg_key];
         if (arg_info.hasOwnProperty('default'))
             result[normalize_cli_key(arg_key)] = arg_info['default'];
+        if (arg_info.hasOwnProperty('boolean'))
+            result[normalize_cli_key(arg_key)] = false;
     }
     cmd_args = cmd_args.slice(2);
     var i = 0;
