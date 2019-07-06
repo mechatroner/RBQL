@@ -6,10 +6,17 @@
 <script src="../../rbql-js/web_rbql.js"></script>
 
 <script>
-    // FIXME we need a web_rbql.js - wrapped version of rbql with all required functions exposed
-    // another approach, add dependency then source local from node_modules: https://www.agiliq.com/blog/2019/01/using-npm-to-manage-frontend-libraries/
-    // In other words 1. use `npm install` package into node_modules. 2. <script src= node_modules/.....
-    console.log('hello world!');
+    console.log('starting...');
+    let output_table = [];
+    let expected_table = [['foo test', 1], ['bar test', 2]];
+    let error_handler = function(error_type, error_msg) {
+        console.log('Error: ' + error_type + ': ' + error_msg);
+    }
+    let success_handler = function(warnings) {
+        console.log('warnings: ' + JSON.stringify(warnings));
+        console.log('output table: ' + JSON.stringify(output_table));
+    }
+    rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, success_handler, error_handler);
 </script>
 
 
@@ -18,6 +25,7 @@
 </head>
 
 <body>
+<div><span>Open browser console</span></div>
 
 </body>
 
