@@ -17,9 +17,7 @@ var rbql_csv = null;
 
 const script_dir = __dirname;
 
-// FIXME initialize directly from calling script, get rid of the param
 var debug_mode = false;
-
 
 const line_separators = ['\n', '\r\n', '\r'];
 
@@ -305,7 +303,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         process_test_case(tmp_tests_dir, tests, test_id + 1);
     }
 
-    rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, success_handler, error_handler, null, debug_mode);
+    rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, success_handler, error_handler, null);
 }
 
 
@@ -393,6 +391,7 @@ function main() {
     }
 
     rbql_csv = require('../rbql-js/rbql_csv.js')
+    rbql_csv.debug_mode = debug_mode;
 
     test_all();
 }

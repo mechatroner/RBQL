@@ -6,6 +6,7 @@ const readline = require('readline');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
+var debug_mode = false;
 
 class RbqlIOHandlingError extends Error {}
 class AssertionError extends Error {}
@@ -373,7 +374,7 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
 }
 
 
-function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, success_handler, error_handler, custom_init_path=null, node_debug_mode=false) {
+function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, success_handler, error_handler, custom_init_path=null) {
     try {
         let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
         let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
@@ -400,9 +401,11 @@ function csv_run(user_query, input_path, input_delim, input_policy, output_path,
         let input_iterator = new CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy);
         let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
-        rbql.generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, node_debug_mode);
+        if (debug_mode)
+            rbql.set_debug_mode();
+        rbql.generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code);
     } catch (e) {
-        if (node_debug_mode) {
+        if (debug_mode) {
             console.log('Unexpected exception, dumping stack trace:');
             console.log(e.stack);
         }
@@ -410,6 +413,9 @@ function csv_run(user_query, input_path, input_delim, input_policy, output_path,
     }
 }
 
+function set_debug_mode() {
+    debug_mode = true;
+}
 
 
 module.exports.is_ascii = is_ascii;
@@ -419,3 +425,4 @@ module.exports.FileSystemCSVRegistry = FileSystemCSVRegistry;
 module.exports.interpret_named_csv_format = interpret_named_csv_format;
 module.exports.read_user_init_code = read_user_init_code;
 module.exports.csv_run = csv_run;
+module.exports.set_debug_mode = set_debug_mode;

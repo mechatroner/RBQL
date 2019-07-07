@@ -33,6 +33,7 @@ class RbqlParsingError extends Error {}
 class RbqlIOHandlingError extends Error {}
 class AssertionError extends Error {}
 
+var debug_mode = false;
 
 function assert(condition, message=null) {
     if (!condition) {
@@ -523,24 +524,24 @@ function load_module_from_file(js_code) {
 }
 
 
-function generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry=null, user_init_code='', node_debug_mode=false) {
+function generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry=null, user_init_code='') {
     try {
         user_init_code = indent_user_init_code(user_init_code);
         let [js_code, join_map] = parse_to_js(user_query, external_js_template_text, join_tables_registry, user_init_code);
         let rbql_worker = null;
-        if (node_debug_mode) {
+        if (debug_mode) {
             rbql_worker = load_module_from_file(js_code);
         } else {
             let module = {'exports': {}};
             eval('(function(){' + js_code + '})()');
             rbql_worker = module.exports;
         }
-        rbql_worker.rb_transform(input_iterator, join_map, output_writer, success_handler, error_handler, node_debug_mode);
+        rbql_worker.rb_transform(input_iterator, join_map, output_writer, success_handler, error_handler, debug_mode);
     } catch (e) {
         if (e instanceof RbqlParsingError) {
             error_handler('query parsing', e.message);
         } else {
-            if (node_debug_mode) {
+            if (debug_mode) {
                 console.log('Unexpected exception, dumping stack trace:');
                 console.log(e.stack);
             }
@@ -656,13 +657,17 @@ function SingleTableRegistry(table, table_id='B') {
 }
 
 
-function table_run(user_query, input_table, output_table, success_handler, error_handler, join_table=null, user_init_code='', node_debug_mode=false) {
+function table_run(user_query, input_table, output_table, success_handler, error_handler, join_table=null, user_init_code='') {
     let input_iterator = new TableIterator(input_table);
     let output_writer = new TableWriter(output_table);
     let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table);
-    generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code, node_debug_mode);
+    generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code);
 }
 
+
+function set_debug_mode() {
+    debug_mode = true;
+}
 
 
 module.exports.version = version;
@@ -682,3 +687,4 @@ module.exports.parse_join_expression = parse_join_expression;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
 
+module.exports.set_debug_mode = set_debug_mode;

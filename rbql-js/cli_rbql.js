@@ -4,7 +4,7 @@ const fs = require('fs');
 const readline = require('readline');
 
 var rbql = null;
-var rbq_csv = null;
+var rbql_csv = null;
 const csv_utils = require('./csv_utils.js');
 const cli_parser = require('./cli_parser.js');
 
@@ -239,7 +239,9 @@ function run_with_js(args) {
         handle_query_success(warnings, output_path, delim, policy);
     };
 
-    rbq_csv.csv_run(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file, args['debug-mode']);
+    if (args['debug-mode'])
+        rbql_csv.set_debug_mode();
+    rbql_csv.csv_run(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, handle_success, finish_query_with_error, init_source_file);
 }
 
 
@@ -333,7 +335,7 @@ function main() {
     }
 
     rbql = require('./rbql.js');
-    rbq_csv = require('./rbql_csv.js');
+    rbql_csv = require('./rbql_csv.js');
 
     if (args['version']) {
         console.log(rbql.version);
