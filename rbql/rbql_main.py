@@ -57,7 +57,6 @@ def run_with_python(args, is_interactive):
     delim = csv_utils.normalize_delim(args.delim)
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
-    convert_only = args.convert_only
     input_path = args.input
     output_path = args.output
     init_source_file = args.init_source_file
@@ -65,7 +64,7 @@ def run_with_python(args, is_interactive):
     args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else csv_utils.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
-    error_info, warnings = rbql_csv.csv_run(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, init_source_file, convert_only)
+    error_info, warnings = rbql_csv.csv_run(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, init_source_file)
 
     if error_info is None:
         success = True
@@ -219,7 +218,6 @@ def main():
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
-    parser.add_argument('--convert-only', metavar='FILE', action='store', help='Only generate worker module and save to FILE do not run it')
     parser.add_argument('--encoding', help='Manually set csv table encoding', default=csv_utils.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--init-source-file', metavar='FILE', help='path to init source file to use instead of ~/.rbql_init_source.py')
     args = parser.parse_args()

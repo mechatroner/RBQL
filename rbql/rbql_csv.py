@@ -26,7 +26,7 @@ def read_user_init_code(rbql_init_source_path):
         return src.read()
 
 
-def csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, custom_init_path=None, convert_only_dst=None):
+def csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, custom_init_path=None):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     try:
@@ -51,7 +51,7 @@ def csv_run(user_query, input_path, input_delim, input_policy, output_path, outp
         join_tables_registry = csv_utils.FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
         input_iterator = csv_utils.CSVRecordIterator(input_stream, close_input_on_finish, csv_encoding, input_delim, input_policy)
         output_writer = csv_utils.CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy)
-        error_info, warnings = engine.generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code, convert_only_dst)
+        error_info, warnings = engine.generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code)
         join_tables_registry.finish()
         return (error_info, warnings)
     except Exception as e:
