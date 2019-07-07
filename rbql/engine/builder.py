@@ -31,7 +31,6 @@ from collections import defaultdict
 
 # TODO get rid of functions with "_py" suffix
 
-# FIXME add table_run interface just like in js version
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -463,7 +462,7 @@ class RbqlPyEnv:
             pass
 
 
-
+# FIXME get rid of conver_only option
 def generic_run(user_query, input_iterator, output_writer, join_tables_registry=None, user_init_code='', convert_only_dst=None):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     try:
@@ -496,8 +495,6 @@ def generic_run(user_query, input_iterator, output_writer, join_tables_registry=
     finally:
         input_iterator.finish()
         output_writer.finish()
-
-
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
@@ -537,8 +534,8 @@ class TableIterator:
 
 
 class TableWriter:
-    def __init__(self):
-        self.table = []
+    def __init__(self, external_table):
+        self.table = external_table
 
     def write(self, fields):
         self.table.append(fields)
@@ -559,3 +556,10 @@ class SingleTableRegistry:
         if table_id != self.table_name:
             raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
         return TableIterator(self.table)
+
+
+def table_run(user_query, input_table, output_table, join_table, user_init_code=''):
+    input_iterator = TableIterator(input_table)
+    output_writer = TableWriter(output_table)
+    join_tables_registry = None if join_table is None else SingleTableRegistry(join_table)
+    return generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)

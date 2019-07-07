@@ -7,6 +7,9 @@ import io
 import codecs
 
 
+# FIXME consider moving rbql specific code into rbql_csv.py, simultaneously with js version. leave only dependency-free split functions here
+
+
 PY3 = sys.version_info[0] == 3
 
 default_csv_encoding = 'latin-1'

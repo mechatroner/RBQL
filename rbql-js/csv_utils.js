@@ -12,6 +12,7 @@ let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
 let field_rgx = new RegExp('^' + field_regular_expression);
 let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *');
 
+// FIXME consider moving rbql/node specific code into rbql_csv.js. This file in turn can be sourced from web browser after the conversion
 
 function assert(condition, message=null) {
     if (!condition) {
