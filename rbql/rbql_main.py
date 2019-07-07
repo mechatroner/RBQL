@@ -54,14 +54,14 @@ def show_warning(msg, is_interactive):
 
 
 def run_with_python(args, is_interactive):
-    delim = csv_utils.normalize_delim(args.delim)
+    delim = rbql_csv.normalize_delim(args.delim)
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
     input_path = args.input
     output_path = args.output
     init_source_file = args.init_source_file
     csv_encoding = args.encoding
-    args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else csv_utils.interpret_named_csv_format(args.out_format)
+    args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
     error_info, warnings = rbql_csv.csv_run(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, init_source_file)
@@ -98,7 +98,7 @@ def is_delimited_table(sampled_lines, delim, policy):
 def sample_lines(src_path, encoding):
     result = []
     source = open(src_path, 'rb')
-    line_iterator = csv_utils.CSVRecordIterator(source, True, encoding, delim=None, policy=None)
+    line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=None, policy=None)
     for _i in xrange6(10):
         line = line_iterator.get_row()
         if line is None:
@@ -184,7 +184,7 @@ def start_preview_mode(args):
         show_error('generic', 'Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', is_interactive=True)
         return
     if args.delim is not None:
-        delim = csv_utils.normalize_delim(args.delim)
+        delim = rbql_csv.normalize_delim(args.delim)
         policy = args.policy if args.policy is not None else get_default_policy(delim)
     else:
         delim, policy = autodetect_delim_policy(input_path, args.encoding)
@@ -218,7 +218,7 @@ def main():
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
-    parser.add_argument('--encoding', help='Manually set csv table encoding', default=csv_utils.default_csv_encoding, choices=['latin-1', 'utf-8'])
+    parser.add_argument('--encoding', help='Manually set csv table encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--init-source-file', metavar='FILE', help='path to init source file to use instead of ~/.rbql_init_source.py')
     args = parser.parse_args()
 
