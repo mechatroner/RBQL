@@ -232,7 +232,7 @@ function run_with_js(args) {
     let init_source_file = get_default(args, 'init-source-file', null);
     let output_format = args['out-format'];
     if (output_delim === null) {
-        [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : csv_utils.interpret_named_csv_format(output_format);
+        [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
     }
 
     let handle_success = function(warnings) {

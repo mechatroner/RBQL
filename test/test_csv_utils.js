@@ -5,17 +5,19 @@ const readline = require('readline');
 const crypto = require('crypto');
 const stream = require('stream');
 
-var rbql = null;
-var rbql_csv = null;
 const csv_utils = require('../rbql-js/csv_utils.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
 const build_engine = require('../rbql-js/build_engine.js');
 const test_common = require('./test_common.js');
 
+var rbql_csv = null;
+
 
 // FIXME add record iterator tests, see python version
 
 const script_dir = __dirname;
+
+// FIXME initialize directly from calling script, get rid of the param
 var debug_mode = false;
 
 
@@ -112,14 +114,14 @@ function write_and_parse_back(table, encoding, delim, policy) {
         encoding = 'utf-8'; // Writing js string in utf-8 then reading back should be a lossless operation? Or not?
     let writer_stream = new PseudoWritable();
     let line_separator = random_choice(line_separators);
-    let writer = new csv_utils.CSVWriter(writer_stream, true, encoding, delim, policy, line_separator);
+    let writer = new rbql_csv.CSVWriter(writer_stream, true, encoding, delim, policy, line_separator);
     writer._write_all(table);
     assert(writer.get_warnings().length === 0);
     let data_buffer = writer_stream.get_data();
     let input_stream = new stream.Readable();
     input_stream.push(data_buffer);
     input_stream.push(null);
-    let record_iterator = new csv_utils.CSVRecordIterator(input_stream, encoding, delim, policy);
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
     record_iterator._get_all_records(function(output_table) {
         assert(test_common.tables_are_equal(table, output_table), 'Expected and output tables mismatch');
     });
@@ -223,7 +225,7 @@ function test_whitespace_separated_parsing() {
     let delim = ' ';
     let policy = 'whitespace';
     let encoding = null;
-    let record_iterator = new csv_utils.CSVRecordIterator(input_stream, encoding, delim, policy);
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
     record_iterator._get_all_records(function(output_table) {
         assert(test_common.tables_are_equal(expected_table, output_table), 'Expected and output tables mismatch');
         write_and_parse_back(expected_table, encoding, delim, policy);
@@ -241,7 +243,7 @@ function test_split_lines_custom() {
     for (let tc of test_cases) {
         let [src, expected_res] = tc;
         let [stream, encoding] = string_to_randomly_encoded_stream(src);
-        let line_iterator = new csv_utils.CSVRecordIterator(stream, encoding, null, null);
+        let line_iterator = new rbql_csv.CSVRecordIterator(stream, encoding, null, null);
         line_iterator._get_all_lines(function(test_res) {
             assert(test_common.arrays_are_equal(expected_res, test_res));
         });
@@ -277,7 +279,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
     let policy = test_case['csv_policy'];
     let encoding = test_case['csv_encoding'];
     let output_format = test_common.get_default(test_case, 'output_format', 'input');
-    let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : csv_utils.interpret_named_csv_format(output_format);
+    let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
     let actual_output_table_path = null;
     let expected_md5 = null;
     if (expected_output_table_path !== null) {
@@ -390,7 +392,6 @@ function main() {
         die("rbql.js must be rebuild from template.js and builder.js");
     }
 
-    rbql = require('../rbql-js/rbql.js')
     rbql_csv = require('../rbql-js/rbql_csv.js')
 
     test_all();
