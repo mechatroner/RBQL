@@ -7,7 +7,7 @@ newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
 field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
 field_rgx = re.compile(field_regular_expression)
-field_rgx_external_whitespaces = re.compile(' *'+ field_regular_expression + ' *')
+field_rgx_external_whitespaces = re.compile(' *' + field_regular_expression + ' *')
 
 
 def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result):

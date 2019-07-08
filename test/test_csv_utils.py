@@ -87,8 +87,7 @@ def randomly_quote_field(src, delim):
         spaces_before = ' ' * random.randint(0, 2) if delim != ' ' else ''
         spaces_after = ' ' * random.randint(0, 2) if delim != ' ' else ''
         escaped = src.replace('"', '""')
-        escaped = '{}"{}"{}'.format(spaces_before, escaped, spaces_after)
-        return escaped
+        return '{}"{}"{}'.format(spaces_before, escaped, spaces_after)
     return src
 
 
@@ -99,7 +98,7 @@ def simple_join(fields, delim):
     return result
 
 
-def whitespace_join(fields):
+def random_whitespace_join(fields):
     result = ' ' * random.randint(0, 5)
     for f in fields:
         result += f + ' ' * random.randint(1, 5)
@@ -119,7 +118,7 @@ def random_smart_join(fields, delim, policy):
         return simple_join(fields, delim)
     elif policy == 'whitespace':
         assert delim == ' '
-        return whitespace_join(fields)
+        return random_whitespace_join(fields)
     elif policy == 'quoted':
         assert delim != '"'
         return randomly_join_quoted(fields, delim)
@@ -398,7 +397,7 @@ class TestRecordIterator(unittest.TestCase):
         for i in xrange6(10):
             self.maxDiff = None
             table = list()
-            num_rows = 20
+            num_rows = random.randint(1, 30)
             for irow in xrange6(num_rows):
                 min_len = 0 if irow + 1 < num_rows else 1
                 table.append([make_random_decoded_binary_csv_entry(min_len, 20, restricted_chars=['\r', '\n'])])

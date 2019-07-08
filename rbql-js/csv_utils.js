@@ -1,6 +1,6 @@
 let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
 let field_rgx = new RegExp('^' + field_regular_expression);
-let field_rgx_external_whitespaces = new RegExp('^' + ' *'+ field_regular_expression + ' *');
+let field_rgx_external_whitespaces = new RegExp('^ *' + field_regular_expression + ' *');
 
 
 function extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result) {
@@ -59,7 +59,7 @@ function quote_field(src, delim) {
 
 
 function unquote_field(field) {
-    let rgx = /^ *"((?:[^"]*"")*[^"]*)" *$/;
+    let rgx = new RegExp('^' + ' *' + field_regular_expression + ' *$');
     let match_obj = rgx.exec(field);
     if (match_obj !== null) {
         return match_obj[1].replace(/""/g, '"');

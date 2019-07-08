@@ -12,6 +12,9 @@ class RbqlIOHandlingError extends Error {}
 class AssertionError extends Error {}
 
 
+// FIXME try to detect faulty utf-8 situation: search for special "question mark" character in decoded string and show a warning (at least).
+
+
 function assert(condition, message=null) {
     if (!condition) {
         if (!message) {
@@ -412,6 +415,7 @@ function csv_run(user_query, input_path, input_delim, input_policy, output_path,
         error_handler('unexpected', String(e));
     }
 }
+
 
 function set_debug_mode() {
     debug_mode = true;
