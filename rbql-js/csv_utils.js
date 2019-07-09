@@ -3,6 +3,9 @@ let field_rgx = new RegExp('^' + field_regular_expression);
 let field_rgx_external_whitespaces = new RegExp('^ *' + field_regular_expression + ' *');
 
 
+// TODO consider making this file (and rbql.js) both node and browser compatible: https://caolan.org/posts/writing_for_node_and_the_browser.html
+
+
 function extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result) {
     var warning = false;
     let src_cur = src.substring(cidx);
