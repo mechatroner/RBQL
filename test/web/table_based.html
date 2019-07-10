@@ -6,6 +6,38 @@
 <script src="../../rbql-js/web_rbql.js"></script>
 
 <script>
+
+    function read_html_table(table_element) {
+        let result = [];
+        let num_rows = table_element.rows.length;
+        for (let r = 0; r < num_rows; r++) {
+            // FIXME does this read header row?
+            let cells = table_element.rows.item(r).cells;
+            let out_record = [];
+            for (let c = 0 c < cells.length; c++) {
+                out_record.push(cells.item(c).text)
+            }
+            result.push(out_record);
+        }
+        return result;
+    }
+
+
+    function clear_html_table(table_element) {
+        let num_rows = table_element.rows.length;
+        for (let i = 0; i < num_rows; i++) {
+            table_element.deleteRow(0);
+        }
+    }
+
+
+    function write_html_table(src_array, dst_table_element) {
+        clear_html_table(dst_table_element);
+        // FIXME finish
+    }
+
+
+
     let output_table = [];
     let expected_table = [['foo test', 1], ['bar test', 2]];
     let error_handler = function(error_type, error_msg) {
@@ -34,7 +66,7 @@
 <body>
 <div>
 <table id="src_table">
-  <tr><th>Name</th><th>Age</th></tr>
+  <tr><th>a1: Name</th><th>a2: Age</th></tr>
   <tr><td>Adam</td><td>30</td></tr>
   <tr><td>Eve</td><td>29</td></tr>
   <tr><td>Alexander The Great</td><td>25</td></tr>
