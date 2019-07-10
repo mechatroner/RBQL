@@ -2,11 +2,8 @@
 <html>
 <head>
 
-
 <script src="../../rbql-js/web_rbql.js"></script>
-
 <script>
-    console.log('starting...');
     let output_table = [];
     let expected_table = [['foo test', 1], ['bar test', 2]];
     let error_handler = function(error_type, error_msg) {
@@ -19,14 +16,7 @@
     rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, success_handler, error_handler);
 </script>
 
-
 <title>RBQL Generic Test</title>
-
-</head>
-
-<body>
+</head><body>
 <div><span>Open browser console</span></div>
-
-</body>
-
-</html>
+</body></html>
