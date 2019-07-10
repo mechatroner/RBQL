@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+
+<script src="../../rbql-js/web_rbql.js"></script>
+
+<script>
+    let output_table = [];
+    let expected_table = [['foo test', 1], ['bar test', 2]];
+    let error_handler = function(error_type, error_msg) {
+        console.log('Error: ' + error_type + ': ' + error_msg);
+    }
+    let success_handler = function(warnings) {
+        console.log('warnings: ' + JSON.stringify(warnings));
+        console.log('output table: ' + JSON.stringify(output_table));
+    }
+    rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, success_handler, error_handler);
+</script>
+
+
+<title>RBQL Generic Test</title>
+<style>
+    table {
+        border-collapse: collapse;
+    }
+    table, th, td {
+        border: 1px solid black;
+    }
+</style>
+
+</head>
+
+<body>
+<div>
+<table id="src_table">
+  <tr><th>Name</th><th>Age</th></tr>
+  <tr><td>Adam</td><td>30</td></tr>
+  <tr><td>Eve</td><td>29</td></tr>
+  <tr><td>Alexander The Great</td><td>25</td></tr>
+  <tr><td>Marilyn Monroe</td><td>35</td></tr>
+</table>
+<br><input id="query_input" type="text" style="width:500px" placeholder="select ... where ... order by ... limit ... "><button id="run_button">Run</button>
+<br><table id="dst_table"></table>
+</div>
+
+</body>
+</html>
