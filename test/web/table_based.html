@@ -7,15 +7,15 @@
 
 <script>
 
-    function read_html_table(table_element) {
+    function read_html_table_without_header(table_element) {
         let result = [];
         let num_rows = table_element.rows.length;
-        for (let r = 0; r < num_rows; r++) {
-            // FIXME does this read header row?
+        for (let r = 1; r < num_rows; r++) {
+            // XXX this is just a demo code, it is not very reliable because some tables may not have a header row.
             let cells = table_element.rows.item(r).cells;
             let out_record = [];
-            for (let c = 0 c < cells.length; c++) {
-                out_record.push(cells.item(c).text)
+            for (let c = 0; c < cells.length; c++) {
+                out_record.push(cells.item(c).innerHTML)
             }
             result.push(out_record);
         }
@@ -33,21 +33,38 @@
 
     function write_html_table(src_array, dst_table_element) {
         clear_html_table(dst_table_element);
-        // FIXME finish
+        for (let r = 0; r < src_array.length; r++) {
+            let row = dst_table_element.insertRow(r);
+            for (let c = 0; c < src_array[r].length; c++) {
+                let cell = row.insertCell(c);
+                cell.innerHTML = String(src_array[r][c]);
+            }
+        }
     }
 
-
-
-    let output_table = [];
-    let expected_table = [['foo test', 1], ['bar test', 2]];
-    let error_handler = function(error_type, error_msg) {
-        console.log('Error: ' + error_type + ': ' + error_msg);
+    function process_query() {
+        let input_table = read_html_table_without_header(document.getElementById('src_table'));
+        let output_table = [];
+        let user_query = document.getElementById('query_input').value;
+        clear_html_table(document.getElementById('dst_table'));
+        let error_handler = function(error_type, error_msg) {
+            // FIXME show as message
+            console.log('Error: ' + error_type + ': ' + error_msg);
+        }
+        let success_handler = function(warnings) {
+            // FIXME show as message
+            console.log('warnings: ' + JSON.stringify(warnings));
+            console.log('output table: ' + JSON.stringify(output_table));
+            write_html_table(output_table, document.getElementById('dst_table'));
+        }
+        rbql.table_run(user_query, input_table, output_table, success_handler, error_handler);
     }
-    let success_handler = function(warnings) {
-        console.log('warnings: ' + JSON.stringify(warnings));
-        console.log('output table: ' + JSON.stringify(output_table));
-    }
-    rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, success_handler, error_handler);
+
+    
+    document.addEventListener("DOMContentLoaded", function(event) {
+        document.getElementById("run_button").addEventListener("click", process_query);
+    });
+
 </script>
 
 
@@ -73,7 +90,7 @@
   <tr><td>Marilyn Monroe</td><td>35</td></tr>
 </table>
 <br><input id="query_input" type="text" style="width:500px" placeholder="select ... where ... order by ... limit ... "><button id="run_button">Run</button>
-<br><table id="dst_table"></table>
+<br><br><table id="dst_table"></table>
 </div>
 
 </body>
