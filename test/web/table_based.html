@@ -9,9 +9,7 @@
 
     function read_html_table_without_header(table_element) {
         let result = [];
-        let num_rows = table_element.rows.length;
-        for (let r = 1; r < num_rows; r++) {
-            // XXX this is just a demo code, it is not very reliable because some tables may not have a header row.
+        for (let r = 1; r < table_element.rows.length; r++) {
             let cells = table_element.rows.item(r).cells;
             let out_record = [];
             for (let c = 0; c < cells.length; c++) {
@@ -22,7 +20,6 @@
         return result;
     }
 
-
     function clear_html_table(table_element) {
         let num_rows = table_element.rows.length;
         for (let i = 0; i < num_rows; i++) {
@@ -30,9 +27,7 @@
         }
     }
 
-
     function write_html_table(src_array, dst_table_element) {
-        clear_html_table(dst_table_element);
         for (let r = 0; r < src_array.length; r++) {
             let row = dst_table_element.insertRow(r);
             for (let c = 0; c < src_array[r].length; c++) {
@@ -48,18 +43,15 @@
         let user_query = document.getElementById('query_input').value;
         clear_html_table(document.getElementById('dst_table'));
         let error_handler = function(error_type, error_msg) {
-            // FIXME show as message
-            console.log('Error: ' + error_type + ': ' + error_msg);
+            alert('RBQL Query finished with error: ' + error_type + ': ' + error_msg);
         }
         let success_handler = function(warnings) {
-            // FIXME show as message
-            console.log('warnings: ' + JSON.stringify(warnings));
-            console.log('output table: ' + JSON.stringify(output_table));
+            if (warnings.length)
+                alert('Warnings: ' + warnings.join('\n'))
             write_html_table(output_table, document.getElementById('dst_table'));
         }
         rbql.table_run(user_query, input_table, output_table, success_handler, error_handler);
     }
-
     
     document.addEventListener("DOMContentLoaded", function(event) {
         document.getElementById("run_button").addEventListener("click", process_query);
@@ -77,17 +69,22 @@
         border: 1px solid black;
     }
 </style>
-
 </head>
 
 <body>
 <div>
 <table id="src_table">
-  <tr><th>a1: Name</th><th>a2: Age</th></tr>
-  <tr><td>Adam</td><td>30</td></tr>
-  <tr><td>Eve</td><td>29</td></tr>
-  <tr><td>Alexander The Great</td><td>25</td></tr>
-  <tr><td>Marilyn Monroe</td><td>35</td></tr>
+  <tr><th>a1: Name</th><th>a2: Year</th><th>a3: Country</th></tr>
+  <tr><td>Roosevelt</td><td>1858</td><td>USA</td></tr>
+  <tr><td>Napoleon</td><td>1769</td><td>France</td></tr>
+  <tr><td>Dmitri Mendeleev</td><td>1834</td><td>Russia</td></tr>
+  <tr><td>Jane Austen</td><td>1775</td><td>England</td></tr>
+  <tr><td>Hayao Miyazaki</td><td>1941</td><td>Japan</td></tr>
+  <tr><td>Marilyn Monroe</td><td>1926</td><td>USA</td></tr>
+  <tr><td>Beethoven</td><td>1770</td><td>Germany</td></tr>
+  <tr><td>Louis Armstrong</td><td>1901</td><td>USA</td></tr>
+  <tr><td>Confucius</td><td>-551</td><td>China</td></tr>
+  <tr><td>Catherine the Great</td><td>1729</td><td>Russia</td></tr>
 </table>
 <br><input id="query_input" type="text" style="width:500px" placeholder="select ... where ... order by ... limit ... "><button id="run_button">Run</button>
 <br><br><table id="dst_table"></table>
