@@ -11,6 +11,8 @@ import io
 from . import engine
 from . import csv_utils
 
+# FIXME refactor: replace custom_init_path with user_init_code just like other interface functions
+
 
 PY3 = sys.version_info[0] == 3
 

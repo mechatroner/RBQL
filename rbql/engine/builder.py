@@ -31,6 +31,7 @@ from collections import defaultdict
 
 # TODO get rid of functions with "_py" suffix
 
+# FIXME add rbql_libs_demos tests/demos: for node(csv, table, generic) and for python(csv, table, generic)
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -554,7 +555,7 @@ class SingleTableRegistry:
         return TableIterator(self.table)
 
 
-def table_run(user_query, input_table, output_table, join_table, user_init_code=''):
+def table_run(user_query, input_table, output_table, join_table=None, user_init_code=''):
     input_iterator = TableIterator(input_table)
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else SingleTableRegistry(join_table)
