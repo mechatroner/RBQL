@@ -377,7 +377,7 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
 }
 
 
-function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, success_handler, error_handler, custom_init_path=null) {
+function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, success_handler, error_handler, user_init_code='') {
     try {
         let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
         let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
@@ -392,11 +392,8 @@ function csv_run(user_query, input_path, input_delim, input_policy, output_path,
             return;
         }
 
-        let user_init_code = '';
         let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
-        if (custom_init_path !== null) {
-            user_init_code = read_user_init_code(custom_init_path);
-        } else if (fs.existsSync(default_init_source_path)) {
+        if (user_init_code == '' && fs.existsSync(default_init_source_path)) {
             user_init_code = read_user_init_code(default_init_source_path);
         }
 

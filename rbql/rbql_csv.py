@@ -11,8 +11,6 @@ import io
 from . import engine
 from . import csv_utils
 
-# FIXME refactor: replace custom_init_path with user_init_code just like other interface functions
-
 
 PY3 = sys.version_info[0] == 3
 
@@ -374,7 +372,7 @@ class FileSystemCSVRegistry:
             self.record_iterator.finish()
 
 
-def csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, custom_init_path=None):
+def csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     try:
@@ -389,11 +387,8 @@ def csv_run(user_query, input_path, input_delim, input_policy, output_path, outp
         if not is_ascii(user_query) and csv_encoding == 'latin-1':
             raise RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
 
-        user_init_code = ''
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
-        if custom_init_path is not None:
-            user_init_code = read_user_init_code(custom_init_path)
-        elif os.path.exists(default_init_source_path):
+        if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = read_user_init_code(default_init_source_path)
 
         join_tables_registry = FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)

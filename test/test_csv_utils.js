@@ -408,7 +408,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         process_test_case(tmp_tests_dir, tests, test_id + 1);
     };
 
-    rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, success_handler, error_handler, null);
+    rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, success_handler, error_handler, '');
 }
 
 

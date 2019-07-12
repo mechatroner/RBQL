@@ -64,7 +64,10 @@ def run_with_python(args, is_interactive):
     args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
-    error_info, warnings = rbql_csv.csv_run(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, init_source_file)
+    user_init_code = ''
+    if init_source_file is not None:
+        user_init_code = rbql_csv.read_user_init_code(init_source_file)
+    error_info, warnings = rbql_csv.csv_run(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, user_init_code)
 
     if error_info is None:
         success = True
