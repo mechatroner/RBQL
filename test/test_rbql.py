@@ -141,6 +141,21 @@ def round_floats(src_table):
                 row[c] = round(row[c], 3)
 
 
+
+class TestTableRun(unittest.TestCase):
+    def test_table_run_simple(self):
+        input_table = [('Roosevelt', 1858), ('Napoleon', 1769), ('Confucius', -551)]
+        query = 'select a2 // 10, "name " + a1 order by a2'
+        expected_output_table = [[-56, 'name Confucius'], [176, 'name Napoleon'], [185, 'name Roosevelt']]
+        output_table = []
+        error_info, warnings = rbql.table_run(query, input_table, output_table)
+        self.assertEqual(error_info, None)
+        self.assertEqual(warnings, [])
+        self.assertEqual(expected_output_table, output_table)
+
+        # FIXME also add simple test with join table and integers
+
+
 class TestJsonTables(unittest.TestCase):
 
     def process_test_case(self, test_case):
