@@ -153,7 +153,17 @@ class TestTableRun(unittest.TestCase):
         self.assertEqual(warnings, [])
         self.assertEqual(expected_output_table, output_table)
 
-        # FIXME also add simple test with join table and integers
+
+    def test_table_run_simple_join(self):
+        input_table = [('Roosevelt', 1858, 'USA'), ('Napoleon', 1769, 'France'), ('Confucius', -551, 'China')]
+        join_table = [('China', 1386), ('France', 67), ('USA', 327), ('Russia', 140)]
+        query = 'select a2 // 10, b2, "name " + a1 order by a2 JOIN B on a3 == b1'
+        expected_output_table = [[-56, 1386, 'name Confucius'], [176, 67, 'name Napoleon'], [185, 327, 'name Roosevelt']]
+        output_table = []
+        error_info, warnings = rbql.table_run(query, input_table, output_table, join_table)
+        self.assertEqual(error_info, None)
+        self.assertEqual(warnings, [])
+        self.assertEqual(expected_output_table, output_table)
 
 
 class TestJsonTables(unittest.TestCase):
