@@ -50,7 +50,7 @@ function parse_cmd_args(cmd_args, scheme) {
         var normalized_key = normalize_cli_key(arg_key);
         if (arg_info['boolean']) {
             result[normalized_key] = true;
-            continue;    
+            continue;
         }
         if (i >= cmd_args.length) {
             die(`no CLI value for key: ${arg_key}`);

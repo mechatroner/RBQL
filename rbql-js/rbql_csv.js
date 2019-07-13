@@ -326,7 +326,7 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
         for (let i = 0; i < table.length; i++) {
             this.write(table[i]);
         }
-    }
+    };
 
 
     this.finish = function(after_finish_callback) {
