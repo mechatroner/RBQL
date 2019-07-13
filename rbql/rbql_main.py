@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import sys
-import codecs
 import argparse
 
 from . import csv_utils
@@ -149,7 +148,12 @@ def print_colorized(records, delim, encoding, show_column_names):
                 colored_field = '{}{}'.format(color_code, field)
             out_fields.append(colored_field)
         out_line = delim.join(out_fields) + reset_color_code
-        print(out_line)
+        if PY3:
+            sys.stdout.buffer.write(out_line.encode(encoding))
+        else:
+            sys.stdout.write(out_line.encode(encoding))
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
 
 def get_default_output_path(input_path, delim):
