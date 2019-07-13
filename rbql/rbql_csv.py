@@ -65,7 +65,7 @@ def encode_input_stream(stream, encoding):
             # BytesIO doesn't have "buffer"
             return io.TextIOWrapper(stream, encoding=encoding)
     else:
-        # Reference: https://stackoverflow.com/a/27425797/2898283 
+        # Reference: https://stackoverflow.com/a/27425797/2898283
         # Python 2 streams don't have stream.buffer and therefore we can't use io.TextIOWrapper. Instead we use codecs
         return codecs.getreader(encoding)(stream)
 

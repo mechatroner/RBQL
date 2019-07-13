@@ -25,7 +25,7 @@ from collections import defaultdict
 
 # This module must be both python2 and python3 compatible
 
-# This module works with records only. It is CSV-agnostic. 
+# This module works with records only. It is CSV-agnostic.
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
