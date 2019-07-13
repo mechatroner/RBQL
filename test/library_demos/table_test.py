@@ -1,5 +1,4 @@
 import rbql
-from rbql import rbql_csv
 
 input_table = [
     ['Roosevelt',1858,'USA'],
@@ -8,7 +7,7 @@ input_table = [
     ['Jane Austen',1775,'England'],
     ['Hayao Miyazaki',1941,'Japan'],
 ]
-user_query = 'SELECT a1, int(a2) % 1000 WHERE a3 != "USA" LIMIT 3'
+user_query = 'SELECT a1, a2 % 1000 WHERE a3 != "USA" LIMIT 3'
 output_table = []
 error_info, warnings = rbql.table_run(user_query, input_table, output_table)
 if error_info is None:
