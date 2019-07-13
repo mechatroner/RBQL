@@ -270,7 +270,7 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
 
     this.quoted_join = function(fields) {
         let delim = this.delim;
-        var quoted_fields = fields.map(function(v) { return quote_field(String(v), delim); });
+        var quoted_fields = fields.map(function(v) { return csv_utils.quote_field(String(v), delim); });
         return quoted_fields.join(this.delim);
     };
 
