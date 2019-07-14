@@ -31,7 +31,8 @@ from collections import defaultdict
 
 # TODO get rid of functions with "_py" suffix
 
-# FIXME add rbql_libs_demos tests/demos: for node(csv, table, generic) and for python(csv, table, generic)
+# TODO new feature: allow record iterator provide custom column names.
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'

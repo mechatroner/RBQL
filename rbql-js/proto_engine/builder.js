@@ -14,7 +14,7 @@ const external_js_template_text = codegeneration_pseudo_function_include_combine
 // TODO replace prototypes with classes: this improves readability
 
 
-const version = '0.6.0';
+const version = '0.7.0';
 
 const GROUP_BY = 'GROUP BY';
 const UPDATE = 'UPDATE';

@@ -1,3 +1,3 @@
 # Explanation of this file purpose: https://stackoverflow.com/a/16084844/2898283
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 

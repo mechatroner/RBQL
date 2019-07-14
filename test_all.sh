@@ -46,6 +46,7 @@ if [ "$rc" != 0 ] || [ -z "$node_version" ] ; then
 fi
 
 if [ "$has_node" == "yes" ] ; then
+    node rbql-js/build_engine.js
     js_rbql_version=$( node rbql-js/cli_rbql.js --version )
     if [ "$py_rbql_version" != "$js_rbql_version" ] ; then
         echo "Error: version missmatch between rbql.py ($py_rbql_version) and rbql.js ($js_rbql_version)"  1>&2
@@ -56,10 +57,10 @@ if [ "$has_node" == "yes" ] ; then
     node test_csv_utils.js --run-random-csv-mode ../random_tmp_table.txt
     die_if_error $?
 
-    node test_rbql.js --auto-rebuild-engine
+    node test_rbql.js
     die_if_error $?
 
-    node test_csv_utils.js --auto-rebuild-engine
+    node test_csv_utils.js
     die_if_error $?
 
     cd ..
