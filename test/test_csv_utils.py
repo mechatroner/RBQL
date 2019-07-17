@@ -372,6 +372,25 @@ class TestRecordIterator(unittest.TestCase):
             self.assertEqual(table, parsed_table)
 
 
+    def test_multiline_fields(self):
+        data_lines = []
+        data_lines.append('foo, bar,aaa')
+        data_lines.append('test,"hello, bar", "aaa ')
+        data_lines.append('test","hello, bar", "bbb ')
+        data_lines.append('foo, bar,aaa')
+        data_lines.append('foo, ""bar"",aaa')
+        data_lines.append('foo, test","hello, bar", "bbb "')
+        data_lines.append('foo, bar,aaa')
+        csv_data = '\n'.join(data_lines)
+        stream, encoding = string_to_randomly_encoded_stream(csv_data)
+        expected_table = [['foo', ' bar', 'aaa'], ['test', 'hello, bar', 'aaa \ntest', 'hello, bar', 'bbb \nfoo, bar,aaa\nfoo, "bar",aaa\nfoo, test', "hello, bar", 'bbb '], ['foo', ' bar', 'aaa']]
+
+        record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=',', policy='quoted_rfc')
+        parsed_table = record_iterator._get_all_records()
+        self.assertEqual(expected_table, parsed_table)
+
+
+
     def test_whitespace_separated_parsing(self):
         data_lines = []
         data_lines.append('hello world')

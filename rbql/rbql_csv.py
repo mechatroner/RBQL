@@ -154,13 +154,13 @@ class CSVWriter:
         self.delim = delim
         self.close_stream_on_finish = close_stream_on_finish
         if policy == 'simple':
-            self.join_func = self.simple_join
+            self.polymorphic_join = self.simple_join
         elif policy == 'quoted':
-            self.join_func = self.quoted_join
+            self.polymorphic_join = self.quoted_join
         elif policy == 'monocolumn':
-            self.join_func = self.mono_join
+            self.polymorphic_join = self.mono_join
         elif policy == 'whitespace':
-            self.join_func = self.simple_join
+            self.polymorphic_join = self.simple_join
         else:
             raise RuntimeError('unknown output csv policy')
 
@@ -169,6 +169,7 @@ class CSVWriter:
 
 
     def quoted_join(self, fields):
+        # FIXME use quote_field_fast like this: `rgxp = re.compile([",\r\n])`. Investigate how to escape chars for char classes
         return self.delim.join([csv_utils.quote_field(f, self.delim) for f in fields])
 
 
@@ -198,7 +199,7 @@ class CSVWriter:
     def write(self, fields):
         self.replace_none_values(fields)
         fields = [str6(f) for f in fields]
-        self.stream.write(self.join_func(fields))
+        self.stream.write(self.polymorphic_join(fields))
         self.stream.write(self.line_separator)
 
 
@@ -235,7 +236,7 @@ class CSVRecordIterator:
         self.stream = encode_input_stream(stream, encoding)
         self.close_stream_on_finish = close_stream_on_finish
         self.delim = delim
-        self.policy = policy
+        self.policy = 'quoted' if policy == 'quoted_rfc' else policy
         self.table_name = table_name
 
         self.buffer = ''
@@ -247,6 +248,7 @@ class CSVRecordIterator:
 
         self.utf8_bom_removed = False
         self.first_defective_line = None # TODO use line # instead of record # when "\n" in fields parsing is implemented
+        self.polymorphic_get_row = self.get_row_rfc if policy == 'quoted_rfc' else self.get_row_simple
 
 
     def finish(self):
@@ -284,7 +286,7 @@ class CSVRecordIterator:
         self.buffer += ''.join(chunks)
 
 
-    def get_row(self):
+    def get_row_simple(self):
         try:
             row = self._get_row_from_buffer()
             if row is not None:
@@ -302,9 +304,25 @@ class CSVRecordIterator:
         except UnicodeDecodeError:
             raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
 
+    
+    def get_row_rfc(self):
+        first_row = self.get_row_simple()
+        if first_row is None:
+            return None
+        if first_row.count('"') % 2 == 0:
+            return first_row
+        rows_buffer = [first_row]
+        while True:
+            row = self.get_row_simple()
+            if row is None:
+                return '\n'.join(rows_buffer)
+            rows_buffer.append(row)
+            if row.count('"') % 2 == 1:
+                return '\n'.join(rows_buffer)
+
 
     def get_record(self):
-        line = self.get_row()
+        line = self.polymorphic_get_row()
         if line is None:
             return None
         if self.NR == 0:
@@ -325,7 +343,7 @@ class CSVRecordIterator:
     def _get_all_rows(self):
         result = []
         while True:
-            row = self.get_row()
+            row = self.polymorphic_get_row()
             if row is None:
                 break
             result.append(row)

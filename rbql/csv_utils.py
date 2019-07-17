@@ -83,7 +83,15 @@ def extract_line_from_data(data):
 
 
 def quote_field(src, delim):
-    if src.find('"') != -1 or src.find(delim) != -1:
+    if src.find('"') != -1 or src.find(delim) != -1 or src.find('\r') != -1 or src.find('\n') != -1:
+        escaped = src.replace('"', '""')
+        escaped = '"{}"'.format(escaped)
+        return escaped
+    return src
+
+
+def quote_field_fast(src, rgxp):
+    if rgxp.search(src) is not None:
         escaped = src.replace('"', '""')
         escaped = '"{}"'.format(escaped)
         return escaped
