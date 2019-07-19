@@ -97,12 +97,12 @@ def is_delimited_table(sampled_lines, delim, policy):
     return True
 
 
-def sample_lines(src_path, encoding):
+def sample_lines(src_path, encoding, delim, policy):
     result = []
     source = open(src_path, 'rb')
-    line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=None, policy=None)
+    line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=delim, policy=policy)
     for _i in xrange6(10):
-        line = line_iterator.get_row()
+        line = line_iterator.polymorphic_get_row()
         if line is None:
             break
         result.append(line)
@@ -110,7 +110,7 @@ def sample_lines(src_path, encoding):
 
 
 def autodetect_delim_policy(input_path, encoding):
-    sampled_lines = sample_lines(input_path, encoding)
+    sampled_lines = sample_lines(input_path, encoding, None, None)
     autodetection_dialects = [('\t', 'simple'), (',', 'quoted'), (';', 'quoted')]
     for delim, policy in autodetection_dialects:
         if is_delimited_table(sampled_lines, delim, policy):
@@ -123,7 +123,7 @@ def autodetect_delim_policy(input_path, encoding):
 
 
 def sample_records(input_path, delim, policy, encoding):
-    sampled_lines = sample_lines(input_path, encoding)
+    sampled_lines = sample_lines(input_path, encoding, delim, policy)
     bad_lines = []
     result = []
     for il, line in enumerate(sampled_lines):
