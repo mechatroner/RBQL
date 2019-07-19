@@ -169,7 +169,6 @@ class CSVWriter:
 
 
     def quoted_join(self, fields):
-        # FIXME use quote_field_fast like this: `rgxp = re.compile([",\r\n])`. Investigate how to escape chars for char classes
         return self.delim.join([csv_utils.quote_field(f, self.delim) for f in fields])
 
 
