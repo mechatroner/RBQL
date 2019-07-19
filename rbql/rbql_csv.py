@@ -100,7 +100,7 @@ def str_py3(obj):
     return obj if isinstance(obj, str) else str(obj)
 
 
-str6 = str_py3 if PY3 else str_py2
+polymorphic_str = str_py3 if PY3 else str_py2
 
 
 
@@ -200,7 +200,7 @@ class CSVWriter:
 
     def write(self, fields):
         self.replace_none_values(fields)
-        fields = [str6(f) for f in fields]
+        fields = [polymorphic_str(f) for f in fields]
         self.stream.write(self.polymorphic_join(fields))
         self.stream.write(self.line_separator)
 
