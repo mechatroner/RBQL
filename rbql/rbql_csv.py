@@ -92,13 +92,16 @@ def remove_utf8_bom(line, assumed_source_encoding):
     return line
 
 
-def str6(obj):
-    # We have to use this function because str() for python2.7 tries to ascii-encode unicode strings
-    if PY3 and isinstance(obj, str):
-        return obj
-    if not PY3 and isinstance(obj, basestring):
-        return obj
-    return str(obj)
+def str_py2(obj):
+    return obj if isinstance(obj, basestring) else str(obj)
+
+
+def str_py3(obj):
+    return obj if isinstance(obj, str) else str(obj)
+
+
+str6 = str_py3 if PY3 else str_py2
+
 
 
 def try_read_index(index_path):
