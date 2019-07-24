@@ -83,7 +83,7 @@ def natural_random(low, high):
 
 
 def randomly_quote_field(src, delim):
-    if src.find('"') != -1 or src.find(delim) != -1 or random.randint(0, 1) == 1:
+    if src.find('"') != -1 or src.find(delim) != -1 or src.find('\n') != -1 or src.find('\r') != -1 or random.randint(0, 1) == 1:
         spaces_before = ' ' * random.randint(0, 2) if delim != ' ' else ''
         spaces_after = ' ' * random.randint(0, 2) if delim != ' ' else ''
         escaped = src.replace('"', '""')
@@ -119,7 +119,7 @@ def random_smart_join(fields, delim, policy):
     elif policy == 'whitespace':
         assert delim == ' '
         return random_whitespace_join(fields)
-    elif policy == 'quoted':
+    elif policy in ['quoted', 'quoted_rfc']:
         assert delim != '"'
         return randomly_join_quoted(fields, delim)
     elif policy == 'monocolumn':
@@ -173,6 +173,8 @@ def write_and_parse_back(table, encoding, delim, policy):
 def make_random_decoded_binary_csv_entry(min_len, max_len, restricted_chars):
     strlen = random.randint(min_len, max_len)
     char_codes = list(range(256))
+    if restricted_chars is None:
+        restricted_chars = []
     restricted_chars = [ord(c) for c in restricted_chars]
     char_codes = [i for i in char_codes if i not in restricted_chars]
     data_bytes = list()
@@ -184,7 +186,7 @@ def make_random_decoded_binary_csv_entry(min_len, max_len, restricted_chars):
     return decoded_binary
 
 
-def generate_random_decoded_binary_table(max_num_rows, max_num_cols):
+def generate_random_decoded_binary_table(max_num_rows, max_num_cols, restricted_chars):
     num_rows = natural_random(1, max_num_rows)
     num_cols = natural_random(1, max_num_cols)
     good_keys = ['Hello', 'Avada Kedavra ', ' ??????', '128', '3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
@@ -196,7 +198,7 @@ def generate_random_decoded_binary_table(max_num_rows, max_num_cols):
             if c == good_column:
                 result[-1].append(random.choice(good_keys))
             else:
-                result[-1].append(make_random_decoded_binary_csv_entry(0, 20, restricted_chars=['\r', '\n']))
+                result[-1].append(make_random_decoded_binary_csv_entry(0, 20, restricted_chars))
     return result
 
 
@@ -227,6 +229,12 @@ def make_random_csv_records_naive():
         result.append((fields, csv_line, defective_escaping))
     return result
 
+
+def normalize_newlines_in_fields(table):
+    for row in table:
+        for c in xrange6(len(row)):
+            row[c] = row[c].replace('\r\n', '\n')
+            row[c] = row[c].replace('\r', '\n')
 
 
 
@@ -356,12 +364,30 @@ class TestLineSplit(unittest.TestCase):
 class TestRecordIterator(unittest.TestCase):
     def test_iterator(self):
         for _test_num in xrange6(100):
-            table = generate_random_decoded_binary_table(10, 10)
+            table = generate_random_decoded_binary_table(10, 10, ['\r', '\n'])
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
             table_has_delim = find_in_table(table, delim)
             policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
             csv_data = table_to_csv_string_random(table, delim, policy)
+            stream, encoding = string_to_randomly_encoded_stream(csv_data)
+
+            record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
+            parsed_table = record_iterator._get_all_records()
+            self.assertEqual(table, parsed_table)
+
+            parsed_table = write_and_parse_back(table, encoding, delim, policy)
+            self.assertEqual(table, parsed_table)
+
+
+    def test_iterator_rfc(self):
+        for _test_num in xrange6(100):
+            table = generate_random_decoded_binary_table(10, 10, None)
+            delims = ['\t', ',', ';', '|']
+            delim = random.choice(delims)
+            policy = 'quoted_rfc'
+            csv_data = table_to_csv_string_random(table, delim, policy)
+            normalize_newlines_in_fields(table) # XXX normalizing '\r' -> '\n' because record iterator doesn't preserve original separators
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
             record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
