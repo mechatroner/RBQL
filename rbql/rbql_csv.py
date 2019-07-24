@@ -160,6 +160,8 @@ class CSVWriter:
             self.polymorphic_join = self.simple_join
         elif policy == 'quoted':
             self.polymorphic_join = self.quoted_join
+        elif policy == 'quoted_rfc':
+            self.polymorphic_join = self.rfc_quoted_join
         elif policy == 'monocolumn':
             self.polymorphic_join = self.mono_join
         elif policy == 'whitespace':
@@ -173,6 +175,10 @@ class CSVWriter:
 
     def quoted_join(self, fields):
         return self.delim.join([csv_utils.quote_field(f, self.delim) for f in fields])
+
+
+    def rfc_quoted_join(self, fields):
+        return self.delim.join([csv_utils.rfc_quote_field(f, self.delim) for f in fields])
 
 
     def mono_join(self, fields):

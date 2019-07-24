@@ -383,11 +383,15 @@ class TestRecordIterator(unittest.TestCase):
         data_lines.append('foo, bar,aaa')
         csv_data = '\n'.join(data_lines)
         stream, encoding = string_to_randomly_encoded_stream(csv_data)
-        expected_table = [['foo', ' bar', 'aaa'], ['test', 'hello, bar', 'aaa \ntest', 'hello, bar', 'bbb \nfoo, bar,aaa\nfoo, "bar",aaa\nfoo, test', "hello, bar", 'bbb '], ['foo', ' bar', 'aaa']]
+        table = [['foo', ' bar', 'aaa'], ['test', 'hello, bar', 'aaa \ntest', 'hello, bar', 'bbb \nfoo, bar,aaa\nfoo, "bar",aaa\nfoo, test', "hello, bar", 'bbb '], ['foo', ' bar', 'aaa']]
+        delim = ','
+        policy = 'quoted_rfc'
 
-        record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=',', policy='quoted_rfc')
+        record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
         parsed_table = record_iterator._get_all_records()
-        self.assertEqual(expected_table, parsed_table)
+        self.assertEqual(table, parsed_table)
+        parsed_table = write_and_parse_back(table, encoding, delim, policy)
+        self.assertEqual(table, parsed_table)
 
 
 
