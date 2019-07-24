@@ -218,7 +218,7 @@ def start_preview_mode(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--delim', help='Delimiter')
+    parser.add_argument('--delim', help='Delimiter character or multicharacter string, e.g. "," or "###"')
     parser.add_argument('--policy', help='csv split policy', choices=policy_names)
     parser.add_argument('--out-format', help='output format', default='input', choices=out_format_names)
     parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if not provided')

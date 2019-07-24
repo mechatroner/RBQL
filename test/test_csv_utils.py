@@ -38,6 +38,8 @@ line_separators = ['\n', '\r\n', '\r']
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
+# FIXME add test with multicharacter separators
+
 
 def normalize_warnings(warnings):
     # TODO move into a common test lib module e.g. "tests_common.py"

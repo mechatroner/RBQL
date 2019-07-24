@@ -14,6 +14,7 @@ var rbql_csv = null;
 
 
 // FIXME add record iterator tests, see python version
+// FIXME add test with multicharacter separators
 
 const script_dir = __dirname;
 
