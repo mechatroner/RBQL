@@ -38,8 +38,6 @@ line_separators = ['\n', '\r\n', '\r']
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# FIXME add test with multicharacter separators
-
 
 def normalize_warnings(warnings):
     # TODO move into a common test lib module e.g. "tests_common.py"
@@ -421,6 +419,23 @@ class TestRecordIterator(unittest.TestCase):
         parsed_table = write_and_parse_back(table, encoding, delim, policy)
         self.assertEqual(table, parsed_table)
 
+
+    def test_multicharacter_separator_parsing(self):
+        data_lines = []
+        data_lines.append('aaa:=)bbb:=)ccc')
+        data_lines.append('aaa :=) bbb :=)ccc ')
+        expected_table = [['aaa', 'bbb', 'ccc'], ['aaa ', ' bbb ', 'ccc ']]
+        csv_data = '\n'.join(data_lines)
+        stream = io.StringIO(csv_data)
+        delim = ':=)'
+        policy = 'simple'
+        encoding = None
+        record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim, policy)
+        parsed_table = record_iterator._get_all_records()
+        self.assertEqual(expected_table, parsed_table)
+
+        parsed_table = write_and_parse_back(expected_table, encoding, delim, policy)
+        self.assertEqual(expected_table, parsed_table)
 
 
     def test_whitespace_separated_parsing(self):
