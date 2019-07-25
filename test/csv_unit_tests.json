@@ -240,5 +240,15 @@
         "csv_policy": "simple",
         "csv_encoding": "utf-8",
         "query_js": "select top 20 * where a2 == 'gamma'"
+    },
+    {
+        "test_name": "multichar_separator",
+        "input_table_path": "csv_files/movies_multichar_separator.txt",
+        "expected_output_table_path": "csv_files/movies_multichar_separator_result.txt",
+        "csv_separator": "~#~",
+        "csv_policy": "simple",
+        "csv_encoding": "latin-1",
+        "query_python": "select top 10 MAX(int(a4)), MIN(int(a8)), a3 group by a3",
+        "query_js": "select top 10 MAX(parseInt(a4)), MIN(parseInt(a8)), a3 group by a3"
     }
 ]
