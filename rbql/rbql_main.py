@@ -3,7 +3,9 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import sys
+import os
 import argparse
+import readline
 
 from . import csv_utils
 from . import rbql_csv
@@ -11,6 +13,13 @@ from . import _version
 
 
 PY3 = sys.version_info[0] == 3
+
+
+# FIXME check readline in Windows both with py2 and py3
+history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
+
+
+polymorphic_input = input if PY3 else raw_input
 
 
 def eprint(*args, **kwargs):
@@ -164,15 +173,19 @@ def get_default_output_path(input_path, delim):
 
 
 def run_interactive_loop(args):
+    if os.path.exists(history_path):
+        readline.read_history_file(history_path)
+    readline.set_history_length(100)
     while True:
-        print('\nInput SQL-like RBQL query and press Enter:')
-        sys.stdout.write('> ')
-        sys.stdout.flush()
-        query = sys.stdin.readline()
-        if not len(query):
+        try:
+            query = polymorphic_input('Input SQL-like RBQL query and press Enter:\n> ')
+            query = query.strip()
+        except EOFError:
             print()
             break # Ctrl-D
-        query = query.strip()
+        if not len(query):
+            break
+        readline.write_history_file(history_path)
         args.query = query
         success = run_with_python(args, is_interactive=True)
         if success:

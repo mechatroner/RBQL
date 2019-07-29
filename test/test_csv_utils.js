@@ -15,8 +15,8 @@ var rbql_csv = null;
 
 // FIXME add record iterator tests, see python version
 // FIXME add local test with multicharacter separators
-// FIXME add file test with multicharacter separators both for python and js
-// FIXME add local test with multicharacter separators
+// FIXME add file test with newlines in fields both for python and js
+// FIXME add local test with newlines in fields
 // FIXME investigate why left/right arrows are not working in console query editing mode
 
 const script_dir = __dirname;
