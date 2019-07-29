@@ -9,6 +9,9 @@ const csv_utils = require('./csv_utils.js');
 const cli_parser = require('./cli_parser.js');
 
 
+// TODO implement query history like in Python version. "readline" modules allows to do that, see "completer" parameter.
+
+
 function die(error_msg) {
     console.error('Error: ' + error_msg);
     process.exit(1);
@@ -20,6 +23,7 @@ var tmp_worker_module_path = null;
 var error_format = 'hr';
 var interactive_mode = false;
 var user_input_reader = null;
+var args = null;
 
 
 function show_error(msg) {
@@ -62,12 +66,6 @@ function cleanup_tmp() {
     if (fs.existsSync(tmp_worker_module_path)) {
         fs.unlinkSync(tmp_worker_module_path);
     }
-}
-
-
-function show_query_prompt() {
-    console.log('\nInput SQL-like RBQL query and press Enter:');
-    process.stdout.write('> ');
 }
 
 
@@ -216,7 +214,7 @@ function handle_query_success(warnings, output_path, delim, policy) {
 }
 
 
-function run_with_js(args) {
+function run_with_js() {
     var delim = normalize_delim(args['delim']);
     var policy = args['policy'] ? args['policy'] : get_default_policy(delim);
     var query = args['query'];
@@ -256,17 +254,15 @@ function get_default_output_path(input_path, delim) {
 }
 
 
-function run_interactive_loop(args) {
-    show_query_prompt();
-    user_input_reader = readline.createInterface({ input: process.stdin });
-    user_input_reader.on('line', line => {
-        args.query = line.trim();
-        run_with_js(args);
+function show_query_prompt() {
+    user_input_reader.question('Input SQL-like RBQL query and press Enter:\n> ', (query) => {
+        args.query = query.trim();
+        run_with_js();
     });
 }
 
 
-function show_preview(args, input_path, delim, policy) {
+function show_preview(input_path, delim, policy) {
     if (!delim) {
         die('Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option');
     }
@@ -283,7 +279,8 @@ function show_preview(args, input_path, delim, policy) {
             args.output = get_default_output_path(input_path, delim);
             show_warning('Output path was not provided. Result set will be saved as: ' + args.output);
         }
-        run_interactive_loop(args);
+        user_input_reader = readline.createInterface({ input: process.stdin, output: process.stdout });
+        show_query_prompt();
     });
 }
 
@@ -303,11 +300,11 @@ function start_preview_mode(args) {
     if (delim !== null) {
         delim = normalize_delim(delim);
         policy = args['policy'] ? args['policy'] : get_default_policy(delim);
-        show_preview(args, input_path, delim, policy);
+        show_preview(input_path, delim, policy);
     } else {
         sample_lines(input_path, (sampled_lines) => {
             let [delim, policy] = autodetect_delim_policy(input_path, sampled_lines);
-            show_preview(args, input_path, delim, policy);
+            show_preview(input_path, delim, policy);
         });
     }
 }
@@ -330,7 +327,7 @@ function main() {
         '--debug-mode': {'boolean': true, 'help': 'Run in debug mode', 'hidden': true},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
     };
-    var args = cli_parser.parse_cmd_args(process.argv, scheme);
+    args = cli_parser.parse_cmd_args(process.argv, scheme);
 
     if (args['auto-rebuild-engine']) {
         let build_engine = require('./build_engine.js');
@@ -355,7 +352,7 @@ function main() {
         if (!args.delim) {
             die('Separator must be provided with "--delim" option in non-interactive mode');
         }
-        run_with_js(args);
+        run_with_js();
     } else {
         interactive_mode = true;
         start_preview_mode(args);
