@@ -1,3 +1,9 @@
+function die(error_msg) {
+    console.error('Error: ' + error_msg);
+    process.exit(1);
+}
+
+
 function round_floats(src_table) {
     for (let r = 0; r < src_table.length; r++) {
         for (let c = 0; c < src_table[r].length; c++) {
@@ -9,13 +15,25 @@ function round_floats(src_table) {
 }
 
 
-function arrays_are_equal(a, b) {
-    if (a.length != b.length)
+function assert_arrays_are_equal(a, b, exit_at_error=true, silent=false) {
+    if (a.length != b.length) {
+        if (!silent) {
+            console.log(`Arrays have different length: a.length = ${a.length}, b.length = ${b.length}`);
+            console.log(`a: ${JSON.stringify(a)}`)
+            console.log(`b: ${JSON.stringify(b)}`)
+        }
+        if (exit_at_error)
+            die('Assertion failed')
         return false;
+    }
     for (var i = 0; i < a.length; i++) {
         if (a[i] !== b[i]) {
-            console.log('mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
-            console.trace();
+            if (!silent) {
+                console.log('Array mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
+                console.trace();
+            }
+            if (exit_at_error)
+                die('Assertion failed')
             return false;
         }
     }
@@ -23,12 +41,15 @@ function arrays_are_equal(a, b) {
 }
 
 
-function tables_are_equal(a, b) {
+function assert_tables_are_equal(a, b, exit_at_error=true) {
     if (a.length != b.length)
         return false;
     for (var i = 0; i < a.length; i++) {
-        if (!arrays_are_equal(a[i], b[i]))
+        if (!assert_arrays_are_equal(a[i], b[i], false)) {
+            if (exit_at_error)
+                die(`Mismatch at row ${i}`);
             return false;
+        }
     }
     return true;
 }
@@ -81,6 +102,6 @@ function get_default(obj, key, default_value) {
 module.exports.get_default = get_default;
 module.exports.normalize_warnings = normalize_warnings;
 module.exports.objects_are_equal = objects_are_equal;
-module.exports.tables_are_equal = tables_are_equal;
-module.exports.arrays_are_equal = arrays_are_equal;
+module.exports.assert_tables_are_equal = assert_tables_are_equal;
+module.exports.assert_arrays_are_equal = assert_arrays_are_equal;
 module.exports.round_floats = round_floats;
