@@ -18,8 +18,6 @@ var rbql_csv = null;
 // FIXME add file test with newlines in fields both for python and js
 // FIXME add local test with newlines in fields
 
-// FIXME fix a bug: sometimes tests fail
-
 const script_dir = __dirname;
 
 var debug_mode = false;
@@ -166,7 +164,7 @@ function randomly_quote_field(src, delim) {
 function randomly_join_quoted(fields, delim) {
     let efields = [];
     for (let field of fields) {
-        efields.push(randomly_quote_field(field));
+        efields.push(randomly_quote_field(field, delim));
     }
     test_common.assert_arrays_are_equal(csv_utils.unquote_fields(efields), fields);
     return efields.join(delim);
@@ -492,7 +490,7 @@ function do_test_record_iterator(table, delim, policy) {
 
 
 function test_record_iterator() {
-    for (let itest = 0; itest < 1; itest++) {
+    for (let itest = 0; itest < 100; itest++) {
         let table = generate_random_decoded_binary_table(10, 10, ['\r', '\n']);
         let delims = ['\t', ',', ';', '|'];
         let delim = random_choice(delims);
