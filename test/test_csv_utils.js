@@ -13,10 +13,11 @@ const test_common = require('./test_common.js');
 var rbql_csv = null;
 
 
-// FIXME add record iterator tests, see python version
-// FIXME add local test with multicharacter separators
-// FIXME add file test with newlines in fields both for python and js
+// TODO add all record iterator tests, see python version
+// TODO Add tests: 1. utf decoding errors 2. bom
+
 // FIXME add local test with newlines in fields
+// FIXME add file test with newlines in fields both for python and js
 
 const script_dir = __dirname;
 
@@ -357,9 +358,6 @@ function test_unquote() {
 }
 
 
-// TODO Add tests: 2. random parsing 3. utf decoding errors 4. bom
-
-
 function test_whitespace_separated_parsing() {
     let data_lines = [];
     data_lines.push('hello world');
@@ -501,6 +499,26 @@ function test_record_iterator() {
 }
 
 
+function test_multicharacter_separator_parsing() {
+    let data_lines = [];
+    data_lines.push('aaa:=)bbb:=)ccc');
+    data_lines.push('aaa :=) bbb :=)ccc ');
+    let expected_table = [['aaa', 'bbb', 'ccc'], ['aaa ', ' bbb ', 'ccc ']];
+    let csv_data = data_lines.join('\n');
+    let input_stream = new stream.Readable();
+    input_stream.push(csv_data);
+    input_stream.push(null);
+    let delim = ':=)';
+    let policy = 'simple';
+    let encoding = null;
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
+    record_iterator._get_all_records(function(parsed_table) {
+        test_common.assert_tables_are_equal(expected_table, parsed_table);
+        write_and_parse_back(expected_table, encoding, delim, policy);
+    });
+}
+
+
 function test_monocolumn_separated_parsing() {
     for (let itest = 0; itest < 30; itest++) {
         let table = [];
@@ -537,6 +555,7 @@ function test_all() {
     test_json_scenarios();
     test_record_iterator();
     test_monocolumn_separated_parsing();
+    test_multicharacter_separator_parsing();
 }
 
 
