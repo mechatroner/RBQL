@@ -316,16 +316,16 @@ function main() {
         '--input': {'help': 'Read csv table from FILE instead of stdin'},
         '--output': {'help': 'Write output table to FILE instead of stdout'},
         '--delim': {'help': 'Delimiter character or multicharacter string, e.g. "," or "###"'},
-        '--policy': {'help': 'Split policy. Supported values: "simple", "quoted", "whitespace", "monocolumn"'},
+        '--policy': {'help': 'Split policy. Supported values: "simple", "quoted", "quoted_rfc", "whitespace", "monocolumn"'},
+        '--encoding': {'default': 'latin-1', 'help': 'Manually set csv table encoding'},
         '--out-format': {'default': 'input', 'help': 'Output format, available values: ' + out_format_names.join(',')},
-        '--error-format': {'default': 'hr', 'help': 'Error and warnings format. [hr|json]'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format'},
-        '--encoding': {'default': 'latin-1', 'help': 'Manually set csv table encoding'},
-        '--version': {'boolean': true, 'help': 'Script language to use in query'},
+        '--error-format': {'default': 'hr', 'help': 'Errors and warnings format. [hr|json]'},
+        '--version': {'boolean': true, 'help': 'Print RBQL version and exit'},
         '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine', 'hidden': true},
         '--debug-mode': {'boolean': true, 'help': 'Run in debug mode', 'hidden': true},
-        '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js'}
+        '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };
     args = cli_parser.parse_cmd_args(process.argv, scheme);
 
