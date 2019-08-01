@@ -154,7 +154,7 @@ function generate_random_decoded_binary_table(max_num_rows, max_num_cols, restri
 
 
 function randomly_quote_field(src, delim) {
-    if (src.indexOf('"') != -1 || src.indexOf(delim) != -1 || random_int(0, 1) == 1) {
+    if (src.indexOf('"') != -1 || src.indexOf(delim) != -1 || src.indexOf('\n') != -1 || src.indexOf('\r') != -1 || random_int(0, 1) == 1) {
         let spaces_before = delim == ' ' ? '' : ' '.repeat(random_int(0, 2));
         let spaces_after = delim == ' ' ? '' : ' '.repeat(random_int(0, 2));
         let escaped = replace_all(src, '"', '""');
@@ -479,7 +479,12 @@ function test_random_funcs() {
 
 
 function normalize_newlines_in_fields(table) {
-    //FIXME
+    for (let r = 0; r < table.length; r++) {
+        for (let c = 0; c < table[r].length; c++) {
+            table[r][c] = replace_all(table[r][c], '\r\n', '\n');
+            table[r][c] = replace_all(table[r][c], '\r', '\n');
+        }
+    }
 }
 
 
