@@ -110,6 +110,8 @@ function compare_splits(src, test_dst, canonic_dst, test_warning, canonic_warnin
 function make_random_decoded_binary_csv_entry(min_len, max_len, restricted_chars) {
     let strlen = random_int(min_len, max_len);
     let bytes_set = [];
+    if (restricted_chars == null)
+        restricted_chars = [];
     for (let cc = 0; cc < 256; cc++) {
         let add_to_set = true;
         for (let i = 0; i < restricted_chars.length; i++) {
@@ -476,8 +478,15 @@ function test_random_funcs() {
 }
 
 
+function normalize_newlines_in_fields(table) {
+    //FIXME
+}
+
+
 function do_test_record_iterator(table, delim, policy) {
     let csv_data = table_to_csv_string_random(table, delim, policy);
+    if (policy == 'quoted_rfc')
+        normalize_newlines_in_fields(table);
     let [stream, encoding] = string_to_randomly_encoded_stream(csv_data);
     let record_iterator = new rbql_csv.CSVRecordIterator(stream, encoding, delim, policy);
     record_iterator._get_all_records(function(parsed_table) {
@@ -494,6 +503,17 @@ function test_record_iterator() {
         let delim = random_choice(delims);
         let table_has_delim = find_in_table(table, delim);
         let policy = table_has_delim ? 'quoted' : random_choice(['quoted', 'simple']);
+        do_test_record_iterator(table, delim, policy);
+    }
+}
+
+
+function test_iterator_rfc() {
+    for (let itest = 0; itest < 100; itest++) {
+        let table = generate_random_decoded_binary_table(10, 10, null);
+        let delims = ['\t', ',', ';', '|'];
+        let delim = random_choice(delims);
+        let policy = 'quoted_rfc';
         do_test_record_iterator(table, delim, policy);
     }
 }
@@ -556,6 +576,7 @@ function test_all() {
     test_record_iterator();
     test_monocolumn_separated_parsing();
     test_multicharacter_separator_parsing();
+    test_iterator_rfc();
 }
 
 
