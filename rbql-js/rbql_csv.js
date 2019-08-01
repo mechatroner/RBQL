@@ -293,13 +293,13 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
 
 
     if (policy == 'simple') {
-        this.output_join = this.simple_join;
+        this.polymorphic_join = this.simple_join;
     } else if (policy == 'quoted') {
-        this.output_join = this.quoted_join;
+        this.polymorphic_join = this.quoted_join;
     } else if (policy == 'monocolumn') {
-        this.output_join = this.mono_join;
+        this.polymorphic_join = this.mono_join;
     } else if (policy == 'whitespace') {
-        this.output_join = this.simple_join;
+        this.polymorphic_join = this.simple_join;
     } else {
         throw new RbqlIOHandlingError('Unknown output csv policy');
     }
@@ -317,7 +317,7 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
 
     this.write = function(fields) {
         this.replace_null_values(fields);
-        this.stream.write(this.output_join(fields));
+        this.stream.write(this.polymorphic_join(fields));
         this.stream.write(this.line_separator);
     };
 
