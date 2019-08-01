@@ -275,6 +275,13 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
     };
 
 
+    this.quoted_join_rfc = function(fields) {
+        let delim = this.delim;
+        var quoted_fields = fields.map(function(v) { return csv_utils.rfc_quote_field(String(v), delim); });
+        return quoted_fields.join(this.delim);
+    };
+
+
     this.mono_join = function(fields) {
         if (fields.length > 1) {
             throw new RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field');
@@ -296,6 +303,8 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
         this.polymorphic_join = this.simple_join;
     } else if (policy == 'quoted') {
         this.polymorphic_join = this.quoted_join;
+    } else if (policy == 'quoted_rfc') {
+        this.polymorphic_join = this.quoted_join_rfc;
     } else if (policy == 'monocolumn') {
         this.polymorphic_join = this.mono_join;
     } else if (policy == 'whitespace') {

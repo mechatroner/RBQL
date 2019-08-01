@@ -52,10 +52,18 @@ function split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=false) {
 
 
 function quote_field(src, delim) {
-    if (src.indexOf('"') != -1 || src.indexOf(delim) != -1) {
+    if (src.indexOf(delim) != -1 || src.indexOf('"') != -1) {
         var escaped = src.replace(/"/g, '""');
-        escaped = '"' + escaped + '"';
-        return escaped;
+        return `"${escaped}"`;
+    }
+    return src;
+}
+
+
+function rfc_quote_field(src, delim) {
+    if (src.indexOf(delim) != -1 || src.indexOf('"') != -1 || src.indexOf('\n') != -1 || src.indexOf('\r') != -1) {
+        var escaped = src.replace(/"/g, '""');
+        return `"${escaped}"`;
     }
     return src;
 }
