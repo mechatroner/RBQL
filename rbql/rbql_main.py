@@ -27,7 +27,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-policy_names = ['quoted', 'simple', 'whitespace', 'monocolumn']
+policy_names = ['quoted', 'simple', 'whitespace', 'quoted_rfc', 'monocolumn']
 out_format_names = ['csv', 'tsv', 'input']
 
 
@@ -230,17 +230,32 @@ def start_preview_mode(args):
         print()
 
 
+tool_description = '''
+Run RBQL queries against CSV files and data streams
+For new users interactive mode (without "--query" option) is recommended
+'''
+
+epilog = '''
+Description of the available CSV split policies:
+* "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
+* "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
+* "quoted_rfc" - Same as "quoted", but also allows newlines inside double-quoted fields, see RFC-4180: https://tools.ietf.org/html/rfc4180
+* "whitespace" - Works only with whitespace separator, multiple consecutive whitespaces are treated as a single whitespace
+* "monocolumn" - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" are available
+'''
+
+
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=tool_description, epilog=epilog)
     parser.add_argument('--delim', help='Delimiter character or multicharacter string, e.g. "," or "###"')
-    parser.add_argument('--policy', help='csv split policy', choices=policy_names)
-    parser.add_argument('--out-format', help='output format', default='input', choices=out_format_names)
+    parser.add_argument('--policy', help='CSV split policy, see the explanation below', choices=policy_names)
+    parser.add_argument('--out-format', help='Output format', default='input', choices=out_format_names)
     parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if not provided')
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     parser.add_argument('--encoding', help='Manually set csv table encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
-    parser.add_argument('--init-source-file', metavar='FILE', help='path to init source file to use instead of ~/.rbql_init_source.py')
+    parser.add_argument('--init-source-file', metavar='FILE', help='Path to init source file to use instead of ~/.rbql_init_source.py')
     args = parser.parse_args()
 
     if args.version:
