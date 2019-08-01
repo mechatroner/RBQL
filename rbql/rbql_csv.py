@@ -20,6 +20,9 @@ user_home_dir = os.path.expanduser('~')
 table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
 
 
+# TODO performance improvement: replace smart_split() with polymorphic_split()
+
+
 class RbqlIOHandlingError(Exception):
     pass
 

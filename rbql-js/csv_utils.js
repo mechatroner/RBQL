@@ -116,5 +116,6 @@ module.exports.split_quoted_str = split_quoted_str;
 module.exports.split_whitespace_separated_str = split_whitespace_separated_str;
 module.exports.smart_split = smart_split;
 module.exports.quote_field = quote_field;
+module.exports.rfc_quote_field = rfc_quote_field;
 module.exports.unquote_field = unquote_field;
 module.exports.unquote_fields = unquote_fields;

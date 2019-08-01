@@ -195,7 +195,7 @@ function random_smart_join(fields, delim, policy) {
     } else if (policy == 'whitespace') {
         assert(delim == ' ');
         return random_whitespace_join(fields);
-    } else if (policy == 'quoted') {
+    } else if (policy == 'quoted' || policy == 'quoted_rfc') {
         assert(delim != '"');
         return randomly_join_quoted(fields, delim);
     } else if (policy == 'monocolumn') {
