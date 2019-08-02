@@ -310,13 +310,29 @@ function start_preview_mode(args) {
 }
 
 
+let tool_description = `rbql-js
+
+Run RBQL queries against CSV files and data streams
+For new users interactive mode (without "--query" option) is recommended
+`;
+
+let epilog = `
+Description of the available CSV split policies:
+* "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
+* "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
+* "quoted_rfc" - Same as "quoted", but also allows newlines inside double-quoted fields, see RFC-4180: https://tools.ietf.org/html/rfc4180
+* "whitespace" - Works only with whitespace separator, multiple consecutive whitespaces are treated as a single whitespace
+* "monocolumn" - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" are available
+`;
+
+
 function main() {
     var scheme = {
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
         '--input': {'help': 'Read csv table from FILE instead of stdin', 'metavar': 'FILE'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
         '--delim': {'help': 'Delimiter character or multicharacter string, e.g. "," or "###"', 'metavar': 'DELIM'},
-        '--policy': {'help': 'Split policy. Supported values: "simple", "quoted", "quoted_rfc", "whitespace", "monocolumn"', 'metavar': 'POLICY'},
+        '--policy': {'help': 'Split policy, see the explanation below. Supported values: "simple", "quoted", "quoted_rfc", "whitespace", "monocolumn"', 'metavar': 'POLICY'},
         '--encoding': {'default': 'latin-1', 'help': 'Manually set csv table encoding', 'metavar': 'ENCODING'},
         '--out-format': {'default': 'input', 'help': 'Output format. Supported values: ' + out_format_names.map(v => `"${v}"`).join(', '), 'metavar': 'FORMAT'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format', 'metavar': 'DELIM'},
@@ -327,7 +343,7 @@ function main() {
         '--debug-mode': {'boolean': true, 'help': 'Run in debug mode', 'hidden': true},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };
-    args = cli_parser.parse_cmd_args(process.argv, scheme);
+    args = cli_parser.parse_cmd_args(process.argv, scheme, tool_description, epilog);
 
     if (args['auto-rebuild-engine']) {
         let build_engine = require('./build_engine.js');
