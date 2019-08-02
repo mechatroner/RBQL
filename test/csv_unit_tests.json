@@ -250,5 +250,15 @@
         "csv_encoding": "latin-1",
         "query_python": "select top 10 MAX(int(a4)), MIN(int(a8)), a3 group by a3",
         "query_js": "select top 10 MAX(parseInt(a4)), MIN(parseInt(a8)), a3 group by a3"
+    },
+    {
+        "test_name": "RFC-4180 dialect: newlines in fields",
+        "input_table_path": "csv_files/synthetic_rfc_newline_data.csv",
+        "expected_output_table_path": "csv_files/synthetic_rfc_newline_data_result.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "latin-1",
+        "query_python": "select a3, a2, a2 + ' adjusted', a1",
+        "query_js": "select a3, a2, a2 + ' adjusted', a1"
     }
 ]

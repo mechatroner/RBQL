@@ -17,7 +17,7 @@ PY3 = sys.version_info[0] == 3
 # TODO add demo gif to python package README.md, pypi supports image rendering
 
 # FIXME check readline in Windows both with py2 and py3
-# FIXME test with quoted_rfc in interactive mode, both py and js
+
 
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
 

@@ -1,0 +1,22 @@
+value3,value2,value2 adjusted,value1
+foo13,bar12,bar12 adjusted,foo11
+"foo13, bar13,
+foo13, foo13,
+","foo12, ""foo12"",
+bar12 "", bar12","foo12, ""foo12"",
+bar12 "", bar12 adjusted","foo11, ""bar11"",
+foo11, bar11, foo11
+"
+"
+bar33, foo33,
+",bar32,bar32 adjusted,foo31
+foo43,bar42,bar42 adjusted,foo41
+foo43,bar42,bar42 adjusted,foo41
+foo43,bar42,bar42 adjusted,foo41
+foo43,bar42,bar42 adjusted,foo41
+foo43,bar42,bar42 adjusted,foo41
+"
+bar33, foo33,
+",bar32,bar32 adjusted,foo31
+foo43,bar42,bar42 adjusted,foo41
+foo43,bar42,bar42 adjusted,foo41
