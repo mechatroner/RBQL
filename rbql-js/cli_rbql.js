@@ -331,8 +331,8 @@ function main() {
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
         '--input': {'help': 'Read csv table from FILE instead of stdin', 'metavar': 'FILE'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
-        '--delim': {'help': 'Delimiter character or multicharacter string, e.g. "," or "###"', 'metavar': 'DELIM'},
-        '--policy': {'help': 'Split policy, see the explanation below. Supported values: "simple", "quoted", "quoted_rfc", "whitespace", "monocolumn"', 'metavar': 'POLICY'},
+        '--delim': {'help': 'Delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode', 'metavar': 'DELIM'},
+        '--policy': {'help': 'Split policy, see the explanation below. Supported values: "simple", "quoted", "quoted_rfc", "whitespace", "monocolumn". Can be autodetected in interactive mode', 'metavar': 'POLICY'},
         '--encoding': {'default': 'latin-1', 'help': 'Manually set csv table encoding', 'metavar': 'ENCODING'},
         '--out-format': {'default': 'input', 'help': 'Output format. Supported values: ' + out_format_names.map(v => `"${v}"`).join(', '), 'metavar': 'FORMAT'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format', 'metavar': 'DELIM'},
@@ -356,6 +356,10 @@ function main() {
     if (args['version']) {
         console.log(rbql.version);
         process.exit(0);
+    }
+
+    if (args.hasOwnProperty('policy') && !args.hasOwnProperty('delim')) {
+        die('Using "--policy" without "--delim" is not allowed');
     }
 
     if (args.encoding == 'latin-1')

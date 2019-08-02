@@ -249,8 +249,8 @@ Description of the available CSV split policies:
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=tool_description, epilog=epilog)
-    parser.add_argument('--delim', help='Delimiter character or multicharacter string, e.g. "," or "###"')
-    parser.add_argument('--policy', help='CSV split policy, see the explanation below', choices=policy_names)
+    parser.add_argument('--delim', help='Delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode')
+    parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
     parser.add_argument('--out-format', help='Output format', default='input', choices=out_format_names)
     parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
@@ -263,6 +263,10 @@ def main():
     if args.version:
         print(_version.__version__)
         return
+
+    if args.delim is None and args.policy is not None:
+        show_error('generic', 'Using "--policy" without "--delim" is not allowed', is_interactive=False)
+        sys.exit(1)
 
     if args.query:
         if args.delim is None:

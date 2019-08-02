@@ -16,7 +16,6 @@ var rbql_csv = null;
 // TODO add all record iterator tests, see python version
 // TODO Add tests: 1. utf decoding errors 2. bom
 
-// FIXME add local test with newlines in fields
 // FIXME add file test with newlines in fields both for python and js
 
 const script_dir = __dirname;
