@@ -176,7 +176,7 @@ function process_test_case(tests, test_id) {
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
-        assert(test_common.tables_are_equal(expected_output_table, output_table), 'Expected and output tables mismatch');
+        test_common.assert_tables_are_equal(expected_output_table, output_table);
         process_test_case(tests, test_id + 1);
     }
     rbql.table_run(query, input_table, output_table, success_handler, error_handler, join_table, user_init_code, debug_mode);
@@ -198,7 +198,7 @@ function test_direct_table_queries() {
     }
     let success_handler = function(warnings) {
         assert(warnings.length == 0);
-        assert(test_common.tables_are_equal(expected_table, output_table));
+        test_common.assert_tables_are_equal(expected_table, output_table);
     }
     rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, success_handler, error_handler);
 }
