@@ -321,6 +321,25 @@ class TestSplitMethods(unittest.TestCase):
                 self.assertEqual(expected_fields, test_fields)
 
 
+    def test_ensure_unicode(self):
+        test_cases = list()
+        test_cases.append((',', ','))
+        test_cases.append((' ', ' '))
+        test_cases.append(('\t', '\t'))
+        if PY3:
+            test_cases.append(('\u2063', u'\u2063'))
+        else:  # PY2 by default makes all strings 'str', following byte-array is equivalent of '\u2063'
+            test_cases.append((str(bytearray([226, 129, 163])), u'\u2063'))
+
+        for tc in test_cases:
+            src, expected = tc
+            test_dst = csv_utils.ensure_unicode(src)
+            self.assertEqual(expected, test_dst)
+            if PY3:  # in PY3, By default all strings are in 'str' type and unicode
+                self.assertEqual(str, type(test_dst))
+            else:  # In PY2 unicode strings in 'unicode' type
+                self.assertEqual(unicode, type(test_dst))
+
 
 class TestLineSplit(unittest.TestCase):
     def test_split_lines_custom(self):

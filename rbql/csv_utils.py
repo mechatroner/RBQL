@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 import re
-
+import sys
 
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
 
@@ -102,3 +102,7 @@ def unquote_fields(fields):
     return [unquote_field(f) for f in fields]
 
 
+def ensure_unicode(text):
+    if sys.version_info[0] >= 3:
+        return text
+    return text.decode("utf-8")
