@@ -17,6 +17,8 @@ PY3 = sys.version_info[0] == 3
 # TODO add demo gif to python package README.md, pypi supports image rendering
 
 # FIXME check readline in Windows both with py2 and py3
+# FIXME test with quoted_rfc in interactive mode, both py and js
+
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
 
 
@@ -250,7 +252,7 @@ def main():
     parser.add_argument('--delim', help='Delimiter character or multicharacter string, e.g. "," or "###"')
     parser.add_argument('--policy', help='CSV split policy, see the explanation below', choices=policy_names)
     parser.add_argument('--out-format', help='Output format', default='input', choices=out_format_names)
-    parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if not provided')
+    parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
