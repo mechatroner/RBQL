@@ -89,7 +89,7 @@ if [ "$has_node" == "yes" ] ; then
         exit 1
     fi
 
-    printf "select select a1\nselect a1, nonexistent_func(a2)\nselect a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010\n" | node ./rbql-js/cli_rbql.js --input test/csv_files/movies.tsv --output tmp_out.csv --delim '\t' > /dev/null
+    (echo "select select a1" && sleep 1 && echo "select a1, nonexistent_func(a2)" && sleep 1 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010") | node ./rbql-js/cli_rbql.js --input test/csv_files/movies.tsv --output tmp_out.csv --delim '\t' > /dev/null
     md5sum_test=($(cat tmp_out.csv | md5sum))
     if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
         echo "Interactive CLI JS test FAIL!"  1>&2

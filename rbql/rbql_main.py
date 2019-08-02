@@ -259,7 +259,7 @@ def main():
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
-    parser.add_argument('--encoding', help='Manually set csv table encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
+    parser.add_argument('--encoding', help='Manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     args = parser.parse_args()
 
