@@ -313,7 +313,10 @@ function start_preview_mode(args) {
 let tool_description = `rbql-js
 
 Run RBQL queries against CSV files and data streams
-For new users interactive mode (without "--query" option) is recommended
+
+rbql-js supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
+Interactive mode shows source table preview which makes query editing much easier
+Non-interactive mode supports source tables in stdin
 `;
 
 let epilog = `
@@ -329,7 +332,7 @@ Description of the available CSV split policies:
 function main() {
     var scheme = {
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
-        '--input': {'help': 'Read csv table from FILE instead of stdin', 'metavar': 'FILE'},
+        '--input': {'help': 'Read csv table from FILE instead of stdin. Required in interactive mode', 'metavar': 'FILE'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
         '--delim': {'help': 'Delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode', 'metavar': 'DELIM'},
         '--policy': {'help': 'Split policy, see the explanation below. Supported values: "simple", "quoted", "quoted_rfc", "whitespace", "monocolumn". Can be autodetected in interactive mode', 'metavar': 'POLICY'},

@@ -234,7 +234,10 @@ def start_preview_mode(args):
 
 tool_description = '''
 Run RBQL queries against CSV files and data streams
-For new users interactive mode (without "--query" option) is recommended
+
+rbql-py supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
+Interactive mode shows source table preview which makes query editing much easier
+Non-interactive mode supports source tables in stdin
 '''
 
 epilog = '''
@@ -253,8 +256,8 @@ def main():
     parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
     parser.add_argument('--out-format', help='Output format', default='input', choices=out_format_names)
     parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if empty')
-    parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Must always be provided in interactive mode')
-    parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout. Must always be provided in interactive mode')
+    parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Required in interactive mode')
+    parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout')
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     parser.add_argument('--encoding', help='Manually set csv table encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
