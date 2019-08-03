@@ -236,17 +236,19 @@ tool_description = '''
 Run RBQL queries against CSV files and data streams
 
 rbql-py supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
-Interactive mode shows source table preview which makes query editing much easier
-Non-interactive mode supports source tables in stdin
+Interactive mode shows source table preview which makes query editing much easier. Usage example:
+  $ rbql-py --input input.csv
+Non-interactive mode supports source tables in stdin. Usage example:
+  $ rbql-py --query "select a1, a2 order by a1" --delim , < input.csv
 '''
 
 epilog = '''
 Description of the available CSV split policies:
-* "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
-* "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
-* "quoted_rfc" - Same as "quoted", but also allows newlines inside double-quoted fields, see RFC-4180: https://tools.ietf.org/html/rfc4180
-* "whitespace" - Works only with whitespace separator, multiple consecutive whitespaces are treated as a single whitespace
-* "monocolumn" - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" are available
+  * "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
+  * "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
+  * "quoted_rfc" - Same as "quoted", but also allows newlines inside double-quoted fields, see RFC-4180: https://tools.ietf.org/html/rfc4180
+  * "whitespace" - Works only with whitespace separator, multiple consecutive whitespaces are treated as a single whitespace
+  * "monocolumn" - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" are available
 '''
 
 
