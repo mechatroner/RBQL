@@ -69,14 +69,6 @@ function cleanup_tmp() {
 }
 
 
-function report_warnings_json(warnings) {
-    if (warnings !== null) {
-        var warnings_report = JSON.stringify({'warnings': warnings});
-        process.stderr.write(warnings_report);
-    }
-}
-
-
 function report_error_json(error_type, error_msg) {
     let report = new Object();
     report.error_type = error_type;
@@ -209,7 +201,10 @@ function handle_query_success(warnings, output_path, delim, policy) {
             });
         }
     } else {
-        report_warnings_json(warnings);
+        if (warnings !== null && warnings.length) {
+            var warnings_report = JSON.stringify({'warnings': warnings});
+            process.stderr.write(warnings_report);
+        }
     }
 }
 
