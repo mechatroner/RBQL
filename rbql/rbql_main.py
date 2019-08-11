@@ -65,7 +65,7 @@ def show_warning(msg, is_interactive):
 
 
 def run_with_python(args, is_interactive):
-    delim = rbql_csv.normalize_delim(args.delim)
+    delim = rbql_csv.normalize_delim(args.delim, args.encoding)
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
     input_path = args.input
@@ -207,7 +207,7 @@ def start_preview_mode(args):
         show_error('generic', 'Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', is_interactive=True)
         return
     if args.delim is not None:
-        delim = rbql_csv.normalize_delim(args.delim)
+        delim = rbql_csv.normalize_delim(args.delim, args.encoding)
         policy = args.policy if args.policy is not None else get_default_policy(delim)
     else:
         delim, policy = autodetect_delim_policy(input_path, args.encoding)

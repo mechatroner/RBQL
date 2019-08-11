@@ -35,11 +35,14 @@ def read_user_init_code(rbql_init_source_path):
         return src.read()
 
 
-def normalize_delim(delim):
+def normalize_delim(delim, encoding):
     if delim == 'TAB':
         return '\t'
     if delim == r'\t':
         return '\t'
+
+    if encoding == 'utf-8':
+        return csv_utils.ensure_unicode(delim)
     return delim
 
 
