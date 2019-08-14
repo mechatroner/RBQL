@@ -433,6 +433,10 @@ function csv_run(user_query, input_path, input_delim, input_policy, output_path,
             error_handler('IO handling', 'To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
             return;
         }
+        if ((!is_ascii(input_delim) || !is_ascii(output_delim)) && csv_encoding == 'binary') {
+            error_handler('IO handling', 'To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
+            return;
+        }
 
         let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
         if (user_init_code == '' && fs.existsSync(default_init_source_path)) {

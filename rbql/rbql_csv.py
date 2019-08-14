@@ -35,14 +35,11 @@ def read_user_init_code(rbql_init_source_path):
         return src.read()
 
 
-def normalize_delim(delim, encoding):
+def normalize_delim(delim):
     if delim == 'TAB':
         return '\t'
     if delim == r'\t':
         return '\t'
-
-    if encoding == 'utf-8':
-        return csv_utils.ensure_unicode(delim)
     return delim
 
 
@@ -417,6 +414,9 @@ def csv_run(user_query, input_path, input_delim, input_policy, output_path, outp
 
         if not is_ascii(user_query) and csv_encoding == 'latin-1':
             raise RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+
+        if (not is_ascii(input_delim) or not is_ascii(output_delim)) and csv_encoding == 'latin-1':
+            raise RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):

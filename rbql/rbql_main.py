@@ -65,7 +65,7 @@ def show_warning(msg, is_interactive):
 
 
 def run_with_python(args, is_interactive):
-    delim = rbql_csv.normalize_delim(args.delim, args.encoding)
+    delim = rbql_csv.normalize_delim(args.delim)
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
     input_path = args.input
@@ -207,7 +207,7 @@ def start_preview_mode(args):
         show_error('generic', 'Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', is_interactive=True)
         return
     if args.delim is not None:
-        delim = rbql_csv.normalize_delim(args.delim, args.encoding)
+        delim = rbql_csv.normalize_delim(args.delim)
         policy = args.policy if args.policy is not None else get_default_policy(delim)
     else:
         delim, policy = autodetect_delim_policy(input_path, args.encoding)
@@ -272,6 +272,12 @@ def main():
     if args.delim is None and args.policy is not None:
         show_error('generic', 'Using "--policy" without "--delim" is not allowed', is_interactive=False)
         sys.exit(1)
+
+    if args.encoding != 'latin-1' and not PY3:
+        if args.delim is not None:
+            args.delim = args.delim.decode(args.encoding)
+        if args.query is not None:
+            args.query = args.query.decode(args.encoding)
 
     if args.query:
         if args.delim is None:
