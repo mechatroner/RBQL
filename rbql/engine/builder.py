@@ -33,6 +33,11 @@ from collections import defaultdict
 # TODO new feature: allow record iterator provide custom column names.
 
 
+# FIXME report relevant errors for operations with aggregate functions e.g. `MAX(a1) / 1024`
+# FIXME catch exceptions in user expressions and return them as "User Error" error type
+# FIXME add lower-case aliases of aggregate functions
+
+
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'

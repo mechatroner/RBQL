@@ -23,8 +23,6 @@ import rbql
 from rbql import rbql_csv
 from rbql import csv_utils
 
-# FIXME add test with unicode separator both for js and py
-
 
 #This module must be both python2 and python3 compatible
 

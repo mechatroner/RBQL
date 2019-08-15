@@ -16,6 +16,8 @@ var rbql_csv = null;
 // TODO add all record iterator tests, see python version
 // TODO Add tests: 1. utf decoding errors 2. bom
 
+// TODO add iterator test with random unicode table / separator just like in Python version
+
 
 const script_dir = __dirname;
 
