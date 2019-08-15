@@ -2,7 +2,6 @@
 
 dir_name=$( basename "$PWD" )
 
-# FIXME add test with unicode queries
 
 if [ "$dir_name" != "RBQL" ] && [ "$dir_name" != "rbql_core" ] ; then
     echo "Error: This test must be run from RBQL dir. Exiting"
@@ -94,6 +93,26 @@ if [ "$has_node" == "yes" ] ; then
     fi
 fi
 
+
+# Testing unicode queries
+md5sum_canonic="e1fe4bd13b25b2696e3df2623cd0f134"
+md5sum_test=($(python3 -m rbql --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
+if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
+    echo "python3 unicode query test FAIL!"  1>&2
+    exit 1
+fi
+md5sum_test=($(python2 -m rbql --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
+if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
+    echo "python3 unicode query test FAIL!"  1>&2
+    exit 1
+fi
+if [ "$has_node" == "yes" ] ; then
+    md5sum_test=($(node ./rbql-js/cli_rbql.js --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
+    if [ "$md5sum_canonic" != "$md5sum_test" ] ; then
+        echo "node unicode query test FAIL!"  1>&2
+        exit 1
+    fi
+fi
 
 
 # Testing generic CLI
