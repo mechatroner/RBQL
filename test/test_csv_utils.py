@@ -68,6 +68,9 @@ def calc_file_md5(fname):
     return hash_md5.hexdigest()
 
 
+polymorphic_unichr = chr if PY3 else unichr
+
+
 def xrange6(x):
     if PY3:
         return range(x)
@@ -202,6 +205,34 @@ def generate_random_decoded_binary_table(max_num_rows, max_num_cols, restricted_
                 result[-1].append(random.choice(good_keys))
             else:
                 result[-1].append(make_random_decoded_binary_csv_entry(0, 20, restricted_chars))
+    return result
+
+
+def make_random_unicode_entry(min_len, max_len, restricted_chars):
+    strlen = random.randint(min_len, max_len)
+    restricted_codes = [ord(c) for c in restricted_chars]
+    # Create a list of unicode characters within the range 0000-D7FF: Basic Multilingual Plane
+    result = list()
+    while len(result) < strlen:
+        v = random.randrange(0xD7FF)
+        if v not in restricted_codes:
+            result.append(polymorphic_unichr(v))
+    return ''.join(result)
+
+
+def generate_random_unicode_table(max_num_rows, max_num_cols, restricted_chars):
+    num_rows = natural_random(1, max_num_rows)
+    num_cols = natural_random(1, max_num_cols)
+    good_keys = ['Привет!', 'Бабушка', ' ??????', '128', '3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
+    result = list()
+    good_column = random.randint(0, num_cols - 1)
+    for r in xrange6(num_rows):
+        result.append(list())
+        for c in xrange6(num_cols):
+            if c == good_column:
+                result[-1].append(random.choice(good_keys))
+            else:
+                result[-1].append(make_random_unicode_entry(0, 20, restricted_chars))
     return result
 
 
@@ -373,6 +404,25 @@ class TestRecordIterator(unittest.TestCase):
             policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
             csv_data = table_to_csv_string_random(table, delim, policy)
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
+
+            record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
+            parsed_table = record_iterator._get_all_records()
+            self.assertEqual(table, parsed_table)
+
+            parsed_table = write_and_parse_back(table, encoding, delim, policy)
+            self.assertEqual(table, parsed_table)
+
+
+    def test_iterator_unicode(self):
+        for _test_num in xrange6(100):
+            table = generate_random_unicode_table(10, 10, ['\r', '\n'])
+            delims = ['\t', ',', ';', '|', 'Д', 'Ф', '\u2063']
+            delim = random.choice(delims)
+            table_has_delim = find_in_table(table, delim)
+            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
+            csv_data = table_to_csv_string_random(table, delim, policy)
+            encoding = 'utf-8'
+            stream = io.BytesIO(csv_data.encode(encoding))
 
             record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
             parsed_table = record_iterator._get_all_records()
