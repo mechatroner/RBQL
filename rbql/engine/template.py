@@ -34,7 +34,6 @@ module_was_used_failsafe = False
 
 # Aggregators:
 aggregation_stage = 0
-aggr_init_counter = 0 # FIXME why do we need this variable? Just delete it?
 functional_aggregators = list()
 
 writer = None
@@ -256,15 +255,12 @@ class SubkeyChecker:
 
 def init_aggregator(generator_name, val, post_proc=None):
     global aggregation_stage
-    global aggr_init_counter
     aggregation_stage = 1
-    assert aggr_init_counter == len(functional_aggregators)
+    res = RBQLAggregationToken(len(functional_aggregators), val)
     if post_proc is not None:
         functional_aggregators.append(generator_name(post_proc))
     else:
         functional_aggregators.append(generator_name())
-    res = RBQLAggregationToken(aggr_init_counter, val)
-    aggr_init_counter += 1
     return res
 
 

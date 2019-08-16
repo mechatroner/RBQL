@@ -24,7 +24,6 @@ var module_was_used_failsafe = false;
 
 // Aggregators:
 var aggregation_stage = 0;
-var aggr_init_counter = 0;
 var functional_aggregators = [];
 
 var writer = null;
@@ -121,7 +120,7 @@ function RBQLAggregationToken(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
     this.toString = function() {
-        throw new RbqlRuntimeError('Unsupported aggregate expression');
+        throw new RbqlRuntimeError('Unsupported aggregate expression'); // FIXME get rid of this
     }
 }
 
@@ -336,14 +335,12 @@ function SubkeyChecker() {
 
 function init_aggregator(generator_name, val, post_proc=null) {
     aggregation_stage = 1;
-    assert(aggr_init_counter == functional_aggregators.length, 'Unable to process aggregation expression');
+    var res = new RBQLAggregationToken(functional_aggregators.length, val);
     if (post_proc === null) {
         functional_aggregators.push(new generator_name());
     } else {
         functional_aggregators.push(new generator_name(post_proc));
     }
-    var res = new RBQLAggregationToken(aggr_init_counter, val);
-    aggr_init_counter += 1;
     return res;
 }
 
