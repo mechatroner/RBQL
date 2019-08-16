@@ -121,7 +121,7 @@ function safe_set(record, idx, value) {
 }
 
 
-function Marker(marker_id, value) {
+function RBQLAggregationToken(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
     this.toString = function() {
@@ -346,7 +346,7 @@ function init_aggregator(generator_name, val, post_proc=null) {
     } else {
         functional_aggregators.push(new generator_name(post_proc));
     }
-    var res = new Marker(aggr_init_counter, val);
+    var res = new RBQLAggregationToken(aggr_init_counter, val);
     aggr_init_counter += 1;
     return res;
 }
@@ -596,7 +596,7 @@ function select_aggregated(key, transparent_values) {
         writer = new AggregateWriter(writer);
         for (var i = 0; i < transparent_values.length; i++) {
             var trans_value = transparent_values[i];
-            if (trans_value instanceof Marker) {
+            if (trans_value instanceof RBQLAggregationToken) {
                 writer.aggregators.push(functional_aggregators[trans_value.marker_id]);
                 writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value.value);
             } else {
