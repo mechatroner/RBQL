@@ -116,9 +116,6 @@ function safe_set(record, idx, value) {
 function RBQLAggregationToken(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
-    this.toString = function() {
-        throw new RbqlRuntimeError('Unsupported aggregate expression'); // FIXME get rid of this
-    }
 }
 
 
