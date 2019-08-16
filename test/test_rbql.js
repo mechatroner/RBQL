@@ -158,7 +158,11 @@ function process_test_case(tests, test_id) {
     let test_case = tests[test_id];
     let test_name = test_case['test_name'];
     console.log('running rbql test: ' + test_name);
-    let query = test_case['query_js'];
+    let query = test_common.get_default(test_case, 'query_js', null);
+    if (query == null) {
+        process_test_case(tests, test_id + 1);
+        return;
+    }
     let input_table = test_case['input_table'];
     let join_table = test_common.get_default(test_case, 'join_table', null);
     let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
