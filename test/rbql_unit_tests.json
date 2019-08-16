@@ -710,6 +710,17 @@
         "query_js": "select * order by a2"
     },
     {
+        "test_name": "aggregate_inside_expression_1",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "expected_error": "Usage of RBQL aggregation functions inside Python expressions is not allowed",
+        "query_python": "select MIN(a1), repr(MAX(a1))"
+    },
+    {
         "test_name": "test_non_mixed_records_js",
         "input_table": [
             ["car", "100"],

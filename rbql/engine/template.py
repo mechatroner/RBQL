@@ -34,7 +34,7 @@ module_was_used_failsafe = False
 
 # Aggregators:
 aggregation_stage = 0
-aggr_init_counter = 0
+aggr_init_counter = 0 # FIXME why do we need this variable? Just delete it?
 functional_aggregators = list()
 
 writer = None
@@ -76,13 +76,13 @@ def safe_set(record, idx, value):
         raise InternalBadFieldError(idx - 1)
 
 
-class Marker(object):
+class RBQLAggregationToken(object):
     def __init__(self, marker_id, value):
         self.marker_id = marker_id
         self.value = value
 
     def __str__(self):
-        raise TypeError('Marker')
+        raise TypeError('RBQLAggregationToken')
 
 
 class UNFOLD:
@@ -263,7 +263,7 @@ def init_aggregator(generator_name, val, post_proc=None):
         functional_aggregators.append(generator_name(post_proc))
     else:
         functional_aggregators.append(generator_name())
-    res = Marker(aggr_init_counter, val)
+    res = RBQLAggregationToken(aggr_init_counter, val)
     aggr_init_counter += 1
     return res
 
@@ -475,13 +475,17 @@ def select_aggregated(key, transparent_values):
         if type(writer) is not TopWriter:
             raise RbqlRuntimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query')
         writer = AggregateWriter(writer)
+        num_aggregators_found = 0
         for i, trans_value in enumerate(transparent_values):
-            if isinstance(trans_value, Marker):
+            if isinstance(trans_value, RBQLAggregationToken):
+                num_aggregators_found += 1
                 writer.aggregators.append(functional_aggregators[trans_value.marker_id])
                 writer.aggregators[-1].increment(key, trans_value.value)
             else:
                 writer.aggregators.append(SubkeyChecker())
                 writer.aggregators[-1].increment(key, trans_value)
+        if num_aggregators_found != len(functional_aggregators):
+            raise RbqlRuntimeError('Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs.')
         aggregation_stage = 2
     else:
         for i, trans_value in enumerate(transparent_values):

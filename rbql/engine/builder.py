@@ -36,6 +36,7 @@ from collections import defaultdict
 # FIXME report relevant errors for operations with aggregate functions e.g. `MAX(a1) / 1024`
 # FIXME catch exceptions in user expressions and return them as "User Error" error type
 # FIXME add lower-case aliases of aggregate functions
+# FIXME remove "at record 1..." prefix from query-related errors
 
 
 GROUP_BY = 'GROUP BY'
