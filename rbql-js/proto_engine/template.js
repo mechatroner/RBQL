@@ -41,6 +41,7 @@ var process_function = null;
 var join_map = null;
 var node_debug_mode_flag = false;
 
+const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs';
 
 function finish_processing_error(error_type, error_msg) {
     if (finished_with_error)
@@ -116,6 +117,9 @@ function safe_set(record, idx, value) {
 function RBQLAggregationToken(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
+    this.toString = function() {
+        throw new RbqlRuntimeError(wrong_aggregation_usage_error);
+    }
 }
 
 
@@ -594,7 +598,7 @@ function select_aggregated(key, transparent_values) {
             }
         }
         if (num_aggregators_found != functional_aggregators.length) {
-            throw new RbqlRuntimeError('Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs');
+            throw new RbqlRuntimeError(wrong_aggregation_usage_error);
         }
         aggregation_stage = 2;
     } else {

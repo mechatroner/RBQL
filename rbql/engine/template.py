@@ -41,6 +41,8 @@ writer = None
 NU = 0 # NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
 
 
+wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
+
 
 def iteritems6(x):
     if PY3:
@@ -485,7 +487,7 @@ def select_aggregated(key, transparent_values):
                 writer.aggregators.append(SubkeyChecker())
                 writer.aggregators[-1].increment(key, trans_value)
         if num_aggregators_found != len(functional_aggregators):
-            raise RbqlParsingError('Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs')
+            raise RbqlParsingError(wrong_aggregation_usage_error)
         aggregation_stage = 2
     else:
         for i, trans_value in enumerate(transparent_values):
@@ -575,6 +577,8 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
         except RbqlParsingError:
             raise
         except Exception as e:
+            if str(e).find('RBQLAggregationToken') != -1:
+                raise RbqlParsingError(wrong_aggregation_usage_error)
             raise RbqlRuntimeError('At record: ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
     return True

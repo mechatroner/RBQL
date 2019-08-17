@@ -32,14 +32,20 @@ from collections import defaultdict
 
 # TODO new feature: allow record iterator provide custom column names.
 
+# TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
-# FIXME report relevant errors for operations with aggregate functions e.g. `MAX(a1) / 1024`
-# FIXME catch exceptions in user expressions and return them as "User Error" error type
+
 # FIXME add lower-case aliases of aggregate functions
-# FIXME remove "at record 1..." prefix from query-related errors
+
 # FIXME fix 'unable to group by "null" error, make it more specific for no group-by case
+
+# FIXME remove "at record 1..." prefix from query-related errors in JS
 # FIXME JS: same error reporting format (in square brackets) as python version
 # FIXME JS: replace unexpected -> query execution error type where applicable
+# FIXME JS: make sure appropriate aggregation error is generated even with functions like fs.statSync(MAX(a1))
+
+# FIXME report relevant errors for operations with aggregate functions e.g. `MAX(a1) / 1024`
+
 
 
 GROUP_BY = 'GROUP BY'
