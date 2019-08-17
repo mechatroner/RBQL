@@ -168,6 +168,9 @@ function process_test_case(tests, test_id) {
     let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
     let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
+    if (expected_error == null) {
+        expected_error = test_common.get_default(test_case, 'expected_error_js', null);
+    }
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
     let output_table = [];
     let error_handler = function(error_type, error_msg) {
@@ -183,7 +186,7 @@ function process_test_case(tests, test_id) {
         test_common.assert_tables_are_equal(expected_output_table, output_table);
         process_test_case(tests, test_id + 1);
     }
-    rbql.table_run(query, input_table, output_table, success_handler, error_handler, join_table, user_init_code, debug_mode);
+    rbql.table_run(query, input_table, output_table, success_handler, error_handler, join_table, user_init_code);
 }
 
 
@@ -243,6 +246,8 @@ function main() {
     }
 
     rbql = require('../rbql-js/rbql.js')
+    if (debug_mode)
+        rbql.set_debug_mode();
 
     test_everything();
 

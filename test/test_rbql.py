@@ -178,6 +178,8 @@ class TestJsonTables(unittest.TestCase):
         user_init_code = test_case.get('python_init_code', '')
         expected_output_table = test_case.get('expected_output_table', None)
         expected_error = test_case.get('expected_error', None)
+        if expected_error is None:
+            expected_error = test_case.get('expected_error_py', None)
         expected_warnings = test_case.get('expected_warnings', [])
         output_table = []
 

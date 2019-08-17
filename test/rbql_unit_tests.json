@@ -1,5 +1,17 @@
 [
     {
+        "test_name": "aggregate_inside_expression_js",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "expected_error": "Usage of RBQL aggregation functions inside JavaScript expressions is not allowed",
+        "js_init_code": "const fs = require('fs');",
+        "query_js": "select fs.statSync(MAX(a1))"
+    },
+    {
         "test_name": "test1",
         "input_table": [
             ["5", "haha", "hoho"],
@@ -710,7 +722,7 @@
         "query_js": "select * order by a2"
     },
     {
-        "test_name": "aggregate_inside_expression_1",
+        "test_name": "aggregate_inside_expression_py",
         "input_table": [
             ["5", "haha", "hoho"],
             ["-20", "haha", "hioho"],

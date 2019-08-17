@@ -5,11 +5,7 @@ let rbql = null;
 ( function() {
 let module = {'exports': {}};
 rbql = module.exports;
-const external_js_template_text = `try {
-__RBQLMP__user_init_code
-} catch (e) {
-    throw new Error('Exception while executing user-provided init code: ' + e);
-}
+const external_js_template_text = `__RBQLMP__user_init_code
 
 
 class RbqlRuntimeError extends Error {}
@@ -48,7 +44,7 @@ var process_function = null;
 var join_map = null;
 var node_debug_mode_flag = false;
 
-const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs';
+const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
 
 function finish_processing_error(error_type, error_msg) {
     if (finished_with_error)

@@ -37,8 +37,8 @@ from collections import defaultdict
 
 # FIXME add lower-case aliases of aggregate functions
 
-# FIXME fix 'unable to group by "null" error, make it more specific for no group-by case
 
+# FIXME fix 'unable to group by "null" error, make it more specific for no group-by case
 # FIXME remove "at record 1..." prefix from query-related errors in JS
 # FIXME JS: same error reporting format (in square brackets) as python version
 # FIXME JS: replace unexpected -> query execution error type where applicable
