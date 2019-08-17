@@ -37,6 +37,9 @@ from collections import defaultdict
 # FIXME catch exceptions in user expressions and return them as "User Error" error type
 # FIXME add lower-case aliases of aggregate functions
 # FIXME remove "at record 1..." prefix from query-related errors
+# FIXME fix 'unable to group by "null" error, make it more specific for no group-by case
+# FIXME JS: same error reporting format (in square brackets) as python version
+# FIXME JS: replace unexpected -> query execution error type where applicable
 
 
 GROUP_BY = 'GROUP BY'
@@ -53,7 +56,7 @@ EXCEPT = 'EXCEPT'
 
 
 
-class RbqlRutimeError(Exception):
+class RbqlRuntimeError(Exception):
     pass
 
 class RbqlIOHandlingError(Exception):
@@ -65,7 +68,7 @@ class RbqlParsingError(Exception):
 
 def exception_to_error_info(e):
     exceptions_type_map = {
-        'RbqlRutimeError': 'query execution',
+        'RbqlRuntimeError': 'query execution',
         'RbqlParsingError': 'query parsing',
         'RbqlIOHandlingError': 'IO handling'
     }
@@ -322,7 +325,7 @@ class HashJoinMap:
             num_fields = len(fields)
             self.max_record_len = max(self.max_record_len, num_fields)
             if self.key_index >= num_fields:
-                raise RbqlRutimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
+                raise RbqlRuntimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
             key = fields[self.key_index]
             self.hash_map[key].append(fields)
         self.record_iterator.finish()

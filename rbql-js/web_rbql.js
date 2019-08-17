@@ -588,15 +588,20 @@ function select_aggregated(key, transparent_values) {
             throw new RbqlRuntimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
         }
         writer = new AggregateWriter(writer);
+        let num_aggregators_found = 0;
         for (var i = 0; i < transparent_values.length; i++) {
             var trans_value = transparent_values[i];
             if (trans_value instanceof RBQLAggregationToken) {
                 writer.aggregators.push(functional_aggregators[trans_value.marker_id]);
                 writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value.value);
+                num_aggregators_found += 1;
             } else {
                 writer.aggregators.push(new SubkeyChecker());
                 writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value);
             }
+        }
+        if (num_aggregators_found != functional_aggregators.length) {
+            throw new RbqlRuntimeError('Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs');
         }
         aggregation_stage = 2;
     } else {

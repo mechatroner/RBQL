@@ -57,6 +57,10 @@ class RbqlRuntimeError(Exception):
     pass
 
 
+class RbqlParsingError(Exception):
+    pass
+
+
 def safe_get(record, idx):
     return record[idx] if idx < len(record) else None
 
@@ -89,7 +93,7 @@ class UNFOLD:
         global unfold_list
         if unfold_list is not None:
             # Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
-            raise RbqlRuntimeError('Only one UNFOLD is allowed per query')
+            raise RbqlParsingError('Only one UNFOLD is allowed per query')
         unfold_list = vals
 
     def __str__(self):
@@ -247,7 +251,7 @@ class SubkeyChecker:
         if old_subkey is None:
             self.subkeys[key] = subkey
         elif old_subkey != subkey:
-            raise RuntimeError('Unable to group by "{}", different values in output: "{}" and "{}"'.format(key, old_subkey, subkey))
+            raise RbqlRuntimeError('Unable to group by "{}", different values in output: "{}" and "{}"'.format(key, old_subkey, subkey))
 
     def get_final(self, key):
         return self.subkeys[key]
@@ -469,7 +473,7 @@ def select_aggregated(key, transparent_values):
     if aggregation_stage == 1:
         global writer
         if type(writer) is not TopWriter:
-            raise RbqlRuntimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query')
+            raise RbqlParsingError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query')
         writer = AggregateWriter(writer)
         num_aggregators_found = 0
         for i, trans_value in enumerate(transparent_values):
@@ -481,7 +485,7 @@ def select_aggregated(key, transparent_values):
                 writer.aggregators.append(SubkeyChecker())
                 writer.aggregators[-1].increment(key, trans_value)
         if num_aggregators_found != len(functional_aggregators):
-            raise RbqlRuntimeError('Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs.')
+            raise RbqlParsingError('Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs')
         aggregation_stage = 2
     else:
         for i, trans_value in enumerate(transparent_values):
@@ -568,6 +572,8 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
         except InternalBadFieldError as e:
             bad_idx = e.bad_idx
             raise RbqlRuntimeError('No "a' + str(bad_idx + 1) + '" field at record: ' + str(NR))
+        except RbqlParsingError:
+            raise
         except Exception as e:
             raise RbqlRuntimeError('At record: ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
