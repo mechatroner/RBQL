@@ -44,6 +44,7 @@ from collections import defaultdict
 # FIXME JS: replace unexpected -> query execution error type where applicable
 # FIXME JS: make sure appropriate aggregation error is generated even with functions like fs.statSync(MAX(a1))
 
+# FIXME gracefuly handle unknown encoding: generate RbqlIOHandlingError
 # FIXME report relevant errors for operations with aggregate functions e.g. `MAX(a1) / 1024`
 
 
