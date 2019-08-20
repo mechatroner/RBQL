@@ -757,6 +757,19 @@
         "expected_error_type": "query parsing"
     },
     {
+        "test_name": "invalid order by",
+        "input_table": [
+            ["car", "100"],
+            ["dog", "200"],
+            ["foo bar", "20"],
+            ["dog dog", "9"]
+        ],
+        "query_js": "select MAX(a2) order by a1",
+        "query_python": "select MAX(a2) order by a1",
+        "expected_error": "Unable to use \"ORDER BY\" or \"DISTINCT\" keywords in aggregate query",
+        "expected_error_type": "query parsing"
+    },
+    {
         "test_name": "test_non_mixed_records_js",
         "input_table": [
             ["car", "100"],
