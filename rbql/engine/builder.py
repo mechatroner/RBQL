@@ -34,6 +34,8 @@ from collections import defaultdict
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
+# TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
+
 
 # FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
 
@@ -43,11 +45,6 @@ from collections import defaultdict
 
 # FIXME fix 'unable to group by "null" error, make it more specific for no group-by case
 # FIXME remove "at record 1..." prefix from query-related errors in JS
-# FIXME JS: same error reporting format (in square brackets) as python version
-# FIXME JS: replace unexpected -> query execution error type where applicable
-
-# FIXME gracefuly handle unknown encoding: generate RbqlIOHandlingError
-
 
 
 GROUP_BY = 'GROUP BY'

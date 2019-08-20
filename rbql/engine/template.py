@@ -543,7 +543,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
 
     global writer
 
-    process_function = process_select if __RBQLMP__is_select_query else process_update
+    polymorphic_process = process_select if __RBQLMP__is_select_query else process_update
     sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation']
 
     if join_map_impl is not None:
@@ -569,7 +569,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
         NF = len(afields)
         try:
             rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var)
-            if not process_function(NR, NF, afields, rhs_records):
+            if not polymorphic_process(NR, NF, afields, rhs_records):
                 break
         except InternalBadFieldError as e:
             bad_idx = e.bad_idx

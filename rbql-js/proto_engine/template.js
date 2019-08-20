@@ -33,7 +33,7 @@ var external_input_iterator = null;
 var external_writer = null;
 var external_join_map_impl = null;
 
-var process_function = null;
+var polymorphic_process = null;
 var join_map = null;
 var node_debug_mode_flag = false;
 
@@ -665,7 +665,7 @@ function process_record(record) {
                 console.log('Unexpected exception, dumping stack trace:');
                 console.log(e.stack);
             }
-            finish_processing_error('unexpected', `At record: ${NR}, Details: ${String(e)}`);
+            finish_processing_error('query execution', `At record: ${NR}, Details: ${String(e)}`);
         }
     }
 }
@@ -674,7 +674,7 @@ function process_record(record) {
 function do_process_record(afields) {
     let rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var);
     let NF = afields.length;
-    if (!process_function(NF, afields, rhs_records)) {
+    if (!polymorphic_process(NF, afields, rhs_records)) {
         external_input_iterator.finish();
         return;
     }
@@ -682,7 +682,7 @@ function do_process_record(afields) {
 
 
 function do_rb_transform(input_iterator, output_writer) {
-    process_function = __RBQLMP__is_select_query ? process_select : process_update;
+    polymorphic_process = __RBQLMP__is_select_query ? process_select : process_update;
     var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
 
     join_map = new sql_join_type(external_join_map_impl);
