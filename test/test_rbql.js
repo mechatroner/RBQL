@@ -168,12 +168,15 @@ function process_test_case(tests, test_id) {
     let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
     let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
+    let expected_error_type = test_common.get_default(test_case, 'expected_error_type', null);
     if (expected_error == null) {
         expected_error = test_common.get_default(test_case, 'expected_error_js', null);
     }
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
     let output_table = [];
     let error_handler = function(error_type, error_msg) {
+        if (expected_error_type)
+            assert(expected_error_type === error_type);
         assert(expected_error);
         assert(error_msg.indexOf(expected_error) != -1);
         process_test_case(tests, test_id + 1);

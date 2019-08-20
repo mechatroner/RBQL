@@ -177,6 +177,7 @@ class TestJsonTables(unittest.TestCase):
         join_table = test_case.get('join_table', None)
         user_init_code = test_case.get('python_init_code', '')
         expected_output_table = test_case.get('expected_output_table', None)
+        expected_error_type = test_case.get('expected_error_type', None)
         expected_error = test_case.get('expected_error', None)
         if expected_error is None:
             expected_error = test_case.get('expected_error_py', None)
@@ -189,6 +190,8 @@ class TestJsonTables(unittest.TestCase):
         expected_warnings = sorted(expected_warnings)
         self.assertEqual(expected_warnings, warnings, 'Inside json test: {}'.format(test_name))
         self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}'.format(test_name))
+        if expected_error_type is not None:
+            self.assertTrue(error_info['type'] == expected_error_type, 'Inside json test: {}'.format(test_name))
         if expected_error is not None:
             self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:

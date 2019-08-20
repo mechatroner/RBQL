@@ -8,6 +8,7 @@ rbql = module.exports;
 const external_js_template_text = `__RBQLMP__user_init_code
 
 
+class RbqlParsingError extends Error {}
 class RbqlRuntimeError extends Error {}
 
 
@@ -121,7 +122,7 @@ function RBQLAggregationToken(marker_id, value) {
     this.marker_id = marker_id;
     this.value = value;
     this.toString = function() {
-        throw new RbqlRuntimeError(wrong_aggregation_usage_error);
+        throw new RbqlParsingError(wrong_aggregation_usage_error);
     }
 }
 
@@ -132,7 +133,7 @@ function UnfoldMarker() {}
 function UNFOLD(vals) {
     if (unfold_list !== null) {
         // Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
-        throw new RbqlRuntimeError('Only one UNFOLD is allowed per query');
+        throw new RbqlParsingError('Only one UNFOLD is allowed per query');
     }
     unfold_list = vals;
     return new UnfoldMarker();
@@ -585,7 +586,7 @@ function select_aggregated(key, transparent_values) {
     }
     if (aggregation_stage === 1) {
         if (!(writer instanceof TopWriter)) {
-            throw new RbqlRuntimeError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
+            throw new RbqlParsingError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
         }
         writer = new AggregateWriter(writer);
         let num_aggregators_found = 0;
@@ -601,7 +602,7 @@ function select_aggregated(key, transparent_values) {
             }
         }
         if (num_aggregators_found != functional_aggregators.length) {
-            throw new RbqlRuntimeError(wrong_aggregation_usage_error);
+            throw new RbqlParsingError(wrong_aggregation_usage_error);
         }
         aggregation_stage = 2;
     } else {
@@ -667,6 +668,8 @@ function process_record(record) {
             finish_processing_error('query execution', 'No "a' + (e.idx + 1) + '" column at record: ' + NR);
         } else if (e instanceof RbqlRuntimeError) {
             finish_processing_error('query execution', e.message);
+        } else if (e instanceof RbqlParsingError) {
+            finish_processing_error('query parsing', e.message);
         } else {
             if (node_debug_mode_flag) {
                 console.log('Unexpected exception, dumping stack trace:');
@@ -736,6 +739,8 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
     } catch (e) {
         if (e instanceof RbqlRuntimeError) {
             finish_processing_error('query execution', e.message);
+        } else if (e instanceof RbqlParsingError) {
+            finish_processing_error('query parsing', e.message);
         } else {
             if (node_debug_mode_flag) {
                 console.log('Unexpected exception, dumping stack trace:');

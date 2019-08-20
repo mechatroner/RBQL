@@ -746,6 +746,17 @@
         "query_js": "select MAX(a1) / 2"
     },
     {
+        "test_name": "double_unfold",
+        "input_table": [
+            ["car", "1|2|4"],
+            ["dog", "3"]
+        ],
+        "query_python": "select a1, UNFOLD(a2.split(\"|\")), UNFOLD([1, 2])",
+        "query_js": "select a1, UNFOLD(a2.split(\"|\")), UNFOLD([1, 2])",
+        "expected_error": "Only one UNFOLD is allowed per query",
+        "expected_error_type": "query parsing"
+    },
+    {
         "test_name": "test_non_mixed_records_js",
         "input_table": [
             ["car", "100"],
