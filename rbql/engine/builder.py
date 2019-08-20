@@ -35,6 +35,9 @@ from collections import defaultdict
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
 
+# FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
+
+
 # FIXME add lower-case aliases of aggregate functions
 
 
@@ -42,10 +45,8 @@ from collections import defaultdict
 # FIXME remove "at record 1..." prefix from query-related errors in JS
 # FIXME JS: same error reporting format (in square brackets) as python version
 # FIXME JS: replace unexpected -> query execution error type where applicable
-# FIXME JS: make sure appropriate aggregation error is generated even with functions like fs.statSync(MAX(a1))
 
 # FIXME gracefuly handle unknown encoding: generate RbqlIOHandlingError
-# FIXME report relevant errors for operations with aggregate functions e.g. `MAX(a1) / 1024`
 
 
 
