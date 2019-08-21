@@ -317,20 +317,21 @@ function FoldAggregator(post_proc) {
 }
 
 
-function SubkeyChecker() {
-    this.subkeys = new Map();
+function ConstGroupVerifier(output_index) {
+    this.output_index = output_index;
+    this.const_values = new Map();
 
-    this.increment = function(key, subkey) {
-        var old_subkey = this.subkeys.get(key);
-        if (old_subkey === undefined) {
-            this.subkeys.set(key, subkey);
-        } else if (old_subkey != subkey) {
-            throw 'Unable to group by "' + key + '", different values in output: "' + old_subkey + '" and "' + subkey + '"';
+    this.increment = function(key, value) {
+        var old_value = this.const_values.get(key);
+        if (old_value === undefined) {
+            this.const_values.set(key, value);
+        } else if (old_value != value) {
+            throw new RbqlRuntimeError(\`Invalid aggregate expression: non-constant values in output column \${this.output_index + 1}. E.g. "\${old_value}" and "\${value}"\`);
         }
     }
 
     this.get_final = function(key) {
-        return this.subkeys.get(key);
+        return this.const_values.get(key);
     }
 }
 
@@ -597,7 +598,7 @@ function select_aggregated(key, transparent_values) {
                 writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value.value);
                 num_aggregators_found += 1;
             } else {
-                writer.aggregators.push(new SubkeyChecker());
+                writer.aggregators.push(new ConstGroupVerifier(writer.aggregators.length));
                 writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value);
             }
         }

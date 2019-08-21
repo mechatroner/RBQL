@@ -770,6 +770,19 @@
         "expected_error_type": "query parsing"
     },
     {
+        "test_name": "invalid aggregate",
+        "input_table": [
+            ["car", "100"],
+            ["dog", "200"],
+            ["foo bar", "20"],
+            ["dog dog", "9"]
+        ],
+        "query_js": "select MAX(a2), a1, 100",
+        "query_python": "select MAX(a2), a1, 100",
+        "expected_error": "Invalid aggregate expression: non-constant values in output column 2. E.g. \"car\" and \"dog\"",
+        "expected_error_type": "query execution"
+    },
+    {
         "test_name": "test_non_mixed_records_js",
         "input_table": [
             ["car", "100"],

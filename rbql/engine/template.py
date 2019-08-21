@@ -244,19 +244,20 @@ class FoldAggregator:
         return self.post_proc(res)
 
 
-class SubkeyChecker:
-    def __init__(self):
-        self.subkeys = dict()
+class ConstGroupVerifier:
+    def __init__(self, output_index):
+        self.const_values = dict()
+        self.output_index = output_index
 
-    def increment(self, key, subkey):
-        old_subkey = self.subkeys.get(key)
-        if old_subkey is None:
-            self.subkeys[key] = subkey
-        elif old_subkey != subkey:
-            raise RbqlRuntimeError('Unable to group by "{}", different values in output: "{}" and "{}"'.format(key, old_subkey, subkey))
+    def increment(self, key, value):
+        old_value = self.const_values.get(key)
+        if old_value is None:
+            self.const_values[key] = value
+        elif old_value != value:
+            raise RbqlRuntimeError('Invalid aggregate expression: non-constant values in output column {}. E.g. "{}" and "{}"'.format(self.output_index + 1, old_value, value))
 
     def get_final(self, key):
-        return self.subkeys[key]
+        return self.const_values[key]
 
 
 def init_aggregator(generator_name, val, post_proc=None):
@@ -484,7 +485,7 @@ def select_aggregated(key, transparent_values):
                 writer.aggregators.append(functional_aggregators[trans_value.marker_id])
                 writer.aggregators[-1].increment(key, trans_value.value)
             else:
-                writer.aggregators.append(SubkeyChecker())
+                writer.aggregators.append(ConstGroupVerifier(len(writer.aggregators)))
                 writer.aggregators[-1].increment(key, trans_value)
         if num_aggregators_found != len(functional_aggregators):
             raise RbqlParsingError(wrong_aggregation_usage_error)
