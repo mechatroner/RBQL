@@ -43,8 +43,6 @@ from collections import defaultdict
 # FIXME add lower-case aliases of aggregate functions
 
 
-# FIXME fix 'unable to group by "null" error, make it more specific for no group-by case
-
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
