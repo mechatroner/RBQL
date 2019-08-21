@@ -37,10 +37,14 @@ from collections import defaultdict
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
 
+# FIXME modify ARRAY_AGG: it should return array instead of joined string
+
+
 # FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
 
 
 # FIXME add lower-case aliases of aggregate functions
+# FIXME add unit tests with lower-case aliases of aggregate functions
 
 
 

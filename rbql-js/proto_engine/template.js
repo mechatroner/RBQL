@@ -131,6 +131,8 @@ function UNFOLD(vals) {
     unfold_list = vals;
     return new UnfoldMarker();
 }
+const unfold = UNFOLD;
+const Unfold = UNFOLD;
 
 
 
@@ -344,35 +346,51 @@ function init_aggregator(generator_name, val, post_proc=null) {
 function MIN(val) {
     return aggregation_stage < 2 ? init_aggregator(MinAggregator, val) : val;
 }
+const min = MIN;
+const Min = MIN;
 
 
 function MAX(val) {
     return aggregation_stage < 2 ? init_aggregator(MaxAggregator, val) : val;
 }
+const max = MAX;
+const Max = MAX;
 
 function COUNT(val) {
     return aggregation_stage < 2 ? init_aggregator(CountAggregator, 1) : 1;
 }
+const count = COUNT;
+const Count = COUNT;
 
 function SUM(val) {
     return aggregation_stage < 2 ? init_aggregator(SumAggregator, val) : val;
 }
+const sum = SUM;
+const Sum = SUM;
 
 function AVG(val) {
     return aggregation_stage < 2 ? init_aggregator(AvgAggregator, val) : val;
 }
+const avg = AVG;
+const Avg = AVG;
 
 function VARIANCE(val) {
     return aggregation_stage < 2 ? init_aggregator(VarianceAggregator, val) : val;
 }
+const variance = VARIANCE;
+const Variance = VARIANCE;
 
 function MEDIAN(val) {
     return aggregation_stage < 2 ? init_aggregator(MedianAggregator, val) : val;
 }
+const median = MEDIAN;
+const Median = MEDIAN;
 
 function FOLD(val, post_proc = v => v.join('|')) {
     return aggregation_stage < 2 ? init_aggregator(FoldAggregator, val, post_proc) : val;
 }
+const fold = FOLD;
+const Fold = FOLD;
 
 
 function add_to_set(dst_set, value) {
