@@ -48,6 +48,11 @@ if [ "$1" != "--skip_unit_tests" ] ; then
     python3 -m unittest test.test_rbql
     die_if_error $?
 
+    python2 -m unittest test.test_mad_max
+    die_if_error $?
+    python3 -m unittest test.test_mad_max
+    die_if_error $?
+
     PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
 
     if [ "$has_node" == "yes" ] ; then

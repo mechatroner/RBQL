@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import unittest
 import sys
+import datetime
 
 PY3 = sys.version_info[0] == 3
 
@@ -39,19 +40,35 @@ builtin_sum = sum
 
 
 def max(*args, **kwargs):
+    single_arg = len(args) == 1 and not kwargs
+    if single_arg:
+        if PY3 and isinstance(args[0], str):
+            return MAX(args[0])
+        if not PY3 and isinstance(args[0], basestring):
+            return MAX(args[0])
+        if isinstance(args[0], int) or isinstance(args[0], float):
+            return MAX(args[0])
     try:
         return builtin_max(*args, **kwargs)
     except TypeError:
-        if len(args) == 1 and not kwargs:
+        if single_arg:
             return MAX(args[0])
         raise
 
 
 def min(*args, **kwargs):
+    single_arg = len(args) == 1 and not kwargs
+    if single_arg:
+        if PY3 and isinstance(args[0], str):
+            return MIN(args[0])
+        if not PY3 and isinstance(args[0], basestring):
+            return MIN(args[0])
+        if isinstance(args[0], int) or isinstance(args[0], float):
+            return MIN(args[0])
     try:
         return builtin_min(*args, **kwargs)
     except TypeError:
-        if len(args) == 1 and not kwargs:
+        if single_arg:
             return MIN(args[0])
         raise
 
@@ -72,7 +89,12 @@ def sum(*args):
 class TestMadMax(unittest.TestCase):
 
     def test_mad_max(self):
+        now = datetime.datetime.now()
         self.assertTrue(max(7).mad_value == 7)
+        self.assertTrue(max(None).mad_value == None)
+        self.assertTrue(max(now).mad_value == now)
+        self.assertTrue(max('hello').mad_value == 'hello')
+        self.assertTrue(max(0.6).mad_value == 0.6)
         self.assertTrue(max(4, 6) == 6)
         self.assertTrue(max(4, 8, 6) == 8)
         self.assertTrue(max(4, 8, 6, key=lambda v: -v) == 4)
@@ -86,11 +108,34 @@ class TestMadMax(unittest.TestCase):
 
 
     def test_mad_min(self):
-        pass #FIXME
+        now = datetime.datetime.now()
+        self.assertTrue(min(7).mad_value == 7)
+        self.assertTrue(min(None).mad_value == None)
+        self.assertTrue(min(now).mad_value == now)
+        self.assertTrue(min('hello').mad_value == 'hello')
+        self.assertTrue(min(0.6).mad_value == 0.6)
+        self.assertTrue(min(4, 6) == 4)
+        self.assertTrue(min(4, 8, 6) == 4)
+        self.assertTrue(min(4, 8, 6, key=lambda v: -v) == 8)
+        if PY3:
+            self.assertTrue(min([], default=7) == 7)
+            self.assertTrue(min(['b', 'x', 'a'], default='m') == 'a')
+        with self.assertRaises(TypeError) as cm:
+            min(7, key=lambda v: v)
+        e = cm.exception
+        self.assertTrue(str(e).find('object is not iterable') != -1)
 
 
     def test_mad_sum(self):
-        pass #FIXME
+        now = datetime.datetime.now()
+        self.assertTrue(sum(7).mad_value == 7)
+        self.assertTrue(sum(None).mad_value == None)
+        self.assertTrue(sum(now).mad_value == now)
+        self.assertTrue(sum([1, 2, 3]) == 6)
+        self.assertTrue(sum([1, 2, 3], 2) == 8)
+        self.assertTrue(sum('hello').mad_value == 'hello')
+        with self.assertRaises(TypeError) as cm:
+            sum(7, 8)
 
 
     def test_mad_source(self):
