@@ -5,6 +5,7 @@ from __future__ import print_function
 import unittest
 import sys
 import datetime
+import os
 
 PY3 = sys.version_info[0] == 3
 
@@ -86,6 +87,12 @@ def sum(*args):
 # >>>> COPYPASTE END
 
 
+
+def read_file(file_path):
+    with open(file_path) as f:
+        return f.read()
+
+
 class TestMadMax(unittest.TestCase):
 
     def test_mad_max(self):
@@ -139,4 +146,14 @@ class TestMadMax(unittest.TestCase):
 
 
     def test_mad_source(self):
-        pass #FIXME check both this file and template.py
+        this_file_path = os.path.realpath(__file__.rstrip('c'))
+        test_dir_path = os.path.dirname(this_file_path)
+        rbql_dir_path = os.path.dirname(test_dir_path)
+        mad_max_path = os.path.join(test_dir_path, 'mad_max.py')
+        template_path = os.path.join(rbql_dir_path, 'rbql', 'engine', 'template.py')
+        original_data = read_file(mad_max_path)
+        this_data = read_file(this_file_path)
+        template_data = read_file(template_path)
+        assert original_data.find('COPYPASTE') != -1
+        assert this_data.find(original_data) != -1
+        assert template_data.find(original_data) != -1
