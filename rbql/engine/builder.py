@@ -36,6 +36,8 @@ from collections import defaultdict
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
+# TODO implement arrays passing to output_writer, e.g. for FOLD()
+
 
 # FIXME modify ARRAY_AGG: it should return array instead of joined string
 
@@ -46,6 +48,7 @@ from collections import defaultdict
 # FIXME add lower-case aliases of aggregate functions
 # FIXME add unit tests with lower-case aliases of aggregate functions
 
+# FIXME make sure RBQL generates reasonable error when non-number column is passed to MAX(), AVG(), ... etc aggregate functions (except ARRAY_AGG)
 
 
 GROUP_BY = 'GROUP BY'
@@ -137,7 +140,7 @@ def generate_init_statements(column_vars, indent):
 
 
 def replace_star_count(aggregate_expression):
-    return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression).lstrip(' ')
+    return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression, flags=re.IGNORECASE).lstrip(' ')
 
 
 def replace_star_vars(rbql_expression):

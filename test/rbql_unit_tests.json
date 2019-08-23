@@ -458,6 +458,42 @@
         "query_js": "select a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4)"
     },
     {
+        "test_name": "aggregate_funcs_without_group_by_small",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_output_table": [
+            ["100", 10, 8, 8, 8, 8, 800, 4.5, 5.25, 2.5]
+        ],
+        "query_python": "select a3, min(int(a2) * 10), max(a2), count(*), count(1), count(a1), sum(a3), avg(a2), variance(a2), median(a4)",
+        "query_js": "select a3, min(a2 * 10), max(a2), count(*), count(1), count(a1), sum(a3), avg(a2), variance(a2), median(a4)"
+    },
+    {
+        "test_name": "aggregate_funcs_without_group_by_capitalised",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_output_table": [
+            ["100", 10, 8, 8, 8, 8, 800, 4.5, 5.25, 2.5]
+        ],
+        "query_python": "select a3, Min(int(a2) * 10), Max(a2), Count(*), Count(1), Count(a1), Sum(a3), Avg(a2), Variance(a2), Median(a4)",
+        "query_js": "select a3, Min(a2 * 10), Max(a2), Count(*), Count(1), Count(a1), Sum(a3), Avg(a2), Variance(a2), Median(a4)"
+    },
+    {
         "test_name": "aggregate_funcs_with_group_by",
         "input_table": [
             ["car", "1", "100", "1"],

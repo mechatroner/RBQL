@@ -16,9 +16,6 @@ from collections import OrderedDict, defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator", "split", "line", "path" etc
 
 
-# TODO implement arrays passing to output_writer, e.g. for FOLD()
-
-
 try:
     pass
 __RBQLMP__user_init_code
@@ -100,6 +97,9 @@ class UNFOLD:
 
     def __str__(self):
         raise TypeError('UNFOLD')
+
+unfold = UNFOLD
+Unfold = UNFOLD
 
 
 class NumHandler:
@@ -274,34 +274,58 @@ def init_aggregator(generator_name, val, post_proc=None):
 def MIN(val):
     return init_aggregator(MinAggregator, val) if aggregation_stage < 2 else val
 
+# min = MIN - see the mad max copypaste below
+Min = MIN
+
 
 def MAX(val):
     return init_aggregator(MaxAggregator, val) if aggregation_stage < 2 else val
+
+# max = MAX - see the mad max copypaste below
+Max = MAX 
 
 
 def COUNT(val):
     return init_aggregator(CountAggregator, 1) if aggregation_stage < 2 else 1
 
+count = COUNT
+Count = COUNT
+
 
 def SUM(val):
     return init_aggregator(SumAggregator, val) if aggregation_stage < 2 else val
+
+# sum = SUM - see the mad max copypaste below
+Sum = SUM
 
 
 def AVG(val):
     return init_aggregator(AvgAggregator, val) if aggregation_stage < 2 else val
 
+avg = AVG
+Avg = AVG
+
 
 def VARIANCE(val):
     return init_aggregator(VarianceAggregator, val) if aggregation_stage < 2 else val
+
+variance = VARIANCE
+Variance = VARIANCE
 
 
 def MEDIAN(val):
     return init_aggregator(MedianAggregator, val) if aggregation_stage < 2 else val
 
+median = MEDIAN
+Median = MEDIAN
+
 
 def FOLD(val, post_proc=lambda v: '|'.join(v)):
     # TODO consider passing array to output writer
     return init_aggregator(FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
+
+fold = FOLD
+Fold = FOLD
 
 
 # <<<< COPYPASTE FROM "mad_max.py"
