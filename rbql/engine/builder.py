@@ -44,10 +44,7 @@ from collections import defaultdict
 
 # FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
 
-
-# FIXME add lower-case aliases of aggregate functions
-# FIXME add unit tests with lower-case aliases of aggregate functions
-
+# FIXME add unit test for string -> numeric conversion error in aggregate functions
 # FIXME make sure RBQL generates reasonable error when non-number column is passed to MAX(), AVG(), ... etc aggregate functions (except ARRAY_AGG)
 
 

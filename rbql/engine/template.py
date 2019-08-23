@@ -39,6 +39,7 @@ NU = 0 # NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical
 
 
 wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
+numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their arguments to numeric values'
 
 
 def iteritems6(x):
@@ -107,13 +108,15 @@ class NumHandler:
         self.is_int = True
     
     def parse(self, str_val):
-        if not self.is_int:
-            return float(str_val)
+        if self.is_int:
+            try:
+                return int(str_val)
+            except ValueError:
+                self.is_int = False
         try:
-            return int(str_val)
-        except ValueError:
-            self.is_int = False
             return float(str_val)
+        except ValueError:
+            raise RbqlRuntimeError(numeric_conversion_error.format(str_val))
 
 
 class MinAggregator:
@@ -150,17 +153,6 @@ class MaxAggregator:
         return self.stats[key]
 
 
-class CountAggregator:
-    def __init__(self):
-        self.stats = defaultdict(int)
-
-    def increment(self, key, val):
-        self.stats[key] += 1
-
-    def get_final(self, key):
-        return self.stats[key]
-
-
 class SumAggregator:
     def __init__(self):
         self.stats = defaultdict(int)
@@ -179,7 +171,10 @@ class AvgAggregator:
         self.stats = dict()
 
     def increment(self, key, val):
-        val = float(val)
+        try:
+            val = float(val)
+        except ValueError:
+            raise RbqlRuntimeError(numeric_conversion_error.format(val))
         cur_aggr = self.stats.get(key)
         if cur_aggr is None:
             self.stats[key] = (val, 1)
@@ -197,7 +192,10 @@ class VarianceAggregator:
         self.stats = dict()
 
     def increment(self, key, val):
-        val = float(val)
+        try:
+            val = float(val)
+        except ValueError:
+            raise RbqlRuntimeError(numeric_conversion_error.format(val))
         cur_aggr = self.stats.get(key)
         if cur_aggr is None:
             self.stats[key] = (val, val ** 2, 1)
@@ -208,6 +206,17 @@ class VarianceAggregator:
     def get_final(self, key):
         final_sum, final_sum_of_squares, final_cnt = self.stats[key]
         return float(final_sum_of_squares) / final_cnt - (float(final_sum) / final_cnt) ** 2
+
+
+class CountAggregator:
+    def __init__(self):
+        self.stats = defaultdict(int)
+
+    def increment(self, key, val):
+        self.stats[key] += 1
+
+    def get_final(self, key):
+        return self.stats[key]
 
 
 class MedianAggregator:
