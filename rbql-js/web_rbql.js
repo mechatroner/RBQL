@@ -143,12 +143,22 @@ const Unfold = UNFOLD;
 
 
 
+
+function parse_number(val) {
+    // We can do a more pedantic number test like \`/^ *-{0,1}[0-9]+\\.{0,1}[0-9]* *$/.test(val)\`, but  user will probably use just Number(val) or parseInt/parseFloat
+    let result = Number(val);
+    if (isNaN(result)) {
+        throw new RbqlRuntimeError(\`Unable to convert value "\${val}" to number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values\`);
+    }
+    return result;
+}
+
+
 function MinAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        // JS version doesn't need "NumHandler" hack like in Python impl because it has only one "number" type, no ints/floats
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, val);
@@ -168,7 +178,7 @@ function MaxAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, val);
@@ -183,29 +193,11 @@ function MaxAggregator() {
 }
 
 
-function CountAggregator() {
-    this.stats = new Map();
-
-    this.increment = function(key, val) {
-        var cur_aggr = this.stats.get(key);
-        if (cur_aggr === undefined) {
-            this.stats.set(key, 1);
-        } else {
-            this.stats.set(key, cur_aggr + 1);
-        }
-    }
-
-    this.get_final = function(key) {
-        return this.stats.get(key);
-    }
-}
-
-
 function SumAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, val);
@@ -224,7 +216,7 @@ function AvgAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, [val, 1]);
@@ -249,7 +241,7 @@ function VarianceAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, [val, val * val, 1]);
@@ -277,7 +269,7 @@ function MedianAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, [val]);
@@ -295,6 +287,24 @@ function MedianAggregator() {
         } else {
             return (cur_aggr[m - 1] + cur_aggr[m]) / 2.0;
         }
+    }
+}
+
+
+function CountAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, 1);
+        } else {
+            this.stats.set(key, cur_aggr + 1);
+        }
+    }
+
+    this.get_final = function(key) {
+        return this.stats.get(key);
     }
 }
 

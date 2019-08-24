@@ -40,12 +40,14 @@ from collections import defaultdict
 
 # TODO consider converting only string arguments to int/float in MIN/MAX
 
+
+# FIXME fix bug with max 10 strings in a query
+
 # FIXME modify ARRAY_AGG: it should return array instead of joined string
 
 # FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
 
 # FIXME add unit test for string -> numeric conversion error in aggregate functions
-# FIXME make sure RBQL generates reasonable error when non-number column is passed to MAX(), AVG(), ... etc aggregate functions (except ARRAY_AGG)
 
 
 GROUP_BY = 'GROUP BY'
