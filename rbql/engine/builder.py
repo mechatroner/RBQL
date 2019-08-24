@@ -189,7 +189,7 @@ def separate_string_literals_py(rbql_expression):
 
 
 def combine_string_literals(backend_expression, string_literals):
-    for i in range(len(string_literals)):
+    for i in reversed(range(len(string_literals))):
         backend_expression = backend_expression.replace('###RBQL_STRING_LITERAL###{}'.format(i), string_literals[i])
     return backend_expression
 

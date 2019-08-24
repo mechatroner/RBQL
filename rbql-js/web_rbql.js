@@ -972,7 +972,7 @@ function separate_string_literals_js(rbql_expression) {
 
 
 function combine_string_literals(backend_expression, string_literals) {
-    for (var i = 0; i < string_literals.length; i++) {
+    for (var i = string_literals.length - 1; i >= 0; i--) {
         backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL###${i}`, string_literals[i]);
     }
     return backend_expression;

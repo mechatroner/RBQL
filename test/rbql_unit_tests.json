@@ -783,6 +783,25 @@
         "expected_error_type": "query execution"
     },
     {
+        "test_name": "many_strings_more_than_10",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "expected_output_table": [
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["80", "train", "Thomas"]
+        ],
+        "query_python": "select * where a2 in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'boat', 'train']",
+        "query_js": "select * where ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'boat', 'train'].indexOf(a2) != -1"
+    },
+    {
         "test_name": "test_non_mixed_records_js",
         "input_table": [
             ["car", "100"],
