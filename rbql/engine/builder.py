@@ -38,9 +38,9 @@ from collections import defaultdict
 
 # TODO implement arrays passing to output_writer, e.g. for FOLD()
 
+# TODO consider converting only string arguments to int/float in MIN/MAX
 
 # FIXME modify ARRAY_AGG: it should return array instead of joined string
-
 
 # FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
 

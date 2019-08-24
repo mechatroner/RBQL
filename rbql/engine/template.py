@@ -39,7 +39,7 @@ NU = 0 # NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical
 
 
 wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
-numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their arguments to numeric values'
+numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
 
 
 def iteritems6(x):
@@ -104,25 +104,35 @@ Unfold = UNFOLD
 
 
 class NumHandler:
-    def __init__(self):
-        self.is_int = True
+    def __init__(self, start_with_int):
+        self.is_int = start_with_int
+        self.string_detection_done = False
+        self.is_str = False
     
-    def parse(self, str_val):
+    def parse(self, val):
+        if not self.string_detection_done:
+            self.string_detection_done = True
+            if PY3 and isinstance(val, str):
+                self.is_str = True
+            if not PY3 and isinstance(val, basestring):
+                self.is_str = True
+        if not self.is_str:
+            return val
         if self.is_int:
             try:
-                return int(str_val)
+                return int(val)
             except ValueError:
                 self.is_int = False
         try:
-            return float(str_val)
+            return float(val)
         except ValueError:
-            raise RbqlRuntimeError(numeric_conversion_error.format(str_val))
+            raise RbqlRuntimeError(numeric_conversion_error.format(val))
 
 
 class MinAggregator:
     def __init__(self):
         self.stats = dict()
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -139,7 +149,7 @@ class MinAggregator:
 class MaxAggregator:
     def __init__(self):
         self.stats = dict()
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -156,7 +166,7 @@ class MaxAggregator:
 class SumAggregator:
     def __init__(self):
         self.stats = defaultdict(int)
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -169,12 +179,10 @@ class SumAggregator:
 class AvgAggregator:
     def __init__(self):
         self.stats = dict()
+        self.num_handler = NumHandler(False)
 
     def increment(self, key, val):
-        try:
-            val = float(val)
-        except ValueError:
-            raise RbqlRuntimeError(numeric_conversion_error.format(val))
+        val = self.num_handler.parse(val)
         cur_aggr = self.stats.get(key)
         if cur_aggr is None:
             self.stats[key] = (val, 1)
@@ -190,12 +198,10 @@ class AvgAggregator:
 class VarianceAggregator:
     def __init__(self):
         self.stats = dict()
+        self.num_handler = NumHandler(False)
 
     def increment(self, key, val):
-        try:
-            val = float(val)
-        except ValueError:
-            raise RbqlRuntimeError(numeric_conversion_error.format(val))
+        val = self.num_handler.parse(val)
         cur_aggr = self.stats.get(key)
         if cur_aggr is None:
             self.stats[key] = (val, val ** 2, 1)
@@ -208,21 +214,10 @@ class VarianceAggregator:
         return float(final_sum_of_squares) / final_cnt - (float(final_sum) / final_cnt) ** 2
 
 
-class CountAggregator:
-    def __init__(self):
-        self.stats = defaultdict(int)
-
-    def increment(self, key, val):
-        self.stats[key] += 1
-
-    def get_final(self, key):
-        return self.stats[key]
-
-
 class MedianAggregator:
     def __init__(self):
         self.stats = defaultdict(list)
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -238,6 +233,17 @@ class MedianAggregator:
             a = sorted_vals[m - 1]
             b = sorted_vals[m]
             return a if a == b else (a + b) / 2.0
+
+
+class CountAggregator:
+    def __init__(self):
+        self.stats = defaultdict(int)
+
+    def increment(self, key, val):
+        self.stats[key] += 1
+
+    def get_final(self, key):
+        return self.stats[key]
 
 
 class FoldAggregator:
