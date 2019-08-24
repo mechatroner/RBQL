@@ -746,6 +746,20 @@
         "query_js": "select * order by a2"
     },
     {
+        "test_name": "aggregate_without_conversion",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["mouse", "2", "50", "1"]
+        ],
+        "expected_output_table": [
+            [105, 2.0, 2]
+        ],
+        "query_python": "select MAX(int(a3) + 5), MIN(float(a2) * 2), MEDIAN(int(a4) + 1)",
+        "query_js": "select MAX(parseInt(a3) + 5), MIN(parseFloat(a2) * 2), MEDIAN(Number(a4) + 1)"
+    },
+    {
         "test_name": "aggregate_inside_expression_py",
         "input_table": [
             ["5", "haha", "hoho"],
