@@ -771,6 +771,19 @@
         "query_python": "select MIN(a1), repr(MAX(a1))"
     },
     {
+        "test_name": "aggregate_failed_number_conversion",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "query_python": "select MAX(a2)",
+        "query_js": "select MAX(a2)",
+        "expected_error_js": "Unable to convert value \"haha\" to number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values",
+        "expected_error_py": "Unable to convert value \"haha\" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values"
+    },
+    {
         "test_name": "aggregate_inside_expression_js",
         "input_table": [
             ["5", "haha", "hoho"],
