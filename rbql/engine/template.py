@@ -16,9 +16,6 @@ from collections import OrderedDict, defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator", "split", "line", "path" etc
 
 
-# TODO implement arrays passing to output_writer, e.g. for FOLD()
-
-
 try:
     pass
 __RBQLMP__user_init_code
@@ -28,7 +25,7 @@ except Exception as e:
 
 PY3 = sys.version_info[0] == 3
 
-unfold_list = None
+unnest_list = None
 
 module_was_used_failsafe = False
 
@@ -42,6 +39,7 @@ NU = 0 # NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical
 
 
 wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
+numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
 
 
 def iteritems6(x):
@@ -90,36 +88,52 @@ class RBQLAggregationToken(object):
         raise TypeError('RBQLAggregationToken')
 
 
-class UNFOLD:
+class UNNEST:
     def __init__(self, vals):
-        global unfold_list
-        if unfold_list is not None:
-            # Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
-            raise RbqlParsingError('Only one UNFOLD is allowed per query')
-        unfold_list = vals
+        global unnest_list
+        if unnest_list is not None:
+            # Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
+            raise RbqlParsingError('Only one UNNEST is allowed per query')
+        unnest_list = vals
 
     def __str__(self):
-        raise TypeError('UNFOLD')
+        raise TypeError('UNNEST')
+
+unnest = UNNEST
+Unnest = UNNEST
+UNFOLD = UNNEST # "UNFOLD" is deprecated, just for backward compatibility
 
 
 class NumHandler:
-    def __init__(self):
-        self.is_int = True
+    def __init__(self, start_with_int):
+        self.is_int = start_with_int
+        self.string_detection_done = False
+        self.is_str = False
     
-    def parse(self, str_val):
-        if not self.is_int:
-            return float(str_val)
+    def parse(self, val):
+        if not self.string_detection_done:
+            self.string_detection_done = True
+            if PY3 and isinstance(val, str):
+                self.is_str = True
+            if not PY3 and isinstance(val, basestring):
+                self.is_str = True
+        if not self.is_str:
+            return val
+        if self.is_int:
+            try:
+                return int(val)
+            except ValueError:
+                self.is_int = False
         try:
-            return int(str_val)
+            return float(val)
         except ValueError:
-            self.is_int = False
-            return float(str_val)
+            raise RbqlRuntimeError(numeric_conversion_error.format(val))
 
 
 class MinAggregator:
     def __init__(self):
         self.stats = dict()
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -127,7 +141,7 @@ class MinAggregator:
         if cur_aggr is None:
             self.stats[key] = val
         else:
-            self.stats[key] = min(cur_aggr, val)
+            self.stats[key] = builtin_min(cur_aggr, val)
 
     def get_final(self, key):
         return self.stats[key]
@@ -136,7 +150,7 @@ class MinAggregator:
 class MaxAggregator:
     def __init__(self):
         self.stats = dict()
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -144,18 +158,7 @@ class MaxAggregator:
         if cur_aggr is None:
             self.stats[key] = val
         else:
-            self.stats[key] = max(cur_aggr, val)
-
-    def get_final(self, key):
-        return self.stats[key]
-
-
-class CountAggregator:
-    def __init__(self):
-        self.stats = defaultdict(int)
-
-    def increment(self, key, val):
-        self.stats[key] += 1
+            self.stats[key] = builtin_max(cur_aggr, val)
 
     def get_final(self, key):
         return self.stats[key]
@@ -164,7 +167,7 @@ class CountAggregator:
 class SumAggregator:
     def __init__(self):
         self.stats = defaultdict(int)
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -177,9 +180,10 @@ class SumAggregator:
 class AvgAggregator:
     def __init__(self):
         self.stats = dict()
+        self.num_handler = NumHandler(False)
 
     def increment(self, key, val):
-        val = float(val)
+        val = self.num_handler.parse(val)
         cur_aggr = self.stats.get(key)
         if cur_aggr is None:
             self.stats[key] = (val, 1)
@@ -195,9 +199,10 @@ class AvgAggregator:
 class VarianceAggregator:
     def __init__(self):
         self.stats = dict()
+        self.num_handler = NumHandler(False)
 
     def increment(self, key, val):
-        val = float(val)
+        val = self.num_handler.parse(val)
         cur_aggr = self.stats.get(key)
         if cur_aggr is None:
             self.stats[key] = (val, val ** 2, 1)
@@ -213,7 +218,7 @@ class VarianceAggregator:
 class MedianAggregator:
     def __init__(self):
         self.stats = defaultdict(list)
-        self.num_handler = NumHandler()
+        self.num_handler = NumHandler(True)
 
     def increment(self, key, val):
         val = self.num_handler.parse(val)
@@ -231,7 +236,18 @@ class MedianAggregator:
             return a if a == b else (a + b) / 2.0
 
 
-class FoldAggregator:
+class CountAggregator:
+    def __init__(self):
+        self.stats = defaultdict(int)
+
+    def increment(self, key, val):
+        self.stats[key] += 1
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class ArrayAggAggregator:
     def __init__(self, post_proc):
         self.stats = defaultdict(list)
         self.post_proc = post_proc
@@ -274,34 +290,117 @@ def init_aggregator(generator_name, val, post_proc=None):
 def MIN(val):
     return init_aggregator(MinAggregator, val) if aggregation_stage < 2 else val
 
+# min = MIN - see the mad max copypaste below
+Min = MIN
+
 
 def MAX(val):
     return init_aggregator(MaxAggregator, val) if aggregation_stage < 2 else val
+
+# max = MAX - see the mad max copypaste below
+Max = MAX 
 
 
 def COUNT(val):
     return init_aggregator(CountAggregator, 1) if aggregation_stage < 2 else 1
 
+count = COUNT
+Count = COUNT
+
 
 def SUM(val):
     return init_aggregator(SumAggregator, val) if aggregation_stage < 2 else val
+
+# sum = SUM - see the mad max copypaste below
+Sum = SUM
 
 
 def AVG(val):
     return init_aggregator(AvgAggregator, val) if aggregation_stage < 2 else val
 
+avg = AVG
+Avg = AVG
+
 
 def VARIANCE(val):
     return init_aggregator(VarianceAggregator, val) if aggregation_stage < 2 else val
+
+variance = VARIANCE
+Variance = VARIANCE
 
 
 def MEDIAN(val):
     return init_aggregator(MedianAggregator, val) if aggregation_stage < 2 else val
 
+median = MEDIAN
+Median = MEDIAN
 
-def FOLD(val, post_proc=lambda v: '|'.join(v)):
+
+def ARRAY_AGG(val, post_proc=lambda v: '|'.join(v)):
     # TODO consider passing array to output writer
-    return init_aggregator(FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
+    return init_aggregator(ArrayAggAggregator, val, post_proc) if aggregation_stage < 2 else val
+
+array_agg = ARRAY_AGG
+FOLD = ARRAY_AGG # "FOLD" is deprecated, just for backward compatibility
+
+
+# <<<< COPYPASTE FROM "mad_max.py"
+#####################################
+#####################################
+# This is to ensure that "mad_max.py" file has exactly the same content as this fragment. This condition will be ensured by test_mad_max.py
+# To edit this code you need to simultaneously edit this fragment and content of mad_max.py, otherwise test_mad_max.py will fail.
+
+builtin_max = max
+builtin_min = min
+builtin_sum = sum
+
+
+def max(*args, **kwargs):
+    single_arg = len(args) == 1 and not kwargs
+    if single_arg:
+        if PY3 and isinstance(args[0], str):
+            return MAX(args[0])
+        if not PY3 and isinstance(args[0], basestring):
+            return MAX(args[0])
+        if isinstance(args[0], int) or isinstance(args[0], float):
+            return MAX(args[0])
+    try:
+        return builtin_max(*args, **kwargs)
+    except TypeError:
+        if single_arg:
+            return MAX(args[0])
+        raise
+
+
+def min(*args, **kwargs):
+    single_arg = len(args) == 1 and not kwargs
+    if single_arg:
+        if PY3 and isinstance(args[0], str):
+            return MIN(args[0])
+        if not PY3 and isinstance(args[0], basestring):
+            return MIN(args[0])
+        if isinstance(args[0], int) or isinstance(args[0], float):
+            return MIN(args[0])
+    try:
+        return builtin_min(*args, **kwargs)
+    except TypeError:
+        if single_arg:
+            return MIN(args[0])
+        raise
+
+
+def sum(*args):
+    try:
+        return builtin_sum(*args)
+    except TypeError:
+        if len(args) == 1:
+            return SUM(args[0])
+        raise
+
+#####################################
+#####################################
+# >>>> COPYPASTE END
+
 
 
 def add_to_set(dst_set, value):
@@ -496,25 +595,25 @@ def select_aggregated(key, transparent_values):
     writer.aggregation_keys.add(key)
 
 
-def select_unfolded(sort_key, folded_fields):
-    unfold_pos = None
+def select_unnested(sort_key, folded_fields):
+    unnest_pos = None
     for i, trans_value in enumerate(folded_fields):
-        if isinstance(trans_value, UNFOLD):
-            unfold_pos = i
+        if isinstance(trans_value, UNNEST):
+            unnest_pos = i
             break
-    assert unfold_pos is not None
-    for v in unfold_list:
+    assert unnest_pos is not None
+    for v in unnest_list:
         out_fields = folded_fields[:]
-        out_fields[unfold_pos] = v
+        out_fields[unnest_pos] = v
         if not select_simple(sort_key, out_fields):
             return False
     return True
 
 
 def process_select(NR, NF, afields, rhs_records):
-    global unfold_list
+    global unnest_list
     for bfields in rhs_records:
-        unfold_list = None
+        unnest_list = None
         if bfields is None:
             star_fields = afields
         else:
@@ -528,8 +627,8 @@ def process_select(NR, NF, afields, rhs_records):
             select_aggregated(key, out_fields)
         else:
             sort_key = (__RBQLMP__sort_key_expression)
-            if unfold_list is not None:
-                if not select_unfolded(sort_key, out_fields):
+            if unnest_list is not None:
+                if not select_unnested(sort_key, out_fields):
                     return False
             else:
                 if not select_simple(sort_key, out_fields):

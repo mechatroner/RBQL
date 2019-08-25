@@ -28,7 +28,7 @@ from collections import defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-# TODO get rid of functions with "_py" suffix
+# TODO cosmetic refactoring: get rid of functions with "_py" suffix
 
 # TODO new feature: allow record iterator provide custom column names.
 
@@ -36,16 +36,8 @@ from collections import defaultdict
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
-
-# FIXME modify ARRAY_AGG: it should return array instead of joined string
-
-
-# FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
-
-
-# FIXME add lower-case aliases of aggregate functions
-# FIXME add unit tests with lower-case aliases of aggregate functions
-
+# TODO modify ARRAY_AGG: it should return array instead of joined string
+# TODO document the second callback argument of ARRAY_AGG in the README.md
 
 
 GROUP_BY = 'GROUP BY'
@@ -137,7 +129,7 @@ def generate_init_statements(column_vars, indent):
 
 
 def replace_star_count(aggregate_expression):
-    return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression).lstrip(' ')
+    return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression, flags=re.IGNORECASE).lstrip(' ')
 
 
 def replace_star_vars(rbql_expression):

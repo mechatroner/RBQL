@@ -12,7 +12,7 @@ function InternalBadFieldError(idx) {
 
 
 
-var unfold_list = null;
+var unnest_list = null;
 
 var module_was_used_failsafe = false;
 
@@ -120,28 +120,39 @@ function RBQLAggregationToken(marker_id, value) {
 }
 
 
-function UnfoldMarker() {}
+function UnnestMarker() {}
 
 
-function UNFOLD(vals) {
-    if (unfold_list !== null) {
-        // Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
-        throw new RbqlParsingError('Only one UNFOLD is allowed per query');
+function UNNEST(vals) {
+    if (unnest_list !== null) {
+        // Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
+        throw new RbqlParsingError('Only one UNNEST is allowed per query');
     }
-    unfold_list = vals;
-    return new UnfoldMarker();
+    unnest_list = vals;
+    return new UnnestMarker();
 }
-const unfold = UNFOLD;
-const Unfold = UNFOLD;
+const unnest = UNNEST;
+const Unnest = UNNEST;
+const UNFOLD = UNNEST; // "UNFOLD" is deprecated, just for backward compatibility
 
+
+
+
+function parse_number(val) {
+    // We can do a more pedantic number test like `/^ *-{0,1}[0-9]+\.{0,1}[0-9]* *$/.test(val)`, but  user will probably use just Number(val) or parseInt/parseFloat
+    let result = Number(val);
+    if (isNaN(result)) {
+        throw new RbqlRuntimeError(`Unable to convert value "${val}" to number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values`);
+    }
+    return result;
+}
 
 
 function MinAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        // JS version doesn't need "NumHandler" hack like in Python impl because it has only one "number" type, no ints/floats
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, val);
@@ -161,7 +172,7 @@ function MaxAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, val);
@@ -176,29 +187,11 @@ function MaxAggregator() {
 }
 
 
-function CountAggregator() {
-    this.stats = new Map();
-
-    this.increment = function(key, val) {
-        var cur_aggr = this.stats.get(key);
-        if (cur_aggr === undefined) {
-            this.stats.set(key, 1);
-        } else {
-            this.stats.set(key, cur_aggr + 1);
-        }
-    }
-
-    this.get_final = function(key) {
-        return this.stats.get(key);
-    }
-}
-
-
 function SumAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, val);
@@ -217,7 +210,7 @@ function AvgAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, [val, 1]);
@@ -242,7 +235,7 @@ function VarianceAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, [val, val * val, 1]);
@@ -270,7 +263,7 @@ function MedianAggregator() {
     this.stats = new Map();
 
     this.increment = function(key, val) {
-        val = parseFloat(val);
+        val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, [val]);
@@ -292,7 +285,25 @@ function MedianAggregator() {
 }
 
 
-function FoldAggregator(post_proc) {
+function CountAggregator() {
+    this.stats = new Map();
+
+    this.increment = function(key, val) {
+        var cur_aggr = this.stats.get(key);
+        if (cur_aggr === undefined) {
+            this.stats.set(key, 1);
+        } else {
+            this.stats.set(key, cur_aggr + 1);
+        }
+    }
+
+    this.get_final = function(key) {
+        return this.stats.get(key);
+    }
+}
+
+
+function ArrayAggAggregator(post_proc) {
     this.post_proc = post_proc;
     this.stats = new Map();
 
@@ -386,11 +397,11 @@ function MEDIAN(val) {
 const median = MEDIAN;
 const Median = MEDIAN;
 
-function FOLD(val, post_proc = v => v.join('|')) {
-    return aggregation_stage < 2 ? init_aggregator(FoldAggregator, val, post_proc) : val;
+function ARRAY_AGG(val, post_proc = v => v.join('|')) {
+    return aggregation_stage < 2 ? init_aggregator(ArrayAggAggregator, val, post_proc) : val;
 }
-const fold = FOLD;
-const Fold = FOLD;
+const array_agg = ARRAY_AGG;
+const FOLD = ARRAY_AGG; // "FOLD" is deprecated, just for backward compatibility
 
 
 function add_to_set(dst_set, value) {
@@ -627,11 +638,11 @@ function select_aggregated(key, transparent_values) {
 }
 
 
-function select_unfolded(sort_key, folded_fields) {
+function select_unnested(sort_key, folded_fields) {
     let out_fields = folded_fields.slice();
-    let unfold_pos = folded_fields.findIndex(val => val instanceof UnfoldMarker);
-    for (var i = 0; i < unfold_list.length; i++) {
-        out_fields[unfold_pos] = unfold_list[i];
+    let unnest_pos = folded_fields.findIndex(val => val instanceof UnnestMarker);
+    for (var i = 0; i < unnest_list.length; i++) {
+        out_fields[unnest_pos] = unnest_list[i];
         if (!select_simple(sort_key, out_fields.slice()))
             return false;
     }
@@ -641,7 +652,7 @@ function select_unfolded(sort_key, folded_fields) {
 
 function process_select(NF, afields, rhs_records) {
     for (var i = 0; i < rhs_records.length; i++) {
-        unfold_list = null;
+        unnest_list = null;
         var bfields = rhs_records[i];
         var star_fields = afields;
         if (bfields != null)
@@ -656,8 +667,8 @@ function process_select(NF, afields, rhs_records) {
             select_aggregated(key, out_fields);
         } else {
             var sort_key = [__RBQLMP__sort_key_expression];
-            if (unfold_list !== null) {
-                if (!select_unfolded(sort_key, out_fields))
+            if (unnest_list !== null) {
+                if (!select_unnested(sort_key, out_fields))
                     return false;
             } else {
                 if (!select_simple(sort_key, out_fields))

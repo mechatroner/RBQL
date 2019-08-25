@@ -13,6 +13,7 @@ RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries 
 * Output records appear in the same order as in input unless _ORDER BY_ is provided
 * Each record has a unique NR (line number) identifier
 * Supports all main SQL keywords
+* Supports aggregate functions and GROUP BY queries
 * Provides some new useful query modes which traditional SQL engines do not have
 * Supports both _TOP_ and _LIMIT_ keywords
 * Supports user-defined functions (UDF)
@@ -57,16 +58,11 @@ _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify
 ### Aggregate functions and queries
 
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
-_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()_  
-
-Additionally RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
-`SELECT DISTINCT COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
+_COUNT()_, _ARRAY_AGG()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_
 
 #### Limitations
-
-* Aggregate function are CASE SENSITIVE and must be CAPITALIZED.
-* Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.
-  E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
+Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.
+E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
 
 
 ### JOIN statements
@@ -85,20 +81,15 @@ SELECT EXCEPT can be used to select everything except specific columns. E.g. to 
 Traditional SQL engines do not support this query mode.
 
 
-### FOLD() and UNFOLD()
+### SELECT DISTINCT COUNT statement
 
-#### FOLD() 
-FOLD is an aggregate function which accumulates all values into a list.  
-By default it would return the list joined by pipe `|` character, but you can provide a callback function to change this behavior.  
-FOLD is very similar to "GROUP_CONCAT" function in MySQL and "array_agg" in PostgreSQL  
-Example (Python): `select a2, FOLD(a1, lambda v: ';'.join(sorted(v))) group by a2`  
-Example (JavaScript):  `select a2, FOLD(a1, v => v.sort().join(';')) group by a2`  
+RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
+`SELECT DISTINCT COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
 
-#### UNFOLD() 
-UNFOLD() is a function-like query mode which will do the opposite to FOLD().  
-UNFOLD() accepts a list as an argument and will repeat the output record multiple times - one time for each value from the list argument.  
-Equivalent in PostgreSQL: "unnest"  
-Example: `SELECT a1, UNFOLD(a2.split(';'))`  
+
+### UNNEST() operator
+UNNEST(list) takes a list/array as an argument and repeats the output record multiple times - one time for each value from the list argument.  
+Example: `SELECT a1, UNNEST(a2.split(';'))`  
 
 
 ### User Defined Functions (UDF)

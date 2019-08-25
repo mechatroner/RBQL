@@ -458,6 +458,42 @@
         "query_js": "select a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4)"
     },
     {
+        "test_name": "aggregate_funcs_without_group_by_small",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_output_table": [
+            ["100", 10, 8, 8, 8, 8, 800, 4.5, 5.25, 2.5]
+        ],
+        "query_python": "select a3, min(int(a2) * 10), max(a2), count(*), count(1), count(a1), sum(a3), avg(a2), variance(a2), median(a4)",
+        "query_js": "select a3, min(a2 * 10), max(a2), count(*), count(1), count(a1), sum(a3), avg(a2), variance(a2), median(a4)"
+    },
+    {
+        "test_name": "aggregate_funcs_without_group_by_capitalised",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_output_table": [
+            ["100", 10, 8, 8, 8, 8, 800, 4.5, 5.25, 2.5]
+        ],
+        "query_python": "select a3, Min(int(a2) * 10), Max(a2), Count(*), Count(1), Count(a1), Sum(a3), Avg(a2), Variance(a2), Median(a4)",
+        "query_js": "select a3, Min(a2 * 10), Max(a2), Count(*), Count(1), Count(a1), Sum(a3), Avg(a2), Variance(a2), Median(a4)"
+    },
+    {
         "test_name": "aggregate_funcs_with_group_by",
         "input_table": [
             ["car", "1", "100", "1"],
@@ -593,7 +629,7 @@
         "query_js": "select a1, foobar(a2), a3"
     },
     {
-        "test_name": "fold_with_grouping",
+        "test_name": "array_agg_with_grouping",
         "input_table": [
             ["car", "1", "100", "1"],
             ["car", "2", "100", "1"],
@@ -608,8 +644,8 @@
             ["1|2|4|7|8", "car", 5],
             ["3", "dog", 1]
         ],
-        "query_python": "select FOLD(a2), a1, FOLD(a4, lambda v: len(v)) where a1 == \"car\" or a1 == \"dog\" group by a1",
-        "query_js": "select FOLD(a2), a1, FOLD(a4, v => v.length) where a1 == \"car\" || a1 == \"dog\" group by a1"
+        "query_python": "select array_agg(a2), a1, array_agg(a4, lambda v: len(v)) where a1 == \"car\" or a1 == \"dog\" group by a1",
+        "query_js": "select array_agg(a2), a1, array_agg(a4, v => v.length) where a1 == \"car\" || a1 == \"dog\" group by a1"
     },
     {
         "test_name": "update_swap",
@@ -627,7 +663,35 @@
         "query_js": "update set a1 = a2, a2 = a1"
     },
     {
-        "test_name": "unfold_1",
+        "test_name": "built_in_max_min_py",
+        "input_table": [
+            ["car", "1", "100", "3"],
+            ["car", "5", "100", "1"],
+            ["dog", "100", "100", "2"]
+        ],
+        "expected_output_table": [
+            [1, "3", 3],
+            [1, "5", 5],
+            [2, "2", 100]
+        ],
+        "query_python": "select min(int(a2), int(a4)), max(a2, a4), max(int(a2), int(a4))"
+    },
+    {
+        "test_name": "math_max_math_min_js",
+        "input_table": [
+            ["car", "1", "100", "3"],
+            ["car", "5", "100", "1"],
+            ["dog", "100", "100", "2"]
+        ],
+        "expected_output_table": [
+            [1, 3],
+            [1, 5],
+            [2, 100]
+        ],
+        "query_js": "select Math.min(parseInt(a2), parseInt(a4)), Math.max(parseInt(a2), parseInt(a4))"
+    },
+    {
+        "test_name": "unnest_1",
         "input_table": [
             ["car", "1|2|4"],
             ["dog", "3"]
@@ -638,11 +702,11 @@
             ["car", "4"],
             ["dog", "3"]
         ],
-        "query_python": "select a1, UNFOLD(a2.split(\"|\"))",
-        "query_js": "select a1, UNFOLD(a2.split(\"|\"))"
+        "query_python": "select a1, UNNEST(a2.split(\"|\"))",
+        "query_js": "select a1, UNNEST(a2.split(\"|\"))"
     },
     {
-        "test_name": "fold_without_grouping",
+        "test_name": "array_agg_without_grouping",
         "input_table": [
             ["car", "1", "100", "1"],
             ["car", "2", "100", "1"],
@@ -652,8 +716,8 @@
         "expected_output_table": [
             ["car|car|dog|mouse"]
         ],
-        "query_python": "select FOLD(a1)",
-        "query_js": "select FOLD(a1)"
+        "query_python": "select array_agg(a1)",
+        "query_js": "select array_agg(a1)"
     },
     {
         "test_name": "except_1",
@@ -710,6 +774,20 @@
         "query_js": "select * order by a2"
     },
     {
+        "test_name": "aggregate_without_conversion",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["mouse", "2", "50", "1"]
+        ],
+        "expected_output_table": [
+            [105, 2.0, 2]
+        ],
+        "query_python": "select MAX(int(a3) + 5), MIN(float(a2) * 2), MEDIAN(int(a4) + 1)",
+        "query_js": "select MAX(parseInt(a3) + 5), MIN(parseFloat(a2) * 2), MEDIAN(Number(a4) + 1)"
+    },
+    {
         "test_name": "aggregate_inside_expression_py",
         "input_table": [
             ["5", "haha", "hoho"],
@@ -719,6 +797,19 @@
         ],
         "expected_error": "Usage of RBQL aggregation functions inside Python expressions is not allowed",
         "query_python": "select MIN(a1), repr(MAX(a1))"
+    },
+    {
+        "test_name": "aggregate_failed_number_conversion",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "query_python": "select MAX(a2)",
+        "query_js": "select MAX(a2)",
+        "expected_error_js": "Unable to convert value \"haha\" to number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values",
+        "expected_error_py": "Unable to convert value \"haha\" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values"
     },
     {
         "test_name": "aggregate_inside_expression_js",
@@ -746,14 +837,14 @@
         "query_js": "select MAX(a1) / 2"
     },
     {
-        "test_name": "double_unfold",
+        "test_name": "double_unnest",
         "input_table": [
             ["car", "1|2|4"],
             ["dog", "3"]
         ],
-        "query_python": "select a1, UNFOLD(a2.split(\"|\")), UNFOLD([1, 2])",
-        "query_js": "select a1, UNFOLD(a2.split(\"|\")), UNFOLD([1, 2])",
-        "expected_error": "Only one UNFOLD is allowed per query",
+        "query_python": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
+        "query_js": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
+        "expected_error": "Only one UNNEST is allowed per query",
         "expected_error_type": "query parsing"
     },
     {
