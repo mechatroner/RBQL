@@ -310,7 +310,7 @@ function CountAggregator() {
 }
 
 
-function FoldAggregator(post_proc) {
+function ArrayAggAggregator(post_proc) {
     this.post_proc = post_proc;
     this.stats = new Map();
 
@@ -404,11 +404,11 @@ function MEDIAN(val) {
 const median = MEDIAN;
 const Median = MEDIAN;
 
-function FOLD(val, post_proc = v => v.join('|')) {
-    return aggregation_stage < 2 ? init_aggregator(FoldAggregator, val, post_proc) : val;
+function ARRAY_AGG(val, post_proc = v => v.join('|')) {
+    return aggregation_stage < 2 ? init_aggregator(ArrayAggAggregator, val, post_proc) : val;
 }
-const fold = FOLD;
-const Fold = FOLD;
+const array_agg = ARRAY_AGG;
+const FOLD = ARRAY_AGG; // "FOLD" is deprecated, just for backward compatibility
 
 
 function add_to_set(dst_set, value) {

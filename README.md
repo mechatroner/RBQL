@@ -58,7 +58,7 @@ _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify
 ### Aggregate functions and queries
 
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
-_COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()_  
+_COUNT()_, _ARRAY_AGG()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_
 
 #### Limitations
 Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.

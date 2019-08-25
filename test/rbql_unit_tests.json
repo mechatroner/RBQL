@@ -629,7 +629,7 @@
         "query_js": "select a1, foobar(a2), a3"
     },
     {
-        "test_name": "fold_with_grouping",
+        "test_name": "array_agg_with_grouping",
         "input_table": [
             ["car", "1", "100", "1"],
             ["car", "2", "100", "1"],
@@ -644,8 +644,8 @@
             ["1|2|4|7|8", "car", 5],
             ["3", "dog", 1]
         ],
-        "query_python": "select FOLD(a2), a1, FOLD(a4, lambda v: len(v)) where a1 == \"car\" or a1 == \"dog\" group by a1",
-        "query_js": "select FOLD(a2), a1, FOLD(a4, v => v.length) where a1 == \"car\" || a1 == \"dog\" group by a1"
+        "query_python": "select array_agg(a2), a1, array_agg(a4, lambda v: len(v)) where a1 == \"car\" or a1 == \"dog\" group by a1",
+        "query_js": "select array_agg(a2), a1, array_agg(a4, v => v.length) where a1 == \"car\" || a1 == \"dog\" group by a1"
     },
     {
         "test_name": "update_swap",
@@ -706,7 +706,7 @@
         "query_js": "select a1, UNNEST(a2.split(\"|\"))"
     },
     {
-        "test_name": "fold_without_grouping",
+        "test_name": "array_agg_without_grouping",
         "input_table": [
             ["car", "1", "100", "1"],
             ["car", "2", "100", "1"],
@@ -716,8 +716,8 @@
         "expected_output_table": [
             ["car|car|dog|mouse"]
         ],
-        "query_python": "select FOLD(a1)",
-        "query_js": "select FOLD(a1)"
+        "query_python": "select array_agg(a1)",
+        "query_js": "select array_agg(a1)"
     },
     {
         "test_name": "except_1",

@@ -28,7 +28,7 @@ from collections import defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-# TODO get rid of functions with "_py" suffix
+# TODO cosmetic refactoring: get rid of functions with "_py" suffix
 
 # TODO new feature: allow record iterator provide custom column names.
 
@@ -36,16 +36,8 @@ from collections import defaultdict
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
-# TODO implement arrays passing to output_writer, e.g. for FOLD()
-
-# TODO consider converting only string arguments to int/float in MIN/MAX
-
-
 # TODO modify ARRAY_AGG: it should return array instead of joined string
 # TODO document the second callback argument of ARRAY_AGG in the README.md
-
-
-# FIXME rename FOLD -> ARRAY_AGG
 
 
 GROUP_BY = 'GROUP BY'

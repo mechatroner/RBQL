@@ -247,7 +247,7 @@ class CountAggregator:
         return self.stats[key]
 
 
-class FoldAggregator:
+class ArrayAggAggregator:
     def __init__(self, post_proc):
         self.stats = defaultdict(list)
         self.post_proc = post_proc
@@ -336,12 +336,12 @@ median = MEDIAN
 Median = MEDIAN
 
 
-def FOLD(val, post_proc=lambda v: '|'.join(v)):
+def ARRAY_AGG(val, post_proc=lambda v: '|'.join(v)):
     # TODO consider passing array to output writer
-    return init_aggregator(FoldAggregator, val, post_proc) if aggregation_stage < 2 else val
+    return init_aggregator(ArrayAggAggregator, val, post_proc) if aggregation_stage < 2 else val
 
-fold = FOLD
-Fold = FOLD
+array_agg = ARRAY_AGG
+FOLD = ARRAY_AGG # "FOLD" is deprecated, just for backward compatibility
 
 
 # <<<< COPYPASTE FROM "mad_max.py"
