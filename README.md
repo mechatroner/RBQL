@@ -194,10 +194,3 @@ There is no complex logic, even query parsing functions are very simple. If some
 RBQL is integrated with Rainbow CSV extensions in [Vim](https://github.com/mechatroner/rainbow_csv), [VSCode](https://marketplace.visualstudio.com/items?itemName=mechatroner.rainbow-csv), [Sublime Text](https://packagecontrol.io/packages/rainbow_csv) editors.
 * [RBQL in npm](https://www.npmjs.com/package/rbql): `$ npm install -g rbql`
 * [RBQL in PyPI](https://pypi.org/project/rbql/): `$ pip install rbql`
-
-
-#### Related projects
-* [bigbash](https://github.com/Borisvl/bigbash) - SQL queries as bash one-liners
-* [q](https://github.com/harelba/q) - uses sqlite3
-* [TextQL](http://dinedal.github.io/textql/) - uses sqlite3
-
