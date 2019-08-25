@@ -138,7 +138,7 @@ You can define custom functions and/or import libraries in two special files:
 
 #### How does RBQL work?
 
-RBQL parses SQL-like user query, creates a new python or javascript worker module, then imports and executes it.
+RBQL parses SQL-like user query, creates a new python or javascript worker module, then imports and executes it.  
 
 Explanation of simplified Python version of RBQL algorithm by example.
 1. User enters the following query, which is stored as a string _Q_:
@@ -178,8 +178,8 @@ Explanation of simplified Python version of RBQL algorithm by example.
 ```
     ./tmp_script.py < data.tsv > result.tsv
 ```
-Result set of the original query (`SELECT a3, int(a4) + 100, len(a2) WHERE a1 != 'SELL'`) is in the "result.tsv" file.
-It is clear that this simplified version can only work with tab-separated files.
+Result set of the original query (`SELECT a3, int(a4) + 100, len(a2) WHERE a1 != 'SELL'`) is in the "result.tsv" file.  
+Adding support of TOP/LIMIT keywords is trivial and to support "ORDER BY" we can introduce an intermediate array.  
 
 
 #### Is this technology reliable?
