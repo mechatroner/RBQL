@@ -44,9 +44,7 @@ from collections import defaultdict
 # TODO modify ARRAY_AGG: it should return array instead of joined string
 
 
-# FIXME fix bug with max 10 strings in a query
-
-# FIXME rename UNFOLD -> UNNEST, FOLD -> ARRAY_AGG
+# FIXME rename FOLD -> ARRAY_AGG
 
 
 GROUP_BY = 'GROUP BY'

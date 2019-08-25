@@ -25,7 +25,7 @@ except Exception as e:
 
 PY3 = sys.version_info[0] == 3
 
-unfold_list = None
+unnest_list = None
 
 module_was_used_failsafe = False
 
@@ -88,19 +88,20 @@ class RBQLAggregationToken(object):
         raise TypeError('RBQLAggregationToken')
 
 
-class UNFOLD:
+class UNNEST:
     def __init__(self, vals):
-        global unfold_list
-        if unfold_list is not None:
-            # Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
-            raise RbqlParsingError('Only one UNFOLD is allowed per query')
-        unfold_list = vals
+        global unnest_list
+        if unnest_list is not None:
+            # Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
+            raise RbqlParsingError('Only one UNNEST is allowed per query')
+        unnest_list = vals
 
     def __str__(self):
-        raise TypeError('UNFOLD')
+        raise TypeError('UNNEST')
 
-unfold = UNFOLD
-Unfold = UNFOLD
+unnest = UNNEST
+Unnest = UNNEST
+UNFOLD = UNNEST # "UNFOLD" is deprecated, just for backward compatibility
 
 
 class NumHandler:
@@ -594,25 +595,25 @@ def select_aggregated(key, transparent_values):
     writer.aggregation_keys.add(key)
 
 
-def select_unfolded(sort_key, folded_fields):
-    unfold_pos = None
+def select_unnested(sort_key, folded_fields):
+    unnest_pos = None
     for i, trans_value in enumerate(folded_fields):
-        if isinstance(trans_value, UNFOLD):
-            unfold_pos = i
+        if isinstance(trans_value, UNNEST):
+            unnest_pos = i
             break
-    assert unfold_pos is not None
-    for v in unfold_list:
+    assert unnest_pos is not None
+    for v in unnest_list:
         out_fields = folded_fields[:]
-        out_fields[unfold_pos] = v
+        out_fields[unnest_pos] = v
         if not select_simple(sort_key, out_fields):
             return False
     return True
 
 
 def process_select(NR, NF, afields, rhs_records):
-    global unfold_list
+    global unnest_list
     for bfields in rhs_records:
-        unfold_list = None
+        unnest_list = None
         if bfields is None:
             star_fields = afields
         else:
@@ -626,8 +627,8 @@ def process_select(NR, NF, afields, rhs_records):
             select_aggregated(key, out_fields)
         else:
             sort_key = (__RBQLMP__sort_key_expression)
-            if unfold_list is not None:
-                if not select_unfolded(sort_key, out_fields):
+            if unnest_list is not None:
+                if not select_unnested(sort_key, out_fields):
                     return False
             else:
                 if not select_simple(sort_key, out_fields):

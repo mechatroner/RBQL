@@ -691,7 +691,7 @@
         "query_js": "select Math.min(parseInt(a2), parseInt(a4)), Math.max(parseInt(a2), parseInt(a4))"
     },
     {
-        "test_name": "unfold_1",
+        "test_name": "unnest_1",
         "input_table": [
             ["car", "1|2|4"],
             ["dog", "3"]
@@ -702,8 +702,8 @@
             ["car", "4"],
             ["dog", "3"]
         ],
-        "query_python": "select a1, UNFOLD(a2.split(\"|\"))",
-        "query_js": "select a1, UNFOLD(a2.split(\"|\"))"
+        "query_python": "select a1, UNNEST(a2.split(\"|\"))",
+        "query_js": "select a1, UNNEST(a2.split(\"|\"))"
     },
     {
         "test_name": "fold_without_grouping",
@@ -837,14 +837,14 @@
         "query_js": "select MAX(a1) / 2"
     },
     {
-        "test_name": "double_unfold",
+        "test_name": "double_unnest",
         "input_table": [
             ["car", "1|2|4"],
             ["dog", "3"]
         ],
-        "query_python": "select a1, UNFOLD(a2.split(\"|\")), UNFOLD([1, 2])",
-        "query_js": "select a1, UNFOLD(a2.split(\"|\")), UNFOLD([1, 2])",
-        "expected_error": "Only one UNFOLD is allowed per query",
+        "query_python": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
+        "query_js": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
+        "expected_error": "Only one UNNEST is allowed per query",
         "expected_error_type": "query parsing"
     },
     {

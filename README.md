@@ -13,6 +13,7 @@ RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries 
 * Output records appear in the same order as in input unless _ORDER BY_ is provided
 * Each record has a unique NR (line number) identifier
 * Supports all main SQL keywords
+* Supports aggregate functions and GROUP BY queries
 * Provides some new useful query modes which traditional SQL engines do not have
 * Supports both _TOP_ and _LIMIT_ keywords
 * Supports user-defined functions (UDF)
@@ -85,20 +86,9 @@ SELECT EXCEPT can be used to select everything except specific columns. E.g. to 
 Traditional SQL engines do not support this query mode.
 
 
-### FOLD() and UNFOLD()
-
-#### FOLD() 
-FOLD is an aggregate function which accumulates all values into a list.  
-By default it would return the list joined by pipe `|` character, but you can provide a callback function to change this behavior.  
-FOLD is very similar to "GROUP_CONCAT" function in MySQL and "array_agg" in PostgreSQL  
-Example (Python): `select a2, FOLD(a1, lambda v: ';'.join(sorted(v))) group by a2`  
-Example (JavaScript):  `select a2, FOLD(a1, v => v.sort().join(';')) group by a2`  
-
-#### UNFOLD() 
-UNFOLD() is a function-like query mode which will do the opposite to FOLD().  
-UNFOLD() accepts a list as an argument and will repeat the output record multiple times - one time for each value from the list argument.  
-Equivalent in PostgreSQL: "unnest"  
-Example: `SELECT a1, UNFOLD(a2.split(';'))`  
+### UNNEST() operator
+UNNEST(list) takes a list/array as an argument and repeats the output record multiple times - one time for each value from the list argument.  
+Example: `SELECT a1, UNNEST(a2.split(';'))`  
 
 
 ### User Defined Functions (UDF)

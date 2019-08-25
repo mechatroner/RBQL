@@ -12,7 +12,7 @@ function InternalBadFieldError(idx) {
 
 
 
-var unfold_list = null;
+var unnest_list = null;
 
 var module_was_used_failsafe = false;
 
@@ -120,19 +120,20 @@ function RBQLAggregationToken(marker_id, value) {
 }
 
 
-function UnfoldMarker() {}
+function UnnestMarker() {}
 
 
-function UNFOLD(vals) {
-    if (unfold_list !== null) {
-        // Technically we can support multiple UNFOLD's but the implementation/algorithm is more complex and just doesn't worth it
-        throw new RbqlParsingError('Only one UNFOLD is allowed per query');
+function UNNEST(vals) {
+    if (unnest_list !== null) {
+        // Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
+        throw new RbqlParsingError('Only one UNNEST is allowed per query');
     }
-    unfold_list = vals;
-    return new UnfoldMarker();
+    unnest_list = vals;
+    return new UnnestMarker();
 }
-const unfold = UNFOLD;
-const Unfold = UNFOLD;
+const unnest = UNNEST;
+const Unnest = UNNEST;
+const UNFOLD = UNNEST; // "UNFOLD" is deprecated, just for backward compatibility
 
 
 
@@ -637,11 +638,11 @@ function select_aggregated(key, transparent_values) {
 }
 
 
-function select_unfolded(sort_key, folded_fields) {
+function select_unnested(sort_key, folded_fields) {
     let out_fields = folded_fields.slice();
-    let unfold_pos = folded_fields.findIndex(val => val instanceof UnfoldMarker);
-    for (var i = 0; i < unfold_list.length; i++) {
-        out_fields[unfold_pos] = unfold_list[i];
+    let unnest_pos = folded_fields.findIndex(val => val instanceof UnnestMarker);
+    for (var i = 0; i < unnest_list.length; i++) {
+        out_fields[unnest_pos] = unnest_list[i];
         if (!select_simple(sort_key, out_fields.slice()))
             return false;
     }
@@ -651,7 +652,7 @@ function select_unfolded(sort_key, folded_fields) {
 
 function process_select(NF, afields, rhs_records) {
     for (var i = 0; i < rhs_records.length; i++) {
-        unfold_list = null;
+        unnest_list = null;
         var bfields = rhs_records[i];
         var star_fields = afields;
         if (bfields != null)
@@ -666,8 +667,8 @@ function process_select(NF, afields, rhs_records) {
             select_aggregated(key, out_fields);
         } else {
             var sort_key = [__RBQLMP__sort_key_expression];
-            if (unfold_list !== null) {
-                if (!select_unfolded(sort_key, out_fields))
+            if (unnest_list !== null) {
+                if (!select_unnested(sort_key, out_fields))
                     return false;
             } else {
                 if (!select_simple(sort_key, out_fields))
