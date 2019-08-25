@@ -42,6 +42,7 @@ from collections import defaultdict
 
 
 # TODO modify ARRAY_AGG: it should return array instead of joined string
+# TODO document the second callback argument of ARRAY_AGG in the README.md
 
 
 # FIXME rename FOLD -> ARRAY_AGG

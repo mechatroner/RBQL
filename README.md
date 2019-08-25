@@ -60,14 +60,9 @@ _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
 _COUNT()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_, _FOLD()_  
 
-Additionally RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
-`SELECT DISTINCT COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
-
 #### Limitations
-
-* Aggregate function are CASE SENSITIVE and must be CAPITALIZED.
-* Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.
-  E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
+Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.
+E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
 
 
 ### JOIN statements
@@ -84,6 +79,12 @@ RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an err
 
 SELECT EXCEPT can be used to select everything except specific columns. E.g. to select everything but columns 2 and 4, run: `SELECT * EXCEPT a2, a4`  
 Traditional SQL engines do not support this query mode.
+
+
+### SELECT DISTINCT COUNT statement
+
+RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
+`SELECT DISTINCT COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
 
 
 ### UNNEST() operator
