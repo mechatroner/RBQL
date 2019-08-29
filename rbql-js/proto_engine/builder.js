@@ -187,7 +187,7 @@ function separate_string_literals_js(rbql_expression) {
         string_literals.push(string_literal);
         var start_index = match_obj.index;
         format_parts.push(rbql_expression.substring(idx_before, start_index));
-        format_parts.push(`###RBQL_STRING_LITERAL###${literal_id}`);
+        format_parts.push(`###RBQL_STRING_LITERAL${literal_id}###`);
         idx_before = rgx.lastIndex;
     }
     format_parts.push(rbql_expression.substring(idx_before));
@@ -198,8 +198,8 @@ function separate_string_literals_js(rbql_expression) {
 
 
 function combine_string_literals(backend_expression, string_literals) {
-    for (var i = string_literals.length - 1; i >= 0; i--) {
-        backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL###${i}`, string_literals[i]);
+    for (var i = 0; i < string_literals.length; i++) {
+        backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL${i}###`, string_literals[i]);
     }
     return backend_expression;
 }

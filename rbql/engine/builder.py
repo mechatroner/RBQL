@@ -172,7 +172,7 @@ def separate_string_literals_py(rbql_expression):
         literal_id = len(string_literals)
         string_literals.append(m.group(0))
         format_parts.append(rbql_expression[idx_before:m.start()])
-        format_parts.append('###RBQL_STRING_LITERAL###{}'.format(literal_id))
+        format_parts.append('###RBQL_STRING_LITERAL{}###'.format(literal_id))
         idx_before = m.end()
     format_parts.append(rbql_expression[idx_before:])
     format_expression = ''.join(format_parts)
@@ -181,8 +181,8 @@ def separate_string_literals_py(rbql_expression):
 
 
 def combine_string_literals(backend_expression, string_literals):
-    for i in reversed(range(len(string_literals))):
-        backend_expression = backend_expression.replace('###RBQL_STRING_LITERAL###{}'.format(i), string_literals[i])
+    for i in range(len(string_literals)):
+        backend_expression = backend_expression.replace('###RBQL_STRING_LITERAL{}###'.format(i), string_literals[i])
     return backend_expression
 
 
