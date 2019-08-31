@@ -28,16 +28,22 @@ from collections import defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-# TODO cosmetic refactoring: get rid of functions with "_py" suffix
-
-# TODO new feature: allow record iterator provide custom column names.
-
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
+
+
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
+# TODO new feature: allow record iterator provide custom column names.
+
+# TODO show warning when csv fields contain trailing spaces
+
+# TODO make utf-8 encoding the default
+
 # TODO modify ARRAY_AGG: it should return array instead of joined string
 # TODO document the second callback argument of ARRAY_AGG in the README.md
+
+# TODO add performance test: generate a large file, run timed group by query on it, and then delete
 
 
 GROUP_BY = 'GROUP BY'
