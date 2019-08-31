@@ -20,6 +20,7 @@ die_if_error() {
 cleanup_tmp_files() {
     rm tmp_out.csv 2> /dev/null
     rm random_tmp_table.txt 2> /dev/null
+    rm speed_test.csv 2> /dev/null
 }
 
 
@@ -35,6 +36,9 @@ if [ "$rc" != 0 ] || [ -z "$node_version" ] ; then
     echo "WARNING! Node.js was not found. Skipping node unit tests"  1>&2
     has_node="no"
 fi
+
+
+PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --create_big_csv_table speed_test.csv
 
 
 if [ "$1" != "--skip_unit_tests" ] ; then
@@ -118,6 +122,34 @@ if [ "$has_node" == "yes" ] ; then
         exit 1
     fi
 fi
+
+
+# Testing performance
+
+start_tm=$(date +%s.%N)
+python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 0' > /dev/null
+end_tm=$(date +%s.%N)
+elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+echo "Python simple select query took $elapsed seconds. Reference value: 3 seconds"
+
+start_tm=$(date +%s.%N)
+node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where parseInt(a1) % 2 == 0' > /dev/null
+end_tm=$(date +%s.%N)
+elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+echo "JS simple select query took $elapsed seconds. Reference value: 2.3 seconds"
+
+start_tm=$(date +%s.%N)
+python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select max(a1), count(*), a2 where int(a1) > 15 group by a2' > /dev/null
+end_tm=$(date +%s.%N)
+elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+echo "Python GROUP BY query took $elapsed seconds. Reference value: 2.6 seconds"
+
+start_tm=$(date +%s.%N)
+node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select max(a1), count(*), a2 where parseInt(a1) > 15 group by a2' > /dev/null
+end_tm=$(date +%s.%N)
+elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+echo "JS GROUP BY query took $elapsed seconds. Reference value: 1.1 seconds"
+
 
 
 # Testing generic CLI

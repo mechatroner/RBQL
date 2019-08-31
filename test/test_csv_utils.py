@@ -666,6 +666,7 @@ class TestRBQLWithCSV(unittest.TestCase):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--create_random_csv_table', metavar='FILE', help='create random csv table')
+    parser.add_argument('--create_big_csv_table', metavar='FILE', help='create random csv table for speed test')
     args = parser.parse_args()
 
     if args.create_random_csv_table is not None:
@@ -678,6 +679,17 @@ def main():
                 canonic_warning = rec[2]
                 dst.write('{}\t{}\t{}\n'.format(escaped_entry, canonic_warning, ';'.join(canonic_fields)))
         return
+
+
+    if args.create_big_csv_table is not None:
+        dst_path = args.create_big_csv_table
+        num_rows = 300 * 1000
+        with open(dst_path, 'w') as dst:
+            for nr in xrange6(num_rows):
+                price = str(random.randint(10, 20))
+                item = random.choice(['parsley', 'sage', 'rosemary', 'thyme'])
+                csv_line = random_smart_join([price, item], ',', 'quoted')
+                dst.write(csv_line + '\n')
 
 
 

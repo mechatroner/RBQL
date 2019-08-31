@@ -43,8 +43,6 @@ from collections import defaultdict
 # TODO modify ARRAY_AGG: it should return array instead of joined string
 # TODO document the second callback argument of ARRAY_AGG in the README.md
 
-# TODO add performance test: generate a large file, run timed group by query on it, and then delete
-
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
