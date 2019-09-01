@@ -22,6 +22,9 @@ table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
 # TODO performance improvement: replace smart_split() with polymorphic_split()
 
 
+polymorphic_xrange = range if PY3 else xrange
+
+
 class RbqlIOHandlingError(Exception):
     pass
 
@@ -157,6 +160,7 @@ class CSVWriter:
         self.stream = encode_output_stream(stream, encoding)
         self.line_separator = line_separator
         self.delim = delim
+        self.sub_array_delim = '|' if delim != '|' else ';'
         self.close_stream_on_finish = close_stream_on_finish
         if policy == 'simple':
             self.polymorphic_join = self.simple_join
@@ -197,18 +201,20 @@ class CSVWriter:
         return res
 
 
-    def replace_none_values(self, fields):
-        i = 0
-        while i < len(fields):
+    def normalize_fields(self, fields):
+        for i in polymorphic_xrange(len(fields)):
             if fields[i] is None:
                 fields[i] = ''
                 self.none_in_output = True
-            i += 1
+            elif isinstance(fields[i], list):
+                self.normalize_fields(fields[i])
+                fields[i] = self.sub_array_delim.join(fields[i])
+            else:
+                fields[i] = polymorphic_str(fields[i])
 
 
     def write(self, fields):
-        self.replace_none_values(fields)
-        fields = [polymorphic_str(f) for f in fields]
+        self.normalize_fields(fields)
         self.stream.write(self.polymorphic_join(fields))
         self.stream.write(self.line_separator)
 

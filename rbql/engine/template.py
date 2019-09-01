@@ -248,7 +248,7 @@ class CountAggregator:
 
 
 class ArrayAggAggregator:
-    def __init__(self, post_proc):
+    def __init__(self, post_proc=None):
         self.stats = defaultdict(list)
         self.post_proc = post_proc
 
@@ -257,7 +257,9 @@ class ArrayAggAggregator:
 
     def get_final(self, key):
         res = self.stats[key]
-        return self.post_proc(res)
+        if self.post_proc is not None:
+            return self.post_proc(res)
+        return res
 
 
 class ConstGroupVerifier:
@@ -336,7 +338,7 @@ median = MEDIAN
 Median = MEDIAN
 
 
-def ARRAY_AGG(val, post_proc=lambda v: '|'.join(v)):
+def ARRAY_AGG(val, post_proc=None):
     # TODO consider passing array to output writer
     return init_aggregator(ArrayAggAggregator, val, post_proc) if aggregation_stage < 2 else val
 

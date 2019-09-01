@@ -33,10 +33,7 @@ policy_names = ['quoted', 'simple', 'whitespace', 'quoted_rfc', 'monocolumn']
 out_format_names = ['csv', 'tsv', 'input']
 
 
-def xrange6(x):
-    if PY3:
-        return range(x)
-    return xrange(x)
+polymorphic_xrange = range if PY3 else xrange
 
 
 def get_default_policy(delim):
@@ -113,7 +110,7 @@ def sample_lines(src_path, encoding, delim, policy):
     result = []
     source = open(src_path, 'rb')
     line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=delim, policy=policy)
-    for _i in xrange6(10):
+    for _i in polymorphic_xrange(10):
         line = line_iterator.polymorphic_get_row()
         if line is None:
             break

@@ -631,18 +631,18 @@
     {
         "test_name": "array_agg_with_grouping",
         "input_table": [
-            ["car", "1", "100", "1"],
-            ["car", "2", "100", "1"],
-            ["dog", "3", "100", "2"],
-            ["car", "4", "100", "2"],
-            ["cat", "5", "100", "3"],
-            ["cat", "6", "100", "3"],
-            ["car", "7", "100", "100"],
-            ["car", "8", "100", "100"]
+            ["car", 1, "100", "1"],
+            ["car", 2, "100", "1"],
+            ["dog", 3, "100", "2"],
+            ["car", 4, "100", "2"],
+            ["cat", 5, "100", "3"],
+            ["cat", 6, "100", "3"],
+            ["car", 7, "100", "100"],
+            ["car", 8, "100", "100"]
         ],
         "expected_output_table": [
-            ["1|2|4|7|8", "car", 5],
-            ["3", "dog", 1]
+            [[1, 2, 4, 7, 8], "car", 5],
+            [[3], "dog", 1]
         ],
         "query_python": "select array_agg(a2), a1, array_agg(a4, lambda v: len(v)) where a1 == \"car\" or a1 == \"dog\" group by a1",
         "query_js": "select array_agg(a2), a1, array_agg(a4, v => v.length) where a1 == \"car\" || a1 == \"dog\" group by a1"
@@ -714,7 +714,7 @@
             ["mouse", "2", "100", "1"]
         ],
         "expected_output_table": [
-            ["car|car|dog|mouse"]
+            [["car", "car", "dog", "mouse"]]
         ],
         "query_python": "select array_agg(a1)",
         "query_js": "select array_agg(a1)"
