@@ -40,8 +40,7 @@ from collections import defaultdict
 
 # TODO make utf-8 encoding the default
 
-# TODO modify ARRAY_AGG: it should return array instead of joined string
-# TODO document the second callback argument of ARRAY_AGG in the README.md
+# TODO document and test the second callback argument of ARRAY_AGG in the README.md
 
 
 GROUP_BY = 'GROUP BY'

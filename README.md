@@ -58,21 +58,19 @@ _UPDATE SET_ is synonym to _UPDATE_, because in RBQL there is no need to specify
 ### Aggregate functions and queries
 
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
-_COUNT()_, _ARRAY_AGG()_, _MIN()_, _MAX()_, _SUM()_, _AVG()_, _VARIANCE()_, _MEDIAN()_
+_COUNT_, _ARRAY_AGG_, _MIN_, _MAX_, _SUM_, _AVG_, _VARIANCE_, _MEDIAN_  
 
-#### Limitations
-Aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.
-E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid
+Limitation: aggregate functions inside Python (or JS) expressions are not supported. Although you can use expressions inside aggregate functions.  
+E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid.  
+There is a workaround for the limitation above for _ARRAY_AGG_ function which supports an optional parameter - a callback function that can do something with the aggregated array. Example:  
+`select a2, ARRAY_AGG(a1, lambda v: sorted(v)[:5]) group by a2` - Python; `select a2, ARRAY_AGG(a1, v => v.sort().slice(0, 5)) group by a2` - JS
 
 
 ### JOIN statements
 
 Join table B can be referenced either by it's file path or by it's name - an arbitary string which user should provide before executing the JOIN query.  
 RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an error if any key in left table "A" doesn't have exactly one matching key in the right table "B".  
-
-#### Limitations
-
-* _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_  
+Limitation: _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_  
 
 
 ### SELECT EXCEPT statement
