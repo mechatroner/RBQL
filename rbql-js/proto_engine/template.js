@@ -303,7 +303,7 @@ function CountAggregator() {
 }
 
 
-function ArrayAggAggregator(post_proc) {
+function ArrayAggAggregator(post_proc=null) {
     this.post_proc = post_proc;
     this.stats = new Map();
 
@@ -318,6 +318,8 @@ function ArrayAggAggregator(post_proc) {
 
     this.get_final = function(key) {
         let cur_aggr = this.stats.get(key);
+        if (this.post_proc === null)
+            return cur_aggr;
         return this.post_proc(cur_aggr);
     }
 }
@@ -397,7 +399,7 @@ function MEDIAN(val) {
 const median = MEDIAN;
 const Median = MEDIAN;
 
-function ARRAY_AGG(val, post_proc = v => v.join('|')) {
+function ARRAY_AGG(val, post_proc=null) {
     return aggregation_stage < 2 ? init_aggregator(ArrayAggAggregator, val, post_proc) : val;
 }
 const array_agg = ARRAY_AGG;

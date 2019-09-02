@@ -27,7 +27,20 @@ function assert_arrays_are_equal(a, b, exit_at_error=true, silent=false) {
         return false;
     }
     for (var i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) {
+        if (Array.isArray(a[i]) != Array.isArray(b[i])) {
+            console.log(`Subarray mismatch: a[${i}] is array: ${Array.isArray(a[i])}, b[${i}] is array: ${Array.isArray(b[i])}`);
+            console.trace();
+            if (exit_at_error)
+                die('Assertion failed')
+            return false;
+        }
+        if (Array.isArray(a[i])) {
+            if (!assert_arrays_are_equal(a[i], b[i], exit_at_error, silent)) {
+                if (exit_at_error)
+                    die('Assertion failed')
+                return false;
+            }
+        } else if (a[i] !== b[i]) {
             if (!silent) {
                 console.log('Array mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
                 console.trace();

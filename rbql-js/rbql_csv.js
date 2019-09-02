@@ -295,6 +295,8 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
     this.delim = delim;
     this.policy = policy;
     this.line_separator = line_separator;
+    this.sub_array_delim = delim == '|' ? ';' : '|';
+
     this.close_stream_on_finish = close_stream_on_finish;
 
     this.null_in_output = false;
@@ -347,18 +349,21 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
     }
 
 
-    this.replace_null_values = function(out_fields) {
+    this.normalize_fields = function(out_fields) {
         for (var i = 0; i < out_fields.length; i++) {
             if (out_fields[i] == null) {
                 this.null_in_output = true;
                 out_fields[i] = '';
+            } else if (Array.isArray(out_fields[i])) {
+                this.normalize_fields(out_fields[i]);
+                out_fields[i] = out_fields[i].join(this.sub_array_delim);
             }
         }
     };
 
 
     this.write = function(fields) {
-        this.replace_null_values(fields);
+        this.normalize_fields(fields);
         this.stream.write(this.polymorphic_join(fields));
         this.stream.write(this.line_separator);
     };
