@@ -79,12 +79,6 @@ SELECT EXCEPT can be used to select everything except specific columns. E.g. to 
 Traditional SQL engines do not support this query mode.
 
 
-### SELECT DISTINCT COUNT statement
-
-RBQL supports _DISTINCT COUNT_ keyword which is like _DISTINCT_, but adds a new column to the "distinct" result set: number of occurrences of the entry, similar to _uniq -c_ unix command.  
-`SELECT DISTINCT COUNT a1` is equivalent to `SELECT a1, COUNT(a1) GROUP BY a1`  
-
-
 ### UNNEST() operator
 UNNEST(list) takes a list/array as an argument and repeats the output record multiple times - one time for each value from the list argument.  
 Example: `SELECT a1, UNNEST(a2.split(';'))`  
