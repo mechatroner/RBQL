@@ -31,6 +31,7 @@ from collections import defaultdict
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
 
+# TODO optimize performance: optional compilation depending on python2/python3
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 

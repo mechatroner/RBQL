@@ -1,7 +1,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const readline = require('readline');
+const util = require('util');
 
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
@@ -12,7 +12,6 @@ class RbqlIOHandlingError extends Error {}
 class AssertionError extends Error {}
 
 
-// FIXME try to detect faulty utf-8 situation: search for special "question mark" character in decoded string and show a warning (at least).
 // TODO performance improvement: replace smart_split() with polymorphic_split()
 
 
@@ -130,25 +129,22 @@ function find_table_path(table_id) {
 }
 
 
-
 function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') {
     this.stream = stream;
     this.encoding = encoding;
-    if (this.encoding) {
-        this.stream.setEncoding(this.encoding);
-    }
     this.delim = delim;
     this.policy = policy;
     this.table_name = table_name;
-    this.line_reader = null;
+    this.decoder = null;
+    if (encoding == 'utf-8')
+        this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
 
     this.external_record_callback = null;
     this.external_finish_callback = null;
     this.external_line_callback = null;
-    this.line_reader_closed = true;
     this.finished = false;
 
-    this.utf8_bom_removed = false;
+    this.utf8_bom_removed = false; // FIXME decode should already remove this
     this.first_defective_line = null;
 
     this.fields_info = new Object();
@@ -156,6 +152,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.NL = 0; // Line num (can be different from record num for rfc dialect)
 
     this.rfc_line_buffer = [];
+    this.partially_decode_line = '';
 
 
     this.set_record_callback = function(external_record_callback) {
@@ -210,6 +207,10 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         if (this.finished) {
             return;
         }
+        if (this.external_line_callback) {
+            this.external_line_callback(line);
+            return;
+        }
         if (this.NL === 0) {
             var clean_line = remove_utf8_bom(line, this.encoding);
             if (clean_line != line) {
@@ -249,24 +250,36 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         this.start();
     };
 
+    this.process_data_chunk = function(data_chunk) {
+        if (this.finished)
+            return;
+        let decoded_string = this.decoder ? this.decoder.decode(data_chunk) : data_chunk.toString(this.encoding);
+        let lines = csv_utils.split_lines(decoded_string);
+        lines[0] = this.partially_decode_line + lines[0];
+        this.partially_decode_line = lines[lines.length - 1];
+        for (let i = 0; i + 1 < lines.length; i++) {
+            this.process_line(lines[i]);
+        }
+    }
+
+    this.process_data_end = function() {
+        if (this.finished)
+            return;
+        if (this.partially_decode_line.length) {
+            this.process_line(this.partially_decode_line);
+            this.partially_decode_line = '';
+        }
+        this.finish();
+    }
+
 
     this.start = function() {
-        this.line_reader = readline.createInterface({ input: this.stream });
-        this.line_reader_closed = false;
-        if (!this.external_line_callback) {
-            this.line_reader.on('line', (line) => { this.process_line(line); });
-        } else {
-            this.line_reader.on('line', (line) => { this.external_line_callback(line); });
-        }
-        this.line_reader.on('close', () => { this.line_reader_closed = true; this.finish(); });
+        this.stream.on('data', (data_chunk) => { this.process_data_chunk(data_chunk); });
+        this.stream.on('end', () => { this.process_data_end(); });
     };
 
 
     this.finish = function() {
-        if (!this.line_reader_closed) {
-            this.line_reader_closed = true;
-            this.line_reader.close();
-        }
         if (!this.finished) {
             this.finished = true;
             this.external_finish_callback();
