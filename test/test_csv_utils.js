@@ -438,7 +438,7 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
 
     let error_handler = function(error_type, error_msg) {
         assert(expected_error);
-        assert(error_msg.indexOf(expected_error) != -1);
+        assert(error_msg.indexOf(expected_error) != -1, `expected error: "${expected_error}", actual error: "${error_msg}"`);
         process_test_case(tmp_tests_dir, tests, test_id + 1);
     };
     let success_handler = function(warnings) {

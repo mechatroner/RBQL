@@ -318,7 +318,7 @@ class CSVRecordIterator:
                 return None
             return row
         except UnicodeDecodeError:
-            raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.')
+            raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
 
     
     def get_row_rfc(self):

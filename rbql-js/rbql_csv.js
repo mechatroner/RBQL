@@ -140,7 +140,8 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
 
     this.external_record_callback = null;
-    this.external_finish_callback = null;
+    this.external_finish_success_callback = null;
+    this.external_error_callback = null;
     this.external_line_callback = null;
     this.finished = false;
 
@@ -159,11 +160,13 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         this.external_record_callback = external_record_callback;
     };
 
-
-    this.set_finish_callback = function(external_finish_callback) {
-        this.external_finish_callback = external_finish_callback;
+    this.set_finish_callback = function(external_finish_success_callback) {
+        this.external_finish_success_callback = external_finish_success_callback;
     };
 
+    this.set_error_callback = function(external_error_callback) {
+        this.external_error_callback = external_error_callback;
+    };
 
     this._set_line_callback = function(external_line_callback) {
         this.external_line_callback = external_line_callback;
@@ -253,7 +256,22 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.process_data_chunk = function(data_chunk) {
         if (this.finished)
             return;
-        let decoded_string = this.decoder ? this.decoder.decode(data_chunk) : data_chunk.toString(this.encoding);
+        let decoded_string = null;
+        if (this.decoder) {
+            try {
+                decoded_string = this.decoder.decode(data_chunk);
+            } catch (e) {
+                this.finished = true;
+                if (e instanceof TypeError && e.message.indexOf('not valid for encoding') != -1) {
+                    this.external_error_callback('IO handling', 'Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead');
+                } else {
+                    this.external_error_callback('unexpected', String(e));
+                }
+                return;
+            }
+        } else {
+            decoded_string = data_chunk.toString(this.encoding);
+        }
         let lines = csv_utils.split_lines(decoded_string);
         lines[0] = this.partially_decode_line + lines[0];
         this.partially_decode_line = lines[lines.length - 1];
@@ -282,7 +300,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.finish = function() {
         if (!this.finished) {
             this.finished = true;
-            this.external_finish_callback();
+            this.external_finish_success_callback();
         }
     };
 

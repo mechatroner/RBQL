@@ -223,22 +223,13 @@
         "query_js": "select a2, ARRAY_AGG(a1) where NR > 1 group by a2"
     },
     {
-        "test_name": "test_utf-8_error_python",
+        "test_name": "test_utf-8_error",
         "input_table_path": "csv_files/random_1.bin",
-        "expected_error": "Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead.",
+        "expected_error": "Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "utf-8",
-        "query_python": "select top 20 * where a2 == 'gamma'"
-    },
-    {
-        "comment": "Ideally this test should fail, but it succeeds because JS doesn't fail on corrupted encoding",
-        "test_name": "test_utf-8_data_loss_js",
-        "input_table_path": "csv_files/random_1.bin",
-        "expected_output_table_path": "csv_files/lossy_binary.txt",
-        "csv_separator": "\t",
-        "csv_policy": "simple",
-        "csv_encoding": "utf-8",
+        "query_python": "select top 20 * where a2 == 'gamma'",
         "query_js": "select top 20 * where a2 == 'gamma'"
     },
     {

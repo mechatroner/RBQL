@@ -754,6 +754,9 @@ function rb_transform(input_iterator, join_map_impl, output_writer, external_suc
     external_join_map_impl = join_map_impl;
 
     input_iterator.set_finish_callback(finish_processing_success);
+    if (input_iterator.hasOwnProperty('set_error_callback')) {
+        input_iterator.set_error_callback(external_error_handler);
+    }
 
     if (module_was_used_failsafe) {
         finish_processing_error('unexpected', 'Module can only be used once');
