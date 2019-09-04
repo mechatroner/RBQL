@@ -145,7 +145,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.external_line_callback = null;
     this.finished = false;
 
-    this.utf8_bom_removed = false; // FIXME decode should already remove this
+    this.utf8_bom_removed = false; // BOM doesn't get automatically removed by decoder when utf-8 file is treated as latin-1
     this.first_defective_line = null;
 
     this.fields_info = new Object();
