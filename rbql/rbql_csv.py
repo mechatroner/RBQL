@@ -13,7 +13,7 @@ from . import csv_utils
 
 PY3 = sys.version_info[0] == 3
 
-default_csv_encoding = 'latin-1'
+default_csv_encoding = 'utf-8'
 
 user_home_dir = os.path.expanduser('~')
 table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
