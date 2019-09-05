@@ -1203,13 +1203,15 @@ function HashJoinMap(record_iterator, key_index) {
 }
 
 
+function cleanup_query(query) {
+    return query.split('\n').map(strip_comments).filter(line => line.length).join(' ');
+}
+
+
 function parse_to_js(query, js_template_text, join_tables_registry, user_init_code) {
-    let rbql_lines = query.split('\n');
-    rbql_lines = rbql_lines.map(strip_comments);
-    rbql_lines = rbql_lines.filter(line => line.length);
-    var full_rbql_expression = rbql_lines.join(' ');
-    var column_vars = extract_column_vars(full_rbql_expression);
-    var [format_expression, string_literals] = separate_string_literals_js(full_rbql_expression);
+    query = cleanup_query(query);
+    var column_vars = extract_column_vars(query);
+    var [format_expression, string_literals] = separate_string_literals_js(query);
     var rb_actions = separate_actions(format_expression);
 
     var js_meta_params = {};

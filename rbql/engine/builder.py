@@ -337,14 +337,17 @@ class HashJoinMap:
         return self.record_iterator.get_warnings()
 
 
-
-def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
+def cleanup_query(query):
     rbql_lines = query.split('\n')
     rbql_lines = [strip_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
-    full_rbql_expression = ' '.join(rbql_lines)
-    column_vars = extract_column_vars(full_rbql_expression)
-    format_expression, string_literals = separate_string_literals_py(full_rbql_expression)
+    return ' '.join(rbql_lines)
+
+
+def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
+    query = cleanup_query(query)
+    column_vars = extract_column_vars(query)
+    format_expression, string_literals = separate_string_literals_py(query)
     rb_actions = separate_actions(format_expression)
 
     py_meta_params = dict()
