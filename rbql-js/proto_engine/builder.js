@@ -440,7 +440,7 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
     let join_map = null;
     if (rb_actions.hasOwnProperty(JOIN)) {
         var [rhs_table_id, lhs_join_var, rhs_key_index] = parse_join_expression(rb_actions[JOIN]['text']);
-        js_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype'];
+        js_meta_params['__RBQLMP__join_operation'] = `"${rb_actions[JOIN]['join_subtype']}"`;
         js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
         if (join_tables_registry === null)
             throw new RbqlParsingError('JOIN operations were disabled');
@@ -449,7 +449,7 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
         join_map = new HashJoinMap(join_record_iterator, rhs_key_index);
     } else {
-        js_meta_params['__RBQLMP__join_operation'] = 'VOID';
+        js_meta_params['__RBQLMP__join_operation'] = '"VOID"';
         js_meta_params['__RBQLMP__lhs_join_var'] = 'null';
     }
 
@@ -466,7 +466,7 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
 
     if (rb_actions.hasOwnProperty(UPDATE)) {
         var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
-        js_meta_params['__RBQLMP__writer_type'] = 'simple';
+        js_meta_params['__RBQLMP__writer_type'] = '"simple"';
         js_meta_params['__RBQLMP__select_expression'] = 'null';
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['__RBQLMP__is_select_query'] = 'false';
@@ -480,11 +480,11 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         var top_count = find_top(rb_actions);
         js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
-            js_meta_params['__RBQLMP__writer_type'] = 'uniq_count';
+            js_meta_params['__RBQLMP__writer_type'] = '"uniq_count"';
         } else if (rb_actions[SELECT].hasOwnProperty('distinct')) {
-            js_meta_params['__RBQLMP__writer_type'] = 'uniq';
+            js_meta_params['__RBQLMP__writer_type'] = '"uniq"';
         } else {
-            js_meta_params['__RBQLMP__writer_type'] = 'simple';
+            js_meta_params['__RBQLMP__writer_type'] = '"simple"';
         }
         if (rb_actions.hasOwnProperty(EXCEPT)) {
             js_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text']);

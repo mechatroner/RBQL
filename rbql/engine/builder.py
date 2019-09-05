@@ -364,7 +364,7 @@ def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
     join_map = None
     if JOIN in rb_actions:
         rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
-        py_meta_params['__RBQLMP__join_operation'] = rb_actions[JOIN]['join_subtype']
+        py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
         py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
         if join_tables_registry is None:
             raise RbqlParsingError('JOIN operations were disabled')
@@ -373,7 +373,7 @@ def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
             raise RbqlParsingError('Unable to use join table: "{}"'.format(rhs_table_id))
         join_map = HashJoinMap(join_record_iterator, rhs_key_index)
     else:
-        py_meta_params['__RBQLMP__join_operation'] = 'VOID'
+        py_meta_params['__RBQLMP__join_operation'] = '"VOID"'
         py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
 
     if WHERE in rb_actions:
@@ -386,7 +386,7 @@ def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
 
     if UPDATE in rb_actions:
         update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
-        py_meta_params['__RBQLMP__writer_type'] = 'simple'
+        py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         py_meta_params['__RBQLMP__select_expression'] = 'None'
         py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
@@ -399,11 +399,11 @@ def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
         top_count = find_top(rb_actions)
         py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
         if 'distinct_count' in rb_actions[SELECT]:
-            py_meta_params['__RBQLMP__writer_type'] = 'uniq_count'
+            py_meta_params['__RBQLMP__writer_type'] = '"uniq_count"'
         elif 'distinct' in rb_actions[SELECT]:
-            py_meta_params['__RBQLMP__writer_type'] = 'uniq'
+            py_meta_params['__RBQLMP__writer_type'] = '"uniq"'
         else:
-            py_meta_params['__RBQLMP__writer_type'] = 'simple'
+            py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         if EXCEPT in rb_actions:
             py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'])
         else:

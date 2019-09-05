@@ -718,15 +718,15 @@ function do_process_record(afields) {
 
 function do_rb_transform(input_iterator, output_writer) {
     polymorphic_process = __RBQLMP__is_select_query ? process_select : process_update;
-    var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}['__RBQLMP__join_operation'];
+    var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
 
     join_map = new sql_join_type(external_join_map_impl);
 
     writer = new TopWriter(output_writer);
 
-    if ('__RBQLMP__writer_type' == 'uniq') {
+    if (__RBQLMP__writer_type == 'uniq') {
         writer = new UniqWriter(writer);
-    } else if ('__RBQLMP__writer_type' == 'uniq_count') {
+    } else if (__RBQLMP__writer_type == 'uniq_count') {
         writer = new UniqCountWriter(writer);
     }
 
