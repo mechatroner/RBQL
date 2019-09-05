@@ -151,7 +151,7 @@ Explanation of simplified Python version of RBQL algorithm by example.
 4. RBQL has static template script which looks like this:
 ```
     for line in sys.stdin:
-        a = line.rstrip('\n').split('\t')
+        a = line.rstrip('\n').split(',')
         if %%%W_Expression%%%:
             out_fields = [%%%S_Expression%%%]
             print '\t'.join([str(v) for v in out_fields])
@@ -160,7 +160,7 @@ Explanation of simplified Python version of RBQL algorithm by example.
 5. RBQL replaces `%%%W_Expression%%%` with _W_ and `%%%S_Expression%%%` with _S_ so we get the following script:
 ```
     for line in sys.stdin:
-        a = line.rstrip('\n').split('\t')
+        a = line.rstrip('\n').split(',')
         if a[0] != 'SELL':
             out_fields = [a[2], int(a[3]) + 100, len(a[1])]
             print '\t'.join([str(v) for v in out_fields])

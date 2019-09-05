@@ -35,11 +35,9 @@ from collections import defaultdict
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
-# TODO new feature: allow record iterator provide custom column names.
-
 # TODO show warning when csv fields contain trailing spaces
 
-# TODO make utf-8 encoding the default
+# TODO new feature: allow record iterator provide custom column names.
 
 
 GROUP_BY = 'GROUP BY'
