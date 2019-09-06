@@ -30,6 +30,7 @@ from collections import defaultdict
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
+# TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in template.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
 
 # TODO optimize performance: optional compilation depending on python2/python3
 
@@ -38,6 +39,8 @@ from collections import defaultdict
 # TODO show warning when csv fields contain trailing spaces
 
 # TODO new feature: allow record iterator provide custom column names.
+
+# TODO rename afields -> record_a; bfields -> record_b
 
 
 GROUP_BY = 'GROUP BY'
@@ -97,6 +100,7 @@ def strip_comments(cline):
 
 
 def parse_join_expression(src):
+    # FIXME improve to support a.NR, b.NR, aNR, bNR and named fields
     match = re.match(r'(?i)^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$', src)
     if match is None:
         raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
@@ -112,21 +116,32 @@ def parse_join_expression(src):
     return (table_id, lhs_join_var, rhs_key_index)
 
 
-def generate_init_statements(column_vars, indent):
-    init_statements = []
+def generate_basic_init_statements(query, prefix):
+    result = []
+    assert prefix in ['a', 'b']
+    rgx = '(?:^|[^_a-zA-Z0-9])([{}][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    matches = list(re.finditer(rgx, query))
+    column_vars = list(set([m.group(1) for m in matches]))
     for var_name in column_vars:
-        var_group = var_name[0]
+        assert var_name.startswith(prefix)
         zero_based_idx = int(var_name[1:]) - 1
-        if var_group == 'a':
-            init_statements.append('{} = safe_get(afields, {})'.format(var_name, zero_based_idx))
-        if var_group == 'b':
-            init_statements.append('{} = safe_get(bfields, {}) if bfields is not None else None'.format(var_name, zero_based_idx))
-    for i in range(1, len(init_statements)):
-        init_statements[i] = indent + init_statements[i]
-    result = '\n'.join(init_statements)
+        # TODO since afields and bfields are all produced by iterators themselves maybe we can try to refactor/simplify this logic. i.e. avoid using afields/bfields at all, immediately return initialized variables?
+        if prefix == 'a':
+            result.append('{} = safe_get(afields, {})'.format(var_name, zero_based_idx))
+        if prefix == 'b':
+            result.append('{} = safe_get(bfields, {}) if bfields is not None else None'.format(var_name, zero_based_idx))
     return result
 
 
+def generate_all_init_statements(query, input_iterator, join_record_iterator, indent):
+    init_code = input_iterator.generate_init_statements(query)
+    if join_record_iterator:
+        init_code += '\n' + join_record_iterator.generate_init_statements(query)
+    code_lines = [cl for cl in init_code.split('\n') if len(cl)]
+    for i in range(1, len(code_lines)):
+        code_lines[i] = indent + code_lines[i]
+    return '\n'.join(code_lines)
+    
 
 def replace_star_count(aggregate_expression):
     return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression, flags=re.IGNORECASE).lstrip(' ')
@@ -285,12 +300,6 @@ def indent_user_init_code(user_init_code):
     return '\n'.join(source_lines) + '\n'
 
 
-def extract_column_vars(rbql_expression):
-    rgx = '(?:^|[^_a-zA-Z0-9])([ab][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'
-    matches = list(re.finditer(rgx, rbql_expression))
-    return list(set([m.group(1) for m in matches]))
-
-
 def translate_except_expression(except_expression):
     skip_vars = except_expression.split(',')
     skip_vars = [v.strip() for v in skip_vars]
@@ -344,9 +353,8 @@ def cleanup_query(query):
     return ' '.join(rbql_lines)
 
 
-def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
+def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, user_init_code):
     query = cleanup_query(query)
-    column_vars = extract_column_vars(query)
     format_expression, string_literals = separate_string_literals_py(query)
     rb_actions = separate_actions(format_expression)
 
@@ -364,6 +372,7 @@ def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
+    join_record_iterator = None
     join_map = None
     if JOIN in rb_actions:
         rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
@@ -395,8 +404,14 @@ def parse_to_py(query, py_template_text, join_tables_registry, user_init_code):
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
         py_meta_params['__RBQLMP__top_count'] = 'None'
 
-    py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' ' * 8)
-    py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' ' * 4)
+    ## FIXME do not generate both?
+    #column_vars = extract_column_vars(query)
+    #py_meta_params['__RBQLMP__init_column_vars_select'] = generate_all_init_statements(column_vars, ' ' * 8)
+    #py_meta_params['__RBQLMP__init_column_vars_update'] = generate_all_init_statements(column_vars, ' ' * 4)
+
+    py_meta_params['__RBQLMP__init_column_vars_select'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 8)
+    py_meta_params['__RBQLMP__init_column_vars_update'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 4)
+
 
     if SELECT in rb_actions:
         top_count = find_top(rb_actions)
@@ -480,7 +495,7 @@ def generic_run(user_query, input_iterator, output_writer, join_tables_registry=
         rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
         with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
             py_template_text = py_src.read()
-        python_code, join_map = parse_to_py(user_query, py_template_text, join_tables_registry, user_init_code)
+        python_code, join_map = parse_to_py(user_query, py_template_text, input_iterator, join_tables_registry, user_init_code)
         with RbqlPyEnv() as worker_env:
             write_python_module(python_code, worker_env.module_path)
             # TODO find a way to report module_path if exception is thrown.
@@ -516,13 +531,17 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 
 
 class TableIterator:
-    def __init__(self, table):
+    def __init__(self, table, variable_prefix='a'):
         self.table = table
         self.NR = 0
         self.fields_info = dict()
+        self.variable_prefix = variable_prefix
 
     def finish(self):
         pass
+
+    def generate_init_statements(self, query):
+        return '\n'.join(generate_basic_init_statements(query, self.variable_prefix))
 
     def get_record(self):
         if self.NR >= len(self.table):
@@ -562,7 +581,7 @@ class SingleTableRegistry:
     def get_iterator_by_table_id(self, table_id):
         if table_id != self.table_name:
             raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
-        return TableIterator(self.table)
+        return TableIterator(self.table, 'b')
 
 
 def table_run(user_query, input_table, output_table, join_table=None, user_init_code=''):
