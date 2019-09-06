@@ -59,13 +59,13 @@ function test_except_parsing() {
     let except_part = null;
 
     except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8';
-    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
+    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
 
     except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  ';
-    assert('select_except(afields, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
+    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
 
     except_part = 'a1';
-    assert('select_except(afields, [0])' === rbql.translate_except_expression(except_part));
+    assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part));
 }
 
 
@@ -73,10 +73,10 @@ function test_join_parsing() {
     let join_part = null;
     let catched = false;
     join_part = '/path/to/the/file.tsv on a1 == b3';
-    test_common.assert_arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2], rbql.parse_join_expression(join_part));
+    test_common.assert_arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(record_a, 0)', 2], rbql.parse_join_expression(join_part));
 
     join_part = ' file.tsv on b20== a12  ';
-    test_common.assert_arrays_are_equal(['file.tsv', 'safe_join_get(afields, 11)', 19], rbql.parse_join_expression(join_part));
+    test_common.assert_arrays_are_equal(['file.tsv', 'safe_join_get(record_a, 11)', 19], rbql.parse_join_expression(join_part));
 
     join_part = '/path/to/the/file.tsv on a1==a12  ';
     catched = false;

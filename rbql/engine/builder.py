@@ -40,7 +40,6 @@ from collections import defaultdict
 
 # TODO new feature: allow record iterator provide custom column names.
 
-# TODO rename afields -> record_a; bfields -> record_b
 
 
 GROUP_BY = 'GROUP BY'
@@ -111,7 +110,7 @@ def parse_join_expression(src):
         avar, bvar = bvar, avar
     if avar[0] != 'a' or bvar[0] != 'b':
         raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
-    lhs_join_var = 'safe_join_get(afields, {})'.format(int(avar[1:]) - 1)
+    lhs_join_var = 'safe_join_get(record_a, {})'.format(int(avar[1:]) - 1)
     rhs_key_index = int(bvar[1:]) - 1
     return (table_id, lhs_join_var, rhs_key_index)
 
@@ -125,11 +124,11 @@ def generate_basic_init_statements(query, prefix):
     for var_name in column_vars:
         assert var_name.startswith(prefix)
         zero_based_idx = int(var_name[1:]) - 1
-        # TODO since afields and bfields are all produced by iterators themselves maybe we can try to refactor/simplify this logic. i.e. avoid using afields/bfields at all, immediately return initialized variables?
+        # TODO since record_a and record_b are all produced by iterators themselves maybe we can try to refactor/simplify this logic. i.e. avoid using record_a/record_b at all, immediately return initialized variables?
         if prefix == 'a':
-            result.append('{} = safe_get(afields, {})'.format(var_name, zero_based_idx))
+            result.append('{} = safe_get(record_a, {})'.format(var_name, zero_based_idx))
         if prefix == 'b':
-            result.append('{} = safe_get(bfields, {}) if bfields is not None else None'.format(var_name, zero_based_idx))
+            result.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(var_name, zero_based_idx))
     return result
 
 
@@ -310,7 +309,7 @@ def translate_except_expression(except_expression):
         skip_indices.append(int(var_name[1:]) - 1)
     skip_indices = sorted(skip_indices)
     skip_indices = [str(v) for v in skip_indices]
-    return 'select_except(afields, [{}])'.format(','.join(skip_indices))
+    return 'select_except(record_a, [{}])'.format(','.join(skip_indices))
 
 
 class HashJoinMap:

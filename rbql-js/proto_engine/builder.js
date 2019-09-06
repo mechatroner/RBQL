@@ -102,7 +102,7 @@ function parse_join_expression(src) {
         throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
     }
     avar = parseInt(avar.substr(1)) - 1;
-    var lhs_join_var = `safe_join_get(afields, ${avar})`;
+    var lhs_join_var = `safe_join_get(record_a, ${avar})`;
     let rhs_key_index = parseInt(bvar.substr(1)) - 1;
     return [table_id, lhs_join_var, rhs_key_index];
 }
@@ -115,9 +115,9 @@ function generate_init_statements(column_vars, indent) {
         var var_group = var_name.charAt(0);
         var zero_based_idx = parseInt(var_name.substr(1)) - 1;
         if (var_group == 'a') {
-            init_statements.push(`var ${var_name} = safe_get(afields, ${zero_based_idx});`);
+            init_statements.push(`var ${var_name} = safe_get(record_a, ${zero_based_idx});`);
         } else {
-            init_statements.push(`var ${var_name} = bfields === null ? null : safe_get(bfields, ${zero_based_idx});`);
+            init_statements.push(`var ${var_name} = record_b === null ? null : safe_get(record_b, ${zero_based_idx});`);
         }
     }
     for (var i = 1; i < init_statements.length; i++) {
@@ -353,7 +353,7 @@ function translate_except_expression(except_expression) {
     }
     skip_indices = skip_indices.sort((a, b) => a - b);
     let indices_str = skip_indices.join(',');
-    return `select_except(afields, [${indices_str}])`;
+    return `select_except(record_a, [${indices_str}])`;
 }
 
 

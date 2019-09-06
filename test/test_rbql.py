@@ -59,21 +59,21 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_except_parsing(self):
         except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8'
-        self.assertEqual('select_except(afields, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part))
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part))
 
         except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  '
-        self.assertEqual('select_except(afields, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part))
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part))
 
         except_part = 'a1'
-        self.assertEqual('select_except(afields, [0])', rbql.translate_except_expression(except_part))
+        self.assertEqual('select_except(record_a, [0])', rbql.translate_except_expression(except_part))
 
 
     def test_join_parsing(self):
         join_part = '/path/to/the/file.tsv on a1 == b3'
-        self.assertEqual(('/path/to/the/file.tsv', 'safe_join_get(afields, 0)', 2), rbql.parse_join_expression(join_part))
+        self.assertEqual(('/path/to/the/file.tsv', 'safe_join_get(record_a, 0)', 2), rbql.parse_join_expression(join_part))
 
         join_part = ' file.tsv on b20== a12  '
-        self.assertEqual(('file.tsv', 'safe_join_get(afields, 11)', 19), rbql.parse_join_expression(join_part))
+        self.assertEqual(('file.tsv', 'safe_join_get(record_a, 11)', 19), rbql.parse_join_expression(join_part))
 
         join_part = '/path/to/the/file.tsv on a1==a12  '
         with self.assertRaises(Exception) as cm:

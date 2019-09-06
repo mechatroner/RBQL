@@ -547,13 +547,13 @@ def select_except(src, except_fields):
     return result
 
 
-def process_update(NR, NF, afields, rhs_records):
+def process_update(NR, NF, record_a, rhs_records):
     if len(rhs_records) > 1:
         raise RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B')
-    bfields = None
+    record_b = None
     if len(rhs_records) == 1:
-        bfields = rhs_records[0]
-    up_fields = afields[:]
+        record_b = rhs_records[0]
+    up_fields = record_a[:]
     __RBQLMP__init_column_vars_update
     if len(rhs_records) == 1 and (__RBQLMP__where_expression):
         global NU
@@ -612,14 +612,14 @@ def select_unnested(sort_key, folded_fields):
     return True
 
 
-def process_select(NR, NF, afields, rhs_records):
+def process_select(NR, NF, record_a, rhs_records):
     global unnest_list
-    for bfields in rhs_records:
+    for record_b in rhs_records:
         unnest_list = None
-        if bfields is None:
-            star_fields = afields
+        if record_b is None:
+            star_fields = record_a
         else:
-            star_fields = afields + bfields
+            star_fields = record_a + record_b
         __RBQLMP__init_column_vars_select
         if not (__RBQLMP__where_expression):
             continue
@@ -664,14 +664,14 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
 
     NR = 0
     while True:
-        afields = input_iterator.get_record()
-        if afields is None:
+        record_a = input_iterator.get_record()
+        if record_a is None:
             break
         NR += 1
-        NF = len(afields)
+        NF = len(record_a)
         try:
             rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var)
-            if not polymorphic_process(NR, NF, afields, rhs_records):
+            if not polymorphic_process(NR, NF, record_a, rhs_records):
                 break
         except InternalBadFieldError as e:
             bad_idx = e.bad_idx

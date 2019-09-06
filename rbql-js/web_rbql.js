@@ -583,13 +583,13 @@ function select_except(src, except_fields) {
 }
 
 
-function process_update(NF, afields, rhs_records) {
+function process_update(NF, record_a, rhs_records) {
     if (rhs_records.length > 1)
         throw new RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B');
-    var bfields = null;
+    var record_b = null;
     if (rhs_records.length == 1)
-        bfields = rhs_records[0];
-    var up_fields = afields;
+        record_b = rhs_records[0];
+    var up_fields = record_a;
     __RBQLMP__init_column_vars_select
     if (rhs_records.length == 1 && (__RBQLMP__where_expression)) {
         NU += 1;
@@ -659,13 +659,13 @@ function select_unnested(sort_key, folded_fields) {
 }
 
 
-function process_select(NF, afields, rhs_records) {
+function process_select(NF, record_a, rhs_records) {
     for (var i = 0; i < rhs_records.length; i++) {
         unnest_list = null;
-        var bfields = rhs_records[i];
-        var star_fields = afields;
-        if (bfields != null)
-            star_fields = afields.concat(bfields);
+        var record_b = rhs_records[i];
+        var star_fields = record_a;
+        if (record_b != null)
+            star_fields = record_a.concat(record_b);
         __RBQLMP__init_column_vars_update
         if (!(__RBQLMP__where_expression))
             continue;
@@ -713,10 +713,10 @@ function process_record(record) {
 }
 
 
-function do_process_record(afields) {
+function do_process_record(record_a) {
     let rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var);
-    let NF = afields.length;
-    if (!polymorphic_process(NF, afields, rhs_records)) {
+    let NF = record_a.length;
+    if (!polymorphic_process(NF, record_a, rhs_records)) {
         external_input_iterator.finish();
         return;
     }
@@ -892,7 +892,7 @@ function parse_join_expression(src) {
         throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
     }
     avar = parseInt(avar.substr(1)) - 1;
-    var lhs_join_var = `safe_join_get(afields, ${avar})`;
+    var lhs_join_var = `safe_join_get(record_a, ${avar})`;
     let rhs_key_index = parseInt(bvar.substr(1)) - 1;
     return [table_id, lhs_join_var, rhs_key_index];
 }
@@ -905,9 +905,9 @@ function generate_init_statements(column_vars, indent) {
         var var_group = var_name.charAt(0);
         var zero_based_idx = parseInt(var_name.substr(1)) - 1;
         if (var_group == 'a') {
-            init_statements.push(`var ${var_name} = safe_get(afields, ${zero_based_idx});`);
+            init_statements.push(`var ${var_name} = safe_get(record_a, ${zero_based_idx});`);
         } else {
-            init_statements.push(`var ${var_name} = bfields === null ? null : safe_get(bfields, ${zero_based_idx});`);
+            init_statements.push(`var ${var_name} = record_b === null ? null : safe_get(record_b, ${zero_based_idx});`);
         }
     }
     for (var i = 1; i < init_statements.length; i++) {
@@ -1143,7 +1143,7 @@ function translate_except_expression(except_expression) {
     }
     skip_indices = skip_indices.sort((a, b) => a - b);
     let indices_str = skip_indices.join(',');
-    return `select_except(afields, [${indices_str}])`;
+    return `select_except(record_a, [${indices_str}])`;
 }
 
 
