@@ -246,7 +246,7 @@ class CSVWriter:
 
 
 class CSVRecordIterator:
-    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, table_name='input', chunk_size=1024):
+    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, table_name='input', variable_prefix='a', chunk_size=1024):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = encode_input_stream(stream, encoding)
@@ -254,6 +254,7 @@ class CSVRecordIterator:
         self.delim = delim
         self.policy = 'quoted' if policy == 'quoted_rfc' else policy
         self.table_name = table_name
+        self.variable_prefix = variable_prefix
 
         self.buffer = ''
         self.detected_line_separator = '\n'
@@ -265,6 +266,10 @@ class CSVRecordIterator:
         self.utf8_bom_removed = False
         self.first_defective_line = None # TODO use line # instead of record # when "\n" in fields parsing is implemented
         self.polymorphic_get_row = self.get_row_rfc if policy == 'quoted_rfc' else self.get_row_simple
+
+
+    def generate_init_statements(self, query):
+        return '\n'.join(engine.generate_basic_init_statements(query, self.variable_prefix))
 
 
     def finish(self):
@@ -398,7 +403,7 @@ class FileSystemCSVRegistry:
         table_path = find_table_path(table_id)
         if table_path is None:
             raise RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
-        self.record_iterator = CSVRecordIterator(open(table_path, 'rb'), True, self.encoding, self.delim, self.policy, table_name=table_id)
+        self.record_iterator = CSVRecordIterator(open(table_path, 'rb'), True, self.encoding, self.delim, self.policy, table_name=table_id, variable_prefix='b')
         return self.record_iterator
 
     def finish(self):
