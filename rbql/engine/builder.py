@@ -28,6 +28,8 @@ from collections import defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
+# TODO optimize join_loop: split it into two functions: join_select and non_join_select which will not have the loop and replace FakeJoiner with None, see TODO in template.py code
+
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
 # TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in template.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
@@ -40,6 +42,9 @@ from collections import defaultdict
 
 # TODO new feature: allow record iterator provide custom column names.
 
+# TODO support a.NR, aNR, a.NF aNF, b.NR, bNR, b.NF, bNF
+
+# FIXME test "bNR" and "bNF" variable usage inside join select and update queries
 
 
 GROUP_BY = 'GROUP BY'
@@ -328,12 +333,12 @@ class HashJoinMap:
             if fields is None:
                 break
             nr += 1
-            num_fields = len(fields)
-            self.max_record_len = max(self.max_record_len, num_fields)
-            if self.key_index >= num_fields:
+            nf = len(fields)
+            self.max_record_len = max(self.max_record_len, nf)
+            if self.key_index >= nf:
                 raise RbqlRuntimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
             key = fields[self.key_index]
-            self.hash_map[key].append(fields)
+            self.hash_map[key].append((nr, nf, fields))
         self.record_iterator.finish()
 
 
@@ -402,17 +407,13 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
         py_meta_params['__RBQLMP__top_count'] = 'None'
-
-    ## FIXME do not generate both?
-    #column_vars = extract_column_vars(query)
-    #py_meta_params['__RBQLMP__init_column_vars_select'] = generate_all_init_statements(column_vars, ' ' * 8)
-    #py_meta_params['__RBQLMP__init_column_vars_update'] = generate_all_init_statements(column_vars, ' ' * 4)
-
-    py_meta_params['__RBQLMP__init_column_vars_select'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 8)
-    py_meta_params['__RBQLMP__init_column_vars_update'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 4)
+        py_meta_params['__RBQLMP__init_column_vars_select'] = ''
+        py_meta_params['__RBQLMP__init_column_vars_update'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 4)
 
 
     if SELECT in rb_actions:
+        py_meta_params['__RBQLMP__init_column_vars_select'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 8)
+        py_meta_params['__RBQLMP__init_column_vars_update'] = ''
         top_count = find_top(rb_actions)
         py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
         if 'distinct_count' in rb_actions[SELECT]:

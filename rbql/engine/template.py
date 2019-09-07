@@ -501,11 +501,12 @@ class AggregateWriter(object):
 
 
 class FakeJoiner(object):
+    # TODO get rid of this: replace with None
     def __init__(self, join_map):
-        pass
+        self.null_record = [None]
 
     def get_rhs(self, lhs_key):
-        return [None]
+        return self.null_record
 
 
 class InnerJoiner(object):
@@ -519,7 +520,7 @@ class InnerJoiner(object):
 class LeftJoiner(object):
     def __init__(self, join_map):
         self.join_map = join_map
-        self.null_record = [[None] * join_map.max_record_len]
+        self.null_record = [(None, join_map.max_record_len, [None] * join_map.max_record_len)]
 
     def get_rhs(self, lhs_key):
         result = self.join_map.get_join_records(lhs_key)
@@ -547,15 +548,27 @@ def select_except(src, except_fields):
     return result
 
 
-def process_update(NR, NF, record_a, rhs_records):
-    if len(rhs_records) > 1:
+def process_update_join(NR, NF, record_a, join_matches):
+    if len(join_matches) > 1:
         raise RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B')
-    record_b = None
-    if len(rhs_records) == 1:
-        record_b = rhs_records[0]
+    if len(join_matches) == 1:
+        bNR, bNF, record_b = join_matches[0]
+    else:
+        bNR, bNF, record_b = None, None, None
     up_fields = record_a[:]
     __RBQLMP__init_column_vars_update
-    if len(rhs_records) == 1 and (__RBQLMP__where_expression):
+    if len(join_matches) == 1 and (__RBQLMP__where_expression):
+        global NU
+        NU += 1
+        __RBQLMP__update_statements
+    return writer.write(up_fields)
+
+
+def process_update_simple(NR, NF, record_a, _join_matches):
+    # TODO refactoring, do not pass _join_matches at all
+    up_fields = record_a[:]
+    __RBQLMP__init_column_vars_update
+    if __RBQLMP__where_expression:
         global NU
         NU += 1
         __RBQLMP__update_statements
@@ -612,13 +625,15 @@ def select_unnested(sort_key, folded_fields):
     return True
 
 
-def process_select(NR, NF, record_a, rhs_records):
+def process_select(NR, NF, record_a, join_matches):
     global unnest_list
-    for record_b in rhs_records:
+    for join_match in join_matches:
+        # TODO optimize join loop: we don't need this loop in simple case without join
         unnest_list = None
-        if record_b is None:
+        if join_match is None:
             star_fields = record_a
         else:
+            bNR, bNF, record_b = join_match
             star_fields = record_a + record_b
         __RBQLMP__init_column_vars_select
         if not (__RBQLMP__where_expression):
@@ -645,7 +660,13 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
 
     global writer
 
-    polymorphic_process = process_select if __RBQLMP__is_select_query else process_update
+    if __RBQLMP__is_select_query:
+        polymorphic_process = process_select
+    elif __RBQLMP__join_operation == 'VOID':
+        polymorphic_process = process_update_simple
+    else:
+        polymorphic_process = process_update_join
+
     sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation]
 
     if join_map_impl is not None:
@@ -670,8 +691,8 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
         NR += 1
         NF = len(record_a)
         try:
-            rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var)
-            if not polymorphic_process(NR, NF, record_a, rhs_records):
+            join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var)
+            if not polymorphic_process(NR, NF, record_a, join_matches):
                 break
         except InternalBadFieldError as e:
             bad_idx = e.bad_idx
