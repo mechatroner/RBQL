@@ -124,14 +124,14 @@
             ["rocket", "some stuff"]
         ],
         "expected_output_table": [
-            [null, null, "100"],
-            ["car", "gas", "5"],
-            ["car", "gas", "-20"],
-            [null, null, "20"],
-            [null, null, "10"]
+            [null, null, "100", null, 2],
+            ["car", "gas", "5", 2, 2],
+            ["car", "gas", "-20", 2, 2],
+            [null, null, "20", null, 2],
+            [null, null, "10", null, 2]
         ],
-        "query_python": "select b1,b2,   a1 left join  B  on a2 == b1 where b2 != \"wings\"",
-        "query_js": "select b1,b2,   a1 left join  B  on a2 == b1 where b2 != \"wings\""
+        "query_python": "select b1,b2,   a1,bNR,bNF left join  B  on a2 == b1 where b2 != \"wings\"",
+        "query_js": "select b1,b2,   a1,bNR,bNF left join  B  on a2 == b1 where b2 != \"wings\""
     },
     {
         "test_name": "test8",
