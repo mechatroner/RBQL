@@ -61,6 +61,11 @@ class RbqlParsingError(Exception):
     pass
 
 
+class RBQLRecord:
+    def __init__(self):
+        pass
+
+
 def safe_get(record, idx):
     return record[idx] if idx < len(record) else None
 

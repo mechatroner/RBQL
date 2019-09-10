@@ -372,7 +372,7 @@ class TestLineSplit(unittest.TestCase):
         for tc in test_cases:
             src, expected_res = tc
             stream, encoding = string_to_randomly_encoded_stream(src)
-            line_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=None, policy=None, chunk_size=6)
+            line_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=None, policy=None, chunk_size=6, line_mode=True)
             test_res = line_iterator._get_all_rows()
             self.assertEqual(expected_res, test_res)
 
@@ -386,7 +386,7 @@ class TestLineSplit(unittest.TestCase):
                 token = random.choice(source_tokens)
                 src += token
             stream, encoding = string_to_randomly_encoded_stream(src)
-            line_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=None, policy=None, chunk_size=chunk_size)
+            line_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=None, policy=None, chunk_size=chunk_size, line_mode=True)
             test_res = line_iterator._get_all_rows()
             expected_res = src.splitlines()
             self.assertEqual(expected_res, test_res)
@@ -575,8 +575,8 @@ class TestRecordIterator(unittest.TestCase):
         self.assertEqual(table, parsed_table)
 
         stream = io.BytesIO(csv_data.encode('latin-1'))
-        record_iterator = rbql_csv.CSVRecordIterator(stream, True, 'utf-8', delim=delim, policy=policy)
         with self.assertRaises(Exception) as cm:
+            record_iterator = rbql_csv.CSVRecordIterator(stream, True, 'utf-8', delim=delim, policy=policy)
             parsed_table = record_iterator._get_all_records()
         e = cm.exception
         self.assertTrue(str(e).find('Unable to decode input table as UTF-8') != -1)

@@ -6,6 +6,7 @@ import sys
 import os
 import codecs
 import io
+import re
 
 from . import engine
 from . import csv_utils
@@ -244,9 +245,27 @@ class CSVWriter:
         return result
 
 
+def generate_attribute_init_statements(query, prefix, header_columns_names):
+    header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
+    assert prefix in ['a', 'b']
+    result = ['{} = RBQLRecord()'.format(prefix)]
+    rgx = '(?:^|[^_a-zA-Z0-9])(?:[{}]\.([_a-zA-Z][_a-zA-Z0-9]*))(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    matches = list(re.finditer(rgx, query))
+    column_names = list(set([m.group(1) for m in matches]))
+    for column_name in column_names:
+        zero_based_idx = header_columns_names.get(column_name)
+        if zero_based_idx is None:
+            continue
+        var_name = '{}.{}'.format(prefix, column_name)
+        if prefix == 'a':
+            result.append('{} = safe_get(record_a, {})'.format(var_name, zero_based_idx))
+        if prefix == 'b':
+            result.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(var_name, zero_based_idx))
+    return result
+
 
 class CSVRecordIterator:
-    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, table_name='input', variable_prefix='a', chunk_size=1024):
+    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = encode_input_stream(stream, encoding)
@@ -267,9 +286,20 @@ class CSVRecordIterator:
         self.first_defective_line = None # TODO use line # instead of record # when "\n" in fields parsing is implemented
         self.polymorphic_get_row = self.get_row_rfc if policy == 'quoted_rfc' else self.get_row_simple
 
+        if not line_mode:
+            self.header_record = None
+            self.header_record_emitted = False
+            self.header_record = self.get_record()
+            assert not self.header_record_emitted
+
 
     def generate_init_statements(self, query):
-        return '\n'.join(engine.generate_basic_init_statements(query, self.variable_prefix))
+        statements = []
+        statements += engine.generate_basic_init_statements(query, self.variable_prefix)
+        statements += generate_attribute_init_statements(query, self.variable_prefix, self.header_record)
+        # FIXME add generate_dict_init_statements
+        # FIXME add generate_array_init_statements
+        return '\n'.join(statements)
 
 
     def finish(self):
@@ -343,6 +373,9 @@ class CSVRecordIterator:
 
 
     def get_record(self):
+        if not self.header_record_emitted and self.header_record is not None:
+            self.header_record_emitted = True
+            return self.header_record
         line = self.polymorphic_get_row()
         if line is None:
             return None

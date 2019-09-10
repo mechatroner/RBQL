@@ -109,7 +109,7 @@ def is_delimited_table(sampled_lines, delim, policy):
 def sample_lines(src_path, encoding, delim, policy):
     result = []
     source = open(src_path, 'rb')
-    line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=delim, policy=policy)
+    line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=delim, policy=policy, line_mode=True)
     for _i in polymorphic_xrange(10):
         line = line_iterator.polymorphic_get_row()
         if line is None:

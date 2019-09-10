@@ -266,5 +266,14 @@
         "csv_encoding": "latin-1",
         "query_python": "select a3, a2, a2 + ' adjusted', a1",
         "query_js": "select a3, a2, a2 + ' adjusted', a1"
+    },
+    {
+        "test_name": "named fields",
+        "input_table_path": "csv_files/university_ranking.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result1.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "query_python": "select a.world_rank, a.university_name where a.country == 'France' and int(a.world_rank) < 50"
     }
 ]

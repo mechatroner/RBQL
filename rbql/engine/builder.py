@@ -46,6 +46,7 @@ from collections import defaultdict
 
 # FIXME test "bNR" and "bNF" variable usage inside join select and update queries
 
+# FIXME add empty input unit test
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -379,6 +380,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     join_record_iterator = None
     join_map = None
     if JOIN in rb_actions:
+        # FIXME we can't generally infer rhs_key_index without generating init statements/analyzing header for join iterator
         rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
         py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
         py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
@@ -447,7 +449,6 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
 def write_python_module(python_code, dst_path):
     with codecs.open(dst_path, 'w', encoding='utf-8') as dst:
         dst.write(python_code)
-
 
 
 class RbqlPyEnv:
