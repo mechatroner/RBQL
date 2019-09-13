@@ -248,8 +248,7 @@ class CSVWriter:
 def generate_attribute_init_statements(query, prefix, header_columns_names):
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
     assert prefix in ['a', 'b']
-    result = ['{} = RBQLRecord()'.format(prefix)]
-    rgx = '(?:^|[^_a-zA-Z0-9])(?:[{}]\.([_a-zA-Z][_a-zA-Z0-9]*))(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    rgx = '(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
     matches = list(re.finditer(rgx, query))
     column_names = list(set([m.group(1) for m in matches]))
     for column_name in column_names:
@@ -294,11 +293,11 @@ class CSVRecordIterator:
 
 
     def generate_init_statements(self, query):
-        statements = []
+        statements = ['{} = RBQLRecord()'.format(self.variable_prefix)]
         statements += engine.generate_basic_init_statements(query, self.variable_prefix)
+        statements += engine.generate_array_init_statements(query, self.variable_prefix)
         statements += generate_attribute_init_statements(query, self.variable_prefix, self.header_record)
         # FIXME add generate_dict_init_statements
-        # FIXME add generate_array_init_statements
         return '\n'.join(statements)
 
 

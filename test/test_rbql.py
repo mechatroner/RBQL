@@ -188,7 +188,7 @@ class TestJsonTables(unittest.TestCase):
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
-        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}'.format(test_name))
+        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}. Expected warnings: {}; Actual warnings: {}'.format(test_name, ','.join(expected_warnings), ','.join(warnings)))
         self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}. expected_error: {}, error_info: {}'.format(test_name, expected_error, error_info))
         if expected_error_type is not None:
             self.assertTrue(error_info['type'] == expected_error_type, 'Inside json test: {}'.format(test_name))

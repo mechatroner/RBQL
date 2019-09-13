@@ -63,7 +63,15 @@ class RbqlParsingError(Exception):
 
 class RBQLRecord:
     def __init__(self):
-        pass
+        self.storage = None
+
+    def __getitem__(self, key):
+        return self.storage[key]
+
+    def __setitem__(self, key, value):
+        if self.storage is None:
+            self.storage = dict()
+        self.storage[key] = value
 
 
 def safe_get(record, idx):

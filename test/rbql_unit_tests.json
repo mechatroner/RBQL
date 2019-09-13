@@ -907,5 +907,20 @@
             ["dog dog", "9"]
         ],
         "query_js": "select * order by a2"
+    },
+    {
+        "test_name": "test array indexing",
+        "input_table": [
+            ["5", "haha", "hoho"],
+            ["-20", "haha", "hioho"],
+            ["50", "haha", "dfdf"],
+            ["20", "haha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 4],
+            [4, "20", 0]
+        ],
+        "query_python": "select NR, a[1], len(a[3]) where int(a[1]) > 5",
+        "query_js": "select NR, a[1], a[3].length where a[1] > 5"
     }
 ]

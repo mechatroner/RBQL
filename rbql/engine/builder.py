@@ -48,6 +48,9 @@ from collections import defaultdict
 
 # FIXME add empty input unit test
 
+# FIXME rbql_unit_tests unit tests: randomly replace a{i} variables in queries with a[{i}] before execution - this shouldn't affect query result at all.
+
+
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
@@ -124,17 +127,28 @@ def parse_join_expression(src):
 def generate_basic_init_statements(query, prefix):
     result = []
     assert prefix in ['a', 'b']
-    rgx = '(?:^|[^_a-zA-Z0-9])([{}][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    rgx = '(?:^|[^_a-zA-Z0-9]){}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
     matches = list(re.finditer(rgx, query))
-    column_vars = list(set([m.group(1) for m in matches]))
-    for var_name in column_vars:
-        assert var_name.startswith(prefix)
-        zero_based_idx = int(var_name[1:]) - 1
-        # TODO since record_a and record_b are all produced by iterators themselves maybe we can try to refactor/simplify this logic. i.e. avoid using record_a/record_b at all, immediately return initialized variables?
+    field_nums = list(set([int(m.group(1)) for m in matches]))
+    for field_num in field_nums:
         if prefix == 'a':
-            result.append('{} = safe_get(record_a, {})'.format(var_name, zero_based_idx))
+            result.append('a{} = safe_get(record_a, {})'.format(field_num, field_num - 1))
         if prefix == 'b':
-            result.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(var_name, zero_based_idx))
+            result.append('b{} = safe_get(record_b, {}) if record_b is not None else None'.format(field_num, field_num - 1))
+    return result
+
+
+def generate_array_init_statements(query, prefix):
+    result = []
+    assert prefix in ['a', 'b']
+    rgx = '(?:^|[^_a-zA-Z0-9]){}\[([1-9][0-9]*)\]'.format(prefix)
+    matches = list(re.finditer(rgx, query))
+    field_nums = list(set([int(m.group(1)) for m in matches]))
+    for field_num in field_nums:
+        if prefix == 'a':
+            result.append('a[{}] = safe_get(record_a, {})'.format(field_num, field_num - 1))
+        if prefix == 'b':
+            result.append('b[{}] = safe_get(record_b, {}) if record_b is not None else None'.format(field_num, field_num - 1))
     return result
 
 
@@ -542,7 +556,10 @@ class TableIterator:
         pass
 
     def generate_init_statements(self, query):
-        return '\n'.join(generate_basic_init_statements(query, self.variable_prefix))
+        statements = ['{} = RBQLRecord()'.format(self.variable_prefix)]
+        statements += generate_basic_init_statements(query, self.variable_prefix)
+        statements += generate_array_init_statements(query, self.variable_prefix)
+        return '\n'.join(statements)
 
     def get_record(self):
         if self.NR >= len(self.table):
