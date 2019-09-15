@@ -46,10 +46,11 @@ from collections import defaultdict
 
 # FIXME test "bNR" and "bNF" variable usage inside join select and update queries
 
-# FIXME add empty input unit test
+# FIXME add empty input unit tests: both json and csv
 
 # FIXME rbql_unit_tests unit tests: randomly replace a{i} variables in queries with a[{i}] before execution - this shouldn't affect query result at all.
 
+# FIXME make sure new variables work with update queries, join queries and except queries
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -63,7 +64,7 @@ WHERE = 'WHERE'
 LIMIT = 'LIMIT'
 EXCEPT = 'EXCEPT'
 
-
+join_syntax_error = 'Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."'
 
 class RbqlRuntimeError(Exception):
     pass
@@ -108,59 +109,60 @@ def strip_comments(cline):
 
 
 def parse_join_expression(src):
-    # FIXME improve to support a.NR, b.NR, aNR, bNR and named fields
-    match = re.match(r'(?i)^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$', src)
+    match = re.match(r'(?i)^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$', src)
     if match is None:
-        raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
-    table_id = match.group(1)
-    avar = match.group(2)
-    bvar = match.group(3)
-    if avar[0] == 'b':
-        avar, bvar = bvar, avar
-    if avar[0] != 'a' or bvar[0] != 'b':
-        raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"')
-    lhs_join_var = 'safe_join_get(record_a, {})'.format(int(avar[1:]) - 1)
-    rhs_key_index = int(bvar[1:]) - 1
-    return (table_id, lhs_join_var, rhs_key_index)
+        raise RbqlParsingError(join_syntax_error)
+    return (match.group(1), match.group(2), match.group(3))
 
 
-def generate_basic_init_statements(query, prefix):
-    result = []
+def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2):
+    ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table'
+    if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
+        raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
+    if join_var_2 in input_variables_map and join_var_2 in join_variables_map:
+        raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
+    if join_var_2 in input_variables_map:
+        join_var_1, join_var_2 = join_var_2, join_var_1
+    lhs_key_index = input_variables_map.get(join_var_1)
+    rhs_key_index = join_variables_map.get(join_var_2)
+    if lhs_key_index is None or rhs_key_index is None:
+        raise RbqlParsingError(join_syntax_error)
+    lhs_join_var = 'safe_join_get(record_a, {})'.format(lhs_key_index)
+    return (lhs_join_var, rhs_key_index)
+
+
+def parse_basic_variables(query, prefix, dst_variables_map):
     assert prefix in ['a', 'b']
     rgx = '(?:^|[^_a-zA-Z0-9]){}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
     matches = list(re.finditer(rgx, query))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
-        if prefix == 'a':
-            result.append('a{} = safe_get(record_a, {})'.format(field_num, field_num - 1))
-        if prefix == 'b':
-            result.append('b{} = safe_get(record_b, {}) if record_b is not None else None'.format(field_num, field_num - 1))
-    return result
+        dst_variables_map[prefix + str(field_num)] = field_num - 1
 
 
-def generate_array_init_statements(query, prefix):
-    result = []
+def parse_array_variables(query, prefix, dst_variables_map):
     assert prefix in ['a', 'b']
     rgx = '(?:^|[^_a-zA-Z0-9]){}\[([1-9][0-9]*)\]'.format(prefix)
     matches = list(re.finditer(rgx, query))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
-        if prefix == 'a':
-            result.append('a[{}] = safe_get(record_a, {})'.format(field_num, field_num - 1))
-        if prefix == 'b':
-            result.append('b[{}] = safe_get(record_b, {}) if record_b is not None else None'.format(field_num, field_num - 1))
-    return result
+        dst_variables_map['{}[{}]'.format(prefix, field_num)] = field_num - 1
 
 
-def generate_all_init_statements(query, input_iterator, join_record_iterator, indent):
-    init_code = input_iterator.generate_init_statements(query)
+def generate_init_statements(query, input_iterator, join_record_iterator, indent):
+    code_lines = input_iterator.get_init_code(query).split('\n')
+    variables_map = input_iterator.get_variables_map(query)
+    for k, v in variables_map.items():
+        code_lines.append('{} = safe_get(record_a, {})'.format(k, v))
     if join_record_iterator:
-        init_code += '\n' + join_record_iterator.generate_init_statements(query)
-    code_lines = [cl for cl in init_code.split('\n') if len(cl)]
+        code_lines += join_record_iterator.get_init_code(query).split('\n')
+        variables_map = join_record_iterator.get_variables_map(query)
+        for k, v in variables_map.items():
+            code_lines.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(k, v))
     for i in range(1, len(code_lines)):
         code_lines[i] = indent + code_lines[i]
     return '\n'.join(code_lines)
-    
+
 
 def replace_star_count(aggregate_expression):
     return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression, flags=re.IGNORECASE).lstrip(' ')
@@ -172,8 +174,10 @@ def replace_star_vars(rbql_expression):
     return rbql_expression
 
 
-def translate_update_expression(update_expression, indent):
-    translated = re.sub('(?:^|,) *a([1-9][0-9]*) *=(?=[^=])', '\nsafe_set(up_fields, \\1,', update_expression)
+def translate_update_expression(update_expression, input_variables_map, indent):
+    translated = update_expression
+    for k, v in input_variables_map.items():
+        translated = re.sub('(?:^|,) *{} *=(?=[^=])'.format(re.escape(k)), '\nsafe_set(up_fields, {},'.format(v), translated)
     update_statements = translated.split('\n')
     update_statements = [s.strip() for s in update_statements]
     if len(update_statements) < 2 or update_statements[0] != '':
@@ -319,14 +323,15 @@ def indent_user_init_code(user_init_code):
     return '\n'.join(source_lines) + '\n'
 
 
-def translate_except_expression(except_expression):
+def translate_except_expression(except_expression, input_variables_map):
     skip_vars = except_expression.split(',')
     skip_vars = [v.strip() for v in skip_vars]
     skip_indices = list()
     for var_name in skip_vars:
-        if re.match('^a[1-9][0-9]*$', var_name) is None:
+        var_index = input_variables_map.get(var_name)
+        if var_index is None:
             raise RbqlParsingError('Invalid EXCEPT syntax')
-        skip_indices.append(int(var_name[1:]) - 1)
+        skip_indices.append(var_index)
     skip_indices = sorted(skip_indices)
     skip_indices = [str(v) for v in skip_indices]
     return 'select_except(record_a, [{}])'.format(','.join(skip_indices))
@@ -391,18 +396,21 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
+    input_variables_map = input_iterator.get_variables_map(query)
     join_record_iterator = None
     join_map = None
     if JOIN in rb_actions:
-        # FIXME we can't generally infer rhs_key_index without generating init statements/analyzing header for join iterator
-        rhs_table_id, lhs_join_var, rhs_key_index = parse_join_expression(rb_actions[JOIN]['text'])
-        py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
-        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
+        rhs_table_id, join_var_1, join_var_2 = parse_join_expression(rb_actions[JOIN]['text'])
         if join_tables_registry is None:
             raise RbqlParsingError('JOIN operations were disabled')
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to use join table: "{}"'.format(rhs_table_id))
+        join_variables_map = join_record_iterator.get_variables_map(query)
+
+        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2)
+        py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
+        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
         join_map = HashJoinMap(join_record_iterator, rhs_key_index)
     else:
         py_meta_params['__RBQLMP__join_operation'] = '"VOID"'
@@ -417,18 +425,18 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__where_expression'] = 'True'
 
     if UPDATE in rb_actions:
-        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' ' * 8)
+        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' ' * 8)
         py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         py_meta_params['__RBQLMP__select_expression'] = 'None'
         py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
         py_meta_params['__RBQLMP__top_count'] = 'None'
         py_meta_params['__RBQLMP__init_column_vars_select'] = ''
-        py_meta_params['__RBQLMP__init_column_vars_update'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 4)
+        py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(query, input_iterator, join_record_iterator, ' ' * 4)
 
 
     if SELECT in rb_actions:
-        py_meta_params['__RBQLMP__init_column_vars_select'] = generate_all_init_statements(query, input_iterator, join_record_iterator, ' ' * 8)
+        py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(query, input_iterator, join_record_iterator, ' ' * 8)
         py_meta_params['__RBQLMP__init_column_vars_update'] = ''
         top_count = find_top(rb_actions)
         py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
@@ -439,7 +447,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         else:
             py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         if EXCEPT in rb_actions:
-            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'])
+            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map)
         else:
             select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
             py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
@@ -551,15 +559,21 @@ class TableIterator:
         self.NR = 0
         self.fields_info = dict()
         self.variable_prefix = variable_prefix
+        self.cached_variable_maps = dict()
 
     def finish(self):
         pass
 
-    def generate_init_statements(self, query):
-        statements = ['{} = RBQLRecord()'.format(self.variable_prefix)]
-        statements += generate_basic_init_statements(query, self.variable_prefix)
-        statements += generate_array_init_statements(query, self.variable_prefix)
-        return '\n'.join(statements)
+    def get_init_code(self, query):
+        return '{} = RBQLRecord()'.format(self.variable_prefix)
+
+    def get_variables_map(self, query):
+        if query not in self.cached_variable_maps:
+            variable_map = dict()
+            parse_basic_variables(query, self.variable_prefix, variable_map)
+            parse_array_variables(query, self.variable_prefix, variable_map)
+            self.cached_variable_maps[query] = variable_map
+        return self.cached_variable_maps[query]
 
     def get_record(self):
         if self.NR >= len(self.table):

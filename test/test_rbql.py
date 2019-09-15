@@ -5,6 +5,7 @@ from __future__ import print_function
 import unittest
 import os
 import json
+import random
 
 import rbql
 
@@ -70,22 +71,32 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_join_parsing(self):
         join_part = '/path/to/the/file.tsv on a1 == b3'
-        self.assertEqual(('/path/to/the/file.tsv', 'safe_join_get(record_a, 0)', 2), rbql.parse_join_expression(join_part))
+        self.assertEqual(('/path/to/the/file.tsv', 'a1', 'b3'), rbql.parse_join_expression(join_part))
 
-        join_part = ' file.tsv on b20== a12  '
-        self.assertEqual(('file.tsv', 'safe_join_get(record_a, 11)', 19), rbql.parse_join_expression(join_part))
+        join_part = ' file.tsv on b[20]== a.name  '
+        self.assertEqual(('file.tsv', 'b[20]', 'a.name'), rbql.parse_join_expression(join_part))
 
-        join_part = '/path/to/the/file.tsv on a1==a12  '
+        join_part = ' Bon b1 == a.age '
         with self.assertRaises(Exception) as cm:
             rbql.parse_join_expression(join_part)
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
-        join_part = ' Bon b1 == a12 '
         with self.assertRaises(Exception) as cm:
-            rbql.parse_join_expression(join_part)
+            rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2')
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
+
+        with self.assertRaises(Exception) as cm:
+            rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b10')
+        e = cm.exception
+        self.assertTrue(str(e).find('Invalid join syntax') != -1)
+
+        with self.assertRaises(Exception) as cm:
+            rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'b1', 'b2')
+        e = cm.exception
+        self.assertTrue(str(e).find('Invalid join syntax') != -1)
+
 
 
     def test_update_translation(self):
@@ -140,6 +151,27 @@ def round_floats(src_table):
                 row[c] = round(row[c], 3)
 
 
+def do_randomly_split_replace(query, old_name, new_name):
+    query_parts = query.split(old_name)
+    result = query_parts[0]
+    for i in range(1, len(query_parts)):
+        if random.choice([True, False]):
+            result += old_name
+        else:
+            result += new_name
+        result += query_parts[i]
+    return result
+
+
+
+
+def randomly_replace_column_variable_style(query):
+    for i in xrange(10):
+        query = do_randomly_split_replace(query, 'a{}'.format(i), 'a[{}]'.format(i))
+        query = do_randomly_split_replace(query, 'b{}'.format(i), 'b[{}]'.format(i))
+    return query
+
+
 
 class TestTableRun(unittest.TestCase):
     def test_table_run_simple(self):
@@ -165,6 +197,7 @@ class TestTableRun(unittest.TestCase):
         self.assertEqual(expected_output_table, output_table)
 
 
+
 class TestJsonTables(unittest.TestCase):
 
     def process_test_case(self, test_case):
@@ -173,6 +206,7 @@ class TestJsonTables(unittest.TestCase):
         if query is None:
             self.assertTrue(test_case.get('query_js', None) is not None)
             return # Skip this test
+        query = randomly_replace_column_variable_style(query)
         input_table = test_case['input_table']
         join_table = test_case.get('join_table', None)
         user_init_code = test_case.get('python_init_code', '')
