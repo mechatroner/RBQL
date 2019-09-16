@@ -60,13 +60,13 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_except_parsing(self):
         except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8'
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part))
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}))
 
         except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  '
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part))
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}))
 
         except_part = 'a1'
-        self.assertEqual('select_except(record_a, [0])', rbql.translate_except_expression(except_part))
+        self.assertEqual('select_except(record_a, [0])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}))
 
 
     def test_join_parsing(self):
