@@ -101,12 +101,12 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_update_translation(self):
         rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  '
-        test_dst = rbql.translate_update_expression(rbql_src, '    ')
+        test_dst = rbql.translate_update_expression(rbql_src, {'a1': 0, 'a2': 1, 'a4': 3, 'a8': 7, 'a30': 29}, '    ')
         expected_dst = list()
-        expected_dst.append('safe_set(up_fields, 1,  a2  + b3)')
-        expected_dst.append('    safe_set(up_fields, 2,a4  if b3 == a2 else a8)')
-        expected_dst.append('    safe_set(up_fields, 8,   100)')
-        expected_dst.append('    safe_set(up_fields, 30,200/3 + 1)')
+        expected_dst.append('safe_set(up_fields, 0,  a2  + b3)')
+        expected_dst.append('    safe_set(up_fields, 1,a4  if b3 == a2 else a8)')
+        expected_dst.append('    safe_set(up_fields, 7,   100)')
+        expected_dst.append('    safe_set(up_fields, 29,200/3 + 1)')
         expected_dst = '\n'.join(expected_dst)
         self.assertEqual(expected_dst, test_dst)
 
@@ -203,10 +203,12 @@ class TestJsonTables(unittest.TestCase):
     def process_test_case(self, test_case):
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
+        randomly_replace_var_names = test_case.get('randomly_replace_var_names', True)
         if query is None:
             self.assertTrue(test_case.get('query_js', None) is not None)
             return # Skip this test
-        query = randomly_replace_column_variable_style(query)
+        if randomly_replace_var_names:
+            query = randomly_replace_column_variable_style(query)
         input_table = test_case['input_table']
         join_table = test_case.get('join_table', None)
         user_init_code = test_case.get('python_init_code', '')
@@ -231,7 +233,7 @@ class TestJsonTables(unittest.TestCase):
         else:
             round_floats(expected_output_table)
             round_floats(output_table)
-            self.assertEqual(expected_output_table, output_table)
+            self.assertEqual(expected_output_table, output_table, 'Inside json test: {}'.format(test_name))
 
 
     def test_json_tables(self):

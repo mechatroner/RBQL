@@ -54,6 +54,7 @@
         "expected_warnings": [
             "inconsistent input records"
         ],
+        "randomly_replace_var_names": false,
         "query_python": "select int(math.sqrt(int(a1))), r\"\\'\\\"a1   bc\"",
         "query_js": "select Math.floor(Math.sqrt(a1)), String.raw`\\'\\\"a1   bc`"
     },
