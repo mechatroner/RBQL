@@ -245,22 +245,17 @@ class CSVWriter:
         return result
 
 
-def generate_attribute_init_statements(query, prefix, header_columns_names):
-    header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
+def parse_attribute_variables(query, prefix, header_columns_names, dst_variables_map):
     assert prefix in ['a', 'b']
+    header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
     rgx = '(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
     matches = list(re.finditer(rgx, query))
     column_names = list(set([m.group(1) for m in matches]))
     for column_name in column_names:
         zero_based_idx = header_columns_names.get(column_name)
-        if zero_based_idx is None:
-            continue
-        var_name = '{}.{}'.format(prefix, column_name)
-        if prefix == 'a':
-            result.append('{} = safe_get(record_a, {})'.format(var_name, zero_based_idx))
-        if prefix == 'b':
-            result.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(var_name, zero_based_idx))
-    return result
+        if zero_based_idx is not None:
+            dst_variables_map['{}.{}'.format(prefix, column_name)] = zero_based_idx
+
 
 
 class CSVRecordIterator:
@@ -273,6 +268,7 @@ class CSVRecordIterator:
         self.policy = 'quoted' if policy == 'quoted_rfc' else policy
         self.table_name = table_name
         self.variable_prefix = variable_prefix
+        self.cached_variable_maps = dict()
 
         self.buffer = ''
         self.detected_line_separator = '\n'
@@ -292,13 +288,19 @@ class CSVRecordIterator:
             assert not self.header_record_emitted
 
 
-    def generate_init_statements(self, query):
-        statements = ['{} = RBQLRecord()'.format(self.variable_prefix)]
-        statements += engine.generate_basic_init_statements(query, self.variable_prefix)
-        statements += engine.generate_array_init_statements(query, self.variable_prefix)
-        statements += generate_attribute_init_statements(query, self.variable_prefix, self.header_record)
-        # FIXME add generate_dict_init_statements
-        return '\n'.join(statements)
+    def get_init_code(self, query):
+        return '{} = RBQLRecord()'.format(self.variable_prefix)
+
+
+    def get_variables_map(self, query):
+        if query not in self.cached_variable_maps:
+            variable_map = dict()
+            engine.parse_basic_variables(query, self.variable_prefix, variable_map)
+            engine.parse_array_variables(query, self.variable_prefix, variable_map)
+            parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
+            # FIXME parse dict variables
+            self.cached_variable_maps[query] = variable_map
+        return self.cached_variable_maps[query]
 
 
     def finish(self):
