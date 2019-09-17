@@ -275,5 +275,14 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "query_python": "select a.world_rank, a.university_name where a.country == 'France' and int(a.world_rank) < 50"
+    },
+    {
+        "test_name": "except named fields",
+        "input_table_path": "csv_files/university_ranking.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result2.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "query_python": "select top 5 * except a.country, a.world_rank"
     }
 ]
