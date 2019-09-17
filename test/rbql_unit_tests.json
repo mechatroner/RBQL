@@ -2,34 +2,34 @@
     {
         "test_name": "test1",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_output_table": [
-            [3, "50", 4],
+            [3, "50", 5],
             [4, "20", 0]
         ],
         "query_python": "select NR, a1, len(a3) where int(a1) > 5",
         "query_js": "select NR, a1, a3.length where a1 > 5"
     },
     {
-        "test_name": "test2",
+        "test_name": "variable records length",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""],
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""],
             ["8"],
-            ["3", "4", "1000", "asdfasf", "asdfsaf", "asdfa"],
-            ["11", "hoho", ""],
+            ["3", "4", "1000", "alpha 1", "alpha 2", "epsilon"],
+            ["11", "beta", ""],
             ["10", "hihi", ""],
-            ["13", "haha", ""]
+            ["13", "alpha", ""]
         ],
         "expected_output_table": [
-            ["haha"],
-            ["hoho"]
+            ["alpha"],
+            ["beta"]
         ],
         "expected_warnings": [
             "inconsistent input records"
@@ -40,10 +40,10 @@
     {
         "test_name": "test4",
         "input_table": [
-            ["0", "haha", "hoho"],
+            ["0", "alpha", "beta"],
             ["9"],
-            ["81", "haha", "dfdf"],
-            ["4", "haha", "dfdf", "asdfa", "111"]
+            ["81", "alpha", "delta"],
+            ["4", "alpha", "delta", "epsilon", "111"]
         ],
         "expected_output_table": [
             [0, "\\'\\\"a1   bc"],
@@ -61,16 +61,16 @@
     {
         "test_name": "test5",
         "input_table": [
-            ["0", "haha", "hoho"],
+            ["0", "alpha", "beta"],
             ["9"],
-            ["81", "haha", "dfdf"],
-            ["4", "haha", "dfdf", "asdfa", "111"]
+            ["81", "alpha", "delta"],
+            ["4", "alpha", "delta", "epsilon", "111"]
         ],
         "expected_output_table": [
-            ["haha"],
+            ["alpha"],
             [null],
-            ["haha"],
-            ["haha"]
+            ["alpha"],
+            ["alpha"]
         ],
         "expected_warnings": [
             "inconsistent input records"
@@ -104,8 +104,8 @@
             [3, "50", "plane", "tu-134", "plane", "wings  "],
             [6, "200", "plane", "boeing 737", "plane", "wings  "]
         ],
-        "query_python": "select NR, * inner join B on a2 == b1 where b2 != \"haha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
-        "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"haha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+        "query_python": "select NR, * inner join B on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
+        "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
     {
         "test_name": "test7",
@@ -181,10 +181,10 @@
     {
         "test_name": "test_OR",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "join_table": [
             ["bicycle", "legs"],
@@ -193,22 +193,22 @@
             ["rocket", "some stuff"]
         ],
         "expected_output_table": [
-            ["5", "haha", "hoho"],
-            ["50", "haha", "dfdf"]
+            ["5", "alpha", "beta"],
+            ["50", "alpha", "delta"]
         ],
-        "query_python": "select * where a3 ==\"hoho\" or int(a1)==50 or a1 == \"aaaa\" or a2== \"bbbbb\" ",
-        "query_js": "select * where a3 ==\"hoho\" || parseInt(a1)==50 || a1 == \"aaaa\" || a2== \"bbbbb\" "
+        "query_python": "select * where a3 ==\"beta\" or int(a1)==50 or a1 == \"aaaa\" or a2== \"bbbbb\" ",
+        "query_js": "select * where a3 ==\"beta\" || parseInt(a1)==50 || a1 == \"aaaa\" || a2== \"bbbbb\" "
     },
     {
         "test_name": "test_unicode_1",
         "input_table": [
-            ["5", "Петр Первый", "hoho"],
-            ["-20", "Екатерина Великая", "hioho"],
-            ["50", "Наполеон", "dfdf"],
+            ["5", "Петр Первый", "beta"],
+            ["-20", "Екатерина Великая", "gamma"],
+            ["50", "Наполеон", "delta"],
             ["20", "Наполеон", ""]
         ],
         "expected_output_table": [
-            ["50", "Наполеон", "dfdf"],
+            ["50", "Наполеон", "delta"],
             ["20", "Наполеон", ""]
         ],
         "query_python": "select * where a2== \"Наполеон\" ",
@@ -240,53 +240,53 @@
             [3, "50", "plane", "tu-134", "plane", "wings"],
             [6, "200", "plane", "boeing 737", "plane", "wings"]
         ],
-        "query_python": "select NR, * JOIN B on a2 == b1 where b2 != \"haha\" and int(a1) > -100 and len(b2) > 1 order   by a2, int(a1)",
-        "query_js": "select NR, * JOIN B on a2 == b1 where b2 != \"haha\" && a1 > -100 && b2.length > 1 order    by a2, parseInt(a1)"
+        "query_python": "select NR, * JOIN B on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order   by a2, int(a1)",
+        "query_js": "select NR, * JOIN B on a2 == b1 where b2 != \"alpha\" && a1 > -100 && b2.length > 1 order    by a2, parseInt(a1)"
     },
     {
         "test_name": "regexp_1",
         "input_table": [
-            ["5", "haha   asdf", "hoho"],
-            ["50", "haha  asdf", "dfdf"],
-            ["20", "haha    asdf", ""],
-            ["-20", "haha   asdf", "hioho"]
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"]
         ],
         "expected_output_table": [
-            ["5", "haha   asdf", "hoho"],
-            ["-20", "haha   asdf", "hioho"]
+            ["5", "alpha   zeta", "beta"],
+            ["-20", "alpha   zeta", "gamma"]
         ],
-        "query_python": "select * where re.search(\"a   as\", a2)  is   not  None",
-        "query_js": "select * where /a   as/.test(a2)"
+        "query_python": "select * where re.search(\"a   ze\", a2)  is   not  None",
+        "query_js": "select * where /a   ze/.test(a2)"
     },
     {
         "test_name": "update_1",
         "input_table": [
-            ["5", "haha   asdf", "hoho"],
-            ["50", "haha  asdf", "dfdf"],
-            ["20", "haha    asdf", ""],
-            ["-20", "haha   asdf", "hioho"]
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"]
         ],
         "expected_output_table": [
-            ["5", "haha   asdf", "hoho"],
-            [100, "haha  asdf hoho", "dfdf"],
-            [100, "haha    asdf hoho", ""],
-            ["-20", "haha   asdf", "hioho"]
+            ["5", "alpha   zeta", "beta"],
+            [100, "alpha  zeta beta", "delta"],
+            [100, "alpha    zeta beta", ""],
+            ["-20", "alpha   zeta", "gamma"]
         ],
-        "query_python": "update a2 = a2 + \" hoho\", a1 = 100 where int(a1) > 10",
-        "query_js": "update a2 = a2 + \" hoho\", a1 = 100 where parseInt(a1) > 10"
+        "query_python": "update a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
+        "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
     },
     {
         "test_name": "update_unicode_1",
         "input_table": [
-            ["5", "Петр Первый", "hoho"],
-            ["-20", "Екатерина Великая", "hioho"],
-            ["50", "Наполеон", "dfdf"],
+            ["5", "Петр Первый", "beta"],
+            ["-20", "Екатерина Великая", "gamma"],
+            ["50", "Наполеон", "delta"],
             ["20", "Наполеон"]
         ],
         "expected_output_table": [
-            ["5", "Наполеон", "hoho"],
-            ["-20", "Наполеон", "hioho"],
-            ["50", "Наполеон", "dfdf"],
+            ["5", "Наполеон", "beta"],
+            ["-20", "Наполеон", "gamma"],
+            ["50", "Наполеон", "delta"],
             ["20", "Наполеон"]
         ],
         "expected_warnings": [
@@ -536,18 +536,18 @@
     {
         "test_name": "test_NU_variable",
         "input_table": [
-            ["5", "haha   asdf", "hoho"],
-            ["50", "haha  asdf", "dfdf"],
-            ["20", "haha    asdf", ""],
-            ["-20", "haha   asdf", "hioho"],
-            ["40", "lol", "hioho"]
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"],
+            ["40", "theta", "gamma"]
         ],
         "expected_output_table": [
-            ["5", "haha   asdf", "hoho"],
-            [100, "haha  asdf 1", "dfdf"],
-            [100, "haha    asdf 2", ""],
-            ["-20", "haha   asdf", "hioho"],
-            [100, "lol 3", "hioho"]
+            ["5", "alpha   zeta", "beta"],
+            [100, "alpha  zeta 1", "delta"],
+            [100, "alpha    zeta 2", ""],
+            ["-20", "alpha   zeta", "gamma"],
+            [100, "theta 3", "gamma"]
         ],
         "query_python": "update a2 = \"{} {}\".format(a2, NU) , a1 = 100 where int(a1) > 10",
         "query_js": "update a2 = a2 + \" \" + NU, a1 = 100 where parseInt(a1) > 10"
@@ -587,42 +587,42 @@
     {
         "test_name": "single_equal_in_where",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_error": "Assignments \"=\" are not allowed in \"WHERE\" expressions. For equality test use \"==\"",
-        "query_python": "select NR where a3 = \"hioho\"",
-        "query_js": "select NR where a3 = \"hioho\""
+        "query_python": "select NR where a3 = \"gamma\"",
+        "query_js": "select NR where a3 = \"gamma\""
     },
     {
         "test_name": "triple_equality_js",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_output_table": [
             [2]
         ],
         "query_python": null,
-        "query_js": "select NR where a3 === \"hioho\""
+        "query_js": "select NR where a3 === \"gamma\""
     },
     {
         "test_name": "user_init_code_1",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_output_table": [
-            ["5", "haha FOObar", "hoho"],
-            ["-20", "haha FOObar", "hioho"],
-            ["50", "haha FOObar", "dfdf"],
-            ["20", "haha FOObar", ""]
+            ["5", "alpha FOObar", "beta"],
+            ["-20", "alpha FOObar", "gamma"],
+            ["50", "alpha FOObar", "delta"],
+            ["20", "alpha FOObar", ""]
         ],
         "python_init_code": "def foobar(val):\n    return val + \" FOObar\"\r\n\n",
         "js_init_code": "function foobar(val) {\n    return val + \" FOObar\";\r\n}\n",
@@ -755,8 +755,8 @@
             ["rocket", "some stuff"]
         ],
         "expected_error": "No \"b5\" field at record: 1 in \"B\" table",
-        "query_python": "select NR, * inner join B on a2 == b5 where b2 != \"haha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
-        "query_js": "select NR, * inner join B on a2 == b5 where   b2 !=  \"haha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+        "query_python": "select NR, * inner join B on a2 == b5 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
+        "query_js": "select NR, * inner join B on a2 == b5 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
     {
         "test_name": "test_mixed_type_records_int_string",
@@ -791,10 +791,10 @@
     {
         "test_name": "aggregate_inside_expression_py",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_error": "Usage of RBQL aggregation functions inside Python expressions is not allowed",
         "query_python": "select MIN(a1), repr(MAX(a1))"
@@ -802,23 +802,23 @@
     {
         "test_name": "aggregate_failed_number_conversion",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "query_python": "select MAX(a2)",
         "query_js": "select MAX(a2)",
-        "expected_error_js": "Unable to convert value \"haha\" to number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values",
-        "expected_error_py": "Unable to convert value \"haha\" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values"
+        "expected_error_js": "Unable to convert value \"alpha\" to number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values",
+        "expected_error_py": "Unable to convert value \"alpha\" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values"
     },
     {
         "test_name": "aggregate_inside_expression_js",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_error": "Usage of RBQL aggregation functions inside JavaScript expressions is not allowed",
         "js_init_code": "const fs = require('fs');",
@@ -827,10 +827,10 @@
     {
         "test_name": "aggregate_inside_expression",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_error_js": "Usage of RBQL aggregation functions inside JavaScript expressions is not allowed",
         "expected_error_py": "Usage of RBQL aggregation functions inside Python expressions is not allowed",
@@ -912,13 +912,13 @@
     {
         "test_name": "test array indexing",
         "input_table": [
-            ["5", "haha", "hoho"],
-            ["-20", "haha", "hioho"],
-            ["50", "haha", "dfdf"],
-            ["20", "haha", ""]
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
         ],
         "expected_output_table": [
-            [3, "50", 4],
+            [3, "50", 5],
             [4, "20", 0]
         ],
         "query_python": "select NR, a[1], len(a[3]) where int(a[1]) > 5",

@@ -48,8 +48,6 @@ from collections import defaultdict
 
 # FIXME add empty input unit tests: both json and csv
 
-# FIXME rbql_unit_tests unit tests: randomly replace a{i} variables in queries with a[{i}] before execution - this shouldn't affect query result at all.
-
 # FIXME make sure new variables work with update queries, join queries and except queries
 
 GROUP_BY = 'GROUP BY'
