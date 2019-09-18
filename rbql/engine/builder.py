@@ -49,8 +49,6 @@ from collections import defaultdict
 
 # FIXME add empty input unit tests: both json and csv
 
-# FIXME make sure new variables work with update queries, join queries and except queries
-
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
