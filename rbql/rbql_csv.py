@@ -297,8 +297,9 @@ class CSVRecordIterator:
             variable_map = dict()
             engine.parse_basic_variables(query, self.variable_prefix, variable_map)
             engine.parse_array_variables(query, self.variable_prefix, variable_map)
-            parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
-            # FIXME parse dict variables
+            if self.header_record is not None:
+                parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
+                # FIXME parse dict variables
             self.cached_variable_maps[query] = variable_map
         return self.cached_variable_maps[query]
 
