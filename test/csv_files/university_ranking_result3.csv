@@ -1,0 +1,201 @@
+world_rank,university_name,country,total_score,num_students,international_students
+1,Harvard University,UNITED STATES OF AMERICA,96.1,20152,25%
+2,California Institute of Technology,UNITED STATES OF AMERICA,96.0,2243,27%
+3,Massachusetts Institute of Technology,UNITED STATES OF AMERICA,95.6,11074,33%
+4,Stanford University,UNITED STATES OF AMERICA,94.3,15596,22%
+5,Princeton University,UNITED STATES OF AMERICA,94.2,7929,27%
+6,University of Cambridge,UNITED KINGDOM,91.2,18812,34%
+6,University of Oxford,UNITED KINGDOM,91.2,19919,34%
+8,"University of California, Berkeley",UNITED STATES OF AMERICA,91.1,36186,15%
+9,Imperial College London,UNITED KINGDOM,90.6,15060,51%
+10,Yale University,UNITED STATES OF AMERICA,89.5,11751,20%
+11,"University of California, Los Angeles",UNITED STATES OF AMERICA,87.7,38206,15%
+12,University of Chicago,UNITED STATES OF AMERICA,86.9,14221,21%
+13,Johns Hopkins University,UNITED STATES OF AMERICA,86.4,15128,23%
+14,Cornell University,UNITED STATES OF AMERICA,83.9,21424,19%
+15,ETH Zurich – Swiss Federal Institute of Technology Zurich,SWITZERLAND,83.4,18178,37%
+15,University of Michigan,UNITED STATES OF AMERICA,83.4,41786,16%
+17,University of Toronto,CANADA,82.0,66198,15%
+18,Columbia University,UNITED STATES OF AMERICA,81.0,25055,28%
+19,University of Pennsylvania,UNITED STATES OF AMERICA,79.5,20376,20%
+20,Carnegie Mellon University,UNITED STATES OF AMERICA,79.3,11885,35%
+21,University of Hong Kong,HONG KONG,79.2,19835,38%
+22,University College London,UNITED KINGDOM,78.4,26607,46%
+23,University of Washington,UNITED STATES OF AMERICA,78.0,44020,13%
+24,Duke University,UNITED STATES OF AMERICA,76.5,15172,17%
+25,Northwestern University,UNITED STATES OF AMERICA,75.9,18334,15%
+26,University of Tokyo,JAPAN,75.6,26199,10%
+27,Georgia Institute of Technology,UNITED STATES OF AMERICA,75.3,19967,26%
+28,Pohang University of Science and Technology,SOUTH KOREA,75.1,3055,4%
+29,"University of California, Santa Barbara",UNITED STATES OF AMERICA,75.0,22020,11%
+30,University of British Columbia,CANADA,73.8,50152,25%
+30,University of North Carolina at Chapel Hill,UNITED STATES OF AMERICA,73.8,26518,8%
+32,"University of California, San Diego",UNITED STATES OF AMERICA,73.2,27233,11%
+33,University of Illinois at Urbana-Champaign,UNITED STATES OF AMERICA,73.0,42727,20%
+34,National University of Singapore,SINGAPORE,72.9,31592,34%
+35,McGill University,CANADA,71.7,31326,23%
+36,University of Melbourne,AUSTRALIA,71.0,40128,35%
+37,Peking University,CHINA,70.7,40148,14%
+38,Washington University in St Louis,UNITED STATES OF AMERICA,69.9,12528,17%
+39,École Polytechnique,FRANCE,69.5,2429,30%
+40,University of Edinburgh,UNITED KINGDOM,69.2,25774,36%
+41,Hong Kong University of Science and Technology,HONG KONG,69.0,11385,36%
+42,École Normale Supérieure,FRANCE,68.6,2400,20%
+43,Australian National University,AUSTRALIA,67.0,14604,35%
+43,Karolinska Institute,SWEDEN,67.0,7774,22%
+43,University of Göttingen,GERMANY,67.0,25581,12%
+43,University of Wisconsin,UNITED STATES OF AMERICA,67.0,,
+47,Rice University,UNITED STATES OF AMERICA,66.9,6333,26%
+48,École Polytechnique Fédérale de Lausanne,SWITZERLAND,66.5,9666,54%
+49,"University of California, Irvine",UNITED STATES OF AMERICA,66.0,26614,16%
+49,University of Science and Technology of China,CHINA,66.0,14290,2%
+51,Vanderbilt University,UNITED STATES OF AMERICA,65.9,12161,10%
+52,University of Minnesota,UNITED STATES OF AMERICA,65.6,46825,13%
+53,Tufts University,UNITED STATES OF AMERICA,65.2,10410,14%
+54,"University of California, Davis",UNITED STATES OF AMERICA,65.0,35364,13%
+55,Brown University,UNITED STATES OF AMERICA,64.9,8653,19%
+56,University of Massachusetts,UNITED STATES OF AMERICA,64.7,56959,11%
+57,Kyoto University,JAPAN,64.6,22809,7%
+58,Tsinghua University,CHINA,64.2,39763,10%
+59,Boston University,UNITED STATES OF AMERICA,64.0,24789,17%
+60,New York University,UNITED STATES OF AMERICA,63.9,42056,19%
+61,Emory University,UNITED STATES OF AMERICA,63.0,12338,18%
+61,LMU Munich,GERMANY,63.0,35691,13%
+63,University of Notre Dame,UNITED STATES OF AMERICA,62.8,11829,10%
+64,University of Pittsburgh,UNITED STATES OF AMERICA,62.7,26485,10%
+65,Case Western Reserve University,UNITED STATES OF AMERICA,62.2,9259,17%
+66,Ohio State University,UNITED STATES OF AMERICA,62.1,51462,12%
+67,University of Colorado Boulder,UNITED STATES OF AMERICA,61.6,29325,8%
+68,University of Bristol,UNITED KINGDOM,61.4,17906,25%
+68,"University of California, Santa Cruz",UNITED STATES OF AMERICA,61.4,17404,1%
+68,Yeshiva University,UNITED STATES OF AMERICA,61.4,6753,7%
+71,University of Sydney,AUSTRALIA,61.2,41868,28%
+72,University of Virginia,UNITED STATES OF AMERICA,61.1,23845,12%
+73,University of Adelaide,AUSTRALIA,60.7,20771,26%
+73,University of Southern California,UNITED STATES OF AMERICA,60.7,36534,20%
+75,William & Mary,UNITED STATES OF AMERICA,60.4,7867,7%
+76,Trinity College Dublin,REPUBLIC OF IRELAND,60.3,15521,25%
+77,King’s College London,UNITED KINGDOM,59.7,21394,37%
+78,Stony Brook University,UNITED STATES OF AMERICA,59.6,21908,24%
+79,Korea Advanced Institute of Science and Technology (KAIST),SOUTH KOREA,59.5,9027,9%
+79,University of Sussex,UNITED KINGDOM,59.5,12001,35%
+81,The University of Queensland,AUSTRALIA,59.1,34718,27%
+81,University of York,UNITED KINGDOM,59.1,,
+83,Heidelberg University,GERMANY,59.0,28881,17%
+83,University of Utah,UNITED STATES OF AMERICA,59.0,25674,9%
+85,Durham University,UNITED KINGDOM,58.9,15489,24%
+86,London School of Economics and Political Science,UNITED KINGDOM,58.3,,
+87,University of Manchester,UNITED KINGDOM,58.0,34938,34%
+88,"Royal Holloway, University of London",UNITED KINGDOM,57.9,8747,37%
+89,Lund University,SWEDEN,57.8,28251,15%
+90,University of Southampton,UNITED KINGDOM,57.7,20925,29%
+90,University of Zurich,SWITZERLAND,57.7,26583,19%
+90,Wake Forest University,UNITED STATES OF AMERICA,57.7,7326,5%
+93,McMaster University,CANADA,57.6,23823,15%
+94,University College Dublin,REPUBLIC OF IRELAND,57.5,22193,23%
+95,George Washington University,UNITED STATES OF AMERICA,57.3,20541,16%
+95,University of Arizona,UNITED STATES OF AMERICA,57.3,36429,8%
+95,University of Basel,SWITZERLAND,57.3,12551,24%
+98,"University of Maryland, College Park",UNITED STATES OF AMERICA,57.2,31331,9%
+99,Dartmouth College,UNITED STATES OF AMERICA,57.1,6178,16%
+100,École Normale Supérieure de Lyon,FRANCE,57.0,2218,14%
+101,Technical University of Munich,GERMANY,56.9,35565,20%
+102,University of Helsinki,FINLAND,56.6,23505,6%
+103,University of St Andrews,UNITED KINGDOM,56.5,8338,47%
+104,Rensselaer Polytechnic Institute,UNITED STATES OF AMERICA,56.4,6671,16%
+105,"Rutgers, the State University of New Jersey",UNITED STATES OF AMERICA,56.3,37032,8%
+106,Purdue University,UNITED STATES OF AMERICA,56.2,39256,22%
+107,National Tsing Hua University,TAIWAN,56.1,10221,5%
+107,University of Cape Town,SOUTH AFRICA,56.1,20040,18%
+109,Pennsylvania State University,UNITED STATES OF AMERICA,56.0,44501,12%
+109,Seoul National University,SOUTH KOREA,56.0,26389,10%
+111,Hong Kong Baptist University,HONG KONG,55.6,10441,25%
+112,Bilkent University,TURKEY,55.4,,
+112,Tokyo Institute of Technology,JAPAN,55.4,9586,13%
+114,Eindhoven University of Technology,NETHERLANDS,55.3,8176,14%
+115,National Taiwan University,TAIWAN,55.2,31891,7%
+115,University of Hawai’i at Mānoa,UNITED STATES OF AMERICA,55.2,,
+117,"University of California, Riverside",UNITED STATES OF AMERICA,55.1,20626,12%
+118,University of Geneva,SWITZERLAND,55.0,15668,39%
+119,KU Leuven,BELGIUM,54.8,42503,18%
+120,Nanjing University,CHINA,54.6,29743,10%
+120,Queen Mary University of London,UNITED KINGDOM,54.6,14260,40%
+122,Michigan State University,UNITED STATES OF AMERICA,54.5,44750,15%
+122,Technical University of Denmark,DENMARK,54.5,9990,18%
+124,Ghent University,BELGIUM,54.4,32166,9%
+124,Lancaster University,UNITED KINGDOM,54.4,11512,33%
+124,Leiden University,NETHERLANDS,54.4,21222,10%
+127,University of Alberta,CANADA,54.3,36299,23%
+128,University of Glasgow,UNITED KINGDOM,54.2,22616,29%
+129,Stockholm University,SWEDEN,54.0,31715,8%
+130,Osaka University,JAPAN,53.4,23144,9%
+130,University of Victoria,CANADA,53.4,17581,11%
+132,Tohoku University,JAPAN,53.3,17200,7%
+132,University of Freiburg,GERMANY,53.3,26467,16%
+132,University of Iowa,UNITED STATES OF AMERICA,53.3,27526,11%
+135,University of Bergen,NORWAY,52.7,11623,12%
+136,University of Lausanne,SWITZERLAND,52.6,11964,22%
+137,University of Sheffield,UNITED KINGDOM,52.5,23311,31%
+138,University of Montreal,CANADA,52.4,38264,25%
+139,VU University Amsterdam,NETHERLANDS,52.3,23280,6%
+140,Pierre and Marie Curie University,FRANCE,52.2,27862,18%
+140,University of Dundee,UNITED KINGDOM,52.2,11628,25%
+142,University of Barcelona,SPAIN,52.1,47491,10%
+143,Utrecht University,NETHERLANDS,52.0,30779,7%
+144,Wageningen University and Research Center,NETHERLANDS,51.9,9248,21%
+145,University of Auckland,NEW ZEALAND,51.8,29787,28%
+145,University of Birmingham,UNITED KINGDOM,51.8,25295,23%
+147,Alexandria University,EGYPT,51.6,127431,1%
+147,Uppsala University,SWEDEN,51.6,25266,12%
+149,Hong Kong Polytechnic University,HONG KONG,51.4,22064,26%
+149,University of Aberdeen,UNITED KINGDOM,51.4,12938,33%
+151,Delft University of Technology,NETHERLANDS,51.3,15920,25%
+152,"Birkbeck, University of London",UNITED KINGDOM,51.2,9454,38%
+152,Newcastle University,UNITED KINGDOM,51.2,20174,29%
+152,University of New South Wales,AUSTRALIA,51.2,38309,33%
+155,Pompeu Fabra University,SPAIN,51.1,10901,13%
+156,Indiana University,UNITED STATES OF AMERICA,51.0,62468,13%
+156,Iowa State University,UNITED STATES OF AMERICA,51.0,29991,11%
+158,Georgia Health Sciences University,UNITED STATES OF AMERICA,50.7,,
+159,Erasmus University Rotterdam,NETHERLANDS,50.4,20580,18%
+159,University of Delaware,UNITED STATES OF AMERICA,50.4,19262,10%
+161,Arizona State University,UNITED STATES OF AMERICA,50.3,83236,9%
+161,Boston College,UNITED STATES OF AMERICA,50.3,13216,19%
+163,National Sun Yat-Sen University,TAIWAN,50.2,9336,4%
+164,Georgetown University,UNITED STATES OF AMERICA,50.1,15408,14%
+165,University of Amsterdam,NETHERLANDS,50.0,24570,11%
+165,University of Liverpool,UNITED KINGDOM,50.0,18815,30%
+167,Aarhus University,DENMARK,49.9,23895,14%
+168,University of Leeds,UNITED KINGDOM,49.8,27703,21%
+168,University of Würzburg,GERMANY,49.8,26576,8%
+170,University of Groningen,NETHERLANDS,49.7,24556,12%
+171,Sun Yat-sen University,CHINA,49.6,51351,8%
+172,Goethe University Frankfurt,GERMANY,49.4,31861,15%
+173,Bielefeld University,GERMANY,49.3,21428,8%
+174,Nanyang Technological University,SINGAPORE,49.0,25028,33%
+174,University of East Anglia,UNITED KINGDOM,49.0,14992,28%
+174,University of Nottingham,UNITED KINGDOM,49.0,30144,27%
+177,University of Copenhagen,DENMARK,48.8,27545,19%
+178,Humboldt University of Berlin,GERMANY,48.5,29987,16%
+178,Monash University,AUSTRALIA,48.5,50882,36%
+178,University of Bonn,GERMANY,48.5,32474,13%
+181,National Chiao Tung University,TAIWAN,48.3,12646,5%
+182,RWTH Aachen University,GERMANY,48.2,37917,16%
+183,Middle East Technical University,TURKEY,47.7,25779,7%
+184,University of Exeter,UNITED KINGDOM,47.6,17755,28%
+185,University of Twente,NETHERLANDS,47.5,6631,26%
+186,University of Konstanz,GERMANY,47.3,10930,12%
+187,Karlsruhe Institute of Technology,GERMANY,47.2,25294,16%
+187,University of Innsbruck,AUSTRIA,47.2,18209,39%
+189,University of Tübingen,GERMANY,47.0,28327,12%
+190,Drexel University,UNITED STATES OF AMERICA,46.9,20713,18%
+190,University of Cincinnati,UNITED STATES OF AMERICA,46.9,36108,6%
+190,Yonsei University,SOUTH KOREA,46.9,24774,14%
+193,Dalhousie University,CANADA,46.8,15064,18%
+193,KTH Royal Institute of Technology,SWEDEN,46.8,12062,21%
+195,University of Vienna,AUSTRIA,46.7,34651,25%
+196,Kent State University,UNITED STATES OF AMERICA,46.5,23122,8%
+197,University of Illinois at Chicago,UNITED STATES OF AMERICA,46.4,24313,17%
+197,Zhejiang University,CHINA,46.4,47508,5%
+199,Simon Fraser University,CANADA,46.2,26640,19%
+199,Swedish University of Agricultural Sciences,SWEDEN,46.2,3879,20%

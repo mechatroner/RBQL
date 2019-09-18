@@ -42,13 +42,15 @@ from collections import defaultdict
 
 # TODO new feature: allow record iterator provide custom column names.
 
-# TODO support a.NR, aNR, a.NF aNF, b.NR, bNR, b.NF, bNF
+
+# FIXME support a.NR, aNR, a.NF aNF, b.NR, bNR, b.NF, bNF
 
 # FIXME test "bNR" and "bNF" variable usage inside join select and update queries
 
 # FIXME add empty input unit tests: both json and csv
 
 # FIXME make sure new variables work with update queries, join queries and except queries
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'

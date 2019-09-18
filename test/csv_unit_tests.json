@@ -288,10 +288,10 @@
     {
         "test_name": "update named fields",
         "input_table_path": "csv_files/university_ranking.csv",
-        "expected_output_table_path": "csv_files/university_ranking_result2.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result3.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "query_python": "select top 5 * except a.country, a.world_rank"
+        "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', '') where NR > 1"
     }
 ]
