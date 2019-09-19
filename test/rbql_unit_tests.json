@@ -936,6 +936,36 @@
         "query_js": "select * order by a2"
     },
     {
+        "test_name": "join on NR",
+        "input_table": [
+            ["Roosevelt", 1858, "USA"],
+            ["Napoleon", 1769, "France"],
+            ["Dmitri Mendeleev", 1834, "Russia"],
+            ["Jane Austen", 1775, "England"],
+            ["Hayao Miyazaki", 1941, "Japan"],
+            ["Marilyn Monroe", 1926, "USA"],
+            ["Beethoven", 1770, "Germany"],
+            ["Louis Armstrong", 1901, "USA"],
+            ["Confucius", -551, "China"],
+            ["Catherine the Great", 1729, "Russia"]
+        ],
+        "join_table": [
+            ["USA", 300],
+            ["France", 60],
+            ["Russia", 140],
+            ["England", 60],
+            ["Japan", 127],
+            ["Germany", 82],
+            ["China", 1313]
+        ],
+        "expected_output_table": [
+            ["Jane Austen", 127],
+            ["Hayao Miyazaki", 82]
+        ],
+        "query_python": "select a1, b2 inner join B on aNR == bNR where aNR > 3 and bNR < 6",
+        "query_js": "select a1, b2 inner join B on aNR == bNR where aNR > 3 and bNR < 6"
+    },
+    {
         "test_name": "test array indexing",
         "input_table": [
             ["5", "alpha", "beta"],

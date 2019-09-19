@@ -47,8 +47,6 @@ from collections import defaultdict
 
 # FIXME test "bNR" and "bNF" variable usage inside join select and update queries
 
-# FIXME add empty input unit tests: both json and csv (empty input and empty join)
-
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
