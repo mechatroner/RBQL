@@ -288,10 +288,6 @@ class CSVRecordIterator:
             assert not self.header_record_emitted
 
 
-    def get_init_code(self, query):
-        return '{} = RBQLRecord()'.format(self.variable_prefix)
-
-
     def get_variables_map(self, query):
         if query not in self.cached_variable_maps:
             variable_map = dict()

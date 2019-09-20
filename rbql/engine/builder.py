@@ -119,11 +119,11 @@ def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, 
         raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
     if join_var_2 in input_variables_map:
         join_var_1, join_var_2 = join_var_2, join_var_1
-    lhs_key_index = input_variables_map.get(join_var_1)
-    rhs_key_index = join_variables_map.get(join_var_2)
+    lhs_key_index = -1 if join_var_1 in ['NR', 'a.NR', 'aNR'] else input_variables_map.get(join_var_1)
+    rhs_key_index = -1 if join_var_2 in ['bNR', 'b.NR'] else join_variables_map.get(join_var_2)
     if lhs_key_index is None or rhs_key_index is None:
         raise RbqlParsingError(join_syntax_error)
-    lhs_join_var = 'safe_join_get(record_a, {})'.format(lhs_key_index)
+    lhs_join_var = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
     return (lhs_join_var, rhs_key_index)
 
 
@@ -145,13 +145,26 @@ def parse_array_variables(query, prefix, dst_variables_map):
         dst_variables_map['{}[{}]'.format(prefix, field_num)] = field_num - 1
 
 
+def generate_common_init_code(query, variable_prefix):
+    assert variable_prefix in ['a', 'b']
+    result = list()
+    result.append('{} = RBQLRecord()'.format(variable_prefix))
+    base_var = 'NR' if variable_prefix == 'a' else 'bNR'
+    attr_var = '{}.NR'.format(variable_prefix)
+    if query.find(attr_var) != -1:
+        result.append('{} = {}'.format(attr_var, base_var))
+    if variable_prefix == 'a' and query.find('aNR') != -1:
+        result.append('aNR = NR')
+    return result
+
+
 def generate_init_statements(query, input_iterator, join_record_iterator, indent):
-    code_lines = input_iterator.get_init_code(query).split('\n')
+    code_lines = generate_common_init_code(query, 'a')
     variables_map = input_iterator.get_variables_map(query)
     for k, v in variables_map.items():
         code_lines.append('{} = safe_get(record_a, {})'.format(k, v))
     if join_record_iterator:
-        code_lines += join_record_iterator.get_init_code(query).split('\n')
+        code_lines += generate_common_init_code(query, 'b')
         variables_map = join_record_iterator.get_variables_map(query)
         for k, v in variables_map.items():
             code_lines.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(k, v))
@@ -353,7 +366,7 @@ class HashJoinMap:
             self.max_record_len = max(self.max_record_len, nf)
             if self.key_index >= nf:
                 raise RbqlRuntimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
-            key = fields[self.key_index]
+            key = nr if self.key_index == -1 else fields[self.key_index]
             self.hash_map[key].append((nr, nf, fields))
         self.record_iterator.finish()
 
@@ -559,9 +572,6 @@ class TableIterator:
 
     def finish(self):
         pass
-
-    def get_init_code(self, query):
-        return '{} = RBQLRecord()'.format(self.variable_prefix)
 
     def get_variables_map(self, query):
         if query not in self.cached_variable_maps:
