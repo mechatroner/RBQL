@@ -43,9 +43,7 @@ from collections import defaultdict
 # TODO new feature: allow record iterator provide custom column names.
 
 
-# FIXME support a.NR, aNR, a.NF aNF, b.NR, bNR, b.NF, bNF
-
-# FIXME test "bNR" and "bNF" variable usage inside join select and update queries
+# FIXME add auto unit tests: randomly replace `a.column_name` in queries with `a["column_name"]` or `a['column_name']`
 
 
 GROUP_BY = 'GROUP BY'

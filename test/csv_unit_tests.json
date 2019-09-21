@@ -322,5 +322,14 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "query_python": "select top 20 a2, b.Country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.Country order by a.university_name"
+    },
+    {
+        "test_name": "dict fields",
+        "input_table_path": "csv_files/university_ranking.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result1.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "query_python": "select a['world_rank'], a[\"university_name\"] where a['country'] == 'France' and int(a[\"world_rank\"]) < 50"
     }
 ]

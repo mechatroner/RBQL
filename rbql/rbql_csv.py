@@ -257,6 +257,18 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
             dst_variables_map['{}.{}'.format(prefix, column_name)] = zero_based_idx
 
 
+def parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map):
+    assert prefix in ['a', 'b']
+    header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
+    string_literals_regex = r'''(?:^|[^_a-zA-Z0-9])({}\[(\"\"\"|\'\'\'|\"|\')(((?<!\\)(\\\\)*\\\2|.)*?)\2\])'''.format(prefix)
+    matches = list(re.finditer(string_literals_regex, query))
+    for m in matches:
+        column_name = m.group(3)
+        dict_variable = m.group(1)
+        zero_based_idx = header_columns_names.get(column_name)
+        if zero_based_idx is not None:
+            dst_variables_map[dict_variable] = zero_based_idx
+
 
 class CSVRecordIterator:
     def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
@@ -295,7 +307,7 @@ class CSVRecordIterator:
             engine.parse_array_variables(query, self.variable_prefix, variable_map)
             if self.header_record is not None:
                 parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
-                # FIXME parse dict variables
+                parse_dictionary_variables(query, self.variable_prefix, self.header_record, variable_map)
             self.cached_variable_maps[query] = variable_map
         return self.cached_variable_maps[query]
 
