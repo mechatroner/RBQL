@@ -631,7 +631,7 @@ class TestRBQLWithCSV(unittest.TestCase):
         debug_mode = test_case.get('debug_mode', False)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
-        #query = randomly_replace_columns_dictionary_style(query) # FIXME
+        query = randomly_replace_columns_dictionary_style(query)
         input_table_path = os.path.join(script_dir, input_table_path)
         expected_output_table_path = test_case.get('expected_output_table_path', None)
         if expected_output_table_path is not None:

@@ -325,11 +325,11 @@
     },
     {
         "test_name": "dict fields",
-        "input_table_path": "csv_files/university_ranking.csv",
-        "expected_output_table_path": "csv_files/university_ranking_result1.csv",
+        "input_table_path": "csv_files/countries.csv",
+        "expected_output_table_path": "csv_files/countries_result1.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "query_python": "select a['world_rank'], a[\"university_name\"] where a['country'] == 'France' and int(a[\"world_rank\"]) < 50"
+        "query_python": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc"
     }
 ]

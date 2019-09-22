@@ -43,12 +43,6 @@ from collections import defaultdict
 # TODO new feature: allow record iterator provide custom column names.
 
 
-# FIXME add auto unit tests: randomly replace `a.column_name` in queries with `a["column_name"]` or `a['column_name']`
-
-# FIXME add dict style test with column names with spaces
-
-# FIXME uncomment randomly_replace_columns_dictionary_style
-
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
@@ -419,7 +413,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
             raise RbqlParsingError('Unable to use join table: "{}"'.format(rhs_table_id))
         join_variables_map = join_record_iterator.get_variables_map(format_expression, string_literals)
 
-        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) # FIXME will fail, because we replaced quoted strings
+        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2)
         py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
         py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
         join_map = HashJoinMap(join_record_iterator, rhs_key_index)
@@ -436,7 +430,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__where_expression'] = 'True'
 
     if UPDATE in rb_actions:
-        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' ' * 8) # FIXME will fail, because we replaced quoted strings
+        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' ' * 8)
         py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         py_meta_params['__RBQLMP__select_expression'] = 'None'
         py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
@@ -458,7 +452,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         else:
             py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         if EXCEPT in rb_actions:
-            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map) # FIXME will fail, because we replaced quoted strings
+            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map)
         else:
             select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
             py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
