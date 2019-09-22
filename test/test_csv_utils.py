@@ -269,6 +269,19 @@ def normalize_newlines_in_fields(table):
             row[c] = row[c].replace('\r', '\n')
 
 
+def randomly_replace_columns_dictionary_style(query):
+    adjusted_query = query
+    for prefix in ['a', 'b']:
+        var_regex = r'''(?:^|[^_a-zA-Z0-9])(?:{}\.([_a-zA-Z][_a-z0-9A-Z]*))'''.format(prefix)
+        matches = list(re.finditer(var_regex, query))
+        for m in matches:
+            if random.randint(0, 1):
+                continue
+            column_name = m.group(1)
+            quote_style = "'" if random.randint(0, 1) else '"'
+            adjusted_query = adjusted_query.replace('{}.{}'.format(prefix, column_name), '{}[{}{}{}]'.format(prefix, quote_style, column_name, quote_style))
+    return adjusted_query
+
 
 class TestSplitMethods(unittest.TestCase):
     def test_split(self):
@@ -617,6 +630,7 @@ class TestRBQLWithCSV(unittest.TestCase):
             return
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
+        query = randomly_replace_columns_dictionary_style(query)
         input_table_path = os.path.join(script_dir, input_table_path)
         expected_output_table_path = test_case.get('expected_output_table_path', None)
         if expected_output_table_path is not None:

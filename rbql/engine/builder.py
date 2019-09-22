@@ -45,6 +45,8 @@ from collections import defaultdict
 
 # FIXME add auto unit tests: randomly replace `a.column_name` in queries with `a["column_name"]` or `a['column_name']`
 
+# FIXME add dict style test with column names with spaces
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -156,15 +158,13 @@ def generate_common_init_code(query, variable_prefix):
     return result
 
 
-def generate_init_statements(query, input_iterator, join_record_iterator, indent):
+def generate_init_statements(query, variables_map, join_variables_map, indent):
     code_lines = generate_common_init_code(query, 'a')
-    variables_map = input_iterator.get_variables_map(query)
     for k, v in variables_map.items():
         code_lines.append('{} = safe_get(record_a, {})'.format(k, v))
-    if join_record_iterator:
+    if join_variables_map:
         code_lines += generate_common_init_code(query, 'b')
-        variables_map = join_record_iterator.get_variables_map(query)
-        for k, v in variables_map.items():
+        for k, v in join_variables_map.items():
             code_lines.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(k, v))
     for i in range(1, len(code_lines)):
         code_lines[i] = indent + code_lines[i]
@@ -403,9 +403,10 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
-    input_variables_map = input_iterator.get_variables_map(query)
+    input_variables_map = input_iterator.get_variables_map(format_expression)
     join_record_iterator = None
     join_map = None
+    join_variables_map = None
     if JOIN in rb_actions:
         rhs_table_id, join_var_1, join_var_2 = parse_join_expression(rb_actions[JOIN]['text'])
         if join_tables_registry is None:
@@ -413,9 +414,9 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to use join table: "{}"'.format(rhs_table_id))
-        join_variables_map = join_record_iterator.get_variables_map(query)
+        join_variables_map = join_record_iterator.get_variables_map(format_expression)
 
-        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2)
+        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) # FIXME will fail, because we replaced quoted strings
         py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
         py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
         join_map = HashJoinMap(join_record_iterator, rhs_key_index)
@@ -432,18 +433,18 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__where_expression'] = 'True'
 
     if UPDATE in rb_actions:
-        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' ' * 8)
+        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' ' * 8) # FIXME will fail, because we replaced quoted strings
         py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         py_meta_params['__RBQLMP__select_expression'] = 'None'
         py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
         py_meta_params['__RBQLMP__top_count'] = 'None'
         py_meta_params['__RBQLMP__init_column_vars_select'] = ''
-        py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(query, input_iterator, join_record_iterator, ' ' * 4)
+        py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 4)
 
 
     if SELECT in rb_actions:
-        py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(query, input_iterator, join_record_iterator, ' ' * 8)
+        py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 8)
         py_meta_params['__RBQLMP__init_column_vars_update'] = ''
         top_count = find_top(rb_actions)
         py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
@@ -454,7 +455,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         else:
             py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         if EXCEPT in rb_actions:
-            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map)
+            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map) # FIXME will fail, because we replaced quoted strings
         else:
             select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
             py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
