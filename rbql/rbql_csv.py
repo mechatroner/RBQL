@@ -267,7 +267,8 @@ def parse_dictionary_variables(query, string_literals, prefix, header_columns_na
     matches = list(re.finditer(string_literals_regex, query))
     for m in matches:
         literal_index = int(m.group(2))
-        column_name = string_literals[literal_index]
+        quoted_column_name = string_literals[literal_index]
+        column_name = eval(quoted_column_name) # Using eval to unquote the column name
         dict_variable = m.group(1)
         zero_based_idx = header_columns_names.get(column_name)
         if zero_based_idx is not None:

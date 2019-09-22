@@ -330,7 +330,6 @@
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "debug_mode": true,
         "query_python": "select a['world_rank'], a[\"university_name\"] where a['country'] == 'France' and int(a[\"world_rank\"]) < 50"
     }
 ]
