@@ -42,6 +42,9 @@ wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Pyth
 numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
 
 
+debug_mode = False
+
+
 def iteritems6(x):
     if PY3:
         return x.items()
@@ -713,10 +716,16 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
         except RbqlParsingError:
             raise
         except Exception as e:
+            if debug_mode:
+                raise
             if str(e).find('RBQLAggregationToken') != -1:
                 raise RbqlParsingError(wrong_aggregation_usage_error)
             raise RbqlRuntimeError('At record: ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
     return True
 
+
+def set_debug_mode():
+    global debug_mode
+    debug_mode = True
 

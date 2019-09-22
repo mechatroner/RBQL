@@ -47,6 +47,7 @@ from collections import defaultdict
 
 # FIXME add dict style test with column names with spaces
 
+# FIXME uncomment randomly_replace_columns_dictionary_style
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -61,6 +62,8 @@ LIMIT = 'LIMIT'
 EXCEPT = 'EXCEPT'
 
 join_syntax_error = 'Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."'
+
+debug_mode = False
 
 class RbqlRuntimeError(Exception):
     pass
@@ -403,7 +406,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
-    input_variables_map = input_iterator.get_variables_map(format_expression)
+    input_variables_map = input_iterator.get_variables_map(format_expression, string_literals)
     join_record_iterator = None
     join_map = None
     join_variables_map = None
@@ -414,7 +417,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to use join table: "{}"'.format(rhs_table_id))
-        join_variables_map = join_record_iterator.get_variables_map(format_expression)
+        join_variables_map = join_record_iterator.get_variables_map(format_expression, string_literals)
 
         lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) # FIXME will fail, because we replaced quoted strings
         py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
@@ -440,11 +443,11 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
         py_meta_params['__RBQLMP__top_count'] = 'None'
         py_meta_params['__RBQLMP__init_column_vars_select'] = ''
-        py_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 4)
+        py_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 4), string_literals)
 
 
     if SELECT in rb_actions:
-        py_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 8)
+        py_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 8), string_literals)
         py_meta_params['__RBQLMP__init_column_vars_update'] = ''
         top_count = find_top(rb_actions)
         py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
@@ -534,6 +537,8 @@ def generic_run(user_query, input_iterator, output_writer, join_tables_registry=
             # It would point to the last module if lauch failed, or just a dangling ref.
             # Generated modules are not re-runnable by themselves now anyway.
             rbconvert = worker_env.import_worker()
+            if debug_mode:
+                rbconvert.set_debug_mode()
             success = rbconvert.rb_transform(input_iterator, join_map, output_writer)
             assert success, 'Unexpected error during RBQL query execution'
             input_warnings = input_iterator.get_warnings()
@@ -543,6 +548,8 @@ def generic_run(user_query, input_iterator, output_writer, join_tables_registry=
             worker_env.remove_env_dir()
             return (None, warnings)
     except Exception as e:
+        if debug_mode:
+            raise
         error_info = exception_to_error_info(e)
         return (error_info, [])
     finally:
@@ -572,7 +579,7 @@ class TableIterator:
     def finish(self):
         pass
 
-    def get_variables_map(self, query):
+    def get_variables_map(self, query, _string_literals):
         if query not in self.cached_variable_maps:
             variable_map = dict()
             parse_basic_variables(query, self.variable_prefix, variable_map)
@@ -626,3 +633,9 @@ def table_run(user_query, input_table, output_table, join_table=None, user_init_
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else SingleTableRegistry(join_table)
     return generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
+
+
+def set_debug_mode():
+    global debug_mode
+    debug_mode = True
+

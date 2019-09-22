@@ -26,6 +26,9 @@ table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
 polymorphic_xrange = range if PY3 else xrange
 
 
+debug_mode = False
+
+
 class RbqlIOHandlingError(Exception):
     pass
 
@@ -257,13 +260,14 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
             dst_variables_map['{}.{}'.format(prefix, column_name)] = zero_based_idx
 
 
-def parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map):
+def parse_dictionary_variables(query, string_literals, prefix, header_columns_names, dst_variables_map):
     assert prefix in ['a', 'b']
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
-    string_literals_regex = r'''(?:^|[^_a-zA-Z0-9])({}\[(\"\"\"|\'\'\'|\"|\')(((?<!\\)(\\\\)*\\\2|.)*?)\2\])'''.format(prefix)
+    string_literals_regex = r'''(?:^|[^_a-zA-Z0-9])({}\[ *###RBQL_STRING_LITERAL([0-9]+)### *\])'''.format(prefix)
     matches = list(re.finditer(string_literals_regex, query))
     for m in matches:
-        column_name = m.group(3)
+        literal_index = int(m.group(2))
+        column_name = string_literals[literal_index]
         dict_variable = m.group(1)
         zero_based_idx = header_columns_names.get(column_name)
         if zero_based_idx is not None:
@@ -300,14 +304,14 @@ class CSVRecordIterator:
             assert not self.header_record_emitted
 
 
-    def get_variables_map(self, query):
+    def get_variables_map(self, query, string_literals):
         if query not in self.cached_variable_maps:
             variable_map = dict()
             engine.parse_basic_variables(query, self.variable_prefix, variable_map)
             engine.parse_array_variables(query, self.variable_prefix, variable_map)
             if self.header_record is not None:
                 parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
-                parse_dictionary_variables(query, self.variable_prefix, self.header_record, variable_map)
+                parse_dictionary_variables(query, string_literals, self.variable_prefix, self.header_record, variable_map)
             self.cached_variable_maps[query] = variable_map
         return self.cached_variable_maps[query]
 
@@ -479,10 +483,14 @@ def csv_run(user_query, input_path, input_delim, input_policy, output_path, outp
         join_tables_registry = FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
         input_iterator = CSVRecordIterator(input_stream, close_input_on_finish, csv_encoding, input_delim, input_policy)
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy)
+        if debug_mode:
+            engine.set_debug_mode()
         error_info, warnings = engine.generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code)
         join_tables_registry.finish()
         return (error_info, warnings)
     except Exception as e:
+        if debug_mode:
+            raise
         error_info = engine.exception_to_error_info(e)
         return (error_info, [])
     finally:
@@ -492,3 +500,6 @@ def csv_run(user_query, input_path, input_delim, input_policy, output_path, outp
             output_stream.close()
 
 
+def set_debug_mode():
+    global debug_mode
+    debug_mode = True

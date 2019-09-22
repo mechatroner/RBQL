@@ -628,9 +628,10 @@ class TestRBQLWithCSV(unittest.TestCase):
         query = test_case.get('query_python', None)
         if query is None:
             return
+        debug_mode = test_case.get('debug_mode', False)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
-        query = randomly_replace_columns_dictionary_style(query)
+        #query = randomly_replace_columns_dictionary_style(query) # FIXME
         input_table_path = os.path.join(script_dir, input_table_path)
         expected_output_table_path = test_case.get('expected_output_table_path', None)
         if expected_output_table_path is not None:
@@ -649,18 +650,20 @@ class TestRBQLWithCSV(unittest.TestCase):
         output_format = test_case.get('output_format', 'input')
 
         out_delim, out_policy = (delim, policy) if output_format == 'input' else rbql_csv.interpret_named_csv_format(output_format)
+        if debug_mode:
+            rbql_csv.set_debug_mode()
         error_info, warnings = rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding)
 
-        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}. Expected error: {}, error_info: {}'.format(test_name, expected_error, error_info))
+        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: "{}". Expected error: {}, error_info: {}'.format(test_name, expected_error, error_info))
         if expected_error is not None:
-            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
+            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: "{}"'.format(test_name))
         else:
             actual_md5 = calc_file_md5(actual_output_table_path)
             self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, actual_output_table_path))
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
-        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}'.format(test_name))
+        self.assertEqual(expected_warnings, warnings, 'Inside json test: "{}"'.format(test_name))
 
 
 
