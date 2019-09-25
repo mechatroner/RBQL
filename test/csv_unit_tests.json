@@ -340,6 +340,16 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "randomly_replace_var_names": false,
-        "query_python": "select top 10 int(a.foobar) + 20"
+        "query_python": "select top 10 int(a.foobar) + 20, 'hello'"
+    },
+    {
+        "test_name": "bad dict field name",
+        "input_table_path": "csv_files/countries.csv",
+        "expected_error": "No \"foobar\" field at record: 1",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "randomly_replace_var_names": false,
+        "query_python": "select a['foobar'], 100"
     }
 ]
