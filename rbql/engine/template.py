@@ -56,6 +56,11 @@ class InternalBadFieldError(Exception):
         self.bad_idx = bad_idx
 
 
+class InternalBadKeyError(Exception):
+    def __init__(self, bad_key):
+        self.bad_key = bad_key
+
+
 class RbqlRuntimeError(Exception):
     pass
 
@@ -66,14 +71,15 @@ class RbqlParsingError(Exception):
 
 class RBQLRecord:
     def __init__(self):
-        self.storage = None
+        self.storage = dict()
 
     def __getitem__(self, key):
-        return self.storage[key]
+        try:
+            return self.storage[key]
+        except KeyError:
+            raise InternalBadKeyError(key)
 
     def __setitem__(self, key, value):
-        if self.storage is None:
-            self.storage = dict()
         self.storage[key] = value
 
 
@@ -710,9 +716,10 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
             join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var)
             if not polymorphic_process(NR, NF, record_a, join_matches):
                 break
+        except InternalBadKeyError as e:
+            raise RbqlRuntimeError('No "{}" field at record: {}'.format(e.bad_key, NR))
         except InternalBadFieldError as e:
-            bad_idx = e.bad_idx
-            raise RbqlRuntimeError('No "a' + str(bad_idx + 1) + '" field at record: ' + str(NR))
+            raise RbqlRuntimeError('No "a{}" field at record: {}'.format(e.bad_idx + 1, NR))
         except RbqlParsingError:
             raise
         except Exception as e:

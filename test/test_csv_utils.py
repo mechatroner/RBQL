@@ -629,9 +629,11 @@ class TestRBQLWithCSV(unittest.TestCase):
         if query is None:
             return
         debug_mode = test_case.get('debug_mode', False)
+        randomly_replace_var_names = test_case.get('randomly_replace_var_names', True)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
-        query = randomly_replace_columns_dictionary_style(query)
+        if randomly_replace_var_names:
+            query = randomly_replace_columns_dictionary_style(query)
         input_table_path = os.path.join(script_dir, input_table_path)
         expected_output_table_path = test_case.get('expected_output_table_path', None)
         if expected_output_table_path is not None:
@@ -656,7 +658,7 @@ class TestRBQLWithCSV(unittest.TestCase):
 
         self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: "{}". Expected error: {}, error_info: {}'.format(test_name, expected_error, error_info))
         if expected_error is not None:
-            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: "{}"'.format(test_name))
+            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: "{}", Expected error: "{}", Actual error: "{}"'.format(test_name, expected_error, error_info['message']))
         else:
             actual_md5 = calc_file_md5(actual_output_table_path)
             self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, actual_output_table_path))

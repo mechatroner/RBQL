@@ -331,5 +331,15 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "query_python": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc"
+    },
+    {
+        "test_name": "bad field name",
+        "input_table_path": "csv_files/countries.csv",
+        "expected_error": "RBQLRecord instance has no attribute 'foobar'",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "randomly_replace_var_names": false,
+        "query_python": "select top 10 int(a.foobar) + 20"
     }
 ]
