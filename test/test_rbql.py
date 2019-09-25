@@ -166,7 +166,7 @@ def do_randomly_split_replace(query, old_name, new_name):
 
 
 def randomly_replace_column_variable_style(query):
-    for i in xrange(10):
+    for i in range(10):
         query = do_randomly_split_replace(query, 'a{}'.format(i), 'a[{}]'.format(i))
         query = do_randomly_split_replace(query, 'b{}'.format(i), 'b[{}]'.format(i))
     return query

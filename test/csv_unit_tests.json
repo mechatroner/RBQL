@@ -335,7 +335,7 @@
     {
         "test_name": "bad field name",
         "input_table_path": "csv_files/countries.csv",
-        "expected_error": "RBQLRecord instance has no attribute 'foobar'",
+        "expected_error": "has no attribute 'foobar'",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",

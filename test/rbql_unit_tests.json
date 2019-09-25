@@ -962,8 +962,7 @@
             ["Jane Austen", 60],
             ["Hayao Miyazaki", 127]
         ],
-        "query_python": "select a1, b2 inner join B on aNR == bNR where a.NR > 3 and b.NR < 6",
-        "query_js": "select a1, b2 inner join B on aNR == bNR where a.NR > 3 and b.NR < 6"
+        "query_python": "select a1, b2 inner join B on aNR == bNR where a.NR > 3 and b.NR < 6"
     },
     {
         "test_name": "test array indexing",
