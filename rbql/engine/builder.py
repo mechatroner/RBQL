@@ -40,7 +40,6 @@ from collections import defaultdict
 
 # TODO show warning when csv fields contain trailing spaces
 
-# TODO new feature: allow record iterator provide custom column names.
 
 
 GROUP_BY = 'GROUP BY'
@@ -568,18 +567,15 @@ class TableIterator:
         self.NR = 0
         self.fields_info = dict()
         self.variable_prefix = variable_prefix
-        self.cached_variable_maps = dict()
 
     def finish(self):
         pass
 
     def get_variables_map(self, query, _string_literals):
-        if query not in self.cached_variable_maps:
-            variable_map = dict()
-            parse_basic_variables(query, self.variable_prefix, variable_map)
-            parse_array_variables(query, self.variable_prefix, variable_map)
-            self.cached_variable_maps[query] = variable_map
-        return self.cached_variable_maps[query]
+        variable_map = dict()
+        parse_basic_variables(query, self.variable_prefix, variable_map)
+        parse_array_variables(query, self.variable_prefix, variable_map)
+        return variable_map
 
     def get_record(self):
         if self.NR >= len(self.table):

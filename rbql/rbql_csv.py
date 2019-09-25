@@ -285,7 +285,6 @@ class CSVRecordIterator:
         self.policy = 'quoted' if policy == 'quoted_rfc' else policy
         self.table_name = table_name
         self.variable_prefix = variable_prefix
-        self.cached_variable_maps = dict()
 
         self.buffer = ''
         self.detected_line_separator = '\n'
@@ -306,15 +305,13 @@ class CSVRecordIterator:
 
 
     def get_variables_map(self, query, string_literals):
-        if query not in self.cached_variable_maps:
-            variable_map = dict()
-            engine.parse_basic_variables(query, self.variable_prefix, variable_map)
-            engine.parse_array_variables(query, self.variable_prefix, variable_map)
-            if self.header_record is not None:
-                parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
-                parse_dictionary_variables(query, string_literals, self.variable_prefix, self.header_record, variable_map)
-            self.cached_variable_maps[query] = variable_map
-        return self.cached_variable_maps[query]
+        variable_map = dict()
+        engine.parse_basic_variables(query, self.variable_prefix, variable_map)
+        engine.parse_array_variables(query, self.variable_prefix, variable_map)
+        if self.header_record is not None:
+            parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
+            parse_dictionary_variables(query, string_literals, self.variable_prefix, self.header_record, variable_map)
+        return variable_map
 
 
     def finish(self):
