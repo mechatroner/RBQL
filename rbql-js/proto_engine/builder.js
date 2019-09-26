@@ -86,6 +86,36 @@ function strip_comments(cline) {
 }
 
 
+//def parse_basic_variables(query, prefix, dst_variables_map):
+//    assert prefix in ['a', 'b']
+//    rgx = '(?:^|[^_a-zA-Z0-9]){}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+//    matches = list(re.finditer(rgx, query))
+//    field_nums = list(set([int(m.group(1)) for m in matches]))
+//    for field_num in field_nums:
+//        dst_variables_map[prefix + str(field_num)] = field_num - 1
+//
+//
+//def parse_array_variables(query, prefix, dst_variables_map):
+//    assert prefix in ['a', 'b']
+//    rgx = '(?:^|[^_a-zA-Z0-9]){}\[([1-9][0-9]*)\]'.format(prefix)
+//    matches = list(re.finditer(rgx, query))
+//    field_nums = list(set([int(m.group(1)) for m in matches]))
+//    for field_num in field_nums:
+//        dst_variables_map['{}[{}]'.format(prefix, field_num)] = field_num - 1
+
+
+function parse_basic_variables(query, prefix, dst_variables_map) {
+    assert(prefix == 'a' || prefix == 'b');
+    // FIXME
+}
+
+
+function parse_array_variables(query, prefix, dst_variables_map) {
+    assert(prefix == 'a' || prefix == 'b');
+    // FIXME
+}
+
+
 function parse_join_expression(src) {
     var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
     var match = rgx.exec(src);
@@ -430,6 +460,8 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
     if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');
 
+
+    // FIXME consider splitting into multiple functions - one per SQL operation; e.g. handle_group_by(), handle_join(), handle_where(), ... etc
     if (rb_actions.hasOwnProperty(GROUP_BY)) {
         if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
             throw new RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
@@ -571,8 +603,9 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
 }
 
 
-function TableIterator(input_table) {
+function TableIterator(input_table, variable_prefix='a') {
     this.input_table = input_table;
+    this.variable_prefix = variable_prefix;
     this.NR = 0;
     this.fields_info = new Object();
     this.external_record_callback = null;
@@ -608,6 +641,14 @@ function TableIterator(input_table) {
             this.external_finish_callback();
         }
     };
+
+
+    this.get_variables_map = function(query, _string_literals, callback_fn) {
+        let variable_map = new Object();
+        parse_basic_variables(query, this.variable_prefix, variable_map)
+        parse_array_variables(query, this.variable_prefix, variable_map)
+        callback_fn(variable_map);
+    }
 
 
     this.get_record = function() {

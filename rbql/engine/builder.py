@@ -40,6 +40,7 @@ from collections import defaultdict
 
 # TODO show warning when csv fields contain trailing spaces
 
+# FIXME check named fields in aggregate queries and inside GROUP BY expressions
 
 
 GROUP_BY = 'GROUP BY'
@@ -383,6 +384,8 @@ def cleanup_query(query):
 def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, user_init_code):
     query = cleanup_query(query)
     format_expression, string_literals = separate_string_literals_py(query)
+    input_variables_map = input_iterator.get_variables_map(format_expression, string_literals)
+
     rb_actions = separate_actions(format_expression)
 
     py_meta_params = dict()
@@ -399,7 +402,6 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
-    input_variables_map = input_iterator.get_variables_map(format_expression, string_literals)
     join_record_iterator = None
     join_map = None
     join_variables_map = None
@@ -564,9 +566,9 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 class TableIterator:
     def __init__(self, table, variable_prefix='a'):
         self.table = table
+        self.variable_prefix = variable_prefix
         self.NR = 0
         self.fields_info = dict()
-        self.variable_prefix = variable_prefix
 
     def finish(self):
         pass
