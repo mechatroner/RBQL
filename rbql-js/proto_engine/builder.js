@@ -86,33 +86,29 @@ function strip_comments(cline) {
 }
 
 
-//def parse_basic_variables(query, prefix, dst_variables_map):
-//    assert prefix in ['a', 'b']
-//    rgx = '(?:^|[^_a-zA-Z0-9]){}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
-//    matches = list(re.finditer(rgx, query))
-//    field_nums = list(set([int(m.group(1)) for m in matches]))
-//    for field_num in field_nums:
-//        dst_variables_map[prefix + str(field_num)] = field_num - 1
-//
-//
-//def parse_array_variables(query, prefix, dst_variables_map):
-//    assert prefix in ['a', 'b']
-//    rgx = '(?:^|[^_a-zA-Z0-9]){}\[([1-9][0-9]*)\]'.format(prefix)
-//    matches = list(re.finditer(rgx, query))
-//    field_nums = list(set([int(m.group(1)) for m in matches]))
-//    for field_num in field_nums:
-//        dst_variables_map['{}[{}]'.format(prefix, field_num)] = field_num - 1
-
-
 function parse_basic_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
-    // FIXME
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
+    let result = [];
+    let seen = {};
+    let matches = get_all_matches(rgx, rbql_expression);
+    for (let i = 0; i < matches.length; i++) {
+        let field_num = parseInt(matches[i][1]);
+        dst_variables_map[prefix + String(field_num)] = field_num - 1;
+    }
 }
 
 
 function parse_array_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
-    // FIXME
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\](?:$|(?=[^_a-zA-Z0-9]))`, 'g');
+    let result = [];
+    let seen = {};
+    let matches = get_all_matches(rgx, rbql_expression);
+    for (let i = 0; i < matches.length; i++) {
+        let field_num = parseInt(matches[i][1]);
+        dst_variables_map[`${prefix}[${field_num}]`] = field_num - 1;
+    }
 }
 
 
@@ -139,6 +135,7 @@ function parse_join_expression(src) {
 
 
 function generate_init_statements(column_vars, indent) {
+    // FIXME
     var init_statements = [];
     for (var i = 0; i < column_vars.length; i++) {
         var var_name = column_vars[i];
@@ -353,22 +350,6 @@ function indent_user_init_code(user_init_code) {
 }
 
 
-function extract_column_vars(rbql_expression) {
-    var rgx = /(?:^|[^_a-zA-Z0-9])([ab][1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))/g;
-    var result = [];
-    var seen = {};
-    var matches = get_all_matches(rgx, rbql_expression);
-    for (var i = 0; i < matches.length; i++) {
-        var var_name = matches[i][1];
-        if (!seen.hasOwnProperty(var_name)) {
-            result.push(var_name);
-            seen[var_name] = 1;
-        }
-    }
-    return result;
-}
-
-
 function translate_except_expression(except_expression) {
     let skip_vars = except_expression.split(',');
     let skip_indices = [];
@@ -450,7 +431,7 @@ function cleanup_query(query) {
 
 function parse_to_js(query, js_template_text, join_tables_registry, user_init_code) {
     query = cleanup_query(query);
-    var column_vars = extract_column_vars(query);
+    //var column_vars = extract_column_vars(query);
     var [format_expression, string_literals] = separate_string_literals_js(query);
     var rb_actions = separate_actions(format_expression);
 

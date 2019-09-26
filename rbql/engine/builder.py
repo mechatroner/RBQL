@@ -32,6 +32,8 @@ from collections import defaultdict
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
+# TODO add "skip-header" interface option and RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records
+
 # TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in template.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
 
 # TODO optimize performance: optional compilation depending on python2/python3
@@ -39,8 +41,6 @@ from collections import defaultdict
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
 # TODO show warning when csv fields contain trailing spaces
-
-# FIXME check named fields in aggregate queries and inside GROUP BY expressions
 
 
 GROUP_BY = 'GROUP BY'
