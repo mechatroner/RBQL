@@ -66,10 +66,7 @@ function str_strip(src) {
 
 
 function rbql_meta_format(template_src, meta_params) {
-    for (var key in meta_params) {
-        if (!meta_params.hasOwnProperty(key))
-            continue;
-        var value = meta_params[key];
+    for (const [key, value] of Object.entries(meta_params)) {
         var template_src_upd = replace_all(template_src, key, value);
         assert(template_src_upd != template_src);
         template_src = template_src_upd;
@@ -134,23 +131,35 @@ function parse_join_expression(src) {
 }
 
 
-function generate_init_statements(column_vars, indent) {
-    // FIXME
-    var init_statements = [];
-    for (var i = 0; i < column_vars.length; i++) {
-        var var_name = column_vars[i];
-        var var_group = var_name.charAt(0);
-        var zero_based_idx = parseInt(var_name.substr(1)) - 1;
-        if (var_group == 'a') {
-            init_statements.push(`var ${var_name} = safe_get(record_a, ${zero_based_idx});`);
-        } else {
-            init_statements.push(`var ${var_name} = record_b === null ? null : safe_get(record_b, ${zero_based_idx});`);
+function generate_common_init_code(query, variable_prefix) {
+    assert(variable_prefix == 'a' || variable_prefix == 'b');
+    let result = [];
+    result.push(`${variable_prefix} = RBQLRecord();`);
+    let base_var = variable_prefix == 'a' ? 'NR' : 'bNR';
+    let attr_var = `${variable_prefix}.NR`;
+    if (query.indexOf(attr_var) != -1)
+        result.push(`${attr_var} = ${base_var};`)
+    if variable_prefix == 'a' && query.indexOf('aNR') != -1
+        result.push('aNR = NR;');
+    return result;
+}
+
+
+function generate_init_statements(query, variables_map, join_variables_map, indent) {
+    let code_lines = generate_common_init_code(query, 'a');
+    for (const [variable_name, column_num] of Object.entries(variables_map)) {
+        code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num};)`);
+    }
+    if (join_variables_map) {
+        code_lines = code_lines.concat(generate_common_init_code(query, 'b'));
+        for (const [variable_name, column_num] of Object.entries(join_variables_map)) {
+            code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num};)`);
         }
     }
-    for (var i = 1; i < init_statements.length; i++) {
-        init_statements[i] = indent + init_statements[i];
+    for (let i = 1; i < code_lines.length; i++) {
+        code_lines[i] = indent + code_lines[i];
     }
-    return init_statements.join('\n');
+    return code_lines.join('\n');
 }
 
 
@@ -394,6 +403,7 @@ function HashJoinMap(record_iterator, key_index) {
             this.error_msg = `No "b${this.key_index + 1}" field at record: ${this.nr} in "B" table`;
             this.record_iterator.finish();
         }
+        // FIXME include nr and nf, see python code
         let key = record[this.key_index];
         let key_records = this.hash_map.get(key);
         if (key_records === undefined) {
@@ -488,8 +498,8 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         js_meta_params['__RBQLMP__top_count'] = 'null';
     }
 
-    js_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' '.repeat(4));
-    js_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' '.repeat(8));
+    js_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' '.repeat(4)); //FIXME
+    js_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' '.repeat(8)); //FIXME
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         var top_count = find_top(rb_actions);
