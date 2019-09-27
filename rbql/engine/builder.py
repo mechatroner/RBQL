@@ -438,11 +438,11 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__is_select_query'] = 'False'
         py_meta_params['__RBQLMP__top_count'] = 'None'
         py_meta_params['__RBQLMP__init_column_vars_select'] = ''
-        py_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 4), string_literals)
+        py_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
 
 
     if SELECT in rb_actions:
-        py_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(query, input_variables_map, join_variables_map, ' ' * 8), string_literals)
+        py_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 8), string_literals)
         py_meta_params['__RBQLMP__init_column_vars_update'] = ''
         top_count = find_top(rb_actions)
         py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
