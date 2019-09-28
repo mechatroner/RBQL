@@ -402,7 +402,6 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     else:
         py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
 
-    join_record_iterator = None
     join_map = None
     join_variables_map = None
     if JOIN in rb_actions:
@@ -411,7 +410,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
             raise RbqlParsingError('JOIN operations were disabled')
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
-            raise RbqlParsingError('Unable to use join table: "{}"'.format(rhs_table_id))
+            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
         join_variables_map = join_record_iterator.get_variables_map(format_expression, string_literals)
 
         lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2)

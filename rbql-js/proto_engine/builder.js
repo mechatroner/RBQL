@@ -108,26 +108,51 @@ function parse_array_variables(query, prefix, dst_variables_map) {
     }
 }
 
+//
+//function parse_join_expression(src) {
+//    var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
+//    var match = rgx.exec(src);
+//    if (match === null) {
+//        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
+//    }
+//    var table_id = match[1];
+//    var avar = match[2];
+//    var bvar = match[3];
+//    if (avar.charAt(0) == 'b') {
+//        [avar, bvar] = [bvar, avar];
+//    }
+//    if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
+//        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
+//    }
+//    avar = parseInt(avar.substr(1)) - 1;
+//    var lhs_join_var = `safe_join_get(record_a, ${avar})`;
+//    let rhs_key_index = parseInt(bvar.substr(1)) - 1;
+//    return [table_id, lhs_join_var, rhs_key_index];
+//}
+
+//def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2):
+//    ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table'
+//    if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
+//        raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
+//    if join_var_2 in input_variables_map and join_var_2 in join_variables_map:
+//        raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
+//    if join_var_2 in input_variables_map:
+//        join_var_1, join_var_2 = join_var_2, join_var_1
+//    lhs_key_index = -1 if join_var_1 in ['NR', 'a.NR', 'aNR'] else input_variables_map.get(join_var_1)
+//    rhs_key_index = -1 if join_var_2 in ['bNR', 'b.NR'] else join_variables_map.get(join_var_2)
+//    if lhs_key_index is None or rhs_key_index is None:
+//        raise RbqlParsingError(join_syntax_error)
+//    lhs_join_var = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
+//    return (lhs_join_var, rhs_key_index)
+
 
 function parse_join_expression(src) {
-    var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
+    var rgx = /^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$/i;
     var match = rgx.exec(src);
     if (match === null) {
         throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
     }
-    var table_id = match[1];
-    var avar = match[2];
-    var bvar = match[3];
-    if (avar.charAt(0) == 'b') {
-        [avar, bvar] = [bvar, avar];
-    }
-    if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
-        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
-    }
-    avar = parseInt(avar.substr(1)) - 1;
-    var lhs_join_var = `safe_join_get(record_a, ${avar})`;
-    let rhs_key_index = parseInt(bvar.substr(1)) - 1;
-    return [table_id, lhs_join_var, rhs_key_index];
+    return [match[1], match[2], match[3]];
 }
 
 
@@ -439,10 +464,13 @@ function cleanup_query(query) {
 }
 
 
-function parse_to_js(query, js_template_text, join_tables_registry, user_init_code) {
+async function parse_to_js(query, js_template_text, input_iterator, join_tables_registry, user_init_code) {
+    user_init_code = indent_user_init_code(user_init_code);
     query = cleanup_query(query);
     //var column_vars = extract_column_vars(query);
     var [format_expression, string_literals] = separate_string_literals_js(query);
+    var input_variables_map = await input_iterator.get_variables_map(format_expression, string_literals);
+
     var rb_actions = separate_actions(format_expression);
 
     var js_meta_params = {};
@@ -452,7 +480,6 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');
 
 
-    // FIXME consider splitting into multiple functions - one per SQL operation; e.g. handle_group_by(), handle_join(), handle_where(), ... etc
     if (rb_actions.hasOwnProperty(GROUP_BY)) {
         if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
             throw new RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
@@ -463,15 +490,18 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
     }
 
     let join_map = null;
+    let join_variables_map = null;
     if (rb_actions.hasOwnProperty(JOIN)) {
-        var [rhs_table_id, lhs_join_var, rhs_key_index] = parse_join_expression(rb_actions[JOIN]['text']);
-        js_meta_params['__RBQLMP__join_operation'] = `"${rb_actions[JOIN]['join_subtype']}"`;
-        js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
+        var [rhs_table_id, join_var_1, join_var_2] = parse_join_expression(rb_actions[JOIN]['text']);
         if (join_tables_registry === null)
             throw new RbqlParsingError('JOIN operations were disabled');
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
+        join_variables_map = await join_record_iterator.get_variables_map(format_expression, string_literals);
+        let [lhs_join_var, rhs_key_index] = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2);
+        js_meta_params['__RBQLMP__join_operation'] = `"${rb_actions[JOIN]['join_subtype']}"`;
+        js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
         join_map = new HashJoinMap(join_record_iterator, rhs_key_index);
     } else {
         js_meta_params['__RBQLMP__join_operation'] = '"VOID"';
@@ -496,12 +526,13 @@ function parse_to_js(query, js_template_text, join_tables_registry, user_init_co
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['__RBQLMP__is_select_query'] = 'false';
         js_meta_params['__RBQLMP__top_count'] = 'null';
+        js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_select'] = '';
     }
 
-    js_meta_params['__RBQLMP__init_column_vars_update'] = generate_init_statements(column_vars, ' '.repeat(4)); //FIXME
-    js_meta_params['__RBQLMP__init_column_vars_select'] = generate_init_statements(column_vars, ' '.repeat(8)); //FIXME
-
     if (rb_actions.hasOwnProperty(SELECT)) {
+        js_meta_params['__RBQLMP__init_column_vars_update'] = '';
+        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
         var top_count = find_top(rb_actions);
         js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
@@ -546,33 +577,6 @@ function load_module_from_file(js_code) {
     fs.writeFileSync(tmp_worker_module_path, js_code);
     let worker_module = require(tmp_worker_module_path);
     return worker_module;
-}
-
-
-function generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry=null, user_init_code='') {
-    try {
-        user_init_code = indent_user_init_code(user_init_code);
-        let [js_code, join_map] = parse_to_js(user_query, external_js_template_text, join_tables_registry, user_init_code);
-        let rbql_worker = null;
-        if (debug_mode) {
-            rbql_worker = load_module_from_file(js_code);
-        } else {
-            let module = {'exports': {}};
-            eval('(function(){' + js_code + '})()');
-            rbql_worker = module.exports;
-        }
-        rbql_worker.rb_transform(input_iterator, join_map, output_writer, success_handler, error_handler, debug_mode);
-    } catch (e) {
-        if (e instanceof RbqlParsingError) {
-            error_handler('query parsing', e.message);
-        } else {
-            if (debug_mode) {
-                console.log('Unexpected exception, dumping stack trace:');
-                console.log(e.stack);
-            }
-            error_handler('unexpected', 'Unexpected exception: ' + e);
-        }
-    }
 }
 
 
@@ -634,11 +638,11 @@ function TableIterator(input_table, variable_prefix='a') {
     };
 
 
-    this.get_variables_map = function(query, _string_literals, callback_fn) {
+    this.get_variables_map = async function(query, _string_literals) {
         let variable_map = new Object();
         parse_basic_variables(query, this.variable_prefix, variable_map)
         parse_array_variables(query, this.variable_prefix, variable_map)
-        callback_fn(variable_map);
+        return variables_map;
     }
 
 
@@ -691,11 +695,29 @@ function SingleTableRegistry(table, table_id='B') {
 }
 
 
-function table_run(user_query, input_table, output_table, success_handler, error_handler, join_table=null, user_init_code='') {
+// FIXME on error should throw something like {'error_type': error_type, 'error_msg': error_msg}
+async function generic_run(user_query, input_iterator, output_writer, join_tables_registry=null, user_init_code='') {
+    let [js_code, join_map] = await parse_to_js(user_query, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
+    let rbql_worker = null;
+    if (debug_mode) {
+        rbql_worker = load_module_from_file(js_code);
+    } else {
+        let module = {'exports': {}};
+        eval('(function(){' + js_code + '})()');
+        rbql_worker = module.exports;
+    }
+    let warnings = await rbql_worker.rb_transform(input_iterator, join_map, output_writer, debug_mode);
+    return warnings;
+}
+
+
+// FIXME on error should throw something like {'error_type': error_type, 'error_msg': error_msg}
+async function table_run(user_query, input_table, output_table, join_table=null, user_init_code='') {
     let input_iterator = new TableIterator(input_table);
     let output_writer = new TableWriter(output_table);
     let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table);
-    generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code);
+    let warnings = await generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code);
+    return warnings;
 }
 
 
