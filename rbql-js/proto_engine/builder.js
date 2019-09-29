@@ -382,17 +382,14 @@ function indent_user_init_code(user_init_code) {
 }
 
 
-function translate_except_expression(except_expression) {
+function translate_except_expression(except_expression, input_variables_map) {
     let skip_vars = except_expression.split(',');
+    skip_vars = skip_vars.map(str_strip);
     let skip_indices = [];
-    let rgx = /^a[1-9][0-9]*$/;
-    for (let i = 0; i < skip_vars.length; i++) {
-        let skip_var = str_strip(skip_vars[i]);
-        let match = rgx.exec(skip_var);
-        if (match === null) {
+    for (let var_name of skip_vars) {
+        if (!input_variables_map.hasOwnProperty(var_name))
             throw new RbqlParsingError('Invalid EXCEPT syntax');
-        }
-        skip_indices.push(parseInt(skip_var.substring(1)) - 1);
+        skip_indices.push(input_variables_map[var_name]);
     }
     skip_indices = skip_indices.sort((a, b) => a - b);
     let indices_str = skip_indices.join(',');
@@ -541,7 +538,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
             js_meta_params['__RBQLMP__writer_type'] = '"simple"';
         }
         if (rb_actions.hasOwnProperty(EXCEPT)) {
-            js_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text']);
+            js_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map);
         } else {
             let select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
             js_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals);
