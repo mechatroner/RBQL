@@ -28,6 +28,7 @@ const WHERE = 'WHERE';
 const LIMIT = 'LIMIT';
 const EXCEPT = 'EXCEPT';
 
+const join_syntax_error = 'Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."';
 
 class RbqlParsingError extends Error {}
 class RbqlIOHandlingError extends Error {}
@@ -42,6 +43,11 @@ function assert(condition, message=null) {
         }
         throw new AssertionError(message);
     }
+}
+
+
+function regexp_escape(text) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // $& means the whole matched text
 }
 
 
@@ -108,49 +114,39 @@ function parse_array_variables(query, prefix, dst_variables_map) {
     }
 }
 
-//
-//function parse_join_expression(src) {
-//    var rgx = /^ *([^ ]+) +on +([ab][0-9]+) *== *([ab][0-9]+) *$/i;
-//    var match = rgx.exec(src);
-//    if (match === null) {
-//        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
-//    }
-//    var table_id = match[1];
-//    var avar = match[2];
-//    var bvar = match[3];
-//    if (avar.charAt(0) == 'b') {
-//        [avar, bvar] = [bvar, avar];
-//    }
-//    if (avar.charAt(0) != 'a' || bvar.charAt(0) != 'b') {
-//        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
-//    }
-//    avar = parseInt(avar.substr(1)) - 1;
-//    var lhs_join_var = `safe_join_get(record_a, ${avar})`;
-//    let rhs_key_index = parseInt(bvar.substr(1)) - 1;
-//    return [table_id, lhs_join_var, rhs_key_index];
-//}
 
-//def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2):
-//    ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table'
-//    if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
-//        raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
-//    if join_var_2 in input_variables_map and join_var_2 in join_variables_map:
-//        raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
-//    if join_var_2 in input_variables_map:
-//        join_var_1, join_var_2 = join_var_2, join_var_1
-//    lhs_key_index = -1 if join_var_1 in ['NR', 'a.NR', 'aNR'] else input_variables_map.get(join_var_1)
-//    rhs_key_index = -1 if join_var_2 in ['bNR', 'b.NR'] else join_variables_map.get(join_var_2)
-//    if lhs_key_index is None or rhs_key_index is None:
-//        raise RbqlParsingError(join_syntax_error)
-//    lhs_join_var = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
-//    return (lhs_join_var, rhs_key_index)
+function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) {
+    let ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table';
+    const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; }
+    if (input_variables_map.hasOwnProperty(join_var_1) && join_variables_map.hasOwnProperty(join_var_1))
+        throw new RbqlParsingError(get_ambiguous_error_msg(join_var_1));
+    if (input_variables_map.hasOwnProperty(join_var_2) && join_variables_map.hasOwnProperty(join_var_2))
+        throw new RbqlParsingError(get_ambiguous_error_msg(join_var_2));
+    if (input_variables_map.hasOwnProperty(join_var_2))
+        [join_var_1, join_var_2] = [join_var_2, join_var_1];
+    let [lhs_key_index, rhs_key_index] = [null, null];
+    if (['NR', 'a.NR', 'aNR'].indexOf(join_var_1) != -1) {
+        lhs_key_index = -1;
+    } else if (input_variables_map.hasOwnProperty(join_var_1)) {
+        lhs_key_index = input_variables_map[join_var_1];
+    }
+    if (['b.NR', 'bNR'].indexOf(join_var_2) != -1) {
+        rhs_key_index = -1;
+    } else if (input_variables_map.hasOwnProperty(join_var_2)) {
+        rhs_key_index = input_variables_map[join_var_2];
+    }
+    if (lhs_key_index === null || rhs_key_index === null) {
+        throw new RbqlParsingError(join_syntax_error);
+    }
+    return [lhs_key_index, rhs_key_index];
+}
 
 
 function parse_join_expression(src) {
     var rgx = /^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$/i;
     var match = rgx.exec(src);
     if (match === null) {
-        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a<i> == b<j>"');
+        throw new RbqlParsingError(join_syntax_error);
     }
     return [match[1], match[2], match[3]];
 }
@@ -204,18 +200,20 @@ function replace_star_vars(rbql_expression) {
 }
 
 
-function translate_update_expression(update_expression, indent) {
-    var rgx = /(?:^|,) *a([1-9][0-9]*) *=(?=[^=])/g;
-    var translated = update_expression.replace(rgx, '\nsafe_set(up_fields, $1,');
-    var update_statements = translated.split('\n');
+function translate_update_expression(update_expression, input_variables_map, indent) {
+    let translated = update_expression;
+    for (const [key, value] of Object.entries(input_variables_map)) {
+        let escaped_key = regexp_escape(key);
+        let rgx = new RegExp(`(?:^|,) *${escaped_key} *=(?=[^=])`, 'g');
+        var translated = update_expression.replace(rgx, `\nsafe_set(up_fields, ${v},`);
+    }
+    let update_statements = translated.split('\n');
     update_statements = update_statements.map(str_strip);
     if (update_statements.length < 2 || update_statements[0] != '') {
         throw new RbqlParsingError('Unable to parse "UPDATE" expression');
     }
     update_statements = update_statements.slice(1);
-    for (var i = 0; i < update_statements.length; i++) {
-        update_statements[i] = update_statements[i] + ')';
-    }
+    update_statements = update_statements.map(v => v + ')');
     for (var i = 1; i < update_statements.length; i++) {
         update_statements[i] = indent + update_statements[i];
     }
@@ -520,7 +518,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
 
 
     if (rb_actions.hasOwnProperty(UPDATE)) {
-        var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], ' '.repeat(8));
+        var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' '.repeat(8));
         js_meta_params['__RBQLMP__writer_type'] = '"simple"';
         js_meta_params['__RBQLMP__select_expression'] = 'null';
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
