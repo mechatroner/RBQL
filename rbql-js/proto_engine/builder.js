@@ -117,7 +117,7 @@ function parse_array_variables(query, prefix, dst_variables_map) {
 
 function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) {
     let ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table';
-    const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; }
+    const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; };
     if (input_variables_map.hasOwnProperty(join_var_1) && join_variables_map.hasOwnProperty(join_var_1))
         throw new RbqlParsingError(get_ambiguous_error_msg(join_var_1));
     if (input_variables_map.hasOwnProperty(join_var_2) && join_variables_map.hasOwnProperty(join_var_2))
@@ -159,8 +159,8 @@ function generate_common_init_code(query, variable_prefix) {
     let base_var = variable_prefix == 'a' ? 'NR' : 'bNR';
     let attr_var = `${variable_prefix}.NR`;
     if (query.indexOf(attr_var) != -1)
-        result.push(`${attr_var} = ${base_var};`)
-    if variable_prefix == 'a' && query.indexOf('aNR') != -1
+        result.push(`${attr_var} = ${base_var};`);
+    if (variable_prefix == 'a' && query.indexOf('aNR') != -1)
         result.push('aNR = NR;');
     return result;
 }
@@ -205,7 +205,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
     for (const [key, value] of Object.entries(input_variables_map)) {
         let escaped_key = regexp_escape(key);
         let rgx = new RegExp(`(?:^|,) *${escaped_key} *=(?=[^=])`, 'g');
-        var translated = update_expression.replace(rgx, `\nsafe_set(up_fields, ${v},`);
+        translated = update_expression.replace(rgx, `\nsafe_set(up_fields, ${v},`);
     }
     let update_statements = translated.split('\n');
     update_statements = update_statements.map(str_strip);
@@ -217,7 +217,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
     for (var i = 1; i < update_statements.length; i++) {
         update_statements[i] = indent + update_statements[i];
     }
-    var translated = update_statements.join('\n');
+    translated = update_statements.join('\n');
     return translated;
 }
 
@@ -596,10 +596,10 @@ function TableIterator(input_table, variable_prefix='a') {
 
     this.get_variables_map = async function(query, _string_literals) {
         let variable_map = new Object();
-        parse_basic_variables(query, this.variable_prefix, variable_map)
-        parse_array_variables(query, this.variable_prefix, variable_map)
+        parse_basic_variables(query, this.variable_prefix, variable_map);
+        parse_array_variables(query, this.variable_prefix, variable_map);
         return variables_map;
-    }
+    };
 
 
     this.get_record = async function() {
