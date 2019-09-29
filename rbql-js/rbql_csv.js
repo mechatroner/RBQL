@@ -160,13 +160,13 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         this.external_record_callback = external_record_callback;
     };
 
-    this.set_finish_callback = function(external_finish_success_callback) {
-        this.external_finish_success_callback = external_finish_success_callback;
-    };
-
-    this.set_error_callback = function(external_error_callback) {
-        this.external_error_callback = external_error_callback;
-    };
+    //this.set_finish_callback = function(external_finish_success_callback) {
+    //    this.external_finish_success_callback = external_finish_success_callback;
+    //};
+    //
+    //this.set_error_callback = function(external_error_callback) {
+    //    this.external_error_callback = external_error_callback;
+    //};
 
     this._set_line_callback = function(external_line_callback) {
         this.external_line_callback = external_line_callback;
@@ -408,6 +408,7 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
 
 
     this.finish = function(after_finish_callback) {
+        // FIXME rewrite as async
         if (this.close_stream_on_finish) {
             this.stream.end('', this.encoding, after_finish_callback);
         } else {

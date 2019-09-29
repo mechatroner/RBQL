@@ -226,9 +226,8 @@ function translate_select_expression_js(select_expression) {
     var translated = replace_star_count(select_expression);
     translated = replace_star_vars(translated);
     translated = str_strip(translated);
-    if (!translated.length) {
+    if (!translated.length)
         throw new RbqlParsingError('"SELECT" expression is empty');
-    }
     return `[].concat([${translated}])`;
 }
 
@@ -403,42 +402,32 @@ function HashJoinMap(record_iterator, key_index) {
     this.record_iterator = record_iterator;
     this.key_index = key_index;
     this.error_msg = null;
-    this.external_error_handler = null;
-    this.external_success_handler = null;
     this.nr = 0;
-
-    this.finish_build = function() {
-        if (this.error_msg === null) {
-            this.external_success_handler();
-        } else {
-            this.external_error_handler('IO handling', this.error_msg);
-        }
-    };
 
     this.add_record = function(record) {
         this.nr += 1;
-        let num_fields = record.length;
-        this.max_record_len = Math.max(this.max_record_len, num_fields);
-        if (this.key_index >= num_fields) {
+        let nf = record.length;
+        this.max_record_len = Math.max(this.max_record_len, nf);
+        if (this.key_index >= nf) {
             this.error_msg = `No "b${this.key_index + 1}" field at record: ${this.nr} in "B" table`;
             this.record_iterator.finish();
         }
-        // FIXME include nr and nf, see python code
         let key = record[this.key_index];
         let key_records = this.hash_map.get(key);
         if (key_records === undefined) {
-            this.hash_map.set(key, [record]);
+            this.hash_map.set(key, [[nr, nf, record]]);
         } else {
-            key_records.push(record);
+            key_records.push([nr, nf, record]);
         }
     };
 
-    this.build = function(success_callback, error_callback) {
-        this.external_success_handler = success_callback;
-        this.external_error_handler = error_callback;
-        this.record_iterator.set_record_callback((record) => { this.add_record(record); });
-        this.record_iterator.set_finish_callback(() => { this.finish_build(); });
-        this.record_iterator.start();
+    this.build = async function(success_callback, error_callback) {
+        while (true) {
+            let record = await input_iterator.get_record();
+            if (record === null)
+                break;
+            this.add_record(record);
+        }
     };
 
     this.get_join_records = function(key) {
@@ -462,7 +451,6 @@ function cleanup_query(query) {
 async function parse_to_js(query, js_template_text, input_iterator, join_tables_registry, user_init_code) {
     user_init_code = indent_user_init_code(user_init_code);
     query = cleanup_query(query);
-    //var column_vars = extract_column_vars(query);
     var [format_expression, string_literals] = separate_string_literals_js(query);
     var input_variables_map = await input_iterator.get_variables_map(format_expression, string_literals);
 
@@ -596,40 +584,13 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
 function TableIterator(input_table, variable_prefix='a') {
     this.input_table = input_table;
     this.variable_prefix = variable_prefix;
-    this.NR = 0;
+    this.nr = 0;
     this.fields_info = new Object();
-    this.external_record_callback = null;
-    this.external_finish_callback = null;
     this.finished = false;
 
 
-    this.set_record_callback = function(external_record_callback) {
-        this.external_record_callback = external_record_callback;
-    };
-
-
-    this.set_finish_callback = function(external_finish_callback) {
-        this.external_finish_callback = external_finish_callback;
-    };
-
-
-    this.start = function() {
-        while (!this.finished) {
-            let record = this.get_record();
-            if (record === null) {
-                this.finish();
-            } else {
-                this.external_record_callback(record);
-            }
-        }
-    };
-
-
     this.finish = function() {
-        if (!this.finished) {
-            this.finished = true;
-            this.external_finish_callback();
-        }
+        this.finished = true;
     };
 
 
@@ -641,14 +602,16 @@ function TableIterator(input_table, variable_prefix='a') {
     }
 
 
-    this.get_record = function() {
-        if (this.NR >= this.input_table.length)
+    this.get_record = async function() {
+        if (this.finished)
             return null;
-        let record = this.input_table[this.NR];
-        this.NR += 1;
+        if (this.nr >= this.input_table.length)
+            return null;
+        let record = this.input_table[this.nr];
+        this.nr += 1;
         let num_fields = record.length;
         if (!this.fields_info.hasOwnProperty(num_fields))
-            this.fields_info[num_fields] = this.NR;
+            this.fields_info[num_fields] = this.nr;
         return record;
     };
 
@@ -665,10 +628,6 @@ function TableWriter(external_table) {
 
     this.write = function(fields) {
         this.table.push(fields);
-    };
-
-    this.finish = function(after_finish_callback) {
-        after_finish_callback();
     };
 
     this.get_warnings = function() {
