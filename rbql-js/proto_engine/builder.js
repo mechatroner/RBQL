@@ -92,9 +92,7 @@ function strip_comments(cline) {
 function parse_basic_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
-    let result = [];
-    let seen = {};
-    let matches = get_all_matches(rgx, rbql_expression);
+    let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
         dst_variables_map[prefix + String(field_num)] = field_num - 1;
@@ -105,9 +103,7 @@ function parse_basic_variables(query, prefix, dst_variables_map) {
 function parse_array_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\](?:$|(?=[^_a-zA-Z0-9]))`, 'g');
-    let result = [];
-    let seen = {};
-    let matches = get_all_matches(rgx, rbql_expression);
+    let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
         dst_variables_map[`${prefix}[${field_num}]`] = field_num - 1;
@@ -116,7 +112,6 @@ function parse_array_variables(query, prefix, dst_variables_map) {
 
 
 function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) {
-    let ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table';
     const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; };
     if (input_variables_map.hasOwnProperty(join_var_1) && join_variables_map.hasOwnProperty(join_var_1))
         throw new RbqlParsingError(get_ambiguous_error_msg(join_var_1));
@@ -205,7 +200,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
     for (const [key, value] of Object.entries(input_variables_map)) {
         let escaped_key = regexp_escape(key);
         let rgx = new RegExp(`(?:^|,) *${escaped_key} *=(?=[^=])`, 'g');
-        translated = update_expression.replace(rgx, `\nsafe_set(up_fields, ${v},`);
+        translated = update_expression.replace(rgx, `\nsafe_set(up_fields, ${value},`);
     }
     let update_statements = translated.split('\n');
     update_statements = update_statements.map(str_strip);
@@ -415,15 +410,15 @@ function HashJoinMap(record_iterator, key_index) {
         let key = record[this.key_index];
         let key_records = this.hash_map.get(key);
         if (key_records === undefined) {
-            this.hash_map.set(key, [[nr, nf, record]]);
+            this.hash_map.set(key, [[this.nr, nf, record]]);
         } else {
-            key_records.push([nr, nf, record]);
+            key_records.push([this.nr, nf, record]);
         }
     };
 
-    this.build = async function(success_callback, error_callback) {
+    this.build = async function() {
         while (true) {
-            let record = await input_iterator.get_record();
+            let record = await this.record_iterator.get_record();
             if (record === null)
                 break;
             this.add_record(record);
@@ -598,7 +593,7 @@ function TableIterator(input_table, variable_prefix='a') {
         let variable_map = new Object();
         parse_basic_variables(query, this.variable_prefix, variable_map);
         parse_array_variables(query, this.variable_prefix, variable_map);
-        return variables_map;
+        return variable_map;
     };
 
 

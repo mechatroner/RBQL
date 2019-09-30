@@ -200,21 +200,17 @@ function test_json_tables() {
 }
 
 
-function test_direct_table_queries() {
+async function test_direct_table_queries() {
     let output_table = [];
     let expected_table = [['foo test', 1], ['bar test', 2]];
-    let error_handler = function(error_type, error_msg) {
-        die(error_type + ": " + error_msg);
-    }
-    let success_handler = function(warnings) {
-        assert(warnings.length == 0);
-        test_common.assert_tables_are_equal(expected_table, output_table);
-    }
-    rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, success_handler, error_handler);
+
+    let warnings = await table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table);
+    assert(warnings.length == 0);
+    test_common.assert_tables_are_equal(expected_table, output_table);
 }
 
 
-function test_everything() {
+async function test_everything() {
     test_comment_strip();
     test_string_literals_separation();
     test_separate_actions();
@@ -222,8 +218,8 @@ function test_everything() {
     test_join_parsing();
     test_update_translation();
     test_select_translation();
-    test_direct_table_queries();
-    test_json_tables();
+    await test_direct_table_queries();
+    await test_json_tables();
 }
 
 
@@ -252,7 +248,7 @@ function main() {
     if (debug_mode)
         rbql.set_debug_mode();
 
-    test_everything();
+    test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { 'JS tests failed:' + error_info; });
 
 
     console.log('Finished JS unit tests');
