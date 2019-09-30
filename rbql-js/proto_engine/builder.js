@@ -127,13 +127,14 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
     }
     if (['b.NR', 'bNR'].indexOf(join_var_2) != -1) {
         rhs_key_index = -1;
-    } else if (input_variables_map.hasOwnProperty(join_var_2)) {
-        rhs_key_index = input_variables_map[join_var_2];
+    } else if (join_variables_map.hasOwnProperty(join_var_2)) {
+        rhs_key_index = join_variables_map[join_var_2];
     }
     if (lhs_key_index === null || rhs_key_index === null) {
         throw new RbqlParsingError(join_syntax_error);
     }
-    return [lhs_key_index, rhs_key_index];
+    let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`
+    return [lhs_join_var, rhs_key_index];
 }
 
 
@@ -689,6 +690,7 @@ module.exports.separate_string_literals_js = separate_string_literals_js;
 module.exports.combine_string_literals = combine_string_literals;
 module.exports.translate_except_expression = translate_except_expression;
 module.exports.parse_join_expression = parse_join_expression;
+module.exports.resolve_join_variables = resolve_join_variables;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
 

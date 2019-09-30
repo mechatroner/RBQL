@@ -58,28 +58,26 @@ function test_separate_actions() {
 function test_except_parsing() {
     let except_part = null;
 
-    except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8';
-    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
+    except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8';
+    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}));
 
-    except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  ';
-    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part));
+    except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  ';
+    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}));
 
     except_part = 'a1';
-    assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part));
+    assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}));
 }
 
 
 function test_join_parsing() {
-    let join_part = null;
+    let join_part = '/path/to/the/file.tsv on a1 == b3';
+    test_common.assert_arrays_are_equal(['/path/to/the/file.tsv', 'a1', 'b3'], rbql.parse_join_expression(join_part));
+
+    join_part = ' file.tsv on b[20]== a.name  ';
+    test_common.assert_arrays_are_equal(['file.tsv', 'b[20]', 'a.name'], rbql.parse_join_expression(join_part));
+
+    join_part = ' Bon b1 == a.age ';
     let catched = false;
-    join_part = '/path/to/the/file.tsv on a1 == b3';
-    test_common.assert_arrays_are_equal(['/path/to/the/file.tsv', 'safe_join_get(record_a, 0)', 2], rbql.parse_join_expression(join_part));
-
-    join_part = ' file.tsv on b20== a12  ';
-    test_common.assert_arrays_are_equal(['file.tsv', 'safe_join_get(record_a, 11)', 19], rbql.parse_join_expression(join_part));
-
-    join_part = '/path/to/the/file.tsv on a1==a12  ';
-    catched = false;
     try {
         rbql.parse_join_expression(join_part);
     } catch (e) {
@@ -88,10 +86,32 @@ function test_join_parsing() {
     }
     assert(catched);
 
-    join_part = ' Bon b1 == a12 ';
+    test_common.assert_arrays_are_equal(['safe_join_get(record_a, 0)', 1], rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b2'));
+
     catched = false;
     try {
         rbql.parse_join_expression(join_part);
+        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2');
+    } catch (e) {
+        catched = true;
+        assert(e.toString().indexOf('Invalid join syntax') != -1);
+    }
+    assert(catched);
+
+    catched = false;
+    try {
+        rbql.parse_join_expression(join_part);
+        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b10');
+    } catch (e) {
+        catched = true;
+        assert(e.toString().indexOf('Invalid join syntax') != -1);
+    }
+    assert(catched);
+
+    catched = false;
+    try {
+        rbql.parse_join_expression(join_part);
+        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'b1', 'b2');
     } catch (e) {
         catched = true;
         assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -215,11 +235,17 @@ async function test_everything() {
     test_string_literals_separation();
     test_separate_actions();
     test_except_parsing();
+    console.log("4"); //FOR_DEBUG
     test_join_parsing();
+    console.log("5"); //FOR_DEBUG
     test_update_translation();
+    console.log("6"); //FOR_DEBUG
     test_select_translation();
+    console.log("7"); //FOR_DEBUG
     await test_direct_table_queries();
+    console.log("8"); //FOR_DEBUG
     await test_json_tables();
+    console.log("9"); //FOR_DEBUG
 }
 
 
@@ -248,10 +274,7 @@ function main() {
     if (debug_mode)
         rbql.set_debug_mode();
 
-    test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { 'JS tests failed:' + error_info; });
-
-
-    console.log('Finished JS unit tests');
+    test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + error_info); });
 }
 
 
