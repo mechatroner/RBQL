@@ -59,11 +59,11 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
 
     def test_except_parsing(self):
-        except_part = '  a1,a2,a3, a4,a5, a6 ,   a7  ,a8'
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}))
+        except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8'
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}))
 
-        except_part = 'a1 ,  a2,a3, a4,a5, a6 ,   a7  , a8  '
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}))
+        except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  '
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}))
 
         except_part = 'a1'
         self.assertEqual('select_except(record_a, [0])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}))
@@ -81,6 +81,8 @@ class TestRBQLQueryParsing(unittest.TestCase):
             rbql.parse_join_expression(join_part)
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
+
+        self.assertEqual(('safe_join_get(record_a, 0)', 1), rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b2'))
 
         with self.assertRaises(Exception) as cm:
             rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2')
