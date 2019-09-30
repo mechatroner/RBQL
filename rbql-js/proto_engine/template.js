@@ -57,10 +57,10 @@ function safe_join_get(record, idx) {
 
 
 function safe_set(record, idx, value) {
-    if (idx - 1 < record.length) {
-        record[idx - 1] = value;
+    if (idx < record.length) {
+        record[idx] = value;
     } else {
-        throw new InternalBadFieldError(idx - 1);
+        throw new InternalBadFieldError(idx);
     }
 }
 

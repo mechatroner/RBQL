@@ -201,7 +201,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
     for (const [key, value] of Object.entries(input_variables_map)) {
         let escaped_key = regexp_escape(key);
         let rgx = new RegExp(`(?:^|,) *${escaped_key} *=(?=[^=])`, 'g');
-        translated = update_expression.replace(rgx, `\nsafe_set(up_fields, ${value},`);
+        translated = translated.replace(rgx, `\nsafe_set(up_fields, ${value},`);
     }
     let update_statements = translated.split('\n');
     update_statements = update_statements.map(str_strip);

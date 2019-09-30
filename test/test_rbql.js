@@ -124,13 +124,13 @@ function test_update_translation() {
     let rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  ';
     let indent = ' '.repeat(8);
     let expected_dst = [];
-    expected_dst.push('safe_set(up_fields, 1,  a2  + b3)');
-    expected_dst.push(indent + 'safe_set(up_fields, 2,a4  if b3 == a2 else a8)');
-    expected_dst.push(indent + 'safe_set(up_fields, 8,   100)');
-    expected_dst.push(indent + 'safe_set(up_fields, 30,200/3 + 1)');
+    expected_dst.push('safe_set(up_fields, 0,  a2  + b3)');
+    expected_dst.push(indent + 'safe_set(up_fields, 1,a4  if b3 == a2 else a8)');
+    expected_dst.push(indent + 'safe_set(up_fields, 7,   100)');
+    expected_dst.push(indent + 'safe_set(up_fields, 29,200/3 + 1)');
     expected_dst = expected_dst.join('\n');
-    let test_dst = rbql.translate_update_expression(rbql_src, indent);
-    assert(test_dst == expected_dst);
+    let test_dst = rbql.translate_update_expression(rbql_src, {'a1': 0, 'a2': 1, 'a4': 3, 'a8': 7, 'a30': 29}, indent);
+    test_common.assert_equal(test_dst, expected_dst);
 }
 
 
@@ -235,11 +235,8 @@ async function test_everything() {
     test_string_literals_separation();
     test_separate_actions();
     test_except_parsing();
-    console.log("4"); //FOR_DEBUG
     test_join_parsing();
-    console.log("5"); //FOR_DEBUG
     test_update_translation();
-    console.log("6"); //FOR_DEBUG
     test_select_translation();
     console.log("7"); //FOR_DEBUG
     await test_direct_table_queries();

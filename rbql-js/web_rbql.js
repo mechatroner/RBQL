@@ -64,10 +64,10 @@ function safe_join_get(record, idx) {
 
 
 function safe_set(record, idx, value) {
-    if (idx - 1 < record.length) {
-        record[idx - 1] = value;
+    if (idx < record.length) {
+        record[idx] = value;
     } else {
-        throw new InternalBadFieldError(idx - 1);
+        throw new InternalBadFieldError(idx);
     }
 }
 
@@ -786,9 +786,7 @@ function strip_comments(cline) {
 function parse_basic_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
-    let result = [];
-    let seen = {};
-    let matches = get_all_matches(rgx, rbql_expression);
+    let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
         dst_variables_map[prefix + String(field_num)] = field_num - 1;
@@ -799,9 +797,7 @@ function parse_basic_variables(query, prefix, dst_variables_map) {
 function parse_array_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\](?:$|(?=[^_a-zA-Z0-9]))`, 'g');
-    let result = [];
-    let seen = {};
-    let matches = get_all_matches(rgx, rbql_expression);
+    let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
         dst_variables_map[`${prefix}[${field_num}]`] = field_num - 1;
@@ -810,8 +806,7 @@ function parse_array_variables(query, prefix, dst_variables_map) {
 
 
 function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) {
-    let ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table';
-    const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; }
+    const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; };
     if (input_variables_map.hasOwnProperty(join_var_1) && join_variables_map.hasOwnProperty(join_var_1))
         throw new RbqlParsingError(get_ambiguous_error_msg(join_var_1));
     if (input_variables_map.hasOwnProperty(join_var_2) && join_variables_map.hasOwnProperty(join_var_2))
@@ -826,13 +821,14 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
     }
     if (['b.NR', 'bNR'].indexOf(join_var_2) != -1) {
         rhs_key_index = -1;
-    } else if (input_variables_map.hasOwnProperty(join_var_2)) {
-        rhs_key_index = input_variables_map[join_var_2];
+    } else if (join_variables_map.hasOwnProperty(join_var_2)) {
+        rhs_key_index = join_variables_map[join_var_2];
     }
     if (lhs_key_index === null || rhs_key_index === null) {
         throw new RbqlParsingError(join_syntax_error);
     }
-    return [lhs_key_index, rhs_key_index];
+    let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`
+    return [lhs_join_var, rhs_key_index];
 }
 
 
@@ -853,8 +849,8 @@ function generate_common_init_code(query, variable_prefix) {
     let base_var = variable_prefix == 'a' ? 'NR' : 'bNR';
     let attr_var = `${variable_prefix}.NR`;
     if (query.indexOf(attr_var) != -1)
-        result.push(`${attr_var} = ${base_var};`)
-    if variable_prefix == 'a' && query.indexOf('aNR') != -1
+        result.push(`${attr_var} = ${base_var};`);
+    if (variable_prefix == 'a' && query.indexOf('aNR') != -1)
         result.push('aNR = NR;');
     return result;
 }
@@ -899,7 +895,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
     for (const [key, value] of Object.entries(input_variables_map)) {
         let escaped_key = regexp_escape(key);
         let rgx = new RegExp(`(?:^|,) *${escaped_key} *=(?=[^=])`, 'g');
-        var translated = update_expression.replace(rgx, `\nsafe_set(up_fields, ${v},`);
+        translated = translated.replace(rgx, `\nsafe_set(up_fields, ${value},`);
     }
     let update_statements = translated.split('\n');
     update_statements = update_statements.map(str_strip);
@@ -911,7 +907,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
     for (var i = 1; i < update_statements.length; i++) {
         update_statements[i] = indent + update_statements[i];
     }
-    var translated = update_statements.join('\n');
+    translated = update_statements.join('\n');
     return translated;
 }
 
@@ -1109,15 +1105,15 @@ function HashJoinMap(record_iterator, key_index) {
         let key = record[this.key_index];
         let key_records = this.hash_map.get(key);
         if (key_records === undefined) {
-            this.hash_map.set(key, [[nr, nf, record]]);
+            this.hash_map.set(key, [[this.nr, nf, record]]);
         } else {
-            key_records.push([nr, nf, record]);
+            key_records.push([this.nr, nf, record]);
         }
     };
 
-    this.build = async function(success_callback, error_callback) {
+    this.build = async function() {
         while (true) {
-            let record = await input_iterator.get_record();
+            let record = await this.record_iterator.get_record();
             if (record === null)
                 break;
             this.add_record(record);
@@ -1290,10 +1286,10 @@ function TableIterator(input_table, variable_prefix='a') {
 
     this.get_variables_map = async function(query, _string_literals) {
         let variable_map = new Object();
-        parse_basic_variables(query, this.variable_prefix, variable_map)
-        parse_array_variables(query, this.variable_prefix, variable_map)
-        return variables_map;
-    }
+        parse_basic_variables(query, this.variable_prefix, variable_map);
+        parse_array_variables(query, this.variable_prefix, variable_map);
+        return variable_map;
+    };
 
 
     this.get_record = async function() {
@@ -1388,6 +1384,7 @@ module.exports.separate_string_literals_js = separate_string_literals_js;
 module.exports.combine_string_literals = combine_string_literals;
 module.exports.translate_except_expression = translate_except_expression;
 module.exports.parse_join_expression = parse_join_expression;
+module.exports.resolve_join_variables = resolve_join_variables;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
 

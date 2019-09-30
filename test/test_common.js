@@ -15,6 +15,18 @@ function round_floats(src_table) {
 }
 
 
+function assert_equal(a, b, exit_at_error=true, silent=false) {
+    if (a != b) {
+        if (!silent)
+            console.log(`Assertion error: assert_equal has failed: a = "${a}", b = "${b}"`);
+        if (exit_at_error)
+            die('Assertion failed')
+        return false;
+    }
+    return true;
+}
+
+
 function assert_arrays_are_equal(a, b, exit_at_error=true, silent=false) {
     if (a.length != b.length) {
         if (!silent) {
@@ -117,4 +129,5 @@ module.exports.normalize_warnings = normalize_warnings;
 module.exports.objects_are_equal = objects_are_equal;
 module.exports.assert_tables_are_equal = assert_tables_are_equal;
 module.exports.assert_arrays_are_equal = assert_arrays_are_equal;
+module.exports.assert_equal = assert_equal;
 module.exports.round_floats = round_floats;
