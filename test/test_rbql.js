@@ -124,10 +124,10 @@ function test_update_translation() {
     let rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  ';
     let indent = ' '.repeat(8);
     let expected_dst = [];
-    expected_dst.push('safe_set(up_fields, 0,  a2  + b3)');
-    expected_dst.push(indent + 'safe_set(up_fields, 1,a4  if b3 == a2 else a8)');
-    expected_dst.push(indent + 'safe_set(up_fields, 7,   100)');
-    expected_dst.push(indent + 'safe_set(up_fields, 29,200/3 + 1)');
+    expected_dst.push('safe_set(up_fields, 0,  a2  + b3);');
+    expected_dst.push(indent + 'safe_set(up_fields, 1,a4  if b3 == a2 else a8);');
+    expected_dst.push(indent + 'safe_set(up_fields, 7,   100);');
+    expected_dst.push(indent + 'safe_set(up_fields, 29,200/3 + 1);');
     expected_dst = expected_dst.join('\n');
     let test_dst = rbql.translate_update_expression(rbql_src, {'a1': 0, 'a2': 1, 'a4': 3, 'a8': 7, 'a30': 29}, indent);
     test_common.assert_equal(test_dst, expected_dst);
@@ -224,7 +224,7 @@ async function test_direct_table_queries() {
     let output_table = [];
     let expected_table = [['foo test', 1], ['bar test', 2]];
 
-    let warnings = await table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table);
+    let warnings = await rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table);
     assert(warnings.length == 0);
     test_common.assert_tables_are_equal(expected_table, output_table);
 }
@@ -271,7 +271,7 @@ function main() {
     if (debug_mode)
         rbql.set_debug_mode();
 
-    test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + error_info); });
+    test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + error_info); console.log(error_info.stack); });
 }
 
 

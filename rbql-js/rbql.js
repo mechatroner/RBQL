@@ -33,7 +33,6 @@ var input_finished = false;
 
 var polymorphic_process = null;
 var join_map = null;
-var node_debug_mode_flag = false;
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
 
@@ -540,7 +539,7 @@ function process_update(NF, record_a, rhs_records) {
     if (rhs_records.length == 1)
         record_b = rhs_records[0];
     var up_fields = record_a;
-    __RBQLMP__init_column_vars_select
+    __RBQLMP__init_column_vars_update
     if (rhs_records.length == 1 && (__RBQLMP__where_expression)) {
         NU += 1;
         __RBQLMP__update_statements
@@ -616,7 +615,7 @@ function process_select(NF, record_a, rhs_records) {
         var star_fields = record_a;
         if (record_b != null)
             star_fields = record_a.concat(record_b);
-        __RBQLMP__init_column_vars_update
+        __RBQLMP__init_column_vars_select
         if (!(__RBQLMP__where_expression))
             continue;
         // TODO wrap all user expression in try/catch block to improve error reporting
@@ -641,7 +640,6 @@ function process_select(NF, record_a, rhs_records) {
 
 async function do_rb_transform(input_iterator, join_map, output_writer) {
     polymorphic_process = __RBQLMP__is_select_query ? process_select : process_update;
-    var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
 
     writer = new TopWriter(output_writer);
 
@@ -672,8 +670,7 @@ async function do_rb_transform(input_iterator, join_map, output_writer) {
 }
 
 
-async function rb_transform(input_iterator, join_map_impl, output_writer, node_debug_mode=false) {
-    node_debug_mode_flag = node_debug_mode;
+async function rb_transform(input_iterator, join_map_impl, output_writer) {
     if (module_was_used_failsafe) {
         throw new Error('Module can only be used once');
     }
@@ -681,11 +678,11 @@ async function rb_transform(input_iterator, join_map_impl, output_writer, node_d
     if (join_map_impl !== null) {
         await join_map_impl.build();
     }
+    let sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
     join_map = new sql_join_type(join_map_impl);
     let warnings = await do_rb_transform(input_iterator, join_map, output_writer);
     return warnings;
 }
-
 
 module.exports.rb_transform = rb_transform;
 `;
@@ -855,12 +852,12 @@ function generate_common_init_code(query, variable_prefix) {
 function generate_init_statements(query, variables_map, join_variables_map, indent) {
     let code_lines = generate_common_init_code(query, 'a');
     for (const [variable_name, column_num] of Object.entries(variables_map)) {
-        code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num};)`);
+        code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num});`);
     }
     if (join_variables_map) {
         code_lines = code_lines.concat(generate_common_init_code(query, 'b'));
         for (const [variable_name, column_num] of Object.entries(join_variables_map)) {
-            code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num};)`);
+            code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num});`);
         }
     }
     for (let i = 1; i < code_lines.length; i++) {
@@ -899,7 +896,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
         throw new RbqlParsingError('Unable to parse "UPDATE" expression');
     }
     update_statements = update_statements.slice(1);
-    update_statements = update_statements.map(v => v + ')');
+    update_statements = update_statements.map(v => v + ');');
     for (var i = 1; i < update_statements.length; i++) {
         update_statements[i] = indent + update_statements[i];
     }
@@ -1195,13 +1192,13 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['__RBQLMP__is_select_query'] = 'false';
         js_meta_params['__RBQLMP__top_count'] = 'null';
-        js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
         js_meta_params['__RBQLMP__init_column_vars_select'] = '';
     }
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         js_meta_params['__RBQLMP__init_column_vars_update'] = '';
-        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
         var top_count = find_top(rb_actions);
         js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
@@ -1346,7 +1343,7 @@ async function generic_run(user_query, input_iterator, output_writer, join_table
         eval('(function(){' + js_code + '})()');
         rbql_worker = module.exports;
     }
-    let warnings = await rbql_worker.rb_transform(input_iterator, join_map, output_writer, debug_mode);
+    let warnings = await rbql_worker.rb_transform(input_iterator, join_map, output_writer);
     return warnings;
 }
 

@@ -165,12 +165,12 @@ function generate_common_init_code(query, variable_prefix) {
 function generate_init_statements(query, variables_map, join_variables_map, indent) {
     let code_lines = generate_common_init_code(query, 'a');
     for (const [variable_name, column_num] of Object.entries(variables_map)) {
-        code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num};)`);
+        code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num});`);
     }
     if (join_variables_map) {
         code_lines = code_lines.concat(generate_common_init_code(query, 'b'));
         for (const [variable_name, column_num] of Object.entries(join_variables_map)) {
-            code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num};)`);
+            code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num});`);
         }
     }
     for (let i = 1; i < code_lines.length; i++) {
@@ -209,7 +209,7 @@ function translate_update_expression(update_expression, input_variables_map, ind
         throw new RbqlParsingError('Unable to parse "UPDATE" expression');
     }
     update_statements = update_statements.slice(1);
-    update_statements = update_statements.map(v => v + ')');
+    update_statements = update_statements.map(v => v + ');');
     for (var i = 1; i < update_statements.length; i++) {
         update_statements[i] = indent + update_statements[i];
     }
@@ -505,13 +505,13 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['__RBQLMP__is_select_query'] = 'false';
         js_meta_params['__RBQLMP__top_count'] = 'null';
-        js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
         js_meta_params['__RBQLMP__init_column_vars_select'] = '';
     }
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         js_meta_params['__RBQLMP__init_column_vars_update'] = '';
-        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
         var top_count = find_top(rb_actions);
         js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
@@ -656,7 +656,7 @@ async function generic_run(user_query, input_iterator, output_writer, join_table
         eval('(function(){' + js_code + '})()');
         rbql_worker = module.exports;
     }
-    let warnings = await rbql_worker.rb_transform(input_iterator, join_map, output_writer, debug_mode);
+    let warnings = await rbql_worker.rb_transform(input_iterator, join_map, output_writer);
     return warnings;
 }
 

@@ -30,7 +30,6 @@ var input_finished = false;
 
 var polymorphic_process = null;
 var join_map = null;
-var node_debug_mode_flag = false;
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
 
@@ -537,7 +536,7 @@ function process_update(NF, record_a, rhs_records) {
     if (rhs_records.length == 1)
         record_b = rhs_records[0];
     var up_fields = record_a;
-    __RBQLMP__init_column_vars_select
+    __RBQLMP__init_column_vars_update
     if (rhs_records.length == 1 && (__RBQLMP__where_expression)) {
         NU += 1;
         __RBQLMP__update_statements
@@ -613,7 +612,7 @@ function process_select(NF, record_a, rhs_records) {
         var star_fields = record_a;
         if (record_b != null)
             star_fields = record_a.concat(record_b);
-        __RBQLMP__init_column_vars_update
+        __RBQLMP__init_column_vars_select
         if (!(__RBQLMP__where_expression))
             continue;
         // TODO wrap all user expression in try/catch block to improve error reporting
@@ -638,7 +637,6 @@ function process_select(NF, record_a, rhs_records) {
 
 async function do_rb_transform(input_iterator, join_map, output_writer) {
     polymorphic_process = __RBQLMP__is_select_query ? process_select : process_update;
-    var sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
 
     writer = new TopWriter(output_writer);
 
@@ -669,8 +667,7 @@ async function do_rb_transform(input_iterator, join_map, output_writer) {
 }
 
 
-async function rb_transform(input_iterator, join_map_impl, output_writer, node_debug_mode=false) {
-    node_debug_mode_flag = node_debug_mode;
+async function rb_transform(input_iterator, join_map_impl, output_writer) {
     if (module_was_used_failsafe) {
         throw new Error('Module can only be used once');
     }
@@ -678,10 +675,10 @@ async function rb_transform(input_iterator, join_map_impl, output_writer, node_d
     if (join_map_impl !== null) {
         await join_map_impl.build();
     }
+    let sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
     join_map = new sql_join_type(join_map_impl);
     let warnings = await do_rb_transform(input_iterator, join_map, output_writer);
     return warnings;
 }
-
 
 module.exports.rb_transform = rb_transform;
