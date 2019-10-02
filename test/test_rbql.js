@@ -238,7 +238,6 @@ async function test_everything() {
     test_join_parsing();
     test_update_translation();
     test_select_translation();
-    console.log("7"); //FOR_DEBUG
     await test_direct_table_queries();
     console.log("8"); //FOR_DEBUG
     await test_json_tables();

@@ -838,7 +838,7 @@ function parse_join_expression(src) {
 function generate_common_init_code(query, variable_prefix) {
     assert(variable_prefix == 'a' || variable_prefix == 'b');
     let result = [];
-    result.push(`${variable_prefix} = RBQLRecord();`);
+    result.push(`${variable_prefix} = new Object();`);
     let base_var = variable_prefix == 'a' ? 'NR' : 'bNR';
     let attr_var = `${variable_prefix}.NR`;
     if (query.indexOf(attr_var) != -1)
