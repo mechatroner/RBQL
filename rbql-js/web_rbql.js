@@ -31,6 +31,7 @@ var writer = null;
 
 var NU = 0; // NU - Num Updated. Alternative variables: NW (Num Where) - Not Practical. NW (Num Written) - Impossible to implement.
 var NR = 0;
+var NF = 0;
 
 var finished_with_error = false;
 var input_finished = false;
@@ -536,7 +537,7 @@ function select_except(src, except_fields) {
 }
 
 
-function process_update(NF, record_a, rhs_records) {
+function process_update(record_a, rhs_records) {
     if (rhs_records.length > 1)
         throw new RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B');
     var record_b = null;
@@ -612,7 +613,7 @@ function select_unnested(sort_key, folded_fields) {
 }
 
 
-function process_select(NF, record_a, rhs_records) {
+function process_select(record_a, rhs_records) {
     for (var i = 0; i < rhs_records.length; i++) {
         unnest_list = null;
         var record_b = rhs_records[i];
@@ -657,13 +658,13 @@ async function do_rb_transform(input_iterator, join_map, output_writer) {
         writer = new SortedWriter(writer);
 
     while (!finished_with_error) {
-        let record = await input_iterator.get_record();
-        if (record === null)
+        let record_a = await input_iterator.get_record();
+        if (record_a === null)
             break;
         NR += 1;
         let rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var);
-        let NF = record.length;
-        if (!polymorphic_process(NF, record, rhs_records)) {
+        NF = record_a.length;
+        if (!polymorphic_process(record_a, rhs_records)) {
             input_iterator.finish();
             break;
         }
