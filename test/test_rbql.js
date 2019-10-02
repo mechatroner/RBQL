@@ -172,51 +172,50 @@ function test_select_translation() {
 }
 
 
-function process_test_case(tests, test_id) {
-    if (test_id >= tests.length)
-        return;
-    let test_case = tests[test_id];
-    let test_name = test_case['test_name'];
-    console.log('running rbql test: ' + test_name);
-    let query = test_common.get_default(test_case, 'query_js', null);
-    if (query == null) {
-        process_test_case(tests, test_id + 1);
-        return;
-    }
-    let input_table = test_case['input_table'];
-    let join_table = test_common.get_default(test_case, 'join_table', null);
-    let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
-    let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
-    let expected_error = test_common.get_default(test_case, 'expected_error', null);
-    let expected_error_type = test_common.get_default(test_case, 'expected_error_type', null);
-    if (expected_error == null) {
-        expected_error = test_common.get_default(test_case, 'expected_error_js', null);
-    }
-    let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
-    let output_table = [];
-    let error_handler = function(error_type, error_msg) {
-        if (expected_error_type)
-            assert(expected_error_type === error_type);
-        assert(expected_error);
-        assert(error_msg.indexOf(expected_error) != -1);
-        process_test_case(tests, test_id + 1);
-    }
-    let success_handler = function(warnings) {
-        assert(expected_error === null);
+async function test_json_tables() {
+    let tests_file_path = 'rbql_unit_tests.json';
+    let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
+    for (let test_case of tests) {
+        let test_name = test_case['test_name'];
+        console.log('Running rbql test: ' + test_name);
+        let query = test_common.get_default(test_case, 'query_js', null);
+        if (query == null)
+            continue;
+        let input_table = test_case['input_table'];
+        let join_table = test_common.get_default(test_case, 'join_table', null);
+        let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
+        let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
+        let expected_error = test_common.get_default(test_case, 'expected_error', null);
+        let expected_error_type = test_common.get_default(test_case, 'expected_error_type', null);
+        if (expected_error == null) {
+            expected_error = test_common.get_default(test_case, 'expected_error_js', null);
+        }
+        let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
+        let output_table = [];
+        // FIXME handle errors: expected and not
+        let warnings = await rbql.table_run(query, input_table, output_table, join_table, user_init_code);
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
         test_common.assert_tables_are_equal(expected_output_table, output_table);
-        process_test_case(tests, test_id + 1);
+
+        //let error_handler = function(error_type, error_msg) {
+        //    if (expected_error_type)
+        //        assert(expected_error_type === error_type);
+        //    assert(expected_error);
+        //    assert(error_msg.indexOf(expected_error) != -1);
+        //    process_test_case(tests, test_id + 1);
+        //}
+        //let success_handler = function(warnings) {
+        //    assert(expected_error === null);
+        //    warnings = test_common.normalize_warnings(warnings).sort();
+        //    test_common.assert_arrays_are_equal(expected_warnings, warnings);
+        //    test_common.round_floats(output_table);
+        //    test_common.assert_tables_are_equal(expected_output_table, output_table);
+        //    process_test_case(tests, test_id + 1);
+        //}
+        //rbql.table_run(query, input_table, output_table, success_handler, error_handler, join_table, user_init_code);
     }
-    rbql.table_run(query, input_table, output_table, success_handler, error_handler, join_table, user_init_code);
-}
-
-
-function test_json_tables() {
-    let tests_file_path = 'rbql_unit_tests.json';
-    let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
-    process_test_case(tests, 0);
 }
 
 

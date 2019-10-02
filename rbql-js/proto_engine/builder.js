@@ -640,7 +640,7 @@ function SingleTableRegistry(table, table_id='B') {
         if (table_id !== this.table_id) {
             throw new RbqlIOHandlingError(`Unable to find join table: "${table_id}"`);
         }
-        return new TableIterator(this.table);
+        return new TableIterator(this.table, 'b');
     };
 }
 
