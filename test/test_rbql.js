@@ -192,29 +192,26 @@ async function test_json_tables() {
         }
         let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
         let output_table = [];
-        // FIXME handle errors: expected and not
-        let warnings = await rbql.table_run(query, input_table, output_table, join_table, user_init_code);
+        let warnings = null;
+        let error_type = null;
+        try {
+            warnings = await rbql.table_run(query, input_table, output_table, join_table, user_init_code);
+        } catch (e) {
+            if (e.constructor.name === 'RbqlParsingError') {
+                error_type == 'query_parsing';
+            } else if (e.constructor.name === 'RbqlIOHandlingError') {
+                error_type == 'IO handling';
+            }
+            if (expected_error_type)
+                assert(expected_error_type === error_type);
+            assert(expected_error);
+            assert(e.message.indexOf(expected_error) != -1);
+            continue;
+        }
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
         test_common.assert_tables_are_equal(expected_output_table, output_table);
-
-        //let error_handler = function(error_type, error_msg) {
-        //    if (expected_error_type)
-        //        assert(expected_error_type === error_type);
-        //    assert(expected_error);
-        //    assert(error_msg.indexOf(expected_error) != -1);
-        //    process_test_case(tests, test_id + 1);
-        //}
-        //let success_handler = function(warnings) {
-        //    assert(expected_error === null);
-        //    warnings = test_common.normalize_warnings(warnings).sort();
-        //    test_common.assert_arrays_are_equal(expected_warnings, warnings);
-        //    test_common.round_floats(output_table);
-        //    test_common.assert_tables_are_equal(expected_output_table, output_table);
-        //    process_test_case(tests, test_id + 1);
-        //}
-        //rbql.table_run(query, input_table, output_table, success_handler, error_handler, join_table, user_init_code);
     }
 }
 
