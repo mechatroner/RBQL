@@ -28,7 +28,6 @@ from collections import defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-# TODO optimize join_loop: split it into two functions: join_select and non_join_select which will not have the loop and replace FakeJoiner with None, see TODO in template.py code
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
@@ -41,6 +40,8 @@ from collections import defaultdict
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
 # TODO show warning when csv fields contain trailing spaces
+
+# FIXME optimize join_loop: split it into two functions: join_select and non_join_select which will not have the loop and replace FakeJoiner with None, see TODO in template.py code, both JS and Python versions
 
 
 GROUP_BY = 'GROUP BY'

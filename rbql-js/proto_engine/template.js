@@ -29,7 +29,6 @@ var NF = 0;
 var finished_with_error = false;
 var input_finished = false;
 
-var polymorphic_process = null;
 var join_map = null;
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
@@ -493,11 +492,10 @@ function InnerJoiner(join_map) {
 
 function LeftJoiner(join_map) {
     this.join_map = join_map;
-    this.null_record = [Array(join_map.max_record_len).fill(null)];
+    this.null_record = [[null, join_map.max_record_len, Array(join_map.max_record_len).fill(null)]];
 
     this.get_rhs = function(lhs_key) {
         let result = this.join_map.get_join_records(lhs_key);
-        // FIXME nr, nf handling
         if (result.length == 0) {
             return this.null_record;
         }
@@ -511,7 +509,6 @@ function StrictLeftJoiner(join_map) {
 
     this.get_rhs = function(lhs_key) {
         let result = this.join_map.get_join_records(lhs_key);
-        // FIXME nr, nf handling
         if (result.length != 1) {
             throw new RbqlRuntimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
         }
@@ -530,15 +527,28 @@ function select_except(src, except_fields) {
 }
 
 
-function process_update(record_a, rhs_records) {
-    if (rhs_records.length > 1)
+function process_update_join(record_a, join_matches) {
+    if (join_matches.length > 1)
         throw new RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B');
-    var record_b = null;
-    if (rhs_records.length == 1)
-        record_b = rhs_records[0];
+    let record_b = null;
+    let bNR = null;
+    let bNF = null;
+    if (join_matches.length == 1)
+        [bNR, bNF, record_b] = join_matches[0];
     var up_fields = record_a;
     __RBQLMP__init_column_vars_update
-    if (rhs_records.length == 1 && (__RBQLMP__where_expression)) {
+    if (join_matches.length == 1 && (__RBQLMP__where_expression)) {
+        NU += 1;
+        __RBQLMP__update_statements
+    }
+    return writer.write(up_fields);
+}
+
+
+function process_update_simple(record_a, _join_matches) {
+    var up_fields = record_a;
+    __RBQLMP__init_column_vars_update
+    if (join_matches.length == 1 && (__RBQLMP__where_expression)) {
         NU += 1;
         __RBQLMP__update_statements
     }
@@ -606,17 +616,18 @@ function select_unnested(sort_key, folded_fields) {
 }
 
 
-function process_select(record_a, rhs_records) {
-    for (var i = 0; i < rhs_records.length; i++) {
+function process_select(record_a, join_matches) {
+    for (var i = 0; i < join_matches.length; i++) {
         unnest_list = null;
-        var record_b = rhs_records[i];
-        var star_fields = record_a;
-        if (record_b != null)
-            star_fields = record_a.concat(record_b);
+        if (join_matches[i] === null) {
+            var star_fields = record_a;
+        } else {
+            var [bNR, bNF, record_b] = join_matches[i];
+            var star_fields = record_a.concat(record_b);
+        }
         __RBQLMP__init_column_vars_select
         if (!(__RBQLMP__where_expression))
             continue;
-        // TODO wrap all user expression in try/catch block to improve error reporting
         var out_fields = __RBQLMP__select_expression;
         if (aggregation_stage > 0) {
             var key = __RBQLMP__aggregation_key_expression;
@@ -637,7 +648,14 @@ function process_select(record_a, rhs_records) {
 
 
 async function do_rb_transform(input_iterator, join_map, output_writer) {
-    polymorphic_process = __RBQLMP__is_select_query ? process_select : process_update;
+    let polymorphic_process = null;
+    if (__RBQLMP__is_select_query) {
+        polymorphic_process = process_select;
+    } else if (__RBQLMP__join_operation == 'VOID') {
+        polymorphic_process = process_update_simple;
+    } else {
+        polymorphic_process = process_update_join;
+    }
 
     writer = new TopWriter(output_writer);
 
@@ -655,9 +673,9 @@ async function do_rb_transform(input_iterator, join_map, output_writer) {
         if (record_a === null)
             break;
         NR += 1;
-        let rhs_records = join_map.get_rhs(__RBQLMP__lhs_join_var);
+        let join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var);
         NF = record_a.length;
-        if (!polymorphic_process(record_a, rhs_records)) {
+        if (!polymorphic_process(record_a, join_matches)) {
             input_iterator.finish();
             break;
         }

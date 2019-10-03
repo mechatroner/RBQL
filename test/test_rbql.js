@@ -211,6 +211,7 @@ async function test_json_tables() {
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
+        console.log("output_table:" + output_table); //FOR_DEBUG
         test_common.assert_tables_are_equal(expected_output_table, output_table);
     }
 }

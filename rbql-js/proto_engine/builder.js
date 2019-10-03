@@ -170,7 +170,7 @@ function generate_init_statements(query, variables_map, join_variables_map, inde
     if (join_variables_map) {
         code_lines = code_lines.concat(generate_common_init_code(query, 'b'));
         for (const [variable_name, column_num] of Object.entries(join_variables_map)) {
-            code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num});`);
+            code_lines.push(`var ${variable_name} = record_b === null ? null : safe_get(record_b, ${column_num});`);
         }
     }
     for (let i = 1; i < code_lines.length; i++) {
@@ -511,7 +511,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         js_meta_params['__RBQLMP__init_column_vars_update'] = '';
-        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
         var top_count = find_top(rb_actions);
         js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
@@ -553,6 +553,7 @@ function load_module_from_file(js_code) {
     var tmp_dir = os.tmpdir();
     var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
     let tmp_worker_module_path = path.join(tmp_dir, script_filename);
+    console.log("tmp_worker_module_path:" + tmp_worker_module_path); //FOR_DEBUG
     fs.writeFileSync(tmp_worker_module_path, js_code);
     let worker_module = require(tmp_worker_module_path);
     return worker_module;
