@@ -204,7 +204,9 @@ async function test_json_tables() {
             }
             if (expected_error_type)
                 assert(expected_error_type === error_type);
-            assert(expected_error);
+            if(!expected_error) {
+                throw(e);
+            }
             assert(e.message.indexOf(expected_error) != -1);
             continue;
         }

@@ -555,7 +555,7 @@ function process_update_join(record_a, join_matches) {
 function process_update_simple(record_a, _join_matches) {
     var up_fields = record_a;
     __RBQLMP__init_column_vars_update
-    if (join_matches.length == 1 && (__RBQLMP__where_expression)) {
+    if (__RBQLMP__where_expression) {
         NU += 1;
         __RBQLMP__update_statements
     }
