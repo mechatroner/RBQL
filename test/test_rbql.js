@@ -179,6 +179,7 @@ async function test_json_tables() {
         let test_name = test_case['test_name'];
         console.log('Running rbql test: ' + test_name);
         let query = test_common.get_default(test_case, 'query_js', null);
+        // FIXME randomly replace ai with a[i], see Python code
         if (query == null)
             continue;
         let input_table = test_case['input_table'];

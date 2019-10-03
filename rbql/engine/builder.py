@@ -43,6 +43,8 @@ from collections import defaultdict
 
 # FIXME optimize join_loop: split it into two functions: join_select and non_join_select which will not have the loop and replace FakeJoiner with None, see TODO in template.py code, both JS and Python versions
 
+# FIXME add f-string test for python 3.7 - apparently it won't work with the current variable extraction method =(
+# Plan - don't create variables - add global column_name -> index mapping object, and remap to index when asked through the RBQLRecord or throw an error if doesn't exist. Awesome!
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
