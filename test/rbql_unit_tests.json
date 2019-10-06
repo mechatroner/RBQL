@@ -607,6 +607,7 @@
             ["mv abc world2 --opt1 --opt2"],
             ["mv abc stack3 --opt1 --opt2"]
         ],
+        "minimal_python_version": "3.7",
         "randomly_replace_var_names": false,
         "query_python": "select f'mv {a1} {a[2] + str(NR)} --opt1 --opt2'",
         "query_js": "select `mv ${a1} ${a2 + NR} --opt1 --opt2`"

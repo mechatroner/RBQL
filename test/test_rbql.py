@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import unittest
 import os
+import sys
 import json
 import random
 
@@ -13,6 +14,10 @@ import rbql
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
+
+vinf = rbql.VariableInfo
+
+python_version = float('{}.{}'.format(sys.version_info[0], sys.version_info[1]))
 
 
 def normalize_warnings(warnings):
@@ -60,13 +65,13 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_except_parsing(self):
         except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8'
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}))
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a[6]': vinf(True, 5), 'a7': vinf(True, 6), 'a8': vinf(True, 7)}, []))
 
         except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  '
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}))
+        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a[1]': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a6': vinf(True, 5), 'a[7]': vinf(True, 6), 'a8': vinf(True, 7)}, []))
 
         except_part = 'a1'
-        self.assertEqual('select_except(record_a, [0])', rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}))
+        self.assertEqual('select_except(record_a, [0])', rbql.translate_except_expression(except_part, {'a1': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a[6]': vinf(True, 5), 'a7': vinf(True, 6), 'a8': vinf(True, 7)}, []))
 
 
     def test_join_parsing(self):
@@ -82,32 +87,32 @@ class TestRBQLQueryParsing(unittest.TestCase):
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
-        self.assertEqual(('safe_join_get(record_a, 0)', 1), rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b2'))
+        self.assertEqual(('safe_join_get(record_a, 0)', 1), rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b2', []))
 
         with self.assertRaises(Exception) as cm:
-            rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2')
+            rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'a2', [])
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
         with self.assertRaises(Exception) as cm:
-            rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b10')
+            rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b10', [])
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
         with self.assertRaises(Exception) as cm:
-            rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'b1', 'b2')
+            rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'b1', 'b2', [])
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
 
 
     def test_update_translation(self):
-        rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  '
-        test_dst = rbql.translate_update_expression(rbql_src, {'a1': 0, 'a2': 1, 'a4': 3, 'a8': 7, 'a30': 29}, '    ')
+        rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a30  =200/3 + 1  '
+        test_dst = rbql.translate_update_expression(rbql_src, {'a1': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a30': vinf(1, 29)}, ['"100 200"'], '    ')
         expected_dst = list()
         expected_dst.append('safe_set(up_fields, 0,  a2  + b3)')
         expected_dst.append('    safe_set(up_fields, 1,a4  if b3 == a2 else a8)')
-        expected_dst.append('    safe_set(up_fields, 7,   100)')
+        expected_dst.append('    safe_set(up_fields, 7,   "100 200")')
         expected_dst.append('    safe_set(up_fields, 29,200/3 + 1)')
         expected_dst = '\n'.join(expected_dst)
         self.assertEqual(expected_dst, test_dst)
@@ -205,6 +210,10 @@ class TestJsonTables(unittest.TestCase):
     def process_test_case(self, test_case):
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
+        minimal_python_version = float(test_case.get('minimal_python_version', 2.7))
+        if python_version < minimal_python_version:
+            print('Skipping {}: python version must be at least {}. Interpreter version is {}'.format(test_name, minimal_python_version, python_version))
+            return
         randomly_replace_var_names = test_case.get('randomly_replace_var_names', True)
         if query is None:
             self.assertTrue(test_case.get('query_js', None) is not None)

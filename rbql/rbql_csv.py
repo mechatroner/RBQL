@@ -248,7 +248,36 @@ class CSVWriter:
         return result
 
 
+def python_string_escape_column_name(column_name, quote_char):
+    assert quote_char in ['"', "'"]
+    if quote_char = '"':
+        return column_name.replace('\\', '\\\\').replace('"', '\\"')
+    return column_name.replace('\\', '\\\\').replace("'", "\\'")
+
+
+def parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map):
+    # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+
+    assert prefix in ['a', 'b']
+    for i in polymorphic_xrange(len(header_columns_names)):
+        column_name = header_columns_names[i]
+        continuous_name_segments = re.findall(r'''[^{}\\'"$`]+''', column_name)
+        add_column_name = True
+        for continuous_segment in continuous_name_segments:
+            if query.find(continuous_segment) == -1:
+                add_column_name = False
+                break
+        if add_column_name:
+            dst_variables_map['{}["{}"]'.format(prefix, python_string_escape_column_name(column_name, '"'))] = engine.VariableInfo(initialize=True, index=zero_based_idx)
+            dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = engine.VariableInfo(initialize=False, index=zero_based_idx)
+
+
 def parse_attribute_variables(query, prefix, header_columns_names, dst_variables_map):
+    # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+
+    # TODO ideally we should either:
+    # * not search inside string literals (excluding brackets in f-strings) OR
+    # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
     assert prefix in ['a', 'b']
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
     rgx = '(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
@@ -257,22 +286,8 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
     for column_name in column_names:
         zero_based_idx = header_columns_names.get(column_name)
         if zero_based_idx is not None:
-            dst_variables_map['{}.{}'.format(prefix, column_name)] = zero_based_idx
+            dst_variables_map['{}.{}'.format(prefix, column_name)] = engine.VariableInfo(initialize=True, index=zero_based_idx)
 
-
-def parse_dictionary_variables(query, string_literals, prefix, header_columns_names, dst_variables_map):
-    assert prefix in ['a', 'b']
-    header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
-    string_literals_regex = r'''(?:^|[^_a-zA-Z0-9])({}\[ *###RBQL_STRING_LITERAL([0-9]+)### *\])'''.format(prefix)
-    matches = list(re.finditer(string_literals_regex, query))
-    for m in matches:
-        literal_index = int(m.group(2))
-        quoted_column_name = string_literals[literal_index]
-        column_name = eval(quoted_column_name) # Using eval to unquote the column name
-        dict_variable = m.group(1)
-        zero_based_idx = header_columns_names.get(column_name)
-        if zero_based_idx is not None:
-            dst_variables_map[dict_variable] = zero_based_idx
 
 
 class CSVRecordIterator:
@@ -304,13 +319,13 @@ class CSVRecordIterator:
             assert not self.header_record_emitted
 
 
-    def get_variables_map(self, query, string_literals):
+    def get_variables_map(self, query):
         variable_map = dict()
         engine.parse_basic_variables(query, self.variable_prefix, variable_map)
         engine.parse_array_variables(query, self.variable_prefix, variable_map)
         if self.header_record is not None:
             parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
-            parse_dictionary_variables(query, string_literals, self.variable_prefix, self.header_record, variable_map)
+            parse_dictionary_variables(query, self.variable_prefix, self.header_record, variable_map)
         return variable_map
 
 

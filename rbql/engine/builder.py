@@ -11,7 +11,7 @@ import tempfile
 import random
 import shutil
 import time
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 
 ##########################################################################
@@ -43,8 +43,10 @@ from collections import defaultdict
 
 # FIXME optimize join_loop: split it into two functions: join_select and non_join_select which will not have the loop and replace FakeJoiner with None, see TODO in template.py code, both JS and Python versions
 
-# FIXME add f-string test for python 3.7 - apparently it won't work with the current variable extraction method =(
-# Plan - don't create variables - add global column_name -> index mapping object, and remap to index when asked through the RBQLRecord or throw an error if doesn't exist. Awesome!
+# FIXME add unittest with attribute vars and dict vars inside f-string expressions
+
+# FIXME add unittest with randomly generated header row
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -70,6 +72,9 @@ class RbqlIOHandlingError(Exception):
 
 class RbqlParsingError(Exception):
     pass
+
+
+VariableInfo = namedtuple('VariableInfo', ['initialize', 'index'])
 
 
 def exception_to_error_info(e):
@@ -104,6 +109,12 @@ def strip_comments(cline):
     return cline
 
 
+def combine_string_literals(backend_expression, string_literals):
+    for i in range(len(string_literals)):
+        backend_expression = backend_expression.replace('###RBQL_STRING_LITERAL{}###'.format(i), string_literals[i])
+    return backend_expression
+
+
 def parse_join_expression(src):
     match = re.match(r'(?i)^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$', src)
     if match is None:
@@ -111,7 +122,9 @@ def parse_join_expression(src):
     return (match.group(1), match.group(2), match.group(3))
 
 
-def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2):
+def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals):
+    join_var_1 = combine_string_literals(join_var_1, string_literals)
+    join_var_2 = combine_string_literals(join_var_2, string_literals)
     ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table'
     if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
         raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
@@ -119,10 +132,21 @@ def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, 
         raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
     if join_var_2 in input_variables_map:
         join_var_1, join_var_2 = join_var_2, join_var_1
-    lhs_key_index = -1 if join_var_1 in ['NR', 'a.NR', 'aNR'] else input_variables_map.get(join_var_1)
-    rhs_key_index = -1 if join_var_2 in ['bNR', 'b.NR'] else join_variables_map.get(join_var_2)
-    if lhs_key_index is None or rhs_key_index is None:
+
+    if join_var_1 in ['NR', 'a.NR', 'aNR']:
+        lhs_key_index = -1
+    elif join_var_1 in input_variables_map:
+        lhs_key_index = input_variables_map.get(join_var_1).index
+    else:
         raise RbqlParsingError(join_syntax_error)
+
+    if join_var_2 in ['bNR', 'b.NR']:
+        rhs_key_index = -1
+    elif join_var_2 in join_variables_map:
+        rhs_key_index = join_variables_map.get(join_var_2).index
+    else:
+        raise RbqlParsingError(join_syntax_error)
+
     lhs_join_var = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
     return (lhs_join_var, rhs_key_index)
 
@@ -133,7 +157,7 @@ def parse_basic_variables(query, prefix, dst_variables_map):
     matches = list(re.finditer(rgx, query))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
-        dst_variables_map[prefix + str(field_num)] = field_num - 1
+        dst_variables_map[prefix + str(field_num)] = VariableInfo(initialize=True, index=field_num - 1)
 
 
 def parse_array_variables(query, prefix, dst_variables_map):
@@ -142,7 +166,7 @@ def parse_array_variables(query, prefix, dst_variables_map):
     matches = list(re.finditer(rgx, query))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
-        dst_variables_map['{}[{}]'.format(prefix, field_num)] = field_num - 1
+        dst_variables_map['{}[{}]'.format(prefix, field_num)] = VariableInfo(initialize=True, index=field_num - 1)
 
 
 def generate_common_init_code(query, variable_prefix):
@@ -160,12 +184,14 @@ def generate_common_init_code(query, variable_prefix):
 
 def generate_init_statements(query, variables_map, join_variables_map, indent):
     code_lines = generate_common_init_code(query, 'a')
-    for k, v in variables_map.items():
-        code_lines.append('{} = safe_get(record_a, {})'.format(k, v))
+    for var_name, var_info in variables_map.items():
+        if var_info.initialize:
+            code_lines.append('{} = safe_get(record_a, {})'.format(var_name, var_info.index))
     if join_variables_map:
         code_lines += generate_common_init_code(query, 'b')
-        for k, v in join_variables_map.items():
-            code_lines.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(k, v))
+        for var_name, var_info in join_variables_map.items():
+            if var_info.initialize:
+                code_lines.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(var_name, var_info.index))
     for i in range(1, len(code_lines)):
         code_lines[i] = indent + code_lines[i]
     return '\n'.join(code_lines)
@@ -181,12 +207,13 @@ def replace_star_vars(rbql_expression):
     return rbql_expression
 
 
-def translate_update_expression(update_expression, input_variables_map, indent):
-    translated = update_expression
+def translate_update_expression(update_expression, input_variables_map, string_literals, indent):
+    translated = combine_string_literals(update_expression, string_literals)
     for k, v in input_variables_map.items():
-        translated = re.sub('(?:^|,) *{} *=(?=[^=])'.format(re.escape(k)), '\nsafe_set(up_fields, {},'.format(v), translated)
+        translated = re.sub('(?:^|,) *{} *=(?=[^=])'.format(re.escape(k)), '\nsafe_set(up_fields, {},'.format(v.index), translated)
     update_statements = translated.split('\n')
     update_statements = [s.strip() for s in update_statements]
+    # FIXME check here that there are no initialization-looking statements left, even if we trigger a false positive error user will be able to rewrite the query with "SELECT"
     if len(update_statements) < 2 or update_statements[0] != '':
         raise RbqlParsingError('Unable to parse "UPDATE" expression')
     update_statements = update_statements[1:]
@@ -223,12 +250,6 @@ def separate_string_literals_py(rbql_expression):
     format_expression = ''.join(format_parts)
     format_expression = format_expression.replace('\t', ' ')
     return (format_expression, string_literals)
-
-
-def combine_string_literals(backend_expression, string_literals):
-    for i in range(len(string_literals)):
-        backend_expression = backend_expression.replace('###RBQL_STRING_LITERAL{}###'.format(i), string_literals[i])
-    return backend_expression
 
 
 def locate_statements(rbql_expression):
@@ -330,15 +351,16 @@ def indent_user_init_code(user_init_code):
     return '\n'.join(source_lines) + '\n'
 
 
-def translate_except_expression(except_expression, input_variables_map):
+def translate_except_expression(except_expression, input_variables_map, string_literals):
     skip_vars = except_expression.split(',')
     skip_vars = [v.strip() for v in skip_vars]
     skip_indices = list()
     for var_name in skip_vars:
-        var_index = input_variables_map.get(var_name)
-        if var_index is None:
-            raise RbqlParsingError('Invalid EXCEPT syntax')
-        skip_indices.append(var_index)
+        var_name = combine_string_literals(var_name, string_literals)
+        var_info = input_variables_map.get(var_name)
+        if var_info is None:
+            raise RbqlParsingError('Invalid EXCEPT syntax, unknown column name: "{}"'.format(var_name))
+        skip_indices.append(var_info.index)
     skip_indices = sorted(skip_indices)
     skip_indices = [str(v) for v in skip_indices]
     return 'select_except(record_a, [{}])'.format(','.join(skip_indices))
@@ -387,7 +409,7 @@ def cleanup_query(query):
 def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, user_init_code):
     query = cleanup_query(query)
     format_expression, string_literals = separate_string_literals_py(query)
-    input_variables_map = input_iterator.get_variables_map(format_expression, string_literals)
+    input_variables_map = input_iterator.get_variables_map(query)
 
     rb_actions = separate_actions(format_expression)
 
@@ -414,9 +436,9 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
-        join_variables_map = join_record_iterator.get_variables_map(format_expression, string_literals)
+        join_variables_map = join_record_iterator.get_variables_map(query)
 
-        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2)
+        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals)
         py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
         py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
         join_map = HashJoinMap(join_record_iterator, rhs_key_index)
@@ -433,7 +455,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__where_expression'] = 'True'
 
     if UPDATE in rb_actions:
-        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' ' * 8)
+        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals, ' ' * 8)
         py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         py_meta_params['__RBQLMP__select_expression'] = 'None'
         py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
@@ -455,7 +477,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         else:
             py_meta_params['__RBQLMP__writer_type'] = '"simple"'
         if EXCEPT in rb_actions:
-            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map)
+            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals)
         else:
             select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
             py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
@@ -575,7 +597,7 @@ class TableIterator:
     def finish(self):
         pass
 
-    def get_variables_map(self, query, _string_literals):
+    def get_variables_map(self, query):
         variable_map = dict()
         parse_basic_variables(query, self.variable_prefix, variable_map)
         parse_array_variables(query, self.variable_prefix, variable_map)
