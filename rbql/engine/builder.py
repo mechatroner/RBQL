@@ -41,8 +41,6 @@ from collections import defaultdict, namedtuple
 
 # TODO show warning when csv fields contain trailing spaces
 
-# FIXME optimize join_loop: split it into two functions: join_select and non_join_select which will not have the loop and replace FakeJoiner with None, see TODO in template.py code, both JS and Python versions
-
 # FIXME add unittest with attribute vars and dict vars inside f-string expressions
 
 # FIXME add unittest with randomly generated header row
@@ -213,7 +211,7 @@ def translate_update_expression(update_expression, input_variables_map, string_l
         translated = re.sub('(?:^|,) *{} *=(?=[^=])'.format(re.escape(k)), '\nsafe_set(up_fields, {},'.format(v.index), translated)
     update_statements = translated.split('\n')
     update_statements = [s.strip() for s in update_statements]
-    # FIXME check here that there are no initialization-looking statements left, even if we trigger a false positive error user will be able to rewrite the query with "SELECT"
+    # FIXME check here that there are no initialization-like looking statements left, even if we trigger a false positive error user will be able to rewrite the query with "SELECT"
     if len(update_statements) < 2 or update_statements[0] != '':
         raise RbqlParsingError('Unable to parse "UPDATE" expression')
     update_statements = update_statements[1:]
@@ -443,7 +441,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
         join_map = HashJoinMap(join_record_iterator, rhs_key_index)
     else:
-        py_meta_params['__RBQLMP__join_operation'] = '"VOID"'
+        py_meta_params['__RBQLMP__join_operation'] = 'None'
         py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
 
     if WHERE in rb_actions:
@@ -466,7 +464,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
 
 
     if SELECT in rb_actions:
-        py_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 8), string_literals)
+        py_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
         py_meta_params['__RBQLMP__init_column_vars_update'] = ''
         top_count = find_top(rb_actions)
         py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'

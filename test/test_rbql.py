@@ -198,6 +198,7 @@ class TestTableRun(unittest.TestCase):
         query = 'select a2 // 10, b2, "name " + a1 order by a2 JOIN B on a3 == b1'
         expected_output_table = [[-56, 1386, 'name Confucius'], [176, 67, 'name Napoleon'], [185, 327, 'name Roosevelt']]
         output_table = []
+        #rbql.set_debug_mode()
         error_info, warnings = rbql.table_run(query, input_table, output_table, join_table)
         self.assertEqual(error_info, None)
         self.assertEqual(warnings, [])
@@ -210,6 +211,7 @@ class TestJsonTables(unittest.TestCase):
     def process_test_case(self, test_case):
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
+        debug_mode = test_case.get('debug_mode', False)
         minimal_python_version = float(test_case.get('minimal_python_version', 2.7))
         if python_version < minimal_python_version:
             print('Skipping {}: python version must be at least {}. Interpreter version is {}'.format(test_name, minimal_python_version, python_version))
@@ -231,6 +233,8 @@ class TestJsonTables(unittest.TestCase):
         expected_warnings = test_case.get('expected_warnings', [])
         output_table = []
 
+        if debug_mode:
+            rbql.set_debug_mode()
         error_info, warnings = rbql.table_run(query, input_table, output_table, join_table, user_init_code=user_init_code)
 
         warnings = sorted(normalize_warnings(warnings))

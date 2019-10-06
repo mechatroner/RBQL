@@ -522,15 +522,6 @@ class AggregateWriter(object):
         self.subwriter.finish()
 
 
-class FakeJoiner(object):
-    # TODO get rid of this: replace with None
-    def __init__(self, join_map):
-        self.null_record = [None]
-
-    def get_rhs(self, lhs_key):
-        return self.null_record
-
-
 class InnerJoiner(object):
     def __init__(self, join_map):
         self.join_map = join_map
@@ -647,31 +638,36 @@ def select_unnested(sort_key, folded_fields):
     return True
 
 
-def process_select(NR, NF, record_a, join_matches):
+def process_select_simple(NR, NF, record_a, join_match):
     global unnest_list
+    unnest_list = None
+    if join_match is None:
+        star_fields = record_a
+    else:
+        bNR, bNF, record_b = join_match
+        star_fields = record_a + record_b
+    __RBQLMP__init_column_vars_select
+    if not (__RBQLMP__where_expression):
+        return True
+    out_fields = __RBQLMP__select_expression
+    if aggregation_stage > 0:
+        key = __RBQLMP__aggregation_key_expression
+        select_aggregated(key, out_fields)
+    else:
+        sort_key = (__RBQLMP__sort_key_expression)
+        if unnest_list is not None:
+            if not select_unnested(sort_key, out_fields):
+                return False
+        else:
+            if not select_simple(sort_key, out_fields):
+                return False
+    return True
+
+
+def process_select_join(NR, NF, record_a, join_matches):
     for join_match in join_matches:
-        # TODO optimize join loop: we don't need this loop in simple case without join
-        unnest_list = None
-        if join_match is None:
-            star_fields = record_a
-        else:
-            bNR, bNF, record_b = join_match
-            star_fields = record_a + record_b
-        __RBQLMP__init_column_vars_select
-        if not (__RBQLMP__where_expression):
-            continue
-        out_fields = __RBQLMP__select_expression
-        if aggregation_stage > 0:
-            key = __RBQLMP__aggregation_key_expression
-            select_aggregated(key, out_fields)
-        else:
-            sort_key = (__RBQLMP__sort_key_expression)
-            if unnest_list is not None:
-                if not select_unnested(sort_key, out_fields):
-                    return False
-            else:
-                if not select_simple(sort_key, out_fields):
-                    return False
+        if not process_select_simple(NR, NF, record_a, join_match):
+            return False
     return True
 
 
@@ -681,29 +677,22 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
     module_was_used_failsafe = True
 
     global writer
-
-    if __RBQLMP__is_select_query:
-        polymorphic_process = process_select
-    elif __RBQLMP__join_operation == 'VOID':
-        polymorphic_process = process_update_simple
-    else:
-        polymorphic_process = process_update_join
-
-    sql_join_type = {'VOID': FakeJoiner, 'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation]
-
-    if join_map_impl is not None:
-        join_map_impl.build()
-    join_map = sql_join_type(join_map_impl)
-
     writer = TopWriter(output_writer)
-
     if __RBQLMP__writer_type == 'uniq':
         writer = UniqWriter(writer)
     elif __RBQLMP__writer_type == 'uniq_count':
         writer = UniqCountWriter(writer)
-
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
+
+    polymorphic_process = {(1, 1): process_select_simple, (1, 0): process_select_join, (0, 1): process_update_simple, (0, 0): process_update_join}[(__RBQLMP__is_select_query, join_map_impl is None)]
+
+    assert (join_map_impl is None) == (__RBQLMP__join_operation is None)
+    join_map = None
+    if join_map_impl is not None:
+        join_map_impl.build()
+        sql_join_type = {'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation]
+        join_map = sql_join_type(join_map_impl)
 
     NR = 0
     while True:
@@ -713,7 +702,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
         NR += 1
         NF = len(record_a)
         try:
-            join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var)
+            join_matches = None if join_map is None else join_map.get_rhs(__RBQLMP__lhs_join_var)
             if not polymorphic_process(NR, NF, record_a, join_matches):
                 break
         except InternalBadKeyError as e:
