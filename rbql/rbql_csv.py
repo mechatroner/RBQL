@@ -250,7 +250,7 @@ class CSVWriter:
 
 def python_string_escape_column_name(column_name, quote_char):
     assert quote_char in ['"', "'"]
-    if quote_char = '"':
+    if quote_char == '"':
         return column_name.replace('\\', '\\\\').replace('"', '\\"')
     return column_name.replace('\\', '\\\\').replace("'", "\\'")
 
@@ -268,8 +268,8 @@ def parse_dictionary_variables(query, prefix, header_columns_names, dst_variable
                 add_column_name = False
                 break
         if add_column_name:
-            dst_variables_map['{}["{}"]'.format(prefix, python_string_escape_column_name(column_name, '"'))] = engine.VariableInfo(initialize=True, index=zero_based_idx)
-            dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = engine.VariableInfo(initialize=False, index=zero_based_idx)
+            dst_variables_map['{}["{}"]'.format(prefix, python_string_escape_column_name(column_name, '"'))] = engine.VariableInfo(initialize=True, index=i)
+            dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = engine.VariableInfo(initialize=False, index=i)
 
 
 def parse_attribute_variables(query, prefix, header_columns_names, dst_variables_map):

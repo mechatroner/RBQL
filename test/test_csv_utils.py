@@ -40,6 +40,9 @@ line_separators = ['\n', '\r\n', '\r']
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
+vinf = rbql.VariableInfo
+
+
 def normalize_warnings(warnings):
     # TODO move into a common test lib module e.g. "tests_common.py"
     result = []
@@ -287,7 +290,7 @@ class TestHeaderParsing(unittest.TestCase):
     def test_dictionary_variables_parsing(self):
         query = 'select a["foo bar"], a["foo"], max(a["foo"], a["lambda-beta{\'gamma\'}"]), a1, a2, a.epsilon'
         header_columns_names = ['foo', 'foo bar', 'max', "lambda-beta{'gamma'}", "lambda-beta{'gamma2'}", "eps\\ilon", "omega", "1", "2", "....", "["]
-        expected_variables_map = {'a["foo"]': 0, 'a["foo bar"]': 1, 'a["max"]': 2, "a[\"lambda-beta{'gamma'}\"]": 3, 'a["eps\\\\ilon"]': 5, 'a["1"]': 7, 'a["2"]': 8, 'a["["]': 10}
+        expected_variables_map = {'a["foo"]': vinf(True, 0), 'a["foo bar"]': vinf(True, 1), 'a["max"]': vinf(True, 2), "a[\"lambda-beta{'gamma'}\"]": vinf(True, 3), 'a["eps\\\\ilon"]': vinf(True, 5), 'a["1"]': vinf(True, 7), 'a["2"]': vinf(True, 8), 'a["["]': vinf(True, 10), "a['foo']": vinf(False, 0), "a['foo bar']": vinf(False, 1), "a['max']": vinf(False, 2), "a['lambda-beta{\\'gamma\\'}']": vinf(False, 3), "a['eps\\\\ilon']": vinf(False, 5), "a['1']": vinf(False, 7), "a['2']": vinf(False, 8), "a['[']": vinf(False, 10)}
         actual_variables_map = {}
         rbql_csv.parse_dictionary_variables(query, 'a', header_columns_names, actual_variables_map)
         self.assertEqual(expected_variables_map, actual_variables_map)
@@ -295,7 +298,7 @@ class TestHeaderParsing(unittest.TestCase):
     def test_attribute_variables_parsing(self):
         query = 'select a["foo bar"], a1, a2, a.epsilon, a._name + a.Surname, a["income"]'
         header_columns_names = ['epsilon', 'foo bar', '_name', "Surname", "income", "...", "2", "200"]
-        expected_variables_map = {'a.epsilon': 0, 'a._name': 2, "a.Surname": 3}
+        expected_variables_map = {'a.epsilon': vinf(True, 0), 'a._name': vinf(True, 2), "a.Surname": vinf(True, 3)}
         actual_variables_map = {}
         rbql_csv.parse_attribute_variables(query, 'a', header_columns_names, actual_variables_map)
         self.assertEqual(expected_variables_map, actual_variables_map)
