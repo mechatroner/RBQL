@@ -41,8 +41,6 @@ from collections import defaultdict, namedtuple
 
 # TODO show warning when csv fields contain trailing spaces
 
-# FIXME add unittest with attribute vars and dict vars inside f-string expressions
-
 # FIXME add unittest with randomly generated header row
 
 
