@@ -43,6 +43,7 @@ from collections import defaultdict, namedtuple
 
 # FIXME add unittest with randomly generated header row
 
+# FIXME 100% test coverage for all RbqlParsingError exceptions
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -204,20 +205,32 @@ def replace_star_vars(rbql_expression):
 
 
 def translate_update_expression(update_expression, input_variables_map, string_literals, indent):
-    translated = combine_string_literals(update_expression, string_literals)
-    for k, v in input_variables_map.items():
-        translated = re.sub('(?:^|,) *{} *=(?=[^=])'.format(re.escape(k)), '\nsafe_set(up_fields, {},'.format(v.index), translated)
-    update_statements = translated.split('\n')
-    update_statements = [s.strip() for s in update_statements]
-    # FIXME check here that there are no initialization-like looking statements left, even if we trigger a false positive error user will be able to rewrite the query with "SELECT"
-    if len(update_statements) < 2 or update_statements[0] != '':
-        raise RbqlParsingError('Unable to parse "UPDATE" expression')
-    update_statements = update_statements[1:]
-    update_statements = ['{})'.format(s) for s in update_statements]
-    for i in range(1, len(update_statements)):
-        update_statements[i] = indent + update_statements[i]
-    translated = '\n'.join(update_statements)
-    return translated
+    for variable_name in input_variables_map.keys():
+        if variable_name.find('=') != -1:
+            raise RbqlParsingError('Field names in UPDATE expressions are not allowed to contain "=" character: RBQL parser limitation. Use a1,a2... notation instead')
+    orig_update_expression = combine_string_literals(update_expression, string_literals)
+    assignment_looking_rgx = re.compile('(?:^|,) *(a[^=]*) *=(?=[^=])')
+    update_statements = []
+    pos = 0
+    first_assignment_error = 'Unable to parse "UPDATE" expression: the expression must start with assignment, but "{}" does not look like an assignable field name'.format(orig_update_expression.split('=')[0])
+    while True:
+        match = assignment_looking_rgx.search(orig_update_expression, pos)
+        if not len(update_statements) and (match is None or match.start() != 0):
+            raise RbqlParsingError(first_assignment_error)
+        if match is None:
+            update_statements[-1] += orig_update_expression[pos:].strip() + ')'
+            break
+        if len(update_statements):
+            update_statements[-1] += orig_update_expression[pos:match.start()].strip() + ')'
+        dst_var_name = match.group(1).strip()
+        unknown_field_error = 'Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name)
+        var_index = input_variables_map.get(dst_var_name)
+        if var_index is None:
+            raise RbqlParsingError(unknown_field_error)
+        current_indent = indent if len(update_statements) else ''
+        update_statements.append('{}safe_set(up_fields, {}, '.format(current_indent, var_index.index))
+        pos = match.end()
+    return '\n'.join(update_statements)
 
 
 def translate_select_expression_py(select_expression):
@@ -355,7 +368,7 @@ def translate_except_expression(except_expression, input_variables_map, string_l
         var_name = combine_string_literals(var_name, string_literals)
         var_info = input_variables_map.get(var_name)
         if var_info is None:
-            raise RbqlParsingError('Invalid EXCEPT syntax, unknown column name: "{}"'.format(var_name))
+            raise RbqlParsingError('Invalid EXCEPT syntax, unknown field name: "{}"'.format(var_name))
         skip_indices.append(var_info.index)
     skip_indices = sorted(skip_indices)
     skip_indices = [str(v) for v in skip_indices]
