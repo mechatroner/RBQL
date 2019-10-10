@@ -287,7 +287,7 @@ class TestJsonTables(unittest.TestCase):
             self.assertTrue(error_info['type'] == expected_error_type, 'Inside json test: {}'.format(test_name))
         if expected_error is not None:
             if expected_error_exact:
-                self.assertEqual(error_info['message'], expected_error, 'Inside json test: {}'.format(test_name))
+                self.assertEqual(expected_error, error_info['message'], 'Inside json test: {}'.format(test_name))
             else:
                 self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:
