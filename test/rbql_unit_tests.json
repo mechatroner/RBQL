@@ -15,6 +15,31 @@
         "query_js": "select NR, a1, a3.length where a1 > 5"
     },
     {
+        "test_name": "more than one statement",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error": "More than one \"WHERE\" statements found",
+        "query_python": "select NR, a1, len(a3) where int(a1) > 5 where int(a1) > 6",
+        "query_js": "select NR, a1, a3.length where a1 > 5 where a1 > 6"
+    },
+    {
+        "test_name": "empty select",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error": "\"SELECT\" expression is empty",
+        "expected_error_exact": true,
+        "query_python": "select   where a3 == 'beta'",
+        "query_js": "select    where a3 == 'beta'"
+    },
+    {
         "test_name": "empty input",
         "input_table": [
         ],

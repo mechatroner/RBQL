@@ -235,7 +235,7 @@ def translate_select_expression_py(select_expression):
     translated = replace_star_vars(translated)
     translated = translated.strip()
     if not len(translated):
-        raise RbqlParsingError('"SELECT" expression is empty') # UT
+        raise RbqlParsingError('"SELECT" expression is empty') # UT, UT JSON
     return '[{}]'.format(translated)
 
 
@@ -277,7 +277,7 @@ def locate_statements(rbql_expression):
             if not len(matches):
                 continue
             if len(matches) > 1:
-                raise RbqlParsingError('More than one "{}" statements found'.format(statement))
+                raise RbqlParsingError('More than one "{}" statements found'.format(statement)) # UT JSON
             assert len(matches) == 1
             match = matches[0]
             result.append((match.start(), match.end(), statement))
