@@ -90,19 +90,19 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(('safe_join_get(record_a, 0)', 1), rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b2', []))
 
         with self.assertRaises(Exception) as cm:
-            rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'a2', [])
+            rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b.name', [])
         e = cm.exception
-        self.assertTrue(str(e).find('Invalid join syntax') != -1)
+        self.assertTrue(str(e).find('Unable to parse JOIN expression: Join table does not have field "b.name"') != -1)
 
         with self.assertRaises(Exception) as cm:
-            rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b10', [])
+            rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b["foo bar"]', [])
         e = cm.exception
-        self.assertTrue(str(e).find('Invalid join syntax') != -1)
+        self.assertTrue(str(e).find('Unable to parse JOIN expression: Join table does not have field "b["foo bar"]"') != -1)
 
         with self.assertRaises(Exception) as cm:
             rbql.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'b1', 'b2', [])
         e = cm.exception
-        self.assertTrue(str(e).find('Invalid join syntax') != -1)
+        self.assertTrue(str(e).find('Unable to parse JOIN expression: Input table does not have field "b1"') != -1)
 
 
 
@@ -146,6 +146,12 @@ class TestRBQLQueryParsing(unittest.TestCase):
         e = cm.exception
         self.assertEqual(str(e), '''Unable to parse "UPDATE" expression: the expression must start with assignment, but "  "this will fail", a2" does not look like an assignable field name''')
 
+        rbql_src = 'a.mysterious_field=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a["foo bar"]  =200/3 + 1  '
+        with self.assertRaises(Exception) as cm:
+            test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29)}, ['"100 200"'], '    ')
+        e = cm.exception
+        self.assertEqual(str(e), '''Unable to parse "UPDATE" expression: Unknown field name: "a.mysterious_field"''')
+
 
     def test_select_translation(self):
         rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * '
@@ -177,6 +183,12 @@ class TestRBQLQueryParsing(unittest.TestCase):
         test_dst = rbql.translate_select_expression_py(rbql_src)
         expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
+
+        rbql_src = '   '
+        with self.assertRaises(Exception) as cm:
+            rbql.translate_select_expression_py(rbql_src)
+        e = cm.exception
+        self.assertEqual(str(e), '''"SELECT" expression is empty''')
 
 
 

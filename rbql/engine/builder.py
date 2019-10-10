@@ -28,6 +28,8 @@ from collections import defaultdict, namedtuple
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
+# UT - means Unit Test exists for this case
+
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
@@ -57,7 +59,6 @@ WHERE = 'WHERE'
 LIMIT = 'LIMIT'
 EXCEPT = 'EXCEPT'
 
-join_syntax_error = 'Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."'
 
 debug_mode = False
 
@@ -115,7 +116,7 @@ def combine_string_literals(backend_expression, string_literals):
 def parse_join_expression(src):
     match = re.match(r'(?i)^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$', src)
     if match is None:
-        raise RbqlParsingError(join_syntax_error)
+        raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."') # UT
     return (match.group(1), match.group(2), match.group(3))
 
 
@@ -135,14 +136,14 @@ def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, 
     elif join_var_1 in input_variables_map:
         lhs_key_index = input_variables_map.get(join_var_1).index
     else:
-        raise RbqlParsingError(join_syntax_error)
+        raise RbqlParsingError('Unable to parse JOIN expression: Input table does not have field "{}"'.format(join_var_1)) # UT
 
     if join_var_2 in ['bNR', 'b.NR']:
         rhs_key_index = -1
     elif join_var_2 in join_variables_map:
         rhs_key_index = join_variables_map.get(join_var_2).index
     else:
-        raise RbqlParsingError(join_syntax_error)
+        raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"'.format(join_var_2)) # UT
 
     lhs_join_var = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
     return (lhs_join_var, rhs_key_index)
@@ -212,14 +213,14 @@ def translate_update_expression(update_expression, input_variables_map, string_l
     while True:
         match = assignment_looking_rgx.search(update_expression, pos)
         if not len(update_statements) and (match is None or match.start() != 0):
-            raise RbqlParsingError(first_assignment_error)
+            raise RbqlParsingError(first_assignment_error) # UT
         if match is None:
             update_statements[-1] += update_expression[pos:].strip() + ')'
             break
         if len(update_statements):
             update_statements[-1] += update_expression[pos:match.start()].strip() + ')'
         dst_var_name = combine_string_literals(match.group(1).strip(), string_literals)
-        unknown_field_error = 'Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name)
+        unknown_field_error = 'Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name) # UT
         var_index = input_variables_map.get(dst_var_name)
         if var_index is None:
             raise RbqlParsingError(unknown_field_error)
@@ -234,7 +235,7 @@ def translate_select_expression_py(select_expression):
     translated = replace_star_vars(translated)
     translated = translated.strip()
     if not len(translated):
-        raise RbqlParsingError('"SELECT" expression is empty')
+        raise RbqlParsingError('"SELECT" expression is empty') # UT
     return '[{}]'.format(translated)
 
 
