@@ -28,7 +28,8 @@ from collections import defaultdict, namedtuple
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-# UT - means Unit Test exists for this case
+# UT - means basic Unit Test exists for this case
+# UT JSON - means json Unit Test exists for this case
 
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
@@ -308,7 +309,7 @@ def separate_actions(rbql_expression):
 
         if statement == UPDATE:
             if statement_start != 0:
-                raise RbqlParsingError('UPDATE keyword must be at the beginning of the query')
+                raise RbqlParsingError('UPDATE keyword must be at the beginning of the query') # UT JSON
             span = re.sub('(?i)^ *SET ', '', span)
 
         if statement == ORDER_BY:
@@ -322,7 +323,7 @@ def separate_actions(rbql_expression):
 
         if statement == SELECT:
             if statement_start != 0:
-                raise RbqlParsingError('SELECT keyword must be at the beginning of the query')
+                raise RbqlParsingError('SELECT keyword must be at the beginning of the query') # UT JSON
             match = re.match('(?i)^ *TOP *([0-9]+) ', span)
             if match is not None:
                 statement_params['top'] = int(match.group(1))

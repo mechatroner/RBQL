@@ -15,6 +15,19 @@
         "query_js": "select NR, a1, a3.length where a1 > 5"
     },
     {
+        "test_name": "bad select syntax",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "SELECT keyword must be at the beginning of the query",
+        "query_python": "where int(a1) > 5 select NR, a1, len(a3) ",
+        "query_js": "where a1 > 5 select NR, a1, a3.length "
+    },
+    {
         "test_name": "more than one statement",
         "input_table": [
             ["5", "alpha", "beta"],
@@ -22,6 +35,7 @@
             ["50", "alpha", "delta"],
             ["20", "alpha", ""]
         ],
+        "expected_error_exact": true,
         "expected_error": "More than one \"WHERE\" statements found",
         "query_python": "select NR, a1, len(a3) where int(a1) > 5 where int(a1) > 6",
         "query_js": "select NR, a1, a3.length where a1 > 5 where a1 > 6"
@@ -325,6 +339,19 @@
         ],
         "query_python": "update a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
         "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
+    },
+    {
+        "test_name": "update bad syntax",
+        "input_table": [
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "UPDATE keyword must be at the beginning of the query",
+        "query_python": "where int(a1) > 10 update a2 = a2 + \" beta\", a1 = 100 ",
+        "query_js": "where parseInt(a1) > 10 update a2 = a2 + \" beta\", a1 = 100 "
     },
     {
         "test_name": "update_unicode_1",
