@@ -144,7 +144,7 @@ def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, 
     elif join_var_2 in join_variables_map:
         rhs_key_index = join_variables_map.get(join_var_2).index
     else:
-        raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"'.format(join_var_2)) # UT
+        raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"'.format(join_var_2)) # UT JSON
 
     lhs_join_var = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
     return (lhs_join_var, rhs_key_index)
@@ -207,14 +207,14 @@ def replace_star_vars(rbql_expression):
 
 
 def translate_update_expression(update_expression, input_variables_map, string_literals, indent):
-    assignment_looking_rgx = re.compile('(?:^|,) *(a[^=]*) *=(?=[^=])')
+    assignment_looking_rgx = re.compile(r'(?:^|,) *(a[.#a-zA-Z0-9\[\]_]*) *=(?=[^=])')
     update_statements = []
     pos = 0
-    first_assignment_error = 'Unable to parse "UPDATE" expression: the expression must start with assignment, but "{}" does not look like an assignable field name'.format(update_expression.split('=')[0])
+    first_assignment_error = 'Unable to parse "UPDATE" expression: the expression must start with assignment, but "{}" does not look like an assignable field name'.format(update_expression.split('=')[0].strip())
     while True:
         match = assignment_looking_rgx.search(update_expression, pos)
         if not len(update_statements) and (match is None or match.start() != 0):
-            raise RbqlParsingError(first_assignment_error) # UT
+            raise RbqlParsingError(first_assignment_error) # UT JSON
         if match is None:
             update_statements[-1] += update_expression[pos:].strip() + ')'
             break

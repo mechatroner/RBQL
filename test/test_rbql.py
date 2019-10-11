@@ -107,8 +107,8 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
 
     def test_update_translation(self):
-        rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a30  =200/3 + 1  '
-        test_dst = rbql.translate_update_expression(rbql_src, {'a1': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a30': vinf(1, 29)}, ['"100 200"'], '    ')
+        rbql_src = '  a[1] =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a30  =200/3 + 1  '
+        test_dst = rbql.translate_update_expression(rbql_src, {'a[1]': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a30': vinf(1, 29)}, ['"100 200"'], '    ')
         expected_dst = list()
         expected_dst.append('safe_set(up_fields, 0, a2  + b3)')
         expected_dst.append('    safe_set(up_fields, 1, a4  if b3 == a2 else a8)')
@@ -118,8 +118,18 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(expected_dst, test_dst)
 
 
-        rbql_src = '  a.name =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a["foo bar"]  =200/3 + 1  '
-        test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29), 'a["not used = should not fail"]': vinf(0, 32)}, ['"100 200"'], '    ')
+        rbql_src = '  a.name =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a[###RBQL_STRING_LITERAL1###]  =200/3 + 1  '
+        test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29), 'a["not used = should not fail"]': vinf(0, 32)}, ['"100 200"', '"foo bar"'], '    ')
+        expected_dst = list()
+        expected_dst.append('safe_set(up_fields, 0, a2  + b3)')
+        expected_dst.append('    safe_set(up_fields, 1, a4  if b3 == a2 else a8)')
+        expected_dst.append('    safe_set(up_fields, 7, "100 200")')
+        expected_dst.append('    safe_set(up_fields, 29, 200/3 + 1)')
+        self.assertEqual(expected_dst, test_dst.split('\n'))
+
+
+        rbql_src = '  a.name =  a2  + b3, a[###RBQL_STRING_LITERAL1###]=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a[###RBQL_STRING_LITERAL2###]  =200/3 + 1  '
+        test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a[\'a.foo = 100, a2 = a3, a["foobar"] = 10 \']': vinf(0, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29), 'a["not used = should not fail"]': vinf(0, 32)}, ['"100 200"', '\'a.foo = 100, a2 = a3, a["foobar"] = 10 \'', '"foo bar"'], '    ')
         expected_dst = list()
         expected_dst.append('safe_set(up_fields, 0, a2  + b3)')
         expected_dst.append('    safe_set(up_fields, 1, a4  if b3 == a2 else a8)')
@@ -129,26 +139,15 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(expected_dst, test_dst)
 
 
-        rbql_src = '  a.name =  a2  + b3, a[###RBQL_STRING_LITERAL1###]=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a["foo bar"]  =200/3 + 1  '
-        test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a[\'a.foo = 100, a2 = a3, a["foobar"] = 10 \']': vinf(0, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29), 'a["not used = should not fail"]': vinf(0, 32)}, ['"100 200"', '\'a.foo = 100, a2 = a3, a["foobar"] = 10 \''], '    ')
-        expected_dst = list()
-        expected_dst.append('safe_set(up_fields, 0, a2  + b3)')
-        expected_dst.append('    safe_set(up_fields, 1, a4  if b3 == a2 else a8)')
-        expected_dst.append('    safe_set(up_fields, 7, "100 200")')
-        expected_dst.append('    safe_set(up_fields, 29, 200/3 + 1)')
-        expected_dst = '\n'.join(expected_dst)
-        self.assertEqual(expected_dst, test_dst)
-
-
-        rbql_src = '  "this will fail", a2=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a["foo bar"]  =200/3 + 1  '
+        rbql_src = '  "this will fail", a2=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a[###RBQL_STRING_LITERAL1###]  =200/3 + 1  '
         with self.assertRaises(Exception) as cm:
-            test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29)}, ['"100 200"'], '    ')
+            test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29)}, ['"100 200"', '"foo bar"'], '    ')
         e = cm.exception
-        self.assertEqual(str(e), '''Unable to parse "UPDATE" expression: the expression must start with assignment, but "  "this will fail", a2" does not look like an assignable field name''')
+        self.assertEqual(str(e), '''Unable to parse "UPDATE" expression: the expression must start with assignment, but ""this will fail", a2" does not look like an assignable field name''')
 
-        rbql_src = 'a.mysterious_field=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a["foo bar"]  =200/3 + 1  '
+        rbql_src = 'a.mysterious_field=a4  if b3 == a2 else a8, a8=   ###RBQL_STRING_LITERAL0###, a[###RBQL_STRING_LITERAL1###]  =200/3 + 1  '
         with self.assertRaises(Exception) as cm:
-            test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29)}, ['"100 200"'], '    ')
+            test_dst = rbql.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29)}, ['"100 200"', '"foo bar"'], '    ')
         e = cm.exception
         self.assertEqual(str(e), '''Unable to parse "UPDATE" expression: Unknown field name: "a.mysterious_field"''')
 
