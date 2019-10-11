@@ -163,6 +163,20 @@
         "query_js": "select NR, * inner join B on: a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
     {
+        "test_name": "bad limit syntax",
+        "input_table": [
+            ["cde", "1234"],
+            ["abc", "1234"],
+            ["abc", "1234"],
+            ["efg", "100"],
+            ["abc", "100"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "LIMIT keyword must be followed by an integer",
+        "query_python": "select distinct count a1 where int(a2) > 10 limit  2a ",
+        "query_js": "select distinct count a1 where parseInt(a2) > 10 limit  2a "
+    },
+    {
         "test_name": "invalid join syntax: unknown input field",
         "input_table": [
             ["5", "car", "lada"],
@@ -437,6 +451,20 @@
         "expected_error": "Unable to parse \"UPDATE\" expression: the expression must start with assignment, but \"a[3], a2\" does not look like an assignable field name",
         "query_python": "update a[3], a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
         "query_js": "update a[3], a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
+    },
+    {
+        "test_name": "update unknown field error",
+        "input_table": [
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"]
+        ],
+        "expected_error_exact": true,
+        "randomly_replace_var_names": false,
+        "expected_error": "Unable to parse \"UPDATE\" expression: Unknown field name: \"a.mysterious_field\"",
+        "query_python": "update a.mysterious_field = 20, a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
+        "query_js": "update a.mysterious_field = 20, a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
     },
     {
         "test_name": "update bad syntax",

@@ -223,7 +223,7 @@ def translate_update_expression(update_expression, input_variables_map, string_l
         dst_var_name = combine_string_literals(match.group(1).strip(), string_literals)
         var_index = input_variables_map.get(dst_var_name)
         if var_index is None:
-            raise RbqlParsingError('Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name)) # UT
+            raise RbqlParsingError('Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name)) # UT JSON
         current_indent = indent if len(update_statements) else ''
         update_statements.append('{}safe_set(up_fields, {}, '.format(current_indent, var_index.index))
         pos = match.end()
@@ -347,7 +347,7 @@ def find_top(rb_actions):
         try:
             return int(rb_actions[LIMIT]['text'])
         except ValueError:
-            raise RbqlParsingError('LIMIT keyword must be followed by an integer')
+            raise RbqlParsingError('LIMIT keyword must be followed by an integer') # UT JSON
     return rb_actions[SELECT].get('top', None)
 
 
