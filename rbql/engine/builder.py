@@ -427,7 +427,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
 
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
-            raise RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries')
+            raise RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries') # UT JSON (the same error can be triggered dynamically, see template.py)
         aggregation_key_expression = rb_actions[GROUP_BY]['text']
         py_meta_params['__RBQLMP__aggregation_key_expression'] = '({},)'.format(combine_string_literals(aggregation_key_expression, string_literals))
     else:

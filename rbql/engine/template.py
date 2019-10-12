@@ -603,7 +603,7 @@ def select_aggregated(key, transparent_values):
     if aggregation_stage == 1:
         global writer
         if type(writer) is not TopWriter:
-            raise RbqlParsingError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query')
+            raise RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries') # UT JSON (the same error can be triggered statically, see builder.py)
         writer = AggregateWriter(writer)
         num_aggregators_found = 0
         for i, trans_value in enumerate(transparent_values):

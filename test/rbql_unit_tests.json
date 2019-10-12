@@ -676,6 +676,37 @@
         "query_js": "select a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4)"
     },
     {
+        "test_name": "aggregate with order by error without group by (static check)",
+        "input_table": [
+            ["car", "100"],
+            ["dog", "200"],
+            ["foo bar", "20"],
+            ["dog dog", "9"]
+        ],
+        "expected_error_exact": true,
+        "query_js": "select MAX(a2) order by a1",
+        "query_python": "select MAX(a2) order by a1",
+        "expected_error": "\"ORDER BY\", \"UPDATE\" and \"DISTINCT\" keywords are not allowed in aggregate queries",
+        "expected_error_type": "query parsing"
+    },
+    {
+        "test_name": "aggregate with order by error with group by (dynamic check)",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "\"ORDER BY\", \"UPDATE\" and \"DISTINCT\" keywords are not allowed in aggregate queries",
+        "query_python": "select a3, MIN(int(a2) * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 order by a3",
+        "query_js": "select a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 order by a3"
+    },
+    {
         "test_name": "aggregate_funcs_without_group_by_small",
         "input_table": [
             ["car", "1", "100", "1"],
@@ -1078,19 +1109,6 @@
         "query_python": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
         "query_js": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
         "expected_error": "Only one UNNEST is allowed per query",
-        "expected_error_type": "query parsing"
-    },
-    {
-        "test_name": "invalid order by",
-        "input_table": [
-            ["car", "100"],
-            ["dog", "200"],
-            ["foo bar", "20"],
-            ["dog dog", "9"]
-        ],
-        "query_js": "select MAX(a2) order by a1",
-        "query_python": "select MAX(a2) order by a1",
-        "expected_error": "Unable to use \"ORDER BY\" or \"DISTINCT\" keywords in aggregate query",
         "expected_error_type": "query parsing"
     },
     {
