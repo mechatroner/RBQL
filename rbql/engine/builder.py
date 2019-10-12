@@ -365,7 +365,7 @@ def translate_except_expression(except_expression, input_variables_map, string_l
         var_name = combine_string_literals(var_name, string_literals)
         var_info = input_variables_map.get(var_name)
         if var_info is None:
-            raise RbqlParsingError('Invalid EXCEPT syntax, unknown field name: "{}"'.format(var_name))
+            raise RbqlParsingError('Unknown field in EXCEPT expression: "{}"'.format(var_name)) # UT JSON
         skip_indices.append(var_info.index)
     skip_indices = sorted(skip_indices)
     skip_indices = [str(v) for v in skip_indices]
@@ -423,7 +423,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     py_meta_params['__RBQLMP__user_init_code'] = user_init_code
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
-        raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries')
+        raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries') # UT JSON
 
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:

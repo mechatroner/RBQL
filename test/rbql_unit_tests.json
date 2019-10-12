@@ -439,6 +439,19 @@
         "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
     },
     {
+        "test_name": "update with order by error",
+        "input_table": [
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "\"ORDER BY\" is not allowed in \"UPDATE\" queries",
+        "query_python": "update a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10 order by a1 desc",
+        "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10 order by a1 desc"
+    },
+    {
         "test_name": "update parsing error",
         "input_table": [
             ["5", "alpha   zeta", "beta"],
@@ -941,6 +954,19 @@
         ],
         "query_python": "select top 3 * except a2, a4 order by a1 desc",
         "query_js": "select top 3 * except a2, a4 order by a1 desc"
+    },
+    {
+        "test_name": "except unknown field",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["mouse", "2", "50", "1"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "Unknown field in EXCEPT expression: \"a.mysterious_field\"",
+        "query_python": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc",
+        "query_js": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc"
     },
     {
         "test_name": "test_wrong_b_field",
