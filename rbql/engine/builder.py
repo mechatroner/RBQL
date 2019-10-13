@@ -28,8 +28,8 @@ from collections import defaultdict, namedtuple
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 
-# UT - means basic Unit Test exists for this case
 # UT JSON - means json Unit Test exists for this case
+# UT JSON CSV - means json csv Unit Test exists for this case
 
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
@@ -64,9 +64,6 @@ EXCEPT = 'EXCEPT'
 debug_mode = False
 
 class RbqlRuntimeError(Exception):
-    pass
-
-class RbqlIOHandlingError(Exception):
     pass
 
 class RbqlParsingError(Exception):
@@ -391,7 +388,7 @@ class HashJoinMap:
             nf = len(fields)
             self.max_record_len = max(self.max_record_len, nf)
             if self.key_index >= nf:
-                raise RbqlRuntimeError('No "b' + str(self.key_index + 1) + '" field at record: ' + str(nr) + ' in "B" table')
+                raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
             key = nr if self.key_index == -1 else fields[self.key_index]
             self.hash_map[key].append((nr, nf, fields))
         self.record_iterator.finish()
@@ -438,10 +435,10 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     if JOIN in rb_actions:
         rhs_table_id, join_var_1, join_var_2 = parse_join_expression(rb_actions[JOIN]['text'])
         if join_tables_registry is None:
-            raise RbqlParsingError('JOIN operations were disabled')
+            raise RbqlParsingError('JOIN operations are not supported by the application') # UT JSON
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
-            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id))
+            raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
         join_variables_map = join_record_iterator.get_variables_map(query)
 
         lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals)
@@ -455,7 +452,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
     if WHERE in rb_actions:
         where_expression = rb_actions[WHERE]['text']
         if re.search(r'[^!=]=[^=]', where_expression) is not None:
-            raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="')
+            raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="') # UT JSON
         py_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals)
     else:
         py_meta_params['__RBQLMP__where_expression'] = 'True'
@@ -646,7 +643,7 @@ class SingleTableRegistry:
 
     def get_iterator_by_table_id(self, table_id):
         if table_id != self.table_name:
-            raise RbqlIOHandlingError('Unable to find join table: "{}"'.format(table_id))
+            raise RbqlParsingError('Unable to find join table: "{}"'.format(table_id)) # UT JSON
         return TableIterator(self.table, 'b')
 
 

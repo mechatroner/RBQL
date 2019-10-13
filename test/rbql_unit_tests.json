@@ -140,6 +140,51 @@
         "query_js": "select a2"
     },
     {
+        "test_name": "simple join",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas "],
+            ["plane", "wings  "],
+            ["boat", "wind"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            [5, "10", "boat", "yacht ", "boat", "wind"],
+            [4, "20", "boat", "destroyer", "boat", "wind"],
+            [2, "-20", "car", "Ferrari", "car", "gas "],
+            [1, "5", "car", "lada", "car", "gas "],
+            [3, "50", "plane", "tu-134", "plane", "wings  "],
+            [6, "200", "plane", "boeing 737", "plane", "wings  "]
+        ],
+        "query_python": "select NR, * inner join B on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
+        "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+    },
+    {
+        "test_name": "join with emptiness error",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "JOIN operations are not supported by the application",
+        "query_python": "select NR, * inner join B on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
+        "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+    },
+    {
         "test_name": "invalid join syntax",
         "input_table": [
             ["5", "car", "lada"],
@@ -223,35 +268,6 @@
         "expected_error": "Unable to parse JOIN expression: Join table does not have field \"b.vehicle\"",
         "query_python": "select NR, * inner join B on a2 == b.vehicle where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
         "query_js": "select NR, * inner join B on a2 == b.vehicle where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
-    },
-    {
-        "test_name": "simple join",
-        "input_table": [
-            ["5", "car", "lada"],
-            ["-20", "car", "Ferrari"],
-            ["50", "plane", "tu-134"],
-            ["20", "boat", "destroyer"],
-            ["10", "boat", "yacht "],
-            ["200", "plane", "boeing 737"],
-            ["80", "train", "Thomas"]
-        ],
-        "join_table": [
-            ["bicycle", "legs"],
-            ["car", "gas "],
-            ["plane", "wings  "],
-            ["boat", "wind"],
-            ["rocket", "some stuff"]
-        ],
-        "expected_output_table": [
-            [5, "10", "boat", "yacht ", "boat", "wind"],
-            [4, "20", "boat", "destroyer", "boat", "wind"],
-            [2, "-20", "car", "Ferrari", "car", "gas "],
-            [1, "5", "car", "lada", "car", "gas "],
-            [3, "50", "plane", "tu-134", "plane", "wings  "],
-            [6, "200", "plane", "boeing 737", "plane", "wings  "]
-        ],
-        "query_python": "select NR, * inner join B on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
-        "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
     {
         "test_name": "empty join",
@@ -1000,7 +1016,7 @@
         "query_js": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc"
     },
     {
-        "test_name": "test_wrong_b_field",
+        "test_name": "missing key field in join table",
         "input_table": [
             ["5", "car", "lada"],
             ["-20", "car", "Ferrari"],
@@ -1017,7 +1033,8 @@
             ["boat", "wind"],
             ["rocket", "some stuff"]
         ],
-        "expected_error": "No \"b5\" field at record: 1 in \"B\" table",
+        "expected_error_exact": true,
+        "expected_error": "No field with index 5 at record 1 in \"B\" table",
         "query_python": "select NR, * inner join B on a2 == b5 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
         "query_js": "select NR, * inner join B on a2 == b5 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },

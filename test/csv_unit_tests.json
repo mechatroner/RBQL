@@ -138,7 +138,7 @@
     {
         "test_name": "test_10",
         "input_table_path": "csv_files/movies_small.tsv",
-        "expected_error": "No \"b4\" field at record: 2 in \"B\" table",
+        "expected_error": "No field with index 4 at record 2 in \"B\" table",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -365,11 +365,22 @@
         "test_name": "named fields in interpolated strings",
         "input_table_path": "csv_files/countries.csv",
         "expected_output_table_path": "csv_files/countries_result3.csv",
+        "randomly_replace_var_names": false,
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "minimal_python_version": "3.7",
         "query_python": "select top 10 a1, f\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc"
+    },
+    {
+        "test_name": "named fields in interpolated triple-quoted strings",
+        "input_table_path": "csv_files/countries.csv",
+        "expected_output_table_path": "csv_files/countries_result3.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "minimal_python_version": "3.7",
+        "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats\"\"\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc"
     },
     {
         "test_name": "update named fields - unknown field error",
