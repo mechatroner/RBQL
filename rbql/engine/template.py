@@ -98,7 +98,7 @@ def safe_set(record, idx, value):
     try:
         record[idx] = value
     except IndexError as e:
-        raise InternalBadFieldError(idx - 1)
+        raise InternalBadFieldError(idx)
 
 
 class RBQLAggregationToken(object):
@@ -706,7 +706,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
             if not polymorphic_process(NR, NF, record_a, join_matches):
                 break
         except InternalBadKeyError as e:
-            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR))
+            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
         except InternalBadFieldError as e:
             raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR))
         except RbqlParsingError:

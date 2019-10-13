@@ -455,6 +455,19 @@
         "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
     },
     {
+        "test_name": "update bad field",
+        "input_table": [
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "No \"a9\" field at record 2",
+        "query_python": "update a9 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
+        "query_js": "update a9 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
+    },
+    {
         "test_name": "update with order by error",
         "input_table": [
             ["5", "alpha   zeta", "beta"],
