@@ -354,7 +354,7 @@
     {
         "test_name": "bad dict field name",
         "input_table_path": "csv_files/countries.csv",
-        "expected_error": "No \"foobar\" field at record: 1",
+        "expected_error": "No \"foobar\" field at record 1",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",

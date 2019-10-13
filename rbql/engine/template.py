@@ -115,7 +115,7 @@ class UNNEST:
         global unnest_list
         if unnest_list is not None:
             # Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
-            raise RbqlParsingError('Only one UNNEST is allowed per query')
+            raise RbqlParsingError('Only one UNNEST is allowed per query') # UT JSON
         unnest_list = vals
 
     def __str__(self):
@@ -149,7 +149,7 @@ class NumHandler:
         try:
             return float(val)
         except ValueError:
-            raise RbqlRuntimeError(numeric_conversion_error.format(val))
+            raise RbqlRuntimeError(numeric_conversion_error.format(val)) # UT JSON
 
 
 class MinAggregator:
@@ -294,7 +294,7 @@ class ConstGroupVerifier:
         if old_value is None:
             self.const_values[key] = value
         elif old_value != value:
-            raise RbqlRuntimeError('Invalid aggregate expression: non-constant values in output column {}. E.g. "{}" and "{}"'.format(self.output_index + 1, old_value, value))
+            raise RbqlRuntimeError('Invalid aggregate expression: non-constant values in output column {}. E.g. "{}" and "{}"'.format(self.output_index + 1, old_value, value)) # UT JSON
 
     def get_final(self, key):
         return self.const_values[key]
@@ -549,7 +549,7 @@ class StrictLeftJoiner(object):
     def get_rhs(self, lhs_key):
         result = self.join_map.get_join_records(lhs_key)
         if len(result) != 1:
-            raise RbqlRuntimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"')
+            raise RbqlRuntimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"') # UT JSON
         return result
 
 
@@ -563,7 +563,7 @@ def select_except(src, except_fields):
 
 def process_update_join(NR, NF, record_a, join_matches):
     if len(join_matches) > 1:
-        raise RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B')
+        raise RbqlRuntimeError('More than one record in UPDATE query matched a key from the input table in the join table') # UT JSON # TODO output the failed key
     if len(join_matches) == 1:
         bNR, bNF, record_b = join_matches[0]
     else:
@@ -615,7 +615,7 @@ def select_aggregated(key, transparent_values):
                 writer.aggregators.append(ConstGroupVerifier(len(writer.aggregators)))
                 writer.aggregators[-1].increment(key, trans_value)
         if num_aggregators_found != len(functional_aggregators):
-            raise RbqlParsingError(wrong_aggregation_usage_error)
+            raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
         aggregation_stage = 2
     else:
         for i, trans_value in enumerate(transparent_values):
@@ -706,17 +706,17 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
             if not polymorphic_process(NR, NF, record_a, join_matches):
                 break
         except InternalBadKeyError as e:
-            raise RbqlRuntimeError('No "{}" field at record: {}'.format(e.bad_key, NR))
+            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR))
         except InternalBadFieldError as e:
-            raise RbqlRuntimeError('No "a{}" field at record: {}'.format(e.bad_idx + 1, NR))
+            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR))
         except RbqlParsingError:
             raise
         except Exception as e:
             if debug_mode:
                 raise
             if str(e).find('RBQLAggregationToken') != -1:
-                raise RbqlParsingError(wrong_aggregation_usage_error)
-            raise RbqlRuntimeError('At record: ' + str(NR) + ', Details: ' + str(e))
+                raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
+            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e))
     writer.finish()
     return True
 
