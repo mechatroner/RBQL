@@ -644,6 +644,43 @@ class TestRecordIterator(unittest.TestCase):
         self.assertEqual(expected_table, parsed_table)
 
 
+class TestRBQLSimple(unittest.TestCase):
+    def test_simple_case(self):
+        input_table = list()
+        input_table.append(['name', 'value'])
+        input_table.append(['abc', '1234'])
+        input_table.append(['abc', '1234'])
+        input_table.append(['efg', '100'])
+        input_table.append(['abc', '100'])
+        input_table.append(['cde', '12999'])
+        input_table.append(['aaa', '2000'])
+        input_table.append(['abc', '100'])
+
+        expected_table = list()
+        expected_table.append(['abc', '12340'])
+        expected_table.append(['abc', '12340'])
+        expected_table.append(['abc', '1000'])
+        expected_table.append(['abc', '1000'])
+
+        delim = ','
+        policy = 'quoted'
+        csv_data = table_to_csv_string_random(input_table, delim, policy)
+        input_stream, encoding = string_to_randomly_encoded_stream(csv_data)
+
+        input_iterator = rbql_csv.CSVRecordIterator(input_stream, True, encoding, delim=delim, policy=policy)
+
+        output_stream = io.BytesIO() if encoding is not None else io.StringIO()
+        output_writer = rbql_csv.CSVWriter(output_stream, False, encoding, delim, policy)
+
+        error_info, warnings = rbql.generic_run('select a.name, int(a.value) * 10 where NR > 1 and a.name == "abc"', input_iterator, output_writer)
+        self.assertEqual(error_info, None)
+        self.assertEqual(warnings, [])
+
+        output_stream.seek(0)
+        output_iterator = rbql_csv.CSVRecordIterator(output_stream, True, encoding, delim=delim, policy=policy)
+        output_table = output_iterator._get_all_records()
+        self.assertEqual(expected_table, output_table)
+
 
 class TestRBQLWithCSV(unittest.TestCase):
 
