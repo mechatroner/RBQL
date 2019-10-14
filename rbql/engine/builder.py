@@ -46,7 +46,6 @@ from collections import defaultdict, namedtuple
 
 # FIXME add unittest with randomly generated header row
 
-# FIXME 100% test coverage for all RbqlParsingError exceptions
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'

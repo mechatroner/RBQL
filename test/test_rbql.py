@@ -270,6 +270,11 @@ class TestJsonTables(unittest.TestCase):
         expected_error = test_case.get('expected_error', None)
         if expected_error is None:
             expected_error = test_case.get('expected_error_py', None)
+        if expected_error is None:
+            if python_version >= 3:
+                expected_error = test_case.get('expected_error_py_3', None)
+            else:
+                expected_error = test_case.get('expected_error_py_2', None)
         expected_error_exact = test_case.get('expected_error_exact', False)
         expected_warnings = test_case.get('expected_warnings', [])
         output_table = []

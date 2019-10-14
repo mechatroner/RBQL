@@ -708,7 +708,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
         except InternalBadKeyError as e:
             raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
         except InternalBadFieldError as e:
-            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR))
+            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
         except RbqlParsingError:
             raise
         except Exception as e:
@@ -716,7 +716,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
                 raise
             if str(e).find('RBQLAggregationToken') != -1:
                 raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
-            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e))
+            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
     writer.finish()
     return True
 
