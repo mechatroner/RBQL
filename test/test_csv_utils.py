@@ -644,6 +644,13 @@ class TestRecordIterator(unittest.TestCase):
         self.assertEqual(expected_table, parsed_table)
 
 
+def make_column_variable(column_name):
+    if re.match('^[_a-zA-Z][_a-zA-Z0-9]*$', column_name):
+        return 'a.' + column_name
+    quote_char = random.choice(['"', "'"])
+    return 'a[' + quote_char + rbql_csv.python_string_escape_column_name(column_name, quote_char) + quote_char + ']'
+
+
 class TestRBQLSimple(unittest.TestCase):
     def test_simple_case(self):
         input_table = list()
@@ -680,6 +687,81 @@ class TestRBQLSimple(unittest.TestCase):
         output_iterator = rbql_csv.CSVRecordIterator(output_stream, True, encoding, delim=delim, policy=policy)
         output_table = output_iterator._get_all_records()
         self.assertEqual(expected_table, output_table)
+
+
+    def _do_test_random_headers(self):
+        num_rows = natural_random(0, 10)
+        num_cols = natural_random(2, 10)
+        input_table = list()
+        expected_table = list()
+
+        header_row = list()
+        for col in range (num_cols):
+            while True:
+                if random.choice([True, False]):
+                    field_name_len = natural_random(1, 10)
+                    field_name_bytes = []
+                    for c in range(field_name_len):
+                        field_name_bytes.append(random.randint(32, 126))
+                    field_name = bytes(bytearray(field_name_bytes)).decode('ascii')
+                else:
+                    field_name = random.choice(['_foo', 'bar', 'Bar', '__foo', 'a', 'b', 'A', 'B'])
+                if field_name not in header_row:
+                    header_row.append(field_name)
+                    break
+        input_table.append(header_row[:])
+        expected_table.append(header_row[:])
+        all_col_nums = list(range(num_cols))
+        query_col_1 = random.choice(all_col_nums)
+        all_col_nums.remove(query_col_1)
+        query_col_2 = random.choice(all_col_nums)
+        for row_id in range(num_rows):
+            is_good_row = True
+            row = list()
+            for col_id in range(num_cols):
+                if col_id == query_col_1:
+                    field_value = random.choice(['foo bar good', 'foo bar bad'])
+                    if field_value != 'foo bar good':
+                        is_good_row = False
+                elif col_id == query_col_2:
+                    field_value = random.choice(['10', '0'])
+                    if field_value != '10':
+                        is_good_row = False
+                else:
+                    field_value = make_random_decoded_binary_csv_entry(0, 10, restricted_chars=['\r', '\n'])
+                row.append(field_value)
+            input_table.append(row[:])
+            if is_good_row:
+                expected_table.append(row[:])
+        query_col_name_1 = make_column_variable(header_row[query_col_1])
+        query_col_name_2 = make_column_variable(header_row[query_col_2])
+        query = 'select * where NR == 1 or ({}.endswith("good") and int({}) * 2 == 20)'.format(query_col_name_1, query_col_name_2)
+
+        delim = ','
+        policy = 'quoted'
+        csv_data = table_to_csv_string_random(input_table, delim, policy)
+        encoding = 'latin-1'
+        stream = io.BytesIO(csv_data.encode(encoding))
+        input_stream, encoding = string_to_randomly_encoded_stream(csv_data)
+
+        input_iterator = rbql_csv.CSVRecordIterator(input_stream, True, encoding, delim=delim, policy=policy)
+
+        output_stream = io.BytesIO() if encoding is not None else io.StringIO()
+        output_writer = rbql_csv.CSVWriter(output_stream, False, encoding, delim, policy)
+
+        error_info, warnings = rbql.generic_run(query, input_iterator, output_writer)
+        self.assertEqual(error_info, None)
+        self.assertEqual(warnings, [])
+
+        output_stream.seek(0)
+        output_iterator = rbql_csv.CSVRecordIterator(output_stream, True, encoding, delim=delim, policy=policy)
+        output_table = output_iterator._get_all_records()
+        self.assertEqual(expected_table, output_table)
+
+
+    def test_random_headers(self):
+        for i in range(10):
+            self._do_test_random_headers()
 
 
 class TestRBQLWithCSV(unittest.TestCase):

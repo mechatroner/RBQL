@@ -44,7 +44,6 @@ from collections import defaultdict, namedtuple
 
 # TODO show warning when csv fields contain trailing spaces
 
-# FIXME add unittest with randomly generated header row
 
 
 GROUP_BY = 'GROUP BY'
