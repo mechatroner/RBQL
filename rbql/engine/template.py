@@ -29,7 +29,6 @@ unnest_list = None
 
 module_was_used_failsafe = False
 
-# Aggregators:
 aggregation_stage = 0
 functional_aggregators = list()
 
@@ -685,7 +684,7 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
     if __RBQLMP__sort_flag:
         writer = SortedWriter(writer)
 
-    polymorphic_process = {(1, 1): process_select_simple, (1, 0): process_select_join, (0, 1): process_update_simple, (0, 0): process_update_join}[(__RBQLMP__is_select_query, join_map_impl is None)]
+    polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][__RBQLMP__is_select_query][join_map_impl is not None];
 
     assert (join_map_impl is None) == (__RBQLMP__join_operation is None)
     join_map = None
