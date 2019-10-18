@@ -664,7 +664,7 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
         join_map = new sql_join_type(join_map_impl);
     }
 
-    let polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][__RBQLMP__is_select_query][join_map_impl != null];
+    let polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][__RBQLMP__is_select_query][join_map ? 1 : 0];
     writer = new TopWriter(output_writer);
 
     if (__RBQLMP__writer_type == 'uniq') {

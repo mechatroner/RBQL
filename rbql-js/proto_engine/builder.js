@@ -483,7 +483,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
         js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
         join_map = new HashJoinMap(join_record_iterator, rhs_key_index);
     } else {
-        js_meta_params['__RBQLMP__join_operation'] = '"VOID"';
+        js_meta_params['__RBQLMP__join_operation'] = 'null';
         js_meta_params['__RBQLMP__lhs_join_var'] = 'null';
     }
 
@@ -503,7 +503,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
         js_meta_params['__RBQLMP__writer_type'] = '"simple"';
         js_meta_params['__RBQLMP__select_expression'] = 'null';
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
-        js_meta_params['__RBQLMP__is_select_query'] = 'false';
+        js_meta_params['__RBQLMP__is_select_query'] = '0';
         js_meta_params['__RBQLMP__top_count'] = 'null';
         js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
         js_meta_params['__RBQLMP__init_column_vars_select'] = '';
@@ -528,7 +528,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
             js_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals);
         }
         js_meta_params['__RBQLMP__update_statements'] = '';
-        js_meta_params['__RBQLMP__is_select_query'] = 'true';
+        js_meta_params['__RBQLMP__is_select_query'] = '1';
     }
 
     if (rb_actions.hasOwnProperty(ORDER_BY)) {
