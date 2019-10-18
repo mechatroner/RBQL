@@ -188,6 +188,7 @@ async function test_json_tables() {
         let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
         let expected_error = test_common.get_default(test_case, 'expected_error', null);
         let expected_error_type = test_common.get_default(test_case, 'expected_error_type', null);
+        let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false)
         if (expected_error == null) {
             expected_error = test_common.get_default(test_case, 'expected_error_js', null);
         }
@@ -204,11 +205,15 @@ async function test_json_tables() {
                 error_type == 'IO handling';
             }
             if (expected_error_type)
-                assert(expected_error_type === error_type);
+                test_common.assert_equal(expected_error_type, error_type);
             if(!expected_error) {
                 throw(e);
             }
-            assert(e.message.indexOf(expected_error) != -1);
+            if (expected_error_exact) {
+                test_common.assert_equal(expected_error, e.message);
+            } else {
+                assert(e.message.indexOf(expected_error) != -1);
+            }
             continue;
         }
         warnings = test_common.normalize_warnings(warnings).sort();

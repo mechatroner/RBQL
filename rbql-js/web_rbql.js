@@ -981,7 +981,7 @@ function locate_statements(rbql_expression) {
             if (!matches.length)
                 continue;
             if (matches.length > 1)
-                throw new RbqlParsingError(`More than one ${statement} statements found`);
+                throw new RbqlParsingError(`More than one "${statement}" statements found`);
             assert(matches.length == 1);
             var match = matches[0];
             var match_str = match[0];
