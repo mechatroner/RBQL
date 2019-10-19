@@ -647,7 +647,7 @@ function process_select_simple(record_a, join_match) {
 
 function process_select_join(record_a, join_matches) {
     for (let join_match of join_matches) {
-        if (!process_update_simple(record_a, join_match))
+        if (!process_select_simple(record_a, join_match))
             return false;
     }
     return true;
@@ -1172,7 +1172,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
     if (rb_actions.hasOwnProperty(JOIN)) {
         var [rhs_table_id, join_var_1, join_var_2] = parse_join_expression(rb_actions[JOIN]['text']);
         if (join_tables_registry === null)
-            throw new RbqlParsingError('JOIN operations were disabled');
+            throw new RbqlParsingError('JOIN operations are not supported by the application');
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
@@ -1204,13 +1204,13 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);
         js_meta_params['__RBQLMP__is_select_query'] = '0';
         js_meta_params['__RBQLMP__top_count'] = 'null';
-        js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
         js_meta_params['__RBQLMP__init_column_vars_select'] = '';
     }
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         js_meta_params['__RBQLMP__init_column_vars_update'] = '';
-        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(8)), string_literals);
+        js_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
         var top_count = find_top(rb_actions);
         js_meta_params['__RBQLMP__top_count'] = top_count === null ? 'null' : String(top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {

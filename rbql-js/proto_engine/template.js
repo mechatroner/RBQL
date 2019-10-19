@@ -644,7 +644,7 @@ function process_select_simple(record_a, join_match) {
 
 function process_select_join(record_a, join_matches) {
     for (let join_match of join_matches) {
-        if (!process_update_simple(record_a, join_match))
+        if (!process_select_simple(record_a, join_match))
             return false;
     }
     return true;
