@@ -12,9 +12,11 @@ function assert(condition, message) {
 }
 
 
-function InternalBadFieldError(idx) {
-    this.idx = idx;
-    this.name = 'InternalBadFieldError';
+class InternalBadFieldError extends Error {
+    constructor(bad_idx, ...params) {
+        super(...params);
+        this.bad_idx = bad_idx;
+    }
 }
 
 
@@ -681,11 +683,20 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
         if (record_a === null)
             break;
         NR += 1;
-        let join_matches = join_map ? join_map.get_rhs(__RBQLMP__lhs_join_var) : null;
         NF = record_a.length;
-        if (!polymorphic_process(record_a, join_matches)) {
-            input_iterator.finish();
-            break;
+
+        try {
+            let join_matches = join_map ? join_map.get_rhs(__RBQLMP__lhs_join_var) : null;
+            if (!polymorphic_process(record_a, join_matches)) {
+                input_iterator.finish();
+                break;
+            }
+        } catch (e) {
+            if (e.constructor.name === 'InternalBadFieldError') {
+                throw new RbqlRuntimeError(`No "a${e.bad_idx + 1}" field at record ${NR}`);
+            } else {
+                throw(e);
+            }
         }
     }
     if (output_writer.hasOwnProperty('finish'))

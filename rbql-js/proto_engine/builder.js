@@ -143,7 +143,7 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
     } else if (join_variables_map.hasOwnProperty(join_var_2)) {
         rhs_key_index = join_variables_map[join_var_2];
     } else {
-        throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_1}"`);
+        throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_2}"`);
     }
 
     let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`

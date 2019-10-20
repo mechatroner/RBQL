@@ -19,9 +19,11 @@ function assert(condition, message) {
 }
 
 
-function InternalBadFieldError(idx) {
-    this.idx = idx;
-    this.name = 'InternalBadFieldError';
+class InternalBadFieldError extends Error {
+    constructor(bad_idx, ...params) {
+        super(...params);
+        this.bad_idx = bad_idx;
+    }
 }
 
 
@@ -688,11 +690,20 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
         if (record_a === null)
             break;
         NR += 1;
-        let join_matches = join_map ? join_map.get_rhs(__RBQLMP__lhs_join_var) : null;
         NF = record_a.length;
-        if (!polymorphic_process(record_a, join_matches)) {
-            input_iterator.finish();
-            break;
+
+        try {
+            let join_matches = join_map ? join_map.get_rhs(__RBQLMP__lhs_join_var) : null;
+            if (!polymorphic_process(record_a, join_matches)) {
+                input_iterator.finish();
+                break;
+            }
+        } catch (e) {
+            if (e.constructor.name === 'InternalBadFieldError') {
+                throw new RbqlRuntimeError(\`No "a\${e.bad_idx + 1}" field at record \${NR}\`);
+            } else {
+                throw(e);
+            }
         }
     }
     if (output_writer.hasOwnProperty('finish'))
@@ -846,7 +857,7 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
     } else if (join_variables_map.hasOwnProperty(join_var_2)) {
         rhs_key_index = join_variables_map[join_var_2];
     } else {
-        throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_1}"`);
+        throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_2}"`);
     }
 
     let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`

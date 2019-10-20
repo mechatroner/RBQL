@@ -183,12 +183,13 @@ async function test_json_tables() {
         if (query == null)
             continue;
         let input_table = test_case['input_table'];
+        let local_debug_mode = test_common.get_default(test_case, 'debug_mode', false);
         let join_table = test_common.get_default(test_case, 'join_table', null);
         let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
         let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
         let expected_error = test_common.get_default(test_case, 'expected_error', null);
         let expected_error_type = test_common.get_default(test_case, 'expected_error_type', null);
-        let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false)
+        let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
         if (expected_error == null) {
             expected_error = test_common.get_default(test_case, 'expected_error_js', null);
         }
@@ -199,6 +200,9 @@ async function test_json_tables() {
         try {
             warnings = await rbql.table_run(query, input_table, output_table, join_table, user_init_code);
         } catch (e) {
+            //console.log("e:" + e); //FOR_DEBUG
+            if (local_debug_mode)
+                throw(e);
             if (e.constructor.name === 'RbqlParsingError') {
                 error_type == 'query_parsing';
             } else if (e.constructor.name === 'RbqlIOHandlingError') {
@@ -219,7 +223,7 @@ async function test_json_tables() {
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
-        console.log("output_table:" + output_table); //FOR_DEBUG
+        //console.log("output_table:" + output_table); //FOR_DEBUG
         test_common.assert_tables_are_equal(expected_output_table, output_table);
     }
 }
@@ -273,7 +277,7 @@ function main() {
     if (debug_mode)
         rbql.set_debug_mode();
 
-    test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + error_info); console.log(error_info.stack); });
+    test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + JSON.stringify(error_info)); console.log(error_info.stack); });
 }
 
 
