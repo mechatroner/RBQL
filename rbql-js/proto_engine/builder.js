@@ -119,6 +119,16 @@ function parse_array_variables(query, prefix, dst_variables_map) {
 }
 
 
+function parse_join_expression(src) {
+    var rgx = /^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$/i;
+    var match = rgx.exec(src);
+    if (match === null) {
+        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."');
+    }
+    return [match[1], match[2], match[3]];
+}
+
+
 function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals) {
     join_var_1 = combine_string_literals(join_var_1, string_literals);
     join_var_2 = combine_string_literals(join_var_2, string_literals);
@@ -149,16 +159,6 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
 
     let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`
     return [lhs_join_var, rhs_key_index];
-}
-
-
-function parse_join_expression(src) {
-    var rgx = /^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$/i;
-    var match = rgx.exec(src);
-    if (match === null) {
-        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."');
-    }
-    return [match[1], match[2], match[3]];
 }
 
 

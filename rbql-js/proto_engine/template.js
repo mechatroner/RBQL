@@ -100,7 +100,7 @@ function parse_number(val) {
     // We can do a more pedantic number test like `/^ *-{0,1}[0-9]+\.{0,1}[0-9]* *$/.test(val)`, but  user will probably use just Number(val) or parseInt/parseFloat
     let result = Number(val);
     if (isNaN(result)) {
-        throw new RbqlRuntimeError(`Unable to convert value "${val}" to number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values`);
+        throw new RbqlRuntimeError(`Unable to convert value "${val}" to a number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values`);
     }
     return result;
 }

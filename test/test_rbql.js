@@ -216,7 +216,7 @@ async function test_json_tables() {
             if (expected_error_exact) {
                 test_common.assert_equal(expected_error, e.message);
             } else {
-                assert(e.message.indexOf(expected_error) != -1);
+                assert(e.message.indexOf(expected_error) != -1, `Expected error is not substring of actual. Expected error: ${expected_error}, Actual error: ${e.message}`);
             }
             continue;
         }
