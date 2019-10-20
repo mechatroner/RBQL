@@ -1176,8 +1176,7 @@
         ],
         "query_python": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
         "query_js": "select a1, UNNEST(a2.split(\"|\")), UNNEST([1, 2])",
-        "expected_error": "Only one UNNEST is allowed per query",
-        "expected_error_type": "query parsing"
+        "expected_error": "Only one UNNEST is allowed per query"
     },
     {
         "test_name": "invalid aggregate",
@@ -1189,8 +1188,7 @@
         ],
         "query_js": "select MAX(a2), a1, 100",
         "query_python": "select MAX(a2), a1, 100",
-        "expected_error": "Invalid aggregate expression: non-constant values in output column 2. E.g. \"car\" and \"dog\"",
-        "expected_error_type": "query execution"
+        "expected_error": "Invalid aggregate expression: non-constant values in output column 2. E.g. \"car\" and \"dog\""
     },
     {
         "test_name": "many_strings_more_than_10",
