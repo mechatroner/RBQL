@@ -753,8 +753,7 @@
         "expected_error_exact": true,
         "query_js": "select MAX(a2) order by a1",
         "query_python": "select MAX(a2) order by a1",
-        "expected_error": "\"ORDER BY\", \"UPDATE\" and \"DISTINCT\" keywords are not allowed in aggregate queries",
-        "expected_error_type": "query parsing"
+        "expected_error": "\"ORDER BY\", \"UPDATE\" and \"DISTINCT\" keywords are not allowed in aggregate queries"
     },
     {
         "test_name": "aggregate with order by error with group by (dynamic check)",

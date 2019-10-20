@@ -59,13 +59,13 @@ function test_except_parsing() {
     let except_part = null;
 
     except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8';
-    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}));
+    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}, []));
 
     except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  ';
-    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}));
+    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}, []));
 
     except_part = 'a1';
-    assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}));
+    assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}, []));
 }
 
 

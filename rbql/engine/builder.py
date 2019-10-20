@@ -386,6 +386,7 @@ class HashJoinMap:
             nf = len(fields)
             self.max_record_len = max(self.max_record_len, nf)
             if self.key_index >= nf:
+                self.record_iterator.finish()
                 raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
             key = nr if self.key_index == -1 else fields[self.key_index]
             self.hash_map[key].append((nr, nf, fields))

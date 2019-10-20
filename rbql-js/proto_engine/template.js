@@ -574,7 +574,7 @@ function select_aggregated(key, transparent_values) {
     }
     if (aggregation_stage === 1) {
         if (!(writer instanceof TopWriter)) {
-            throw new RbqlParsingError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
+            throw new RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries');
         }
         writer = new AggregateWriter(writer);
         let num_aggregators_found = 0;
@@ -694,6 +694,8 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
         } catch (e) {
             if (e.constructor.name === 'InternalBadFieldError') {
                 throw new RbqlRuntimeError(`No "a${e.bad_idx + 1}" field at record ${NR}`);
+            } else if (e.constructor.name === 'RbqlParsingError') {
+                throw(e);
             } else {
                 throw new RbqlRuntimeError(`At record ${NR}, Details: ${e.message}`);
             }

@@ -577,7 +577,7 @@ function select_aggregated(key, transparent_values) {
     }
     if (aggregation_stage === 1) {
         if (!(writer instanceof TopWriter)) {
-            throw new RbqlParsingError('Unable to use "ORDER BY" or "DISTINCT" keywords in aggregate query');
+            throw new RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries');
         }
         writer = new AggregateWriter(writer);
         let num_aggregators_found = 0;
@@ -697,6 +697,8 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
         } catch (e) {
             if (e.constructor.name === 'InternalBadFieldError') {
                 throw new RbqlRuntimeError(\`No "a\${e.bad_idx + 1}" field at record \${NR}\`);
+            } else if (e.constructor.name === 'RbqlParsingError') {
+                throw(e);
             } else {
                 throw new RbqlRuntimeError(\`At record \${NR}, Details: \${e.message}\`);
             }
@@ -742,6 +744,7 @@ const EXCEPT = 'EXCEPT';
 class RbqlParsingError extends Error {}
 class RbqlIOHandlingError extends Error {}
 class AssertionError extends Error {}
+class RbqlRuntimeError extends Error {}
 
 var debug_mode = false;
 
@@ -1101,13 +1104,14 @@ function indent_user_init_code(user_init_code) {
 }
 
 
-function translate_except_expression(except_expression, input_variables_map) {
+function translate_except_expression(except_expression, input_variables_map, string_literals) {
     let skip_vars = except_expression.split(',');
     skip_vars = skip_vars.map(str_strip);
     let skip_indices = [];
     for (let var_name of skip_vars) {
+        var_name = combine_string_literals(var_name, string_literals);
         if (!input_variables_map.hasOwnProperty(var_name))
-            throw new RbqlParsingError('Invalid EXCEPT syntax');
+            throw new RbqlParsingError(`Unknown field in EXCEPT expression: "${var_name}"`);
         skip_indices.push(input_variables_map[var_name]);
     }
     skip_indices = skip_indices.sort((a, b) => a - b);
@@ -1121,34 +1125,31 @@ function HashJoinMap(record_iterator, key_index) {
     this.hash_map = new Map();
     this.record_iterator = record_iterator;
     this.key_index = key_index;
-    this.error_msg = null;
     this.nr = 0;
 
-    this.add_record = function(record) {
-        this.nr += 1;
-        let nf = record.length;
-        this.max_record_len = Math.max(this.max_record_len, nf);
-        if (this.key_index >= nf) {
-            this.error_msg = `No "b${this.key_index + 1}" field at record: ${this.nr} in "B" table`;
-            this.record_iterator.finish();
-        }
-        let key = record[this.key_index];
-        let key_records = this.hash_map.get(key);
-        if (key_records === undefined) {
-            this.hash_map.set(key, [[this.nr, nf, record]]);
-        } else {
-            key_records.push([this.nr, nf, record]);
-        }
-    };
 
     this.build = async function() {
         while (true) {
             let record = await this.record_iterator.get_record();
             if (record === null)
                 break;
-            this.add_record(record);
+            this.nr += 1;
+            let nf = record.length;
+            this.max_record_len = Math.max(this.max_record_len, nf);
+            if (this.key_index >= nf) {
+                this.record_iterator.finish();
+                throw new RbqlRuntimeError(`No field with index ${this.key_index + 1} at record ${this.nr} in "B" table`);
+            }
+            let key = record[this.key_index];
+            let key_records = this.hash_map.get(key);
+            if (key_records === undefined) {
+                this.hash_map.set(key, [[this.nr, nf, record]]);
+            } else {
+                key_records.push([this.nr, nf, record]);
+            }
         }
     };
+
 
     this.get_join_records = function(key) {
         let result = this.hash_map.get(key);
@@ -1156,6 +1157,7 @@ function HashJoinMap(record_iterator, key_index) {
             return [];
         return result;
     };
+
 
     this.get_warnings = function() {
         return this.record_iterator.get_warnings();
@@ -1185,7 +1187,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
 
     if (rb_actions.hasOwnProperty(GROUP_BY)) {
         if (rb_actions.hasOwnProperty(ORDER_BY) || rb_actions.hasOwnProperty(UPDATE))
-            throw new RbqlParsingError('"ORDER BY" and "UPDATE" are not allowed in aggregate queries');
+            throw new RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries');
         var aggregation_key_expression = rb_actions[GROUP_BY]['text'];
         js_meta_params['__RBQLMP__aggregation_key_expression'] = '[' + combine_string_literals(aggregation_key_expression, string_literals) + ']';
     } else {
@@ -1246,7 +1248,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
             js_meta_params['__RBQLMP__writer_type'] = '"simple"';
         }
         if (rb_actions.hasOwnProperty(EXCEPT)) {
-            js_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map);
+            js_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals);
         } else {
             let select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
             js_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals);
