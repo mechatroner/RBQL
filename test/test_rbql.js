@@ -86,12 +86,12 @@ function test_join_parsing() {
     }
     assert(catched);
 
-    test_common.assert_arrays_are_equal(['safe_join_get(record_a, 0)', 1], rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b2'));
+    test_common.assert_arrays_are_equal(['safe_join_get(record_a, 0)', 1], rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b2', []));
 
     catched = false;
     try {
         rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2');
+        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2', []);
     } catch (e) {
         catched = true;
         assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -101,7 +101,7 @@ function test_join_parsing() {
     catched = false;
     try {
         rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b10');
+        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b10', []);
     } catch (e) {
         catched = true;
         assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -111,7 +111,7 @@ function test_join_parsing() {
     catched = false;
     try {
         rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'b1', 'b2');
+        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'b1', 'b2', []);
     } catch (e) {
         catched = true;
         assert(e.toString().indexOf('Invalid join syntax') != -1);

@@ -731,7 +731,6 @@ const WHERE = 'WHERE';
 const LIMIT = 'LIMIT';
 const EXCEPT = 'EXCEPT';
 
-const join_syntax_error = 'Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."';
 
 class RbqlParsingError extends Error {}
 class RbqlIOHandlingError extends Error {}
@@ -792,6 +791,14 @@ function strip_comments(cline) {
 }
 
 
+function combine_string_literals(backend_expression, string_literals) {
+    for (var i = 0; i < string_literals.length; i++) {
+        backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL${i}###`, string_literals[i]);
+    }
+    return backend_expression;
+}
+
+
 function parse_basic_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
@@ -805,7 +812,7 @@ function parse_basic_variables(query, prefix, dst_variables_map) {
 
 function parse_array_variables(query, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
-    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\](?:$|(?=[^_a-zA-Z0-9]))`, 'g');
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\]`, 'g');
     let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
@@ -814,7 +821,9 @@ function parse_array_variables(query, prefix, dst_variables_map) {
 }
 
 
-function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2) {
+function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals) {
+    join_var_1 = combine_string_literals(join_var_1, string_literals);
+    join_var_2 = combine_string_literals(join_var_2, string_literals);
     const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; };
     if (input_variables_map.hasOwnProperty(join_var_1) && join_variables_map.hasOwnProperty(join_var_1))
         throw new RbqlParsingError(get_ambiguous_error_msg(join_var_1));
@@ -822,20 +831,24 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
         throw new RbqlParsingError(get_ambiguous_error_msg(join_var_2));
     if (input_variables_map.hasOwnProperty(join_var_2))
         [join_var_1, join_var_2] = [join_var_2, join_var_1];
+
     let [lhs_key_index, rhs_key_index] = [null, null];
     if (['NR', 'a.NR', 'aNR'].indexOf(join_var_1) != -1) {
         lhs_key_index = -1;
     } else if (input_variables_map.hasOwnProperty(join_var_1)) {
         lhs_key_index = input_variables_map[join_var_1];
+    } else {
+        throw new RbqlParsingError(`Unable to parse JOIN expression: Input table does not have field "${join_var_1}"`);
     }
+
     if (['b.NR', 'bNR'].indexOf(join_var_2) != -1) {
         rhs_key_index = -1;
     } else if (join_variables_map.hasOwnProperty(join_var_2)) {
         rhs_key_index = join_variables_map[join_var_2];
+    } else {
+        throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_1}"`);
     }
-    if (lhs_key_index === null || rhs_key_index === null) {
-        throw new RbqlParsingError(join_syntax_error);
-    }
+
     let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`
     return [lhs_join_var, rhs_key_index];
 }
@@ -845,7 +858,7 @@ function parse_join_expression(src) {
     var rgx = /^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$/i;
     var match = rgx.exec(src);
     if (match === null) {
-        throw new RbqlParsingError(join_syntax_error);
+        throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."');
     }
     return [match[1], match[2], match[3]];
 }
@@ -954,14 +967,6 @@ function separate_string_literals_js(rbql_expression) {
 }
 
 
-function combine_string_literals(backend_expression, string_literals) {
-    for (var i = 0; i < string_literals.length; i++) {
-        backend_expression = replace_all(backend_expression, `###RBQL_STRING_LITERAL${i}###`, string_literals[i]);
-    }
-    return backend_expression;
-}
-
-
 function locate_statements(rbql_expression) {
     let statement_groups = [];
     statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
@@ -1059,10 +1064,11 @@ function separate_actions(rbql_expression) {
 
 function find_top(rb_actions) {
     if (rb_actions.hasOwnProperty(LIMIT)) {
-        var result = parseInt(rb_actions[LIMIT]['text']);
-        if (isNaN(result)) {
+        var rgx = /^[0-9]+$/;
+        if (rgx.exec(rb_actions[LIMIT]['text']) === null) {
             throw new RbqlParsingError('LIMIT keyword must be followed by an integer');
         }
+        var result = parseInt(rb_actions[LIMIT]['text']);
         return result;
     }
     var select_action = rb_actions[SELECT];
@@ -1151,7 +1157,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
     user_init_code = indent_user_init_code(user_init_code);
     query = cleanup_query(query);
     var [format_expression, string_literals] = separate_string_literals_js(query);
-    var input_variables_map = await input_iterator.get_variables_map(format_expression, string_literals);
+    var input_variables_map = await input_iterator.get_variables_map(query);
 
     var rb_actions = separate_actions(format_expression);
 
@@ -1180,8 +1186,8 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
-        join_variables_map = await join_record_iterator.get_variables_map(format_expression, string_literals);
-        let [lhs_join_var, rhs_key_index] = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2);
+        join_variables_map = await join_record_iterator.get_variables_map(query);
+        let [lhs_join_var, rhs_key_index] = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals);
         js_meta_params['__RBQLMP__join_operation'] = `"${rb_actions[JOIN]['join_subtype']}"`;
         js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
         join_map = new HashJoinMap(join_record_iterator, rhs_key_index);
@@ -1294,7 +1300,7 @@ function TableIterator(input_table, variable_prefix='a') {
     };
 
 
-    this.get_variables_map = async function(query, _string_literals) {
+    this.get_variables_map = async function(query) {
         let variable_map = new Object();
         parse_basic_variables(query, this.variable_prefix, variable_map);
         parse_array_variables(query, this.variable_prefix, variable_map);
