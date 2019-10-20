@@ -586,7 +586,7 @@
         "query_js": "update set a2 = a2 + \" (\" + b2 + \")\" inner join B on a2 == b1 where b2 != \"wings\""
     },
     {
-        "test_name": "update_with_join_1",
+        "test_name": "update_with_join_2",
         "input_table": [
             ["100", "magic carpet", "nimbus 3000"],
             ["5", "car", "lada"],

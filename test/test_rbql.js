@@ -122,15 +122,15 @@ function test_join_parsing() {
 
 function test_update_translation() {
     let rbql_src = '  a1 =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   100, a30  =200/3 + 1  ';
-    let indent = ' '.repeat(8);
+    let indent = ' '.repeat(4);
     let expected_dst = [];
-    expected_dst.push('safe_set(up_fields, 0,  a2  + b3);');
-    expected_dst.push(indent + 'safe_set(up_fields, 1,a4  if b3 == a2 else a8);');
-    expected_dst.push(indent + 'safe_set(up_fields, 7,   100);');
-    expected_dst.push(indent + 'safe_set(up_fields, 29,200/3 + 1);');
+    expected_dst.push('safe_set(up_fields, 0, a2  + b3);');
+    expected_dst.push(indent + 'safe_set(up_fields, 1, a4  if b3 == a2 else a8);');
+    expected_dst.push(indent + 'safe_set(up_fields, 7, 100);');
+    expected_dst.push(indent + 'safe_set(up_fields, 29, 200/3 + 1);');
     expected_dst = expected_dst.join('\n');
-    let test_dst = rbql.translate_update_expression(rbql_src, {'a1': 0, 'a2': 1, 'a4': 3, 'a8': 7, 'a30': 29}, indent);
-    test_common.assert_equal(test_dst, expected_dst);
+    let test_dst = rbql.translate_update_expression(rbql_src, {'a1': 0, 'a2': 1, 'a4': 3, 'a8': 7, 'a30': 29}, [], indent);
+    test_common.assert_arrays_are_equal(expected_dst.split('\n'), test_dst.split('\n'));
 }
 
 

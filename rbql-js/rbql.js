@@ -919,25 +919,33 @@ function replace_star_vars(rbql_expression) {
 }
 
 
-function translate_update_expression(update_expression, input_variables_map, indent) {
-    let translated = update_expression;
-    for (const [key, value] of Object.entries(input_variables_map)) {
-        let escaped_key = regexp_escape(key);
-        let rgx = new RegExp(`(?:^|,) *${escaped_key} *=(?=[^=])`, 'g');
-        translated = translated.replace(rgx, `\nsafe_set(up_fields, ${value},`);
+function translate_update_expression(update_expression, input_variables_map, string_literals, indent) {
+    let first_assignment = str_strip(update_expression.split('=')[0]);
+    let first_assignment_error = `Unable to parse "UPDATE" expression: the expression must start with assignment, but "${first_assignment}" does not look like an assignable field name`;
+
+    let assignment_looking_rgx = /(?:^|,) *(a[.#a-zA-Z0-9\[\]_]*) *=(?=[^=])/g;
+    let update_statements = [];
+    let pos = 0;
+    while (true) {
+        let match = assignment_looking_rgx.exec(update_expression);
+        if (update_statements.length == 0 && (match === null || match.index != 0)) {
+            throw new RbqlParsingError(first_assignment_error);
+        }
+        if (match === null) {
+            update_statements[update_statements.length - 1] += str_strip(update_expression.substr(pos)) + ');';
+            break;
+        }
+        if (update_statements.length)
+            update_statements[update_statements.length - 1] += str_strip(update_expression.substring(pos, match.index)) + ');';
+        let dst_var_name = combine_string_literals(str_strip(match[1]), string_literals);
+        if (!input_variables_map.hasOwnProperty(dst_var_name))
+            throw new RbqlParsingError(`Unable to parse "UPDATE" expression: Unknown field name: "${dst_var_name}"`);
+        let var_index = input_variables_map[dst_var_name];
+        let current_indent = update_statements.length ? indent : '';
+        update_statements.push(`${current_indent}safe_set(up_fields, ${var_index}, `);
+        pos = match.index + match[0].length;
     }
-    let update_statements = translated.split('\n');
-    update_statements = update_statements.map(str_strip);
-    if (update_statements.length < 2 || update_statements[0] != '') {
-        throw new RbqlParsingError('Unable to parse "UPDATE" expression');
-    }
-    update_statements = update_statements.slice(1);
-    update_statements = update_statements.map(v => v + ');');
-    for (var i = 1; i < update_statements.length; i++) {
-        update_statements[i] = indent + update_statements[i];
-    }
-    translated = update_statements.join('\n');
-    return translated;
+    return combine_string_literals(update_statements.join('\n'), string_literals);
 }
 
 
@@ -1215,7 +1223,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
 
 
     if (rb_actions.hasOwnProperty(UPDATE)) {
-        var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, ' '.repeat(8));
+        var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals, ' '.repeat(8));
         js_meta_params['__RBQLMP__writer_type'] = '"simple"';
         js_meta_params['__RBQLMP__select_expression'] = 'null';
         js_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals);

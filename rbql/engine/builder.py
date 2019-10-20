@@ -216,11 +216,11 @@ def translate_update_expression(update_expression, input_variables_map, string_l
         if len(update_statements):
             update_statements[-1] += update_expression[pos:match.start()].strip() + ')'
         dst_var_name = combine_string_literals(match.group(1).strip(), string_literals)
-        var_index = input_variables_map.get(dst_var_name)
-        if var_index is None:
+        var_info = input_variables_map.get(dst_var_name)
+        if var_info is None:
             raise RbqlParsingError('Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name)) # UT JSON
         current_indent = indent if len(update_statements) else ''
-        update_statements.append('{}safe_set(up_fields, {}, '.format(current_indent, var_index.index))
+        update_statements.append('{}safe_set(up_fields, {}, '.format(current_indent, var_info.index))
         pos = match.end()
     return combine_string_literals('\n'.join(update_statements), string_literals)
 
