@@ -25,7 +25,7 @@
         "expected_error_exact": true,
         "expected_error_py_2": "At record 3, Details: global name 'mysterious_function' is not defined",
         "expected_error_py_3": "At record 3, Details: name 'mysterious_function' is not defined",
-        "expected_error_js": "mysterious_function is not defined",
+        "expected_error_js": "At record 3, Details: mysterious_function is not defined",
         "query_python": "select NR, a1, mysterious_function(a3) where int(a1) > 5",
         "query_js": "select NR, a1, mysterious_function(a3) where a1 > 5"
     },

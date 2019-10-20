@@ -531,7 +531,7 @@ function select_except(src, except_fields) {
 
 function process_update_join(record_a, join_matches) {
     if (join_matches.length > 1)
-        throw new RbqlRuntimeError('More than one record in UPDATE query matched A-key in join table B');
+        throw new RbqlRuntimeError('More than one record in UPDATE query matched a key from the input table in the join table');
     let record_b = null;
     let bNR = null;
     let bNF = null;
@@ -698,7 +698,7 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
             if (e.constructor.name === 'InternalBadFieldError') {
                 throw new RbqlRuntimeError(\`No "a\${e.bad_idx + 1}" field at record \${NR}\`);
             } else {
-                throw(e);
+                throw new RbqlRuntimeError(\`At record \${NR}, Details: \${e.message}\`);
             }
         }
     }
