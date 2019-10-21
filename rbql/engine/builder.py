@@ -560,8 +560,7 @@ def generic_run(user_query, input_iterator, output_writer, join_tables_registry=
             rbconvert = worker_env.import_worker()
             if debug_mode:
                 rbconvert.set_debug_mode()
-            success = rbconvert.rb_transform(input_iterator, join_map, output_writer)
-            assert success, 'Unexpected error during RBQL query execution'
+            rbconvert.rb_transform(input_iterator, join_map, output_writer)
             input_warnings = input_iterator.get_warnings()
             join_warnings = join_map.get_warnings() if join_map is not None else []
             output_warnings = output_writer.get_warnings()
@@ -575,7 +574,6 @@ def generic_run(user_query, input_iterator, output_writer, join_tables_registry=
         return (error_info, [])
     finally:
         input_iterator.finish()
-        output_writer.finish()
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):

@@ -717,7 +717,6 @@ def rb_transform(input_iterator, join_map_impl, output_writer):
                 raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
             raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
     writer.finish()
-    return True
 
 
 def set_debug_mode():
