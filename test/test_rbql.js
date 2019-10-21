@@ -22,6 +22,11 @@ function assert(condition, message = null) {
 }
 
 
+function random_choice(values) {
+    return values[Math.floor(Math.random() * values.length)];
+}
+
+
 function test_comment_strip() {
     let a = ` // a comment  `;
     let a_strp = rbql.strip_comments(a);
@@ -172,6 +177,26 @@ function test_select_translation() {
 }
 
 
+function do_randomly_split_replace(query, old_name, new_name) {
+    let query_parts = query.split(old_name);
+    let result = query_parts[0];
+    for (let i = 1; i < query_parts.length; i++) {
+        result += random_choice([true, false]) ? old_name : new_name;
+        result += query_parts[i];
+    }
+    return result;
+}
+
+
+function randomly_replace_column_variable_style(query) {
+    for (let i = 10; i >= 0; i--) {
+        query = do_randomly_split_replace(query, `a${i}`, `a[${i}]`);
+        query = do_randomly_split_replace(query, `b${i}`, `b[${i}]`);
+    }
+    return query;
+}
+
+
 async function test_json_tables() {
     let tests_file_path = 'rbql_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
@@ -179,9 +204,11 @@ async function test_json_tables() {
         let test_name = test_case['test_name'];
         console.log('Running rbql test: ' + test_name);
         let query = test_common.get_default(test_case, 'query_js', null);
-        // FIXME randomly replace ai with a[i], see Python code
         if (query == null)
             continue;
+        let randomly_replace_var_names = test_common.get_default(test_case, 'randomly_replace_var_names', true);
+        if (randomly_replace_var_names)
+            query = randomly_replace_column_variable_style(query);
         let input_table = test_case['input_table'];
         let local_debug_mode = test_common.get_default(test_case, 'debug_mode', false);
         let join_table = test_common.get_default(test_case, 'join_table', null);
@@ -200,7 +227,6 @@ async function test_json_tables() {
         try {
             warnings = await rbql.table_run(query, input_table, output_table, join_table, user_init_code);
         } catch (e) {
-            //console.log("e:" + e); //FOR_DEBUG
             if (local_debug_mode)
                 throw(e);
             if (e.constructor.name === 'RbqlParsingError') {
@@ -223,7 +249,6 @@ async function test_json_tables() {
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
-        //console.log("output_table:" + output_table); //FOR_DEBUG
         test_common.assert_tables_are_equal(expected_output_table, output_table);
     }
 }

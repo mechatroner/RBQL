@@ -202,22 +202,16 @@ def do_randomly_split_replace(query, old_name, new_name):
     query_parts = query.split(old_name)
     result = query_parts[0]
     for i in range(1, len(query_parts)):
-        if random.choice([True, False]):
-            result += old_name
-        else:
-            result += new_name
+        result += old_name if random.choice([True, False]) else new_name
         result += query_parts[i]
     return result
 
 
-
-
 def randomly_replace_column_variable_style(query):
-    for i in range(10):
+    for i in reversed(range(10)):
         query = do_randomly_split_replace(query, 'a{}'.format(i), 'a[{}]'.format(i))
         query = do_randomly_split_replace(query, 'b{}'.format(i), 'b[{}]'.format(i))
     return query
-
 
 
 class TestTableRun(unittest.TestCase):

@@ -894,13 +894,16 @@ function generate_common_init_code(query, variable_prefix) {
 
 function generate_init_statements(query, variables_map, join_variables_map, indent) {
     let code_lines = generate_common_init_code(query, 'a');
+    let simple_var_name_rgx = /^[_0-9a-zA-Z]+$/;
     for (const [variable_name, column_num] of Object.entries(variables_map)) {
-        code_lines.push(`var ${variable_name} = safe_get(record_a, ${column_num});`);
+        let variable_declaration_keyword = simple_var_name_rgx.exec(variable_name) ? 'var ' : '';
+        code_lines.push(`${variable_declaration_keyword}${variable_name} = safe_get(record_a, ${column_num});`);
     }
     if (join_variables_map) {
         code_lines = code_lines.concat(generate_common_init_code(query, 'b'));
         for (const [variable_name, column_num] of Object.entries(join_variables_map)) {
-            code_lines.push(`var ${variable_name} = record_b === null ? null : safe_get(record_b, ${column_num});`);
+            let variable_declaration_keyword = simple_var_name_rgx.exec(variable_name) ? 'var ' : '';
+            code_lines.push(`${variable_declaration_keyword}${variable_name} = record_b === null ? null : safe_get(record_b, ${column_num});`);
         }
     }
     for (let i = 1; i < code_lines.length; i++) {
@@ -1283,7 +1286,6 @@ function load_module_from_file(js_code) {
     var tmp_dir = os.tmpdir();
     var script_filename = 'rbconvert_' + String(Math.random()).replace('.', '_') + '.js';
     let tmp_worker_module_path = path.join(tmp_dir, script_filename);
-    console.log("tmp_worker_module_path:" + tmp_worker_module_path); //FOR_DEBUG
     fs.writeFileSync(tmp_worker_module_path, js_code);
     let worker_module = require(tmp_worker_module_path);
     return worker_module;
