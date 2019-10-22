@@ -673,7 +673,11 @@ async function generic_run(user_query, input_iterator, output_writer, join_table
         eval('(function(){' + js_code + '})()');
         rbql_worker = module.exports;
     }
-    let warnings = await rbql_worker.rb_transform(input_iterator, join_map, output_writer);
+    await rbql_worker.rb_transform(input_iterator, join_map, output_writer);
+    let input_warnings = input_iterator.get_warnings();
+    let join_warnings = join_map ? join_map.get_warnings() : [];
+    let output_warnings = output_writer.get_warnings();
+    let warnings = (input_warnings.concat(join_warnings)).concat(output_warnings);
     return warnings;
 }
 

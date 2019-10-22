@@ -703,7 +703,6 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
     }
     if (output_writer.hasOwnProperty('finish'))
         await writer.finish();
-    return input_iterator.get_warnings();
 }
 
 module.exports.rb_transform = rb_transform;

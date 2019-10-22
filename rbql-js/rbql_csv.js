@@ -130,20 +130,21 @@ function find_table_path(table_id) {
 
 
 function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') {
+    // CSVRecordIterator works using async producer-consumer model and an internal buffer
+    // get_record() - consumer
+    // stream.on('data') - producer
+
     this.stream = stream;
     this.encoding = encoding;
     this.delim = delim;
     this.policy = policy;
     this.table_name = table_name;
+
     this.decoder = null;
     if (encoding == 'utf-8')
         this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
-
-    this.external_record_callback = null;
-    this.external_finish_success_callback = null;
-    this.external_error_callback = null;
-    this.external_line_callback = null;
-    this.finished = false;
+   
+    this.input_exhausted = false;
 
     this.utf8_bom_removed = false; // BOM doesn't get automatically removed by decoder when utf-8 file is treated as latin-1
     this.first_defective_line = null;
@@ -153,24 +154,48 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.NL = 0; // Line num (can be different from record num for rfc dialect)
 
     this.rfc_line_buffer = [];
-    this.partially_decode_line = '';
+
+    this.partially_decoded_line = '';
+
+    this.current_record_promise = null;
+    this.resolve_current_record = null;
+    this.reject_current_record = null;
+
+    this.produced_records_queue = new RecordQueue(); // FIXME implement
+ 
+
+    this.try_consume_next_record = function() {
+        if (this.resolve_current_record === null)
+            return;
+        let record = produced_records_queue.dequeue()
+        if (record === null && !input_exhausted)
+            return;
+        let resolve = this.resolve_current_record;
+        this.resolve_current_record = null;
+        resolve(record);
+    }
 
 
-    this.set_record_callback = function(external_record_callback) {
-        this.external_record_callback = external_record_callback;
-    };
+    this.get_record = async function() {
+        let parent_iterator = this;
+        this.current_record_promise = new Promise(function(resolve, reject) {
+            parent_iterator.resolve_current_record = resolve;
+            parent_iterator.reject_current_record = reject;
+        });
+        this.try_consume_next_record();
+    }
 
-    //this.set_finish_callback = function(external_finish_success_callback) {
-    //    this.external_finish_success_callback = external_finish_success_callback;
-    //};
-    //
-    //this.set_error_callback = function(external_error_callback) {
-    //    this.external_error_callback = external_error_callback;
-    //};
 
-    this._set_line_callback = function(external_line_callback) {
-        this.external_line_callback = external_line_callback;
-    };
+    this._get_all_records = async function() {
+        let records = [];
+        while (true) {
+            let record = await this.get_record();
+            if (record === null)
+                break;
+            records.push(record);
+        }
+        return records;
+    }
 
 
     this._do_process_line_simple = function(line) {
@@ -181,7 +206,8 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         let num_fields = record.length;
         if (!this.fields_info.hasOwnProperty(num_fields))
             this.fields_info[num_fields] = this.NR;
-        this.external_record_callback(record);
+        this.produced_records_queue.enqueue(record);
+        this.try_consume_next_record();
     };
 
 
@@ -207,13 +233,6 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
 
     this.process_line = function(line) {
-        if (this.finished) {
-            return;
-        }
-        if (this.external_line_callback) {
-            this.external_line_callback(line);
-            return;
-        }
         if (this.NL === 0) {
             var clean_line = remove_utf8_bom(line, this.encoding);
             if (clean_line != line) {
@@ -226,82 +245,55 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     };
 
 
-    this._get_all_records = function(external_records_callback) {
-        let records = [];
-        let record_callback = function(record) {
-            records.push(record);
-        };
-        let finish_callback = function() {
-            external_records_callback(records);
-        };
-        this.set_record_callback(record_callback);
-        this.set_finish_callback(finish_callback);
-        this.start();
-    };
+    //this._get_all_lines = function(external_lines_callback) {
+    //    // FIXME rewrite with async
+    //    let lines = [];
+    //    let line_callback = function(line) {
+    //        lines.push(line);
+    //    };
+    //    let finish_callback = function() {
+    //        external_lines_callback(lines);
+    //    };
+    //    this._set_line_callback(line_callback);
+    //    this.set_finish_callback(finish_callback);
+    //    this.start();
+    //};
 
-
-    this._get_all_lines = function(external_lines_callback) {
-        let lines = [];
-        let line_callback = function(line) {
-            lines.push(line);
-        };
-        let finish_callback = function() {
-            external_lines_callback(lines);
-        };
-        this._set_line_callback(line_callback);
-        this.set_finish_callback(finish_callback);
-        this.start();
-    };
 
     this.process_data_chunk = function(data_chunk) {
-        if (this.finished)
-            return;
         let decoded_string = null;
         if (this.decoder) {
             try {
                 decoded_string = this.decoder.decode(data_chunk);
             } catch (e) {
-                this.finished = true;
-                if (e instanceof TypeError && e.message.indexOf('not valid for encoding') != -1) {
-                    this.external_error_callback('IO handling', 'Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead');
-                } else {
-                    this.external_error_callback('unexpected', String(e));
-                }
+                this.reject_current_record(e);
                 return;
             }
         } else {
             decoded_string = data_chunk.toString(this.encoding);
         }
         let lines = csv_utils.split_lines(decoded_string);
-        lines[0] = this.partially_decode_line + lines[0];
-        this.partially_decode_line = lines[lines.length - 1];
-        for (let i = 0; i + 1 < lines.length; i++) {
+        lines[0] = this.partially_decoded_line + lines[0];
+        this.partially_decoded_line = lines.pop();
+        for (let i = 0; i < lines.length; i++) {
             this.process_line(lines[i]);
         }
     }
 
+
     this.process_data_end = function() {
-        if (this.finished)
-            return;
-        if (this.partially_decode_line.length) {
-            this.process_line(this.partially_decode_line);
-            this.partially_decode_line = '';
+        this.input_exhausted = true;
+        if (this.partially_decoded_line.length) {
+            let last_line = this.partially_decoded_line;
+            this.partially_decoded_line = '';
+            process_line(last_line);
         }
-        this.finish();
     }
 
 
     this.start = function() {
         this.stream.on('data', (data_chunk) => { this.process_data_chunk(data_chunk); });
         this.stream.on('end', () => { this.process_data_end(); });
-    };
-
-
-    this.finish = function() {
-        if (!this.finished) {
-            this.finished = true;
-            this.external_finish_success_callback();
-        }
     };
 
 
@@ -407,14 +399,25 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
     };
 
 
-    this.finish = function(after_finish_callback) {
-        // FIXME rewrite as async
-        if (this.close_stream_on_finish) {
-            this.stream.end('', this.encoding, after_finish_callback);
-        } else {
-            setTimeout(after_finish_callback, 0);
+    this.finish = async function() {
+        let close_stream_on_finish = this.close_stream_on_finish;
+        let finish_promise = new Promise(function(resolve, reject) {
+            if (close_stream_on_finish) {
+                this.stream.end('', this.encoding, () => { resolve(); });
+            } else {
+                setTimeout(() => { resolve(); }, 0);
+            }
         }
-    };
+    }
+
+    //this.finish = function(after_finish_callback) {
+    //    // FIXME rewrite as async
+    //    if (this.close_stream_on_finish) {
+    //        this.stream.end('', this.encoding, after_finish_callback);
+    //    } else {
+    //        setTimeout(after_finish_callback, 0);
+    //    }
+    //};
 
 
     this.get_warnings = function() {
@@ -456,44 +459,31 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
 }
 
 
-function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, success_handler, error_handler, user_init_code='') {
-    try {
-        let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
-        let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
-        if (input_delim == '"' && input_policy == 'quoted') {
-            error_handler('IO handling', 'Double quote delimiter is incompatible with "quoted" policy');
-            return;
-        }
-        if (csv_encoding == 'latin-1')
-            csv_encoding = 'binary';
-        if (!is_ascii(user_query) && csv_encoding == 'binary') {
-            error_handler('IO handling', 'To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
-            return;
-        }
-        if ((!is_ascii(input_delim) || !is_ascii(output_delim)) && csv_encoding == 'binary') {
-            error_handler('IO handling', 'To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
-            return;
-        }
+function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code='') {
+    let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
+    let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
+    if (input_delim == '"' && input_policy == 'quoted')
+        throw new RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy');
+    if (csv_encoding == 'latin-1')
+        csv_encoding = 'binary';
+    if (!is_ascii(user_query) && csv_encoding == 'binary')
+        throw new RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
+    if ((!is_ascii(input_delim) || !is_ascii(output_delim)) && csv_encoding == 'binary')
+        throw new RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary');
 
-        let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
-        if (user_init_code == '' && fs.existsSync(default_init_source_path)) {
-            user_init_code = read_user_init_code(default_init_source_path);
-        }
-
-        let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding);
-        let input_iterator = new CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy);
-        let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
-
-        if (debug_mode)
-            rbql.set_debug_mode();
-        rbql.generic_run(user_query, input_iterator, output_writer, success_handler, error_handler, join_tables_registry, user_init_code);
-    } catch (e) {
-        if (debug_mode) {
-            console.log('Unexpected exception, dumping stack trace:');
-            console.log(e.stack);
-        }
-        error_handler('unexpected', String(e));
+    let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
+    if (user_init_code == '' && fs.existsSync(default_init_source_path)) {
+        user_init_code = read_user_init_code(default_init_source_path);
     }
+
+    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding);
+    let input_iterator = new CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy);
+    let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
+
+    if (debug_mode)
+        rbql.set_debug_mode();
+    let warnings = await rbql.generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code);
+    return warnings;
 }
 
 
