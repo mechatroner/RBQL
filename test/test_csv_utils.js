@@ -19,8 +19,6 @@ var rbql_csv = null;
 // TODO add iterator test with random unicode table / separator just like in Python version
 
 
-// FIXME add huge synthetic file read test, with multiple on('data') callbacks
-
 const script_dir = __dirname;
 
 var debug_mode = false;
@@ -518,8 +516,10 @@ async function test_large_file() {
     fs.writeFileSync('huge_file.csv', data_lines.join('\n'));
     let input_stream = fs.createReadStream('huge_file.csv');
     let input_iterator = new rbql_csv.CSVRecordIterator(input_stream, 'utf-8', ',', 'quoted');
-    // FIXME make sure we have multiple on 'data' callbacks
+    input_iterator.collect_debug_stats = true;
     let records = await input_iterator._get_all_records();
+    console.log("input_iterator.num_chunks_got:" + input_iterator.dbg_stats_num_chunks_got);
+    console.log("input_iterator.max_records:" + input_iterator.dbg_stats_max_records);
     test_common.assert_equal(num_records, records.length);
     test_common.assert(records[num_records / 2].indexOf('gamma') != -1);
 }

@@ -133,7 +133,7 @@ class RecordQueue {
     // FIXME write unit test for this
     constructor() {
         this.push_stack = [];
-        this.pop_stack = [];
+        this.pull_stack = [];
     }
 
     enqueue(record) {
@@ -141,14 +141,14 @@ class RecordQueue {
     }
 
     dequeue() {
-        if (!this.pop_stack.length) {
+        if (!this.pull_stack.length) {
             if (!this.push_stack.length)
                 return null;
-            this.pop_stack = this.push_stack;
-            this.pop_stack.reverse();
+            this.pull_stack = this.push_stack;
+            this.pull_stack.reverse();
             this.push_stack = [];
         }
-        return this.pop_stack.pop();
+        return this.pull_stack.pop();
     }
 }
 
@@ -163,6 +163,10 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.delim = delim;
     this.policy = policy;
     this.table_name = table_name;
+
+    this.collect_debug_stats = false;
+    this.dbg_stats_num_chunks_got = 0;
+    this.dbg_stats_max_records = 0;
 
     this.decoder = null;
     if (encoding == 'utf-8')
@@ -289,6 +293,11 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         this.partially_decoded_line = lines.pop();
         for (let i = 0; i < lines.length; i++) {
             this.process_line(lines[i]);
+        }
+
+        if (this.collect_debug_stats) {
+            this.dbg_stats_num_chunks_got += 1;
+            this.dbg_stats_max_records = Math.max(this.dbg_stats_max_records, this.produced_records_queue.push_stack.length + this.produced_records_queue.pull_stack.length);
         }
     }
 
