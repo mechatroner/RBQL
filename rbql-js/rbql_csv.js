@@ -129,6 +129,30 @@ function find_table_path(table_id) {
 }
 
 
+class RecordQueue {
+    // FIXME write unit test for this
+    constructor() {
+        this.push_stack = [];
+        this.pop_stack = [];
+    }
+
+    enqueue(record) {
+        this.push_stack.push(record);
+    }
+
+    dequeue() {
+        if (!this.pop_stack.length) {
+            if (!this.push_stack.length)
+                return null;
+            this.pop_stack = this.push_stack;
+            this.pop_stack.reverse();
+            this.push_stack = [];
+        }
+        return this.pop_stack.pop();
+    }
+}
+
+
 function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') {
     // CSVRecordIterator works using async producer-consumer model and an internal buffer
     // get_record() - consumer
@@ -161,7 +185,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.resolve_current_record = null;
     this.reject_current_record = null;
 
-    this.produced_records_queue = new RecordQueue(); // FIXME implement
+    this.produced_records_queue = new RecordQueue();
  
 
     this.try_consume_next_record = function() {
