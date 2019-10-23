@@ -15,6 +15,16 @@ function round_floats(src_table) {
 }
 
 
+function assert(condition, message=null, exit_at_error=true) {
+    if (condition)
+        return true;
+    message = message ? message : 'Assertion failed';
+    if (exit_at_error)
+        die(message);
+    return false;
+}
+
+
 function assert_equal(a, b, exit_at_error=true, silent=false) {
     if (a != b) {
         if (!silent)
@@ -130,6 +140,7 @@ function get_default(obj, key, default_value) {
 module.exports.get_default = get_default;
 module.exports.normalize_warnings = normalize_warnings;
 module.exports.objects_are_equal = objects_are_equal;
+module.exports.assert = assert;
 module.exports.assert_tables_are_equal = assert_tables_are_equal;
 module.exports.assert_arrays_are_equal = assert_arrays_are_equal;
 module.exports.assert_equal = assert_equal;

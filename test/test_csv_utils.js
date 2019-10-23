@@ -503,6 +503,28 @@ async function test_iterator_rfc() {
 }
 
 
+async function test_large_file() {
+    let data_lines = [];
+    let entries = ['alpha', 'beta', 'gamma', 'omega', 'delta'];
+    let num_records = 300000;
+    for (let r = 0; r < num_records; r++) {
+        let record = [];
+        for (let c = 0; c < 10; c++) {
+            record.push(entries[(r + c) % entries.length]);
+        }
+        data_lines.push(record.join(','));
+
+    }
+    fs.writeFileSync('huge_file.csv', data_lines.join('\n'));
+    let input_stream = fs.createReadStream('huge_file.csv');
+    let input_iterator = new rbql_csv.CSVRecordIterator(input_stream, 'utf-8', ',', 'quoted');
+    // FIXME make sure we have multiple on 'data' callbacks
+    let records = await input_iterator._get_all_records();
+    test_common.assert_equal(num_records, records.length);
+    test_common.assert(records[num_records / 2].indexOf('gamma') != -1);
+}
+
+
 async function test_multicharacter_separator_parsing() {
     let data_lines = [];
     data_lines.push('aaa:=)bbb:=)ccc');
@@ -576,9 +598,9 @@ async function test_everything() {
     await test_record_iterator();
     await test_monocolumn_separated_parsing();
     await test_multicharacter_separator_parsing();
-    //test_iterator_rfc();
-    //return; //FIXME
-    //test_json_scenarios();
+    await test_iterator_rfc();
+    await test_large_file();
+    //test_json_scenarios(); // FIXME 
 }
 
 

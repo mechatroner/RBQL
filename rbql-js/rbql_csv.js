@@ -416,23 +416,17 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
 
     this.finish = async function() {
         let close_stream_on_finish = this.close_stream_on_finish;
+        let output_stream = this.stream;
+        let output_encoding = this.encoding;
         let finish_promise = new Promise(function(resolve, reject) {
             if (close_stream_on_finish) {
-                this.stream.end('', this.encoding, () => { resolve(); });
+                output_stream.end('', output_encoding, () => { resolve(); });
             } else {
                 setTimeout(() => { resolve(); }, 0);
             }
         });
+        return finish_promise;
     }
-
-    //this.finish = function(after_finish_callback) {
-    //    // FIXME rewrite as async
-    //    if (this.close_stream_on_finish) {
-    //        this.stream.end('', this.encoding, after_finish_callback);
-    //    } else {
-    //        setTimeout(after_finish_callback, 0);
-    //    }
-    //};
 
 
     this.get_warnings = function() {
