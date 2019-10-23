@@ -431,7 +431,7 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
             } else {
                 setTimeout(() => { resolve(); }, 0);
             }
-        }
+        });
     }
 
     //this.finish = function(after_finish_callback) {
@@ -483,7 +483,7 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
 }
 
 
-function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code='') {
+async function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code='') {
     let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
     if (input_delim == '"' && input_policy == 'quoted')
@@ -524,3 +524,4 @@ module.exports.interpret_named_csv_format = interpret_named_csv_format;
 module.exports.read_user_init_code = read_user_init_code;
 module.exports.csv_run = csv_run;
 module.exports.set_debug_mode = set_debug_mode;
+module.exports.RecordQueue = RecordQueue;

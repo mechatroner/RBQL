@@ -567,7 +567,28 @@ function test_monocolumn_separated_parsing() {
 }
 
 
+function test_record_queue() {
+    let record_queue = new rbql_csv.RecordQueue();
+    record_queue.enqueue(10);
+    record_queue.enqueue(20);
+    test_common.assert_equal(10, record_queue.dequeue());
+    test_common.assert_equal(20, record_queue.dequeue());
+    test_common.assert_equal(null, record_queue.dequeue());
+    test_common.assert_equal(null, record_queue.dequeue());
+    record_queue.enqueue(10);
+    test_common.assert_equal(10, record_queue.dequeue());
+    record_queue.enqueue(20);
+    test_common.assert_equal(20, record_queue.dequeue());
+    record_queue.enqueue(5);
+    test_common.assert_equal(5, record_queue.dequeue());
+    test_common.assert_equal(null, record_queue.dequeue());
+    test_common.assert_equal(null, record_queue.dequeue());
+    test_common.assert_equal(null, record_queue.dequeue());
+}
+
+
 function test_all() {
+    test_record_queue();
     test_random_funcs();
     test_unquote();
     test_split();
