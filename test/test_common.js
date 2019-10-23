@@ -67,8 +67,11 @@ function assert_arrays_are_equal(a, b, exit_at_error=true, silent=false) {
 
 
 function assert_tables_are_equal(a, b, exit_at_error=true) {
-    if (a.length != b.length)
+    if (a.length != b.length) {
+        if (exit_at_error)
+            die(`a.length = ${a.length} != b.length = ${b.length}`);
         return false;
+    }
     for (var i = 0; i < a.length; i++) {
         if (!assert_arrays_are_equal(a[i], b[i], false)) {
             if (exit_at_error)

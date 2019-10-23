@@ -169,6 +169,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
    
     this.input_exhausted = false;
+    this.started = false;
 
     this.utf8_bom_removed = false; // BOM doesn't get automatically removed by decoder when utf-8 file is treated as latin-1
     this.first_defective_line = null;
@@ -181,7 +182,6 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
     this.partially_decoded_line = '';
 
-    this.current_record_promise = null;
     this.resolve_current_record = null;
     this.reject_current_record = null;
 
@@ -191,8 +191,8 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.try_consume_next_record = function() {
         if (this.resolve_current_record === null)
             return;
-        let record = produced_records_queue.dequeue()
-        if (record === null && !input_exhausted)
+        let record = this.produced_records_queue.dequeue()
+        if (record === null && !this.input_exhausted)
             return;
         let resolve = this.resolve_current_record;
         this.resolve_current_record = null;
@@ -201,12 +201,15 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
 
 
     this.get_record = async function() {
+        if (!this.started)
+            this.start();
         let parent_iterator = this;
-        this.current_record_promise = new Promise(function(resolve, reject) {
+        current_record_promise = new Promise(function(resolve, reject) {
             parent_iterator.resolve_current_record = resolve;
             parent_iterator.reject_current_record = reject;
         });
         this.try_consume_next_record();
+        return current_record_promise;
     }
 
 
@@ -269,21 +272,6 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     };
 
 
-    //this._get_all_lines = function(external_lines_callback) {
-    //    // FIXME rewrite with async
-    //    let lines = [];
-    //    let line_callback = function(line) {
-    //        lines.push(line);
-    //    };
-    //    let finish_callback = function() {
-    //        external_lines_callback(lines);
-    //    };
-    //    this._set_line_callback(line_callback);
-    //    this.set_finish_callback(finish_callback);
-    //    this.start();
-    //};
-
-
     this.process_data_chunk = function(data_chunk) {
         let decoded_string = null;
         if (this.decoder) {
@@ -310,12 +298,15 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         if (this.partially_decoded_line.length) {
             let last_line = this.partially_decoded_line;
             this.partially_decoded_line = '';
-            process_line(last_line);
+            this.process_line(last_line);
         }
     }
 
 
     this.start = function() {
+        if (this.started)
+            return;
+        this.started = true;
         this.stream.on('data', (data_chunk) => { this.process_data_chunk(data_chunk); });
         this.stream.on('end', () => { this.process_data_end(); });
     };
