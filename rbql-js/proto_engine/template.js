@@ -33,10 +33,6 @@ var NU = 0; // NU - Num Updated. Alternative variables: NW (Num Where) - Not Pra
 var NR = 0;
 var NF = 0;
 
-var finished_with_error = false;
-var input_finished = false;
-
-var join_map = null;
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
 
@@ -678,7 +674,7 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
     if (__RBQLMP__sort_flag)
         writer = new SortedWriter(writer);
 
-    while (!finished_with_error) {
+    while (true) {
         let record_a = await input_iterator.get_record();
         if (record_a === null)
             break;
@@ -688,7 +684,7 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
         try {
             let join_matches = join_map ? join_map.get_rhs(__RBQLMP__lhs_join_var) : null;
             if (!polymorphic_process(record_a, join_matches)) {
-                input_iterator.finish();
+                input_iterator.stop();
                 break;
             }
         } catch (e) {

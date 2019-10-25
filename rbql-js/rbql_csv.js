@@ -130,7 +130,6 @@ function find_table_path(table_id) {
 
 
 class RecordQueue {
-    // FIXME write unit test for this
     constructor() {
         this.push_stack = [];
         this.pull_stack = [];
@@ -153,7 +152,7 @@ class RecordQueue {
 }
 
 
-function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') {
+function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', variable_prefix='a') {
     // CSVRecordIterator works using async producer-consumer model and an internal buffer
     // get_record() - consumer
     // stream.on('data') - producer
@@ -163,6 +162,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.delim = delim;
     this.policy = policy;
     this.table_name = table_name;
+    this.variable_prefix = variable_prefix;
 
     this.collect_debug_stats = false;
     this.dbg_stats_num_chunks_got = 0;
@@ -190,9 +190,17 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
     this.reject_current_record = null;
 
     this.produced_records_queue = new RecordQueue();
+
+
+    this.get_variables_map = async function(query) {
+        let variable_map = new Object();
+        rbql.parse_basic_variables(query, this.variable_prefix, variable_map);
+        rbql.parse_array_variables(query, this.variable_prefix, variable_map);
+        return variable_map;
+    };
  
 
-    this.try_consume_next_record = function() {
+    this.try_resolve_next_record = function() {
         if (this.resolve_current_record === null)
             return;
         let record = this.produced_records_queue.dequeue()
@@ -212,7 +220,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
             parent_iterator.resolve_current_record = resolve;
             parent_iterator.reject_current_record = reject;
         });
-        this.try_consume_next_record();
+        this.try_resolve_next_record();
         return current_record_promise;
     }
 
@@ -238,7 +246,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
         if (!this.fields_info.hasOwnProperty(num_fields))
             this.fields_info[num_fields] = this.NR;
         this.produced_records_queue.enqueue(record);
-        this.try_consume_next_record();
+        this.try_resolve_next_record();
     };
 
 
@@ -308,9 +316,15 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input') 
             let last_line = this.partially_decoded_line;
             this.partially_decoded_line = '';
             this.process_line(last_line);
+        } else {
+            this.try_resolve_next_record();
         }
     }
 
+
+    this.stop = function() {
+        this.stream.destroy(); // TODO consider using pause() instead
+    }
 
     this.start = function() {
         if (this.started)
@@ -464,15 +478,8 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
             throw new RbqlIOHandlingError(`Unable to find join table "${table_id}"`);
         }
         this.stream = fs.createReadStream(table_path);
-        this.record_iterator = new CSVRecordIterator(this.stream, this.encoding, this.delim, this.policy, table_id);
+        this.record_iterator = new CSVRecordIterator(this.stream, this.encoding, this.delim, this.policy, table_id, 'b');
         return this.record_iterator;
-    };
-
-
-    this.finish = function() {
-        // TODO call this function from somewhere, like we do in Python
-        if (this.record_iterator !== null)
-            this.record_iterator.finish();
     };
 }
 

@@ -253,8 +253,9 @@ async function write_and_parse_back(table, encoding, delim, policy) {
         encoding = 'utf-8'; // Writing js string in utf-8 then reading back should be a lossless operation? Or not?
     let writer_stream = new PseudoWritable();
     let line_separator = random_choice(line_separators);
-    let writer = new rbql_csv.CSVWriter(writer_stream, true, encoding, delim, policy, line_separator);
+    let writer = new rbql_csv.CSVWriter(writer_stream, false, encoding, delim, policy, line_separator);
     writer._write_all(table);
+    await writer.finish();
     assert(writer.get_warnings().length === 0);
     let data_buffer = writer_stream.get_data();
     let input_stream = new stream.Readable();
@@ -379,26 +380,19 @@ async function test_whitespace_separated_parsing() {
 }
 
 
-function process_test_case(tmp_tests_dir, tests, test_id) {
-    if (test_id >= tests.length) {
-        rmtree(tmp_tests_dir);
-        console.log('Finished JS unit tests');
-        return;
-    }
-    let test_case = tests[test_id];
+async function process_test_case(tmp_tests_dir, test_case) {
     let test_name = test_case['test_name'];
-
     let query = test_case['query_js'];
-    if (!query)  {
-        process_test_case(tmp_tests_dir, tests, test_id + 1);
+    if (!query)
         return;
-    }
     console.log('Running rbql test: ' + test_name);
     query = query.replace('###UT_TESTS_DIR###', script_dir);
 
     let input_table_path = test_case['input_table_path'];
+    let local_debug_mode = test_common.get_default(test_case, 'debug_mode', false);
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
+    let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
     let delim = test_case['csv_separator'];
     let policy = test_case['csv_policy'];
@@ -416,31 +410,40 @@ function process_test_case(tmp_tests_dir, tests, test_id) {
         actual_output_table_path = path.join(tmp_tests_dir, 'expected_empty_file');
     }
 
-    let error_handler = function(error_type, error_msg) {
-        assert(expected_error);
-        assert(error_msg.indexOf(expected_error) != -1, `expected error: "${expected_error}", actual error: "${error_msg}"`);
-        process_test_case(tmp_tests_dir, tests, test_id + 1);
-    };
-    let success_handler = function(warnings) {
-        assert(expected_error === null);
-        warnings = test_common.normalize_warnings(warnings).sort();
-        test_common.assert_arrays_are_equal(expected_warnings, warnings);
-        let actual_md5 = calc_file_md5(actual_output_table_path);
-        assert(expected_md5 == actual_md5, `md5 mismatch. Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
-        process_test_case(tmp_tests_dir, tests, test_id + 1);
-    };
-
-    rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, success_handler, error_handler, '');
+    let warnings = null;
+    try {
+        warnings = await rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, '');
+    } catch (e) {
+        if (local_debug_mode)
+            throw(e);
+        if(!expected_error) {
+            throw(e);
+        }
+        if (expected_error_exact) {
+            test_common.assert_equal(expected_error, e.message);
+        } else {
+            assert(e.message.indexOf(expected_error) != -1, `Expected error is not substring of actual. Expected error: ${expected_error}, Actual error: ${e.message}`);
+        }
+        return;
+    }
+    warnings = test_common.normalize_warnings(warnings).sort();
+    test_common.assert_arrays_are_equal(expected_warnings, warnings);
+    let actual_md5 = calc_file_md5(actual_output_table_path);
+    assert(expected_md5 == actual_md5, `md5 mismatch. Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
 }
 
 
-function test_json_scenarios() {
+async function test_json_scenarios() {
     let tests_file_path = 'csv_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
     let tmp_tests_dir = 'rbql_csv_unit_tests_dir_js_' + String(Math.random()).replace('.', '_');
     tmp_tests_dir = path.join(os.tmpdir(), tmp_tests_dir);
     fs.mkdirSync(tmp_tests_dir);
-    process_test_case(tmp_tests_dir, tests, 0);
+    for (let test_case of tests) {
+        await process_test_case(tmp_tests_dir, test_case);
+    }
+    rmtree(tmp_tests_dir);
+    console.log('Finished JS unit tests');
 }
 
 
@@ -599,8 +602,8 @@ async function test_everything() {
     await test_monocolumn_separated_parsing();
     await test_multicharacter_separator_parsing();
     await test_iterator_rfc();
+    await test_json_scenarios();
     await test_large_file();
-    //test_json_scenarios(); // FIXME 
 }
 
 

@@ -40,10 +40,6 @@ var NU = 0; // NU - Num Updated. Alternative variables: NW (Num Where) - Not Pra
 var NR = 0;
 var NF = 0;
 
-var finished_with_error = false;
-var input_finished = false;
-
-var join_map = null;
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
 
@@ -685,7 +681,7 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
     if (__RBQLMP__sort_flag)
         writer = new SortedWriter(writer);
 
-    while (!finished_with_error) {
+    while (true) {
         let record_a = await input_iterator.get_record();
         if (record_a === null)
             break;
@@ -695,7 +691,7 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
         try {
             let join_matches = join_map ? join_map.get_rhs(__RBQLMP__lhs_join_var) : null;
             if (!polymorphic_process(record_a, join_matches)) {
-                input_iterator.finish();
+                input_iterator.stop();
                 break;
             }
         } catch (e) {
@@ -1143,7 +1139,7 @@ function HashJoinMap(record_iterator, key_index) {
             let nf = record.length;
             this.max_record_len = Math.max(this.max_record_len, nf);
             if (this.key_index >= nf) {
-                this.record_iterator.finish();
+                this.record_iterator.stop();
                 throw new RbqlRuntimeError(`No field with index ${this.key_index + 1} at record ${this.nr} in "B" table`);
             }
             let key = record[this.key_index];
@@ -1314,11 +1310,11 @@ function TableIterator(input_table, variable_prefix='a') {
     this.variable_prefix = variable_prefix;
     this.nr = 0;
     this.fields_info = new Object();
-    this.finished = false;
+    this.stopped = false;
 
 
-    this.finish = function() {
-        this.finished = true;
+    this.stop = function() {
+        this.stopped = true;
     };
 
 
@@ -1331,7 +1327,7 @@ function TableIterator(input_table, variable_prefix='a') {
 
 
     this.get_record = async function() {
-        if (this.finished)
+        if (this.stopped)
             return null;
         if (this.nr >= this.input_table.length)
             return null;
@@ -1419,6 +1415,8 @@ module.exports.table_run = table_run;
 module.exports.TableIterator = TableIterator;
 module.exports.TableWriter = TableWriter;
 module.exports.SingleTableRegistry = SingleTableRegistry;
+module.exports.parse_basic_variables = parse_basic_variables;
+module.exports.parse_array_variables = parse_array_variables;
 
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;

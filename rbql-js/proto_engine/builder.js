@@ -428,7 +428,7 @@ function HashJoinMap(record_iterator, key_index) {
             let nf = record.length;
             this.max_record_len = Math.max(this.max_record_len, nf);
             if (this.key_index >= nf) {
-                this.record_iterator.finish();
+                this.record_iterator.stop();
                 throw new RbqlRuntimeError(`No field with index ${this.key_index + 1} at record ${this.nr} in "B" table`);
             }
             let key = record[this.key_index];
@@ -599,11 +599,11 @@ function TableIterator(input_table, variable_prefix='a') {
     this.variable_prefix = variable_prefix;
     this.nr = 0;
     this.fields_info = new Object();
-    this.finished = false;
+    this.stopped = false;
 
 
-    this.finish = function() {
-        this.finished = true;
+    this.stop = function() {
+        this.stopped = true;
     };
 
 
@@ -616,7 +616,7 @@ function TableIterator(input_table, variable_prefix='a') {
 
 
     this.get_record = async function() {
-        if (this.finished)
+        if (this.stopped)
             return null;
         if (this.nr >= this.input_table.length)
             return null;
@@ -704,6 +704,8 @@ module.exports.table_run = table_run;
 module.exports.TableIterator = TableIterator;
 module.exports.TableWriter = TableWriter;
 module.exports.SingleTableRegistry = SingleTableRegistry;
+module.exports.parse_basic_variables = parse_basic_variables;
+module.exports.parse_array_variables = parse_array_variables;
 
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;
