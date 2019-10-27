@@ -123,7 +123,7 @@ def sample_lines(src_path, encoding, delim, policy):
 
 def autodetect_delim_policy(input_path, encoding):
     sampled_lines = sample_lines(input_path, encoding, None, None)
-    autodetection_dialects = [('\t', 'simple'), (',', 'quoted'), (';', 'quoted')]
+    autodetection_dialects = [('\t', 'simple'), (',', 'quoted'), (';', 'quoted'), ('|', 'simple')]
     for delim, policy in autodetection_dialects:
         if is_delimited_table(sampled_lines, delim, policy):
             return (delim, policy)

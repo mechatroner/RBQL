@@ -161,7 +161,7 @@ async function sample_records(table_path, delim, policy) {
 
 
 function autodetect_delim_policy(table_path, sampled_lines) {
-    let autodetection_dialects = [['\t', 'simple'], [',', 'quoted'], [';', 'quoted']];
+    let autodetection_dialects = [['\t', 'simple'], [',', 'quoted'], [';', 'quoted'], ['|', 'simple']];
     for (var i = 0; i < autodetection_dialects.length; i++) {
         let [delim, policy] = autodetection_dialects[i];
         if (is_delimited_table(sampled_lines, delim, policy))
@@ -275,7 +275,6 @@ async function run_interactive_loop(args) {
     if (error_format != 'hr')
         throw new GenericError('Only default "hr" error format is supported in interactive mode');
 
-    let user_input_reader = readline.createInterface({ input: process.stdin, output: process.stdout });
 
     let delim = get_default(args, 'delim', null);
     let policy = null;
@@ -296,6 +295,7 @@ async function run_interactive_loop(args) {
         show_warning('Output path was not provided. Result set will be saved as: ' + args.output);
     }
 
+    let user_input_reader = readline.createInterface({ input: process.stdin, output: process.stdout }); // FIXME close on error, put the next block in try/catch, otherwise app will hang
     while (true) {
         let query = await read_user_query(user_input_reader);
         args.query = query;
@@ -342,9 +342,11 @@ async function do_main(args) {
         process.exit(0);
     }
 
-    if (args.hasOwnProperty('policy') && !args.hasOwnProperty('delim')) {
+    if (args.hasOwnProperty('policy') && args['policy'] === 'monocolumn')
+        args['delim'] = '';
+
+    if (args.hasOwnProperty('policy') && !args.hasOwnProperty('delim'))
         throw new GenericError('Using "--policy" without "--delim" is not allowed');
-    }
 
     if (args.encoding == 'latin-1')
         args.encoding = 'binary';
@@ -353,7 +355,7 @@ async function do_main(args) {
 
     if (args.hasOwnProperty('query')) {
         interactive_mode = false;
-        if (!args.delim) {
+        if (!args.hasOwnProperty('delim')) {
             throw new GenericError('Separator must be provided with "--delim" option in non-interactive mode');
         }
         await run_with_js(args);
