@@ -290,7 +290,11 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
             try {
                 decoded_string = this.decoder.decode(data_chunk);
             } catch (e) {
-                this.reject_current_record(e);
+                if (e instanceof TypeError) {
+                    this.reject_current_record(new RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead'));
+                } else {
+                    this.reject_current_record(e);
+                }
                 return;
             }
         } else {
