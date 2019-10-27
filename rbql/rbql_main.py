@@ -18,6 +18,8 @@ PY3 = sys.version_info[0] == 3
 
 # FIXME check readline in Windows both with py2 and py3
 
+# FIXME allow to specify monocolumn policy without requiring to specify the delim
+
 
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
 
@@ -107,6 +109,7 @@ def is_delimited_table(sampled_lines, delim, policy):
 
 
 def sample_lines(src_path, encoding, delim, policy):
+    # FIXME this should be an independent function, remove sample line functionality from record iterator
     result = []
     source = open(src_path, 'rb')
     line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=delim, policy=policy, line_mode=True)
@@ -132,6 +135,7 @@ def autodetect_delim_policy(input_path, encoding):
 
 
 def sample_records(input_path, delim, policy, encoding):
+    # TODO add sample_records functionality to RecordIterator
     sampled_lines = sample_lines(input_path, encoding, delim, policy)
     bad_lines = []
     result = []
@@ -265,6 +269,9 @@ def main():
     if args.version:
         print(_version.__version__)
         return
+
+    if args.policy == 'monocolumn':
+        args.delim = ''
 
     if args.delim is None and args.policy is not None:
         show_error('generic', 'Using "--policy" without "--delim" is not allowed', is_interactive=False)
