@@ -303,6 +303,7 @@ async function run_interactive_loop(args) {
         if (success)
             break;
     }
+    user_input_reader.close();
 }
 
 
