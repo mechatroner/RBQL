@@ -295,15 +295,18 @@ async function run_interactive_loop(args) {
         show_warning('Output path was not provided. Result set will be saved as: ' + args.output);
     }
 
-    let user_input_reader = readline.createInterface({ input: process.stdin, output: process.stdout }); // FIXME close on error, put the next block in try/catch, otherwise app will hang
-    while (true) {
-        let query = await read_user_query(user_input_reader);
-        args.query = query;
-        let success = await run_with_js(args);
-        if (success)
-            break;
+    let user_input_reader = readline.createInterface({ input: process.stdin, output: process.stdout });
+    try {
+        while (true) {
+            let query = await read_user_query(user_input_reader);
+            args.query = query;
+            let success = await run_with_js(args);
+            if (success)
+                break;
+        }
+    } finally {
+        user_input_reader.close();
     }
-    user_input_reader.close();
 }
 
 
