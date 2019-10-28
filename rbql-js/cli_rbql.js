@@ -16,7 +16,6 @@ var interactive_mode = false;
 
 // TODO implement query history like in Python version. "readline" modules allows to do that, see "completer" parameter.
 
-// FIXME allow to specify monocolumn policy without requiring to specify the delim
 
 class RbqlParsingError extends Error {}
 class GenericError extends Error {}
@@ -127,7 +126,6 @@ function is_delimited_table(sampled_lines, delim, policy) {
 
 
 async function sample_lines(table_path) {
-    // Sample lines functionality should not be part or input iterator
     let finish_promise = new Promise(function(resolve, reject) {
         let input_reader = readline.createInterface({ input: fs.createReadStream(table_path) });
         let sampled_lines = [];
@@ -145,22 +143,17 @@ async function sample_lines(table_path) {
 }
 
 
-async function sample_records(table_path, delim, policy) {
-    // FIXME rewrite with record iterator to support newlines in fields
-    let sampled_lines = await sample_lines(table_path);
-    let records = [];
-    let bad_lines = [];
-    for (var i = 0; i < sampled_lines.length; i++) {
-        let [fields, warning] = csv_utils.smart_split(sampled_lines[i], delim, policy, true);
-        if (warning)
-            bad_lines.push(i + 1);
-        records.push(fields);
-    }
-    return [records, bad_lines];
+async function sample_records(table_path, encoding, delim, policy) {
+    let table_stream = fs.createReadStream(table_path);
+    let sampling_iterator = new rbql_csv.CSVRecordIterator(table_stream, encoding, delim, policy);
+    let sampled_records = await sampling_iterator.get_all_records(10);
+    let warnings = sampling_iterator.get_warnings();
+    return [sampled_records, warnings];
 }
 
 
-function autodetect_delim_policy(table_path, sampled_lines) {
+async function autodetect_delim_policy(table_path) {
+    let sampled_lines = await sample_lines(table_path);
     let autodetection_dialects = [['\t', 'simple'], [',', 'quoted'], [';', 'quoted'], ['|', 'simple']];
     for (var i = 0; i < autodetection_dialects.length; i++) {
         let [delim, policy] = autodetection_dialects[i];
@@ -192,7 +185,7 @@ function print_colorized(records, delim, show_column_names) {
 }
 
 
-async function handle_query_success(warnings, output_path, delim, policy) {
+async function handle_query_success(warnings, output_path, encoding, delim, policy) {
     if (error_format == 'hr') {
         if (warnings !== null) {
             for (let i = 0; i < warnings.length; i++) {
@@ -200,7 +193,7 @@ async function handle_query_success(warnings, output_path, delim, policy) {
             }
         }
         if (interactive_mode) {
-            let [records, _bad_lines] = await sample_records(output_path, delim, policy);
+            let [records, _warnings] = await sample_records(output_path, encoding, delim, policy);
             console.log('\nOutput table preview:');
             console.log('====================================');
             print_colorized(records, delim, false);
@@ -240,7 +233,7 @@ async function run_with_js(args) {
         user_init_code = rbql_csv.read_user_init_code(init_source_file);
     try {
         let warnings = await rbql_csv.csv_run(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, user_init_code);
-        await handle_query_success(warnings, output_path, output_delim, output_policy);
+        await handle_query_success(warnings, output_path, csv_encoding, output_delim, output_policy);
         return true;
     } catch (e) {
         show_exception(e);
@@ -257,14 +250,15 @@ function get_default_output_path(input_path, delim) {
 }
 
 
-async function show_preview(input_path, delim, policy) {
-    let [records, bad_lines] = await sample_records(input_path, delim, policy);
+async function show_preview(input_path, encoding, delim, policy) {
+    let [records, warnings] = await sample_records(input_path, encoding, delim, policy);
     console.log('Input table preview:');
     console.log('====================================');
     print_colorized(records, delim, true);
     console.log('====================================\n');
-    if (bad_lines.length)
-        show_warning('Some input lines have quoting errors. Line numbers: ' + bad_lines.join(','));
+    for (let warning of warnings) {
+        show_warning(warning);
+    }
 }
 
 
@@ -282,12 +276,11 @@ async function run_interactive_loop(args) {
         delim = normalize_delim(delim);
         policy = args['policy'] ? args['policy'] : get_default_policy(delim);
     } else {
-        let sampled_lines = await sample_lines(input_path);
-        [delim, policy] = autodetect_delim_policy(input_path, sampled_lines);
+        [delim, policy] = await autodetect_delim_policy(input_path);
         if (!delim)
             throw new GenericError('Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option');
     }
-    await show_preview(input_path, delim, policy);
+    await show_preview(input_path, args['encoding'], delim, policy);
     args.delim = delim;
     args.policy = policy;
     if (!args.output) {

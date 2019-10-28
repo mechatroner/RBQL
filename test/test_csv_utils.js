@@ -262,7 +262,7 @@ async function write_and_parse_back(table, encoding, delim, policy) {
     input_stream.push(data_buffer);
     input_stream.push(null);
     let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
-    let output_table = await record_iterator._get_all_records();
+    let output_table = await record_iterator.get_all_records();
     test_common.assert_tables_are_equal(table, output_table);
 }
 
@@ -374,7 +374,7 @@ async function test_whitespace_separated_parsing() {
     let policy = 'whitespace';
     let encoding = 'utf-8';
     let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
-    let output_table = await record_iterator._get_all_records();
+    let output_table = await record_iterator.get_all_records();
     test_common.assert_tables_are_equal(expected_table, output_table);
     await write_and_parse_back(expected_table, encoding, delim, policy);
 }
@@ -475,7 +475,7 @@ async function do_test_record_iterator(table, delim, policy) {
         normalize_newlines_in_fields(table);
     let [stream, encoding] = string_to_randomly_encoded_stream(csv_data);
     let record_iterator = new rbql_csv.CSVRecordIterator(stream, encoding, delim, policy);
-    let parsed_table = await record_iterator._get_all_records();
+    let parsed_table = await record_iterator.get_all_records();
     test_common.assert_tables_are_equal(table, parsed_table);
     await write_and_parse_back(table, encoding, delim, policy);
 }
@@ -520,7 +520,7 @@ async function test_large_file() {
     let input_stream = fs.createReadStream('huge_file.csv');
     let input_iterator = new rbql_csv.CSVRecordIterator(input_stream, 'utf-8', ',', 'quoted');
     input_iterator.collect_debug_stats = true;
-    let records = await input_iterator._get_all_records();
+    let records = await input_iterator.get_all_records();
     console.log("input_iterator.num_chunks_got:" + input_iterator.dbg_stats_num_chunks_got);
     console.log("input_iterator.max_records:" + input_iterator.dbg_stats_max_records);
     test_common.assert_equal(num_records, records.length);
@@ -541,7 +541,7 @@ async function test_multicharacter_separator_parsing() {
     let policy = 'simple';
     let encoding = 'utf-8';
     let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
-    let parsed_table = await record_iterator._get_all_records();
+    let parsed_table = await record_iterator.get_all_records();
     test_common.assert_tables_are_equal(expected_table, parsed_table);
     await write_and_parse_back(expected_table, encoding, delim, policy);
 }
@@ -563,7 +563,7 @@ async function test_monocolumn_separated_parsing() {
         input_stream.push(Buffer.from(csv_data, encoding));
         input_stream.push(null);
         let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
-        let parsed_table = await record_iterator._get_all_records();
+        let parsed_table = await record_iterator.get_all_records();
         test_common.assert_tables_are_equal(table, parsed_table);
         await write_and_parse_back(table, encoding, delim, policy);
         test_common.assert_tables_are_equal(table, parsed_table);

@@ -18,8 +18,6 @@ PY3 = sys.version_info[0] == 3
 
 # FIXME check readline in Windows both with py2 and py3
 
-# FIXME allow to specify monocolumn policy without requiring to specify the delim
-
 
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
 

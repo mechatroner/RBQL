@@ -225,13 +225,17 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
     }
 
 
-    this._get_all_records = async function() {
+    this.get_all_records = async function(num_records=null) {
         let records = [];
         while (true) {
             let record = await this.get_record();
             if (record === null)
                 break;
             records.push(record);
+            if (num_records && records.length >= num_records) {
+                this.stop();
+                break;
+            }
         }
         return records;
     }
@@ -329,6 +333,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
     this.stop = function() {
         this.stream.destroy(); // TODO consider using pause() instead
     }
+
 
     this.start = function() {
         if (this.started)
