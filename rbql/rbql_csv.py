@@ -257,10 +257,9 @@ def python_string_escape_column_name(column_name, quote_char):
 
 def parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
-
-    # FIXME if the query doesn't contain "a[" or "b[" substring - exit immediately!
-
     assert prefix in ['a', 'b']
+    if re.search('(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query) is None:
+        return
     for i in polymorphic_xrange(len(header_columns_names)):
         column_name = header_columns_names[i]
         continuous_name_segments = re.findall(r'''[^{}\\'"$`]+''', column_name)
@@ -280,8 +279,6 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
     # TODO ideally we should either:
     # * not search inside string literals (excluding brackets in f-strings) OR
     # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
-
-    # FIXME if the query doesn't contain "a." or "b." substring - exit immediately!
     assert prefix in ['a', 'b']
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
     rgx = '(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
