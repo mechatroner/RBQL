@@ -109,14 +109,14 @@ def is_delimited_table(sampled_lines, delim, policy):
 def sample_lines(src_path, encoding, delim, policy):
     # FIXME this should be an independent function, remove sample line functionality from record iterator
     result = []
-    source = open(src_path, 'rb')
-    line_iterator = rbql_csv.CSVRecordIterator(source, True, encoding, delim=delim, policy=policy, line_mode=True)
-    for _i in polymorphic_xrange(10):
-        line = line_iterator.polymorphic_get_row()
-        if line is None:
-            break
-        result.append(line)
-    return result
+    with open(src_path, 'rb') as source:
+        line_iterator = rbql_csv.CSVRecordIterator(source, False, encoding, delim=delim, policy=policy, line_mode=True)
+        for _i in polymorphic_xrange(10):
+            line = line_iterator.polymorphic_get_row()
+            if line is None:
+                break
+            result.append(line)
+        return result
 
 
 def autodetect_delim_policy(input_path, encoding):
@@ -133,16 +133,11 @@ def autodetect_delim_policy(input_path, encoding):
 
 
 def sample_records(input_path, delim, policy, encoding):
-    # TODO add sample_records functionality to RecordIterator
-    sampled_lines = sample_lines(input_path, encoding, delim, policy)
-    bad_lines = []
-    result = []
-    for il, line in enumerate(sampled_lines):
-        fields, warning = csv_utils.smart_split(line, delim, policy, True)
-        if warning:
-            bad_lines.append(il + 1)
-        result.append(fields)
-    return (bad_lines, result)
+    with open(input_path, 'rb') as source:
+        record_iterator = rbql_csv.CSVRecordIterator(source, False, encoding, delim=delim, policy=policy)
+        sampled_records = record_iterator.get_all_records(num_rows=10);
+        warnings = record_iterator.get_warnings()
+        return (sampled_records, warnings)
 
 
 def print_colorized(records, delim, encoding, show_column_names):
@@ -193,7 +188,7 @@ def run_interactive_loop(args):
         if success:
             print('\nOutput table preview:')
             print('====================================')
-            _bad_lines, records = sample_records(args.output, args.output_delim, args.output_policy, args.encoding)
+            records, _warnings = sample_records(args.output, args.output_delim, args.output_policy, args.encoding)
             print_colorized(records, args.output_delim, args.encoding, show_column_names=False)
             print('====================================')
             print('Success! Result table was saved to: ' + args.output)
@@ -215,13 +210,13 @@ def start_preview_mode(args):
             return
         args.delim = delim
         args.policy = policy
-    bad_lines, records = sample_records(input_path, delim, policy, args.encoding)
+    records, warnings = sample_records(input_path, delim, policy, args.encoding)
     print('Input table preview:')
     print('====================================')
     print_colorized(records, delim, args.encoding, show_column_names=True)
     print('====================================\n')
-    if len(bad_lines):
-        show_warning('Some input lines have quoting errors. Line numbers: ' + ', '.join([str(v) for v in bad_lines]), is_interactive=True)
+    for warning in warnings:
+        show_warning(warning, is_interactive=True)
     if args.output is None:
         args.output = get_default_output_path(input_path, delim)
         show_warning('Output path was not provided. Result set will be saved as: ' + args.output, is_interactive=True)

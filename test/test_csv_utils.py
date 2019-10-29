@@ -170,7 +170,7 @@ def write_and_parse_back(table, encoding, delim, policy):
     assert not len(writer.get_warnings())
     writer_stream.seek(0)
     record_iterator = rbql_csv.CSVRecordIterator(writer_stream, True, encoding, delim=delim, policy=policy)
-    parsed_table = record_iterator._get_all_records()
+    parsed_table = record_iterator.get_all_records()
     return parsed_table
 
 
@@ -441,7 +441,7 @@ class TestRecordIterator(unittest.TestCase):
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
             record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
-            parsed_table = record_iterator._get_all_records()
+            parsed_table = record_iterator.get_all_records()
             self.assertEqual(table, parsed_table)
 
             parsed_table = write_and_parse_back(table, encoding, delim, policy)
@@ -460,7 +460,7 @@ class TestRecordIterator(unittest.TestCase):
             stream = io.BytesIO(csv_data.encode(encoding))
 
             record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
-            parsed_table = record_iterator._get_all_records()
+            parsed_table = record_iterator.get_all_records()
             self.assertEqual(table, parsed_table)
 
             parsed_table = write_and_parse_back(table, encoding, delim, policy)
@@ -478,7 +478,7 @@ class TestRecordIterator(unittest.TestCase):
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
             record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
-            parsed_table = record_iterator._get_all_records()
+            parsed_table = record_iterator.get_all_records()
             self.assertEqual(table, parsed_table)
 
             parsed_table = write_and_parse_back(table, encoding, delim, policy)
@@ -501,7 +501,7 @@ class TestRecordIterator(unittest.TestCase):
         policy = 'quoted_rfc'
 
         record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim=delim, policy=policy)
-        parsed_table = record_iterator._get_all_records()
+        parsed_table = record_iterator.get_all_records()
         self.assertEqual(table, parsed_table)
         parsed_table = write_and_parse_back(table, encoding, delim, policy)
         self.assertEqual(table, parsed_table)
@@ -518,7 +518,7 @@ class TestRecordIterator(unittest.TestCase):
         policy = 'simple'
         encoding = None
         record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim, policy)
-        parsed_table = record_iterator._get_all_records()
+        parsed_table = record_iterator.get_all_records()
         self.assertEqual(expected_table, parsed_table)
 
         parsed_table = write_and_parse_back(expected_table, encoding, delim, policy)
@@ -539,7 +539,7 @@ class TestRecordIterator(unittest.TestCase):
         policy = 'whitespace'
         encoding = None
         record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim, policy)
-        parsed_table = record_iterator._get_all_records()
+        parsed_table = record_iterator.get_all_records()
         self.assertEqual(expected_table, parsed_table)
 
         parsed_table = write_and_parse_back(expected_table, encoding, delim, policy)
@@ -560,7 +560,7 @@ class TestRecordIterator(unittest.TestCase):
             policy = 'monocolumn'
             encoding = None
             record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim, policy)
-            parsed_table = record_iterator._get_all_records()
+            parsed_table = record_iterator.get_all_records()
             self.assertEqual(table, parsed_table)
 
             parsed_table = write_and_parse_back(table, encoding, delim, policy)
@@ -605,7 +605,7 @@ class TestRecordIterator(unittest.TestCase):
         csv_data = table_to_csv_string_random(table, delim, policy)
         stream = io.BytesIO(csv_data.encode('latin-1'))
         record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim, policy)
-        parsed_table = record_iterator._get_all_records()
+        parsed_table = record_iterator.get_all_records()
         self.assertEqual(table, parsed_table)
 
         parsed_table = write_and_parse_back(table, encoding, delim, policy)
@@ -614,7 +614,7 @@ class TestRecordIterator(unittest.TestCase):
         stream = io.BytesIO(csv_data.encode('latin-1'))
         with self.assertRaises(Exception) as cm:
             record_iterator = rbql_csv.CSVRecordIterator(stream, True, 'utf-8', delim=delim, policy=policy)
-            parsed_table = record_iterator._get_all_records()
+            parsed_table = record_iterator.get_all_records()
         e = cm.exception
         self.assertTrue(str(e).find('Unable to decode input table as UTF-8') != -1)
 
@@ -635,7 +635,7 @@ class TestRecordIterator(unittest.TestCase):
         csv_data = table_to_csv_string_random(table, delim, policy)
         stream = io.BytesIO(csv_data.encode('latin-1'))
         record_iterator = rbql_csv.CSVRecordIterator(stream, True, encoding, delim, policy)
-        parsed_table = record_iterator._get_all_records()
+        parsed_table = record_iterator.get_all_records()
         expected_warnings = ['UTF-8 Byte Order Mark (BOM) was found and skipped in input table']
         actual_warnings = record_iterator.get_warnings()
         self.assertEqual(expected_warnings, actual_warnings)
@@ -685,7 +685,7 @@ class TestRBQLSimple(unittest.TestCase):
 
         output_stream.seek(0)
         output_iterator = rbql_csv.CSVRecordIterator(output_stream, True, encoding, delim=delim, policy=policy)
-        output_table = output_iterator._get_all_records()
+        output_table = output_iterator.get_all_records()
         self.assertEqual(expected_table, output_table)
 
 
@@ -755,7 +755,7 @@ class TestRBQLSimple(unittest.TestCase):
 
         output_stream.seek(0)
         output_iterator = rbql_csv.CSVRecordIterator(output_stream, True, encoding, delim=delim, policy=policy)
-        output_table = output_iterator._get_all_records()
+        output_table = output_iterator.get_all_records()
         self.assertEqual(expected_table, output_table)
 
 

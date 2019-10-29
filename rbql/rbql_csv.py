@@ -432,13 +432,16 @@ class CSVRecordIterator:
         return result
 
 
-    def _get_all_records(self):
+    def get_all_records(self, num_rows=None):
         result = []
         while True:
             record = self.get_record()
             if record is None:
                 break
             result.append(record)
+            if num_rows is not None and len(result) >= num_rows:
+                break
+        self.finish()
         return result
 
 
