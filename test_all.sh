@@ -147,12 +147,27 @@ if [ "$run_node_tests" == "yes" ]; then
 fi
 
 
-# FIXME test warnings
+expected_warning="Warning: Number of fields in \"input\" table is not consistent: e.g. record 1 -> 8 fields, record 3 -> 6 fields"
+actual_warning=$( python3 -m rbql --input test/csv_files/movies_variable_width.tsv --delim TAB --policy simple --query 'select a1, a2' 2>&1 1> /dev/null )
+if [ "$expected_warning" != "$actual_warning" ]; then
+    echo "expected_warning= '$expected_warning' != '$actual_warning' = actual_warning"  1>&2
+    exit 1
+fi
+
+if [ "$run_node_tests" == "yes" ]; then
+    expected_warning="Warning: Number of fields in \"input\" table is not consistent: e.g. record 1 -> 8 fields, record 3 -> 6 fields"
+    actual_warning=$( node rbql-js/cli_rbql.js --input test/csv_files/movies_variable_width.tsv --delim TAB --policy simple --query 'select a1, a2' 2>&1 1> /dev/null )
+    if [ "$expected_warning" != "$actual_warning" ]; then
+        echo "expected_warning= '$expected_warning' != '$actual_warning' = actual_warning"  1>&2
+        exit 1
+    fi
+fi
+
 
 expected_error="Error [query execution]: At record 1, Details: name 'unknown_func' is not defined"
 actual_error=$( python3 -m rbql --input test/csv_files/countries.csv --query 'select top 10 unknown_func(a1)' --delim , --policy quoted 2>&1 )
 if [ "$expected_error" != "$actual_error" ]; then
-    echo "expected error = '$expected_error' != '$actual_error' = actual_error"  1>&2
+    echo "expected_error = '$expected_error' != '$actual_error' = actual_error"  1>&2
     exit 1
 fi
 
@@ -160,7 +175,7 @@ if [ "$run_node_tests" == "yes" ]; then
     expected_error="Error [query execution]: At record 1, Details: unknown_func is not defined"
     actual_error=$( node rbql-js/cli_rbql.js --input test/csv_files/countries.csv --query 'select top 10 unknown_func(a1)' --delim , --policy quoted 2>&1 )
     if [ "$expected_error" != "$actual_error" ]; then
-        echo "expected error = '$expected_error' != '$actual_error' = actual_error"  1>&2
+        echo "expected_error = '$expected_error' != '$actual_error' = actual_error"  1>&2
         exit 1
     fi
 fi
