@@ -646,6 +646,8 @@ function TableWriter(external_table) {
     this.get_warnings = function() {
         return [];
     };
+
+    this.finish = async function() {}
 }
 
 
