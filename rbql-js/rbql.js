@@ -1137,7 +1137,7 @@ function HashJoinMap(record_iterator, key_index) {
                 this.record_iterator.stop();
                 throw new RbqlRuntimeError(`No field with index ${this.key_index + 1} at record ${this.nr} in "B" table`);
             }
-            let key = record[this.key_index];
+            let key = key_index === -1 ? this.nr : record[this.key_index];
             let key_records = this.hash_map.get(key);
             if (key_records === undefined) {
                 this.hash_map.set(key, [[this.nr, nf, record]]);

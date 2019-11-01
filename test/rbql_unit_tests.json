@@ -752,8 +752,8 @@
             ["dog dog", "9"]
         ],
         "expected_error_exact": true,
-        "query_js": "select MAX(a2) order by a1",
         "query_python": "select MAX(a2) order by a1",
+        "query_js": "select MAX(a2) order by a1",
         "expected_error": "\"ORDER BY\", \"UPDATE\" and \"DISTINCT\" keywords are not allowed in aggregate queries"
     },
     {
@@ -1187,8 +1187,8 @@
             ["foo bar", "20"],
             ["dog dog", "9"]
         ],
-        "query_js": "select MAX(a2), a1, 100",
         "query_python": "select MAX(a2), a1, 100",
+        "query_js": "select MAX(a2), a1, 100",
         "expected_error": "Invalid aggregate expression: non-constant values in output column 2. E.g. \"car\" and \"dog\""
     },
     {
@@ -1253,7 +1253,8 @@
             ["Jane Austen", 60],
             ["Hayao Miyazaki", 127]
         ],
-        "query_python": "select a1, b2 inner join B on aNR == bNR where a.NR > 3 and b.NR < 6"
+        "query_python": "select a1, b2 inner join B on aNR == bNR where a.NR > 3 and b.NR < 6",
+        "query_js": "select a1, b2 inner join B on aNR == bNR where a.NR > 3 && b.NR < 6"
     },
     {
         "test_name": "test array indexing",
@@ -1267,6 +1268,7 @@
             [3, "50", 5],
             [4, "20", 0]
         ],
-        "query_python": "select NR, a[1], len(a[3]) where int(a[1]) > 5"
+        "query_python": "select NR, a[1], len(a[3]) where int(a[1]) > 5",
+        "query_js": "select NR, a[1], a[3].length where parseInt(a[1]) > 5"
     }
 ]
