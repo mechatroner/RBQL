@@ -326,7 +326,8 @@
             [null, null, "20", null, 2],
             [null, null, "10", null, 2]
         ],
-        "query_python": "select b1,b2,   a1,bNR,bNF left join  B  on a2 == b1 where b2 != \"wings\""
+        "query_python": "select b1,b2,   a1,bNR,bNF left join  B  on a2 == b1 where b2 != \"wings\"",
+        "query_js": "select b1,b2,   a1,bNR,bNF left join  B  on a2 == b1 where b2 != \"wings\""
     },
     {
         "test_name": "test8",

@@ -664,7 +664,6 @@ function SingleTableRegistry(table, table_id='B') {
 }
 
 
-// FIXME on error should throw something like {'error_type': error_type, 'error_msg': error_msg}
 async function generic_run(user_query, input_iterator, output_writer, join_tables_registry=null, user_init_code='') {
     let [js_code, join_map] = await parse_to_js(user_query, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
     let rbql_worker = null;
@@ -684,7 +683,6 @@ async function generic_run(user_query, input_iterator, output_writer, join_table
 }
 
 
-// FIXME on error should throw something like {'error_type': error_type, 'error_msg': error_msg}
 async function table_run(user_query, input_table, output_table, join_table=null, user_init_code='') {
     let input_iterator = new TableIterator(input_table);
     let output_writer = new TableWriter(output_table);
