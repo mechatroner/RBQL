@@ -258,11 +258,11 @@ def python_string_escape_column_name(column_name, quote_char):
 def parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
     assert prefix in ['a', 'b']
-    if re.search('(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query) is None:
+    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query) is None:
         return
     for i in polymorphic_xrange(len(header_columns_names)):
         column_name = header_columns_names[i]
-        continuous_name_segments = re.findall(r'''[^{}\\'"$`]+''', column_name)
+        continuous_name_segments = re.findall('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', column_name)
         add_column_name = True
         for continuous_segment in continuous_name_segments:
             if query.find(continuous_segment) == -1:
@@ -281,7 +281,7 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
     # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
     assert prefix in ['a', 'b']
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
-    rgx = '(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
     matches = list(re.finditer(rgx, query))
     column_names = list(set([m.group(1) for m in matches]))
     for column_name in column_names:
