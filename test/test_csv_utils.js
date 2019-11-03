@@ -387,6 +387,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
         return;
     console.log('Running rbql test: ' + test_name);
     query = query.replace('###UT_TESTS_DIR###', script_dir);
+    // FIXME randomly replace column names with dictionary style, see Python version
 
     let input_table_path = test_case['input_table_path'];
     let local_debug_mode = test_common.get_default(test_case, 'debug_mode', false);

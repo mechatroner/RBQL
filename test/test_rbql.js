@@ -24,6 +24,11 @@ function test_test_common() {
 
 
 
+function vinf(do_init, zb_index) {
+    return {initialize: do_init, index: zb_index};
+}
+
+
 function random_choice(values) {
     return values[Math.floor(Math.random() * values.length)];
 }
@@ -66,13 +71,13 @@ function test_except_parsing() {
     let except_part = null;
 
     except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8';
-    test_common.assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}, []));
+    test_common.assert_equal('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a[6]': vinf(true, 5), 'a7': vinf(true, 6), 'a8': vinf(true, 7)}, []));
 
     except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  ';
-    test_common.assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}, []));
+    test_common.assert_equal('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a[1]': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a6': vinf(true, 5), 'a[7]': vinf(true, 6), 'a8': vinf(true, 7)}, []));
 
     except_part = 'a1';
-    test_common.assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}, []));
+    test_common.assert_equal('select_except(record_a, [0])', rbql.translate_except_expression(except_part, {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a[6]': vinf(true, 5), 'a7': vinf(true, 6), 'a8': vinf(true, 7)}, []));
 }
 
 
@@ -93,12 +98,12 @@ function test_join_parsing() {
     }
     test_common.assert(catched);
 
-    test_common.assert_arrays_are_equal(['safe_join_get(record_a, 0)', 1], rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b2', []));
+    test_common.assert_arrays_are_equal(['safe_join_get(record_a, 0)', 1], rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, 'a1', 'b2', []));
 
     catched = false;
     try {
         rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2', []);
+        rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, 'a1', 'a2', []);
     } catch (e) {
         catched = true;
         test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -108,7 +113,7 @@ function test_join_parsing() {
     catched = false;
     try {
         rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b10', []);
+        rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, 'a1', 'b10', []);
     } catch (e) {
         catched = true;
         test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -118,7 +123,7 @@ function test_join_parsing() {
     catched = false;
     try {
         rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'b1', 'b2', []);
+        rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, 'b1', 'b2', []);
     } catch (e) {
         catched = true;
         test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
@@ -136,7 +141,7 @@ function test_update_translation() {
     expected_dst.push(indent + 'safe_set(up_fields, 7, 100);');
     expected_dst.push(indent + 'safe_set(up_fields, 29, 200/3 + 1);');
     expected_dst = expected_dst.join('\n');
-    let test_dst = rbql.translate_update_expression(rbql_src, {'a1': 0, 'a2': 1, 'a4': 3, 'a8': 7, 'a30': 29}, [], indent);
+    let test_dst = rbql.translate_update_expression(rbql_src, {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a4': vinf(true, 3), 'a8': vinf(true, 7), 'a30': vinf(true, 29)}, [], indent);
     test_common.assert_arrays_are_equal(expected_dst.split('\n'), test_dst.split('\n'));
 }
 
@@ -269,13 +274,13 @@ async function test_direct_table_queries() {
 async function test_everything() {
     // FIXME uncomment
     test_test_common();
-    //test_comment_strip();
-    //test_string_literals_separation();
-    //test_separate_actions();
-    //test_except_parsing();
-    //test_join_parsing();
-    //test_update_translation();
-    //test_select_translation();
+    test_comment_strip();
+    test_string_literals_separation();
+    test_separate_actions();
+    test_except_parsing();
+    test_join_parsing();
+    test_update_translation();
+    test_select_translation();
     //await test_direct_table_queries();
     //await test_json_tables();
 }
