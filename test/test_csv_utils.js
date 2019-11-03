@@ -591,12 +591,37 @@ function test_record_queue() {
 }
 
 
+function vinf(do_init, zb_index) {
+    return {initialize: do_init, index: zb_index};
+}
+
+
+function test_dictionary_variables_parsing() {
+   let query = 'select a["foo bar"], a["foo"], max(a["foo"], a["lambda-beta{\'gamma\'}"]), a1, a2, a.epsilon'
+   let header_columns_names = ['foo', 'foo bar', 'max', "lambda-beta{'gamma'}", "lambda-beta{'gamma2'}", "eps\\ilon", "omega", "1", "2", "....", "["]
+   let expected_variables_map = {'a["foo"]': vinf(true, 0), 'a["foo bar"]': vinf(true, 1), 'a["max"]': vinf(true, 2), "a[\"lambda-beta{'gamma'}\"]": vinf(true, 3), 'a["eps\\\\ilon"]': vinf(true, 5), 'a["1"]': vinf(true, 7), 'a["2"]': vinf(true, 8), 'a["["]': vinf(true, 10), "a['foo']": vinf(false, 0), "a['foo bar']": vinf(false, 1), "a['max']": vinf(false, 2), "a['lambda-beta{\\'gamma\\'}']": vinf(false, 3), "a['eps\\\\ilon']": vinf(false, 5), "a['1']": vinf(false, 7), "a['2']": vinf(false, 8), "a['[']": vinf(false, 10)}
+   let actual_variables_map = {};
+   rbql_csv.parse_dictionary_variables(query, 'a', header_columns_names, actual_variables_map)
+   self.assertEqual(expected_variables_map, actual_variables_map)
+}
+
+
+function test_attribute_variables_parsing() {
+    // FIXME complete
+}
+
+
+//FIXME add test with get_variables_map() for CSV iterator
+
+
 async function test_everything() {
     test_record_queue();
     test_random_funcs();
     test_unquote();
     test_split();
     test_split_whitespaces();
+    await test_attribute_variables_parsing();
+    await test_dictionary_variables_parsing();
     await test_whitespace_separated_parsing();
     await test_record_iterator();
     await test_monocolumn_separated_parsing();

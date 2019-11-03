@@ -3,6 +3,16 @@ function die(error_msg) {
     process.exit(1);
 }
 
+function fail(error_msg, exit_at_error, silent) {
+    if (!error_msg)
+        error_msg = 'Assertion failed';
+    if (exit_at_error)
+        die(error_msg);
+    if (!silent)
+        console.error(error_msg);
+    return false;
+}
+
 
 function round_floats(src_table) {
     for (let r = 0; r < src_table.length; r++) {
@@ -15,99 +25,83 @@ function round_floats(src_table) {
 }
 
 
-function assert(condition, message=null, exit_at_error=true) {
+function assert(condition, message=null, exit_at_error=true, silent=false) {
     if (condition)
         return true;
-    message = message ? message : 'Assertion failed';
-    if (exit_at_error)
-        die(message);
-    return false;
+    return fail(message, exit_at_error, silent);
 }
 
 
 function assert_equal(a, b, exit_at_error=true, silent=false) {
-    if (a != b) {
-        if (!silent)
-            console.log(`Assertion error: assert_equal has failed: a = "${a}", b = "${b}"`);
-        if (exit_at_error)
-            die('Assertion failed')
-        return false;
-    }
+    if (a != b)
+        return fail(`Assertion error: assert_equal has failed: a = "${a}", b = "${b}"`, exit_at_error, silent);
     return true;
 }
 
 
 function assert_arrays_are_equal(a, b, exit_at_error=true, silent=false) {
     if (a.length != b.length) {
-        if (!silent) {
-            console.log(`Arrays have different length: a.length = ${a.length}, b.length = ${b.length}`);
-            console.log(`a: ${JSON.stringify(a)}`)
-            console.log(`b: ${JSON.stringify(b)}`)
-        }
-        if (exit_at_error)
-            die('Assertion failed')
-        return false;
+        let error_msg = `Arrays have different length: a.length = ${a.length}, b.length = ${b.length}\na: ${JSON.stringify(a)}\nb: ${JSON.stringify(b)}`;
+        return fail(error_msg, exit_at_error, silent);
     }
     for (var i = 0; i < a.length; i++) {
         if (Array.isArray(a[i]) != Array.isArray(b[i])) {
-            console.log(`Subarray mismatch: a[${i}] is array: ${Array.isArray(a[i])}, b[${i}] is array: ${Array.isArray(b[i])}`);
-            console.trace();
-            if (exit_at_error)
-                die('Assertion failed')
-            return false;
+            let error_msg = `Subarray mismatch: a[${i}] is array: ${Array.isArray(a[i])}, b[${i}] is array: ${Array.isArray(b[i])}`;
+            return fail(error_msg, exit_at_error, silent);
         }
         if (Array.isArray(a[i])) {
             if (!assert_arrays_are_equal(a[i], b[i], exit_at_error, silent)) {
-                if (exit_at_error)
-                    die('Assertion failed')
-                return false;
+                return fail('Assertion failed', exit_at_error, silent);
             }
         } else if (a[i] !== b[i]) {
-            if (!silent) {
-                console.log('Array mismatch at ' + i + ' a[i] = ' + a[i] + ', b[i] = ' + b[i]);
-                console.trace();
-            }
-            if (exit_at_error)
-                die('Assertion failed')
-            return false;
+            let error_msg = `Array mismatch at ${i} a[i] = ${a[i]}, b[i] = ${b[i]}`;
+            return fail(`Array mismatch at ${i} a[i] = ${a[i]}, b[i] = ${b[i]}`, exit_at_error, silent);
         }
     }
     return true;
 }
 
 
-function assert_tables_are_equal(a, b, exit_at_error=true) {
+function assert_tables_are_equal(a, b, exit_at_error=true, silent=false) {
+    // FIXME get rid of this, replace all usages with assert_arrays_are_equal() - it can check tables too
     if (a.length != b.length) {
-        if (exit_at_error)
-            die(`a.length = ${a.length} != b.length = ${b.length}`);
-        return false;
+        return fail(`a.length = ${a.length} != b.length = ${b.length}`, exit_at_error, silent);
     }
     for (var i = 0; i < a.length; i++) {
-        if (!assert_arrays_are_equal(a[i], b[i], false)) {
-            if (exit_at_error)
-                die(`Mismatch at row ${i}`);
-            return false;
-        }
+        if (!assert_arrays_are_equal(a[i], b[i], false))
+            return fail(`Mismatch at row ${i}`, exit_at_error, silent);
     }
     return true;
 }
 
 
-function objects_are_equal(a, b) {
+function assert_objects_are_equal(a, b, exit_at_error=true, silent=false, current_path='') {
     if (a === b)
         return true;
-    if (a == null || typeof a != 'object' || b == null || typeof b != 'object')
-        return false;
-    var num_props_in_a = 0;
-    var num_props_in_b = 0;
-    for (var prop in a)
-         num_props_in_a += 1;
+    if (a == null)
+        return fail(`a is null for path: ${current_path}`, exit_at_error, silent);
+    if (b == null)
+        return fail(`b is null for path: ${current_path}`, exit_at_error, silent);
+    if (typeof a != 'object' && typeof b != 'object')
+        return fail(`a = ${a} and b = ${b} have different values for path: ${current_path}`, exit_at_error, silent);
+    if (typeof a != 'object')
+        return fail(`a is not object for path: ${current_path}`, exit_at_error, silent);
+    if (typeof b != 'object')
+        return fail(`b is not object for path: ${current_path}`, exit_at_error, silent);
     for (var prop in b) {
-        num_props_in_b += 1;
-        if (!(prop in a) || !objects_are_equal(a[prop], b[prop]))
+        let child_path = current_path + '.' + prop;
+        if (!(prop in a))
+            return fail(`a does not have property: ${child_path}`, exit_at_error, silent);
+        if (!assert_objects_are_equal(a[prop], b[prop], exit_at_error, silent, child_path))
             return false;
     }
-    return num_props_in_a == num_props_in_b;
+    for (var prop in a) {
+        if (!(prop in b)) {
+            let child_path = current_path + '.' + prop;
+            return fail(`b does not have property: ${child_path}`, exit_at_error, silent);
+        }
+    }
+    return true;
 }
 
 
@@ -139,7 +133,7 @@ function get_default(obj, key, default_value) {
 
 module.exports.get_default = get_default;
 module.exports.normalize_warnings = normalize_warnings;
-module.exports.objects_are_equal = objects_are_equal;
+module.exports.assert_objects_are_equal = assert_objects_are_equal;
 module.exports.assert = assert;
 module.exports.assert_tables_are_equal = assert_tables_are_equal;
 module.exports.assert_arrays_are_equal = assert_arrays_are_equal;

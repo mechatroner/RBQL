@@ -7,19 +7,21 @@ var debug_mode = false;
 
 
 
-function die(error_msg) {
-    console.error('Error: ' + error_msg);
-    process.exit(1);
+function test_test_common() {
+    test_common.assert(test_common.assert_arrays_are_equal([100, '20'], [100, '20'], false, true) == true);
+    test_common.assert(test_common.assert_arrays_are_equal([100, '20'], [100, '20', 30], false, true) == false);
+    test_common.assert(test_common.assert_arrays_are_equal([100, '20'], [100, '20.0'], false, true) == false);
+    test_common.assert(test_common.assert_arrays_are_equal([[100, '20'], [10]], [[100, '20'], [10]], false, true) == true);
+    test_common.assert(test_common.assert_arrays_are_equal([[100, '20'], [10]], [[100, '20'], [1]], false, true) == false);
+
+    test_common.assert(test_common.assert_objects_are_equal([[100, '20'], [10]], [[100, '20'], [1]], false, true) == false);
+    test_common.assert(test_common.assert_objects_are_equal([[100, '20'], [10]], [[100, '20'], [10]], false, true) == true);
+    test_common.assert(test_common.assert_objects_are_equal({'foo': 100, 'bar': {'foobar': [10, 20]}}, {'foo': 100, 'bar': {'foobar': [10, 20]}}, false, true) == true);
+    test_common.assert(test_common.assert_objects_are_equal({'foo': 100, 'bar': {'foobar': [10, 20]}}, {'foo': 100, 'bar': {'foobar': [10, 20], 'extra': 0}}, false, true) == false);
+    test_common.assert(test_common.assert_objects_are_equal({'foo': 100, 'bar': {'foobar': [10, 20], 'extra': 200}}, {'foo': 100, 'bar': {'foobar': [10, 20], 'extra': 0}}, false, true) == false);
+    test_common.assert(test_common.assert_objects_are_equal({'foo': 100, 'bar': {'foobar': [10, 20], 'extra': {'hello': 'world'}}}, {'foo': 100, 'bar': {'foobar': [10, 20], 'extra': 0}}, false, true) == false);
 }
 
-
-function assert(condition, message = null) {
-    if (!condition) {
-        if (debug_mode)
-            console.trace();
-        die(message || "Assertion failed");
-    }
-}
 
 
 function random_choice(values) {
@@ -30,7 +32,7 @@ function random_choice(values) {
 function test_comment_strip() {
     let a = ` // a comment  `;
     let a_strp = rbql.strip_comments(a);
-    assert(a_strp === '');
+    test_common.assert(a_strp === '');
 }
 
 
@@ -47,7 +49,7 @@ function test_string_literals_separation() {
         let expected_literals = test_case[1];
         let [format_expression, string_literals] = rbql.separate_string_literals_js(query);
         test_common.assert_arrays_are_equal(expected_literals, string_literals);
-        assert(query == rbql.combine_string_literals(format_expression, string_literals));
+        test_common.assert(query == rbql.combine_string_literals(format_expression, string_literals));
     }
 }
 
@@ -56,7 +58,7 @@ function test_separate_actions() {
         let query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and parseInt(b3) == 100 order by parseInt(a7) desc ';
         let expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': 'INNER JOIN'}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and parseInt(b3) == 100'}, 'ORDER BY': {'text': 'parseInt(a7)', 'reverse': true}};
         let test_res = rbql.separate_actions(query);
-        assert(test_common.objects_are_equal(test_res, expected_res));
+        test_common.assert_objects_are_equal(test_res, expected_res);
 }
 
 
@@ -64,13 +66,13 @@ function test_except_parsing() {
     let except_part = null;
 
     except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8';
-    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}, []));
+    test_common.assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a[6]': 5, 'a7': 6, 'a8': 7}, []));
 
     except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  ';
-    assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}, []));
+    test_common.assert('select_except(record_a, [0,1,2,3,4,5,6,7])' === rbql.translate_except_expression(except_part, {'a[1]': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a[7]': 6, 'a8': 7}, []));
 
     except_part = 'a1';
-    assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}, []));
+    test_common.assert('select_except(record_a, [0])' === rbql.translate_except_expression(except_part, {'a1': 0, 'a2': 1, 'a3': 2, 'a4': 3, 'a5': 4, 'a6': 5, 'a7': 6, 'a8': 7}, []));
 }
 
 
@@ -87,9 +89,9 @@ function test_join_parsing() {
         rbql.parse_join_expression(join_part);
     } catch (e) {
         catched = true;
-        assert(e.toString().indexOf('Invalid join syntax') != -1);
+        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
     }
-    assert(catched);
+    test_common.assert(catched);
 
     test_common.assert_arrays_are_equal(['safe_join_get(record_a, 0)', 1], rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b2', []));
 
@@ -99,9 +101,9 @@ function test_join_parsing() {
         rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'a2', []);
     } catch (e) {
         catched = true;
-        assert(e.toString().indexOf('Invalid join syntax') != -1);
+        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
     }
-    assert(catched);
+    test_common.assert(catched);
 
     catched = false;
     try {
@@ -109,9 +111,9 @@ function test_join_parsing() {
         rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'a1', 'b10', []);
     } catch (e) {
         catched = true;
-        assert(e.toString().indexOf('Invalid join syntax') != -1);
+        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
     }
-    assert(catched);
+    test_common.assert(catched);
 
     catched = false;
     try {
@@ -119,9 +121,9 @@ function test_join_parsing() {
         rbql.resolve_join_variables({'a1': 0, 'a2': 1}, {'b1': 0, 'b2': 1}, 'b1', 'b2', []);
     } catch (e) {
         catched = true;
-        assert(e.toString().indexOf('Invalid join syntax') != -1);
+        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
     }
-    assert(catched);
+    test_common.assert(catched);
 }
 
 
@@ -148,32 +150,32 @@ function test_select_translation() {
     rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * ';
     test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
-    assert(canonic_dst === test_dst, 'translation 1');
+    test_common.assert(canonic_dst === test_dst, 'translation 1');
 
     rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * ';
     test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
-    assert(canonic_dst === test_dst, 'translation 2');
+    test_common.assert(canonic_dst === test_dst, 'translation 2');
 
     rbql_src = ' * ';
     test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([])';
-    assert(canonic_dst === test_dst);
+    test_common.assert(canonic_dst === test_dst);
 
     rbql_src = ' *,* ';
     test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
-    assert(canonic_dst === test_dst);
+    test_common.assert(canonic_dst === test_dst);
 
     rbql_src = ' *,*, * ';
     test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
-    assert(canonic_dst === test_dst);
+    test_common.assert(canonic_dst === test_dst);
 
     rbql_src = ' *,*, * , *';
     test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
-    assert(canonic_dst === test_dst);
+    test_common.assert(canonic_dst === test_dst);
 }
 
 
@@ -242,7 +244,7 @@ async function test_json_tables() {
             if (expected_error_exact) {
                 test_common.assert_equal(expected_error, e.message);
             } else {
-                assert(e.message.indexOf(expected_error) != -1, `Expected error is not substring of actual. Expected error: ${expected_error}, Actual error: ${e.message}`);
+                test_common.assert(e.message.indexOf(expected_error) != -1, `Expected error is not substring of actual. Expected error: ${expected_error}, Actual error: ${e.message}`);
             }
             continue;
         }
@@ -259,21 +261,23 @@ async function test_direct_table_queries() {
     let expected_table = [['foo test', 1], ['bar test', 2]];
 
     let warnings = await rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table);
-    assert(warnings.length == 0);
+    test_common.assert(warnings.length == 0);
     test_common.assert_tables_are_equal(expected_table, output_table);
 }
 
 
 async function test_everything() {
-    test_comment_strip();
-    test_string_literals_separation();
-    test_separate_actions();
-    test_except_parsing();
-    test_join_parsing();
-    test_update_translation();
-    test_select_translation();
-    await test_direct_table_queries();
-    await test_json_tables();
+    // FIXME uncomment
+    test_test_common();
+    //test_comment_strip();
+    //test_string_literals_separation();
+    //test_separate_actions();
+    //test_except_parsing();
+    //test_join_parsing();
+    //test_update_translation();
+    //test_select_translation();
+    //await test_direct_table_queries();
+    //await test_json_tables();
 }
 
 
@@ -295,7 +299,7 @@ function main() {
     let engine_text_current = build_engine.read_engine_text();
     let engine_text_expected = build_engine.build_engine_text();
     if (engine_text_current != engine_text_expected) {
-        die("rbql.js must be rebuild from template.js and builder.js");
+        test_common.die("rbql.js must be rebuild from template.js and builder.js");
     }
 
     rbql = require('../rbql-js/rbql.js')
