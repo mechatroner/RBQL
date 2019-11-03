@@ -813,7 +813,7 @@ function parse_basic_variables(query, prefix, dst_variables_map) {
     let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
-        dst_variables_map[prefix + String(field_num)] = field_num - 1;
+        dst_variables_map[prefix + String(field_num)] = {initialize: true, index: field_num - 1};
     }
 }
 
@@ -824,7 +824,7 @@ function parse_array_variables(query, prefix, dst_variables_map) {
     let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
-        dst_variables_map[`${prefix}[${field_num}]`] = field_num - 1;
+        dst_variables_map[`${prefix}[${field_num}]`] = {initialize: true, index: field_num - 1};
     }
 }
 
@@ -854,7 +854,7 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
     if (['NR', 'a.NR', 'aNR'].indexOf(join_var_1) != -1) {
         lhs_key_index = -1;
     } else if (input_variables_map.hasOwnProperty(join_var_1)) {
-        lhs_key_index = input_variables_map[join_var_1];
+        lhs_key_index = input_variables_map[join_var_1].index;
     } else {
         throw new RbqlParsingError(`Unable to parse JOIN expression: Input table does not have field "${join_var_1}"`);
     }
@@ -862,7 +862,7 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
     if (['b.NR', 'bNR'].indexOf(join_var_2) != -1) {
         rhs_key_index = -1;
     } else if (join_variables_map.hasOwnProperty(join_var_2)) {
-        rhs_key_index = join_variables_map[join_var_2];
+        rhs_key_index = join_variables_map[join_var_2].index;
     } else {
         throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_2}"`);
     }
@@ -889,15 +889,19 @@ function generate_common_init_code(query, variable_prefix) {
 function generate_init_statements(query, variables_map, join_variables_map, indent) {
     let code_lines = generate_common_init_code(query, 'a');
     let simple_var_name_rgx = /^[_0-9a-zA-Z]+$/;
-    for (const [variable_name, column_num] of Object.entries(variables_map)) {
-        let variable_declaration_keyword = simple_var_name_rgx.exec(variable_name) ? 'var ' : '';
-        code_lines.push(`${variable_declaration_keyword}${variable_name} = safe_get(record_a, ${column_num});`);
+    for (const [variable_name, var_info] of Object.entries(variables_map)) {
+        if (var_info.initialize) {
+            let variable_declaration_keyword = simple_var_name_rgx.exec(variable_name) ? 'var ' : '';
+            code_lines.push(`${variable_declaration_keyword}${variable_name} = safe_get(record_a, ${var_info.index});`);
+        }
     }
     if (join_variables_map) {
         code_lines = code_lines.concat(generate_common_init_code(query, 'b'));
-        for (const [variable_name, column_num] of Object.entries(join_variables_map)) {
-            let variable_declaration_keyword = simple_var_name_rgx.exec(variable_name) ? 'var ' : '';
-            code_lines.push(`${variable_declaration_keyword}${variable_name} = record_b === null ? null : safe_get(record_b, ${column_num});`);
+        for (const [variable_name, var_info] of Object.entries(join_variables_map)) {
+            if (var_info.initialize) {
+                let variable_declaration_keyword = simple_var_name_rgx.exec(variable_name) ? 'var ' : '';
+                code_lines.push(`${variable_declaration_keyword}${variable_name} = record_b === null ? null : safe_get(record_b, ${var_info.index});`);
+            }
         }
     }
     for (let i = 1; i < code_lines.length; i++) {
@@ -944,7 +948,7 @@ function translate_update_expression(update_expression, input_variables_map, str
         let dst_var_name = combine_string_literals(str_strip(match[1]), string_literals);
         if (!input_variables_map.hasOwnProperty(dst_var_name))
             throw new RbqlParsingError(`Unable to parse "UPDATE" expression: Unknown field name: "${dst_var_name}"`);
-        let var_index = input_variables_map[dst_var_name];
+        let var_index = input_variables_map[dst_var_name].index;
         let current_indent = update_statements.length ? indent : '';
         update_statements.push(`${current_indent}safe_set(up_fields, ${var_index}, `);
         pos = match.index + match[0].length;
@@ -1113,7 +1117,7 @@ function translate_except_expression(except_expression, input_variables_map, str
         var_name = combine_string_literals(var_name, string_literals);
         if (!input_variables_map.hasOwnProperty(var_name))
             throw new RbqlParsingError(`Unknown field in EXCEPT expression: "${var_name}"`);
-        skip_indices.push(input_variables_map[var_name]);
+        skip_indices.push(input_variables_map[var_name].index);
     }
     skip_indices = skip_indices.sort((a, b) => a - b);
     let indices_str = skip_indices.join(',');
@@ -1416,6 +1420,7 @@ module.exports.TableWriter = TableWriter;
 module.exports.SingleTableRegistry = SingleTableRegistry;
 module.exports.parse_basic_variables = parse_basic_variables;
 module.exports.parse_array_variables = parse_array_variables;
+module.exports.get_all_matches = get_all_matches;
 
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;
