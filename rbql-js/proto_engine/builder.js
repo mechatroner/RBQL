@@ -103,7 +103,7 @@ function parse_basic_variables(query, prefix, dst_variables_map) {
     let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
-        dst_variables_map[prefix + String(field_num)] = field_num - 1;
+        dst_variables_map[prefix + String(field_num)] = {initialize: true, index: field_num - 1};
     }
 }
 
@@ -114,7 +114,7 @@ function parse_array_variables(query, prefix, dst_variables_map) {
     let matches = get_all_matches(rgx, query);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
-        dst_variables_map[`${prefix}[${field_num}]`] = field_num - 1;
+        dst_variables_map[`${prefix}[${field_num}]`] = {initialize: true, index: field_num - 1};
     }
 }
 
@@ -706,6 +706,7 @@ module.exports.TableWriter = TableWriter;
 module.exports.SingleTableRegistry = SingleTableRegistry;
 module.exports.parse_basic_variables = parse_basic_variables;
 module.exports.parse_array_variables = parse_array_variables;
+module.exports.get_all_matches = get_all_matches;
 
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;

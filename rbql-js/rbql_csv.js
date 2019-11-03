@@ -149,7 +149,66 @@ class RecordQueue {
         }
         return this.pull_stack.pop();
     }
+
+    return_to_pull_stack(record) {
+        this.pull_stack.push(record);
+    }
 }
+
+
+function js_string_escape_column_name(column_name, quote_char) {
+    column_name = column_name.replace(/\\/g, '\\\\');
+    if (quote_char === "'")
+        return column_name.replace(/'/g, "\\'");
+    if (quote_char === '"')
+        return column_name.replace(/"/g, '\\"');
+    assert(quote_char === "`");
+    return column_name.replace(/`/g, "\\`");
+}
+
+
+function parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map) {
+    // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+    assert(prefix === 'a' || prefix === 'b');
+    let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[`);
+    if (query.search(dict_test_rgx) == -1)
+        return;
+    let rgx = new RegExp('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', 'g');
+    for (let i = 0; i < header_columns_names.length; i++) {
+        let column_name = header_columns_names[i];
+        let continuous_name_segments = rbql.get_all_matches(rgx, column_name);
+        let add_column_name = true;
+        for (continuous_segment of continuous_name_segments) {
+            if (query.indexOf(continuous_segment) == -1) {
+                add_column_name = false;
+                break;
+            }
+        }
+        if (add_column_name) {
+            let escaped_column_name = js_string_escape_column_name(column_name, '"');
+            dst_variables_map[`${prefix}["${escaped_column_name}"]`] = {initialize: true, index: i};
+            escaped_column_name = js_string_escape_column_name(column_name, "'");
+            dst_variables_map[`${prefix}['${escaped_column_name}']`] = {initialize: false, index: i};
+            escaped_column_name = js_string_escape_column_name(column_name, "`");
+            dst_variables_map[`${prefix}[\`${escaped_column_name}\`]`] = {initialize: false, index: i};
+        }
+    }
+}
+
+
+function parse_attribute_variables(query, prefix, header_columns_names, dst_variables_map) {
+    // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+    assert(prefix === 'a' || prefix === 'b');
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
+    let matches = rbql.get_all_matches(rgx, query);
+    let column_names = matches.map(v => v[1]);
+    for (column_name of column_names) {
+        let zero_based_idx = header_columns_names.indexOf(column_name);
+        if (zero_based_idx != -1)
+            dst_variables_map[`${prefix}.${column_name}`] = {initialize: true, index: zero_based_idx};
+    }
+}
+
 
 
 function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', variable_prefix='a') {
@@ -174,6 +233,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
    
     this.input_exhausted = false;
     this.started = false;
+    this.paused = false;
 
     this.utf8_bom_removed = false; // BOM doesn't get automatically removed by decoder when utf-8 file is treated as latin-1
     this.first_defective_line = null;
@@ -192,10 +252,26 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
     this.produced_records_queue = new RecordQueue();
 
 
+    this.preread_header() = async function() {
+        let header_record = await this.get_record();
+        if (header_record === null)
+            return null;
+        this.produced_records_queue.return_to_pull_stack(header_record);
+        this.stream.pause();
+        return header_record.slice();
+    };
+
+
     this.get_variables_map = async function(query) {
         let variable_map = new Object();
         rbql.parse_basic_variables(query, this.variable_prefix, variable_map);
         rbql.parse_array_variables(query, this.variable_prefix, variable_map);
+        
+        let header_record = await this.preread_header(); // TODO optimize: do not start the stream if query doesn't seem to have dictionary or attribute -looking patterns
+        if (header_record) {
+            parse_attribute_variables(query, this.variable_prefix, header_record, variable_map);
+            parse_dictionary_variables(query, this.variable_prefix, header_record, variable_map);
+        }
         return variable_map;
     };
  
@@ -215,6 +291,10 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
     this.get_record = async function() {
         if (!this.started)
             this.start();
+        if (this.paused) {
+            this.paused = false;
+            this.stream.resume();
+        }
         let parent_iterator = this;
         current_record_promise = new Promise(function(resolve, reject) {
             parent_iterator.resolve_current_record = resolve;
@@ -471,7 +551,6 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
     };
 
 }
-
 
 
 function FileSystemCSVRegistry(delim, policy, encoding) {
