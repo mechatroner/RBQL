@@ -272,7 +272,6 @@ async function test_direct_table_queries() {
 
 
 async function test_everything() {
-    // FIXME uncomment
     test_test_common();
     test_comment_strip();
     test_string_literals_separation();
@@ -281,8 +280,8 @@ async function test_everything() {
     test_join_parsing();
     test_update_translation();
     test_select_translation();
-    //await test_direct_table_queries();
-    //await test_json_tables();
+    await test_direct_table_queries();
+    await test_json_tables();
 }
 
 

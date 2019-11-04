@@ -252,7 +252,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
     this.produced_records_queue = new RecordQueue();
 
 
-    this.preread_header() = async function() {
+    this.preread_header = async function() {
         let header_record = await this.get_record();
         if (header_record === null)
             return null;
@@ -614,3 +614,5 @@ module.exports.read_user_init_code = read_user_init_code;
 module.exports.csv_run = csv_run;
 module.exports.set_debug_mode = set_debug_mode;
 module.exports.RecordQueue = RecordQueue;
+module.exports.parse_dictionary_variables = parse_dictionary_variables;
+module.exports.parse_attribute_variables = parse_attribute_variables;
