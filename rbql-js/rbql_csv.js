@@ -233,7 +233,6 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
    
     this.input_exhausted = false;
     this.started = false;
-    this.paused = false;
 
     this.utf8_bom_removed = false; // BOM doesn't get automatically removed by decoder when utf-8 file is treated as latin-1
     this.first_defective_line = null;
@@ -291,10 +290,8 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
     this.get_record = async function() {
         if (!this.started)
             this.start();
-        if (this.paused) {
-            this.paused = false;
+        if (this.stream.isPaused())
             this.stream.resume();
-        }
         let parent_iterator = this;
         current_record_promise = new Promise(function(resolve, reject) {
             parent_iterator.resolve_current_record = resolve;
