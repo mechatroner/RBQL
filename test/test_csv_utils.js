@@ -700,7 +700,8 @@ function main() {
     }
 
     rbql_csv = require('../rbql-js/rbql_csv.js');
-    rbql_csv.debug_mode = debug_mode;
+    if (debug_mode)
+        rbql_csv.set_debug_mode();
 
     test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + JSON.stringify(error_info)); console.log(error_info.stack); });
 }
