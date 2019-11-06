@@ -169,6 +169,8 @@ function js_string_escape_column_name(column_name, quote_char) {
 
 function parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map) {
     // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+    
+    // FIXME to prevent typos in attribute names either use query-based variable parsing which can properly handle back-tick strings or wrap "a" and "b" variables with ES6 Proxies https://stackoverflow.com/a/25658975/2898283
     assert(prefix === 'a' || prefix === 'b');
     let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[`);
     if (query.search(dict_test_rgx) == -1)
@@ -198,6 +200,8 @@ function parse_dictionary_variables(query, prefix, header_columns_names, dst_var
 
 function parse_attribute_variables(query, prefix, header_columns_names, dst_variables_map) {
     // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+   
+    // FIXME go from the reverse direction: query variables -> csv header columns. This way we will be able to catch the situation when referenced column name is not present in the header and report an error.
     assert(prefix === 'a' || prefix === 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
     let matches = rbql.get_all_matches(rgx, query);

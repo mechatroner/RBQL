@@ -334,7 +334,8 @@
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "query_python": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc"
+        "query_python": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
+        "query_js": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 && parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "aggregate dict fields",
@@ -343,7 +344,8 @@
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "query_python": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) where NR > 1 GROUP BY a.Region"
+        "query_python": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) where NR > 1 GROUP BY a.Region",
+        "query_js": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) where NR > 1 GROUP BY a.Region"
     },
     {
         "test_name": "bad field name",
@@ -353,7 +355,8 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "randomly_replace_var_names": false,
-        "query_python": "select top 10 int(a.foobar) + 20, 'hello'"
+        "query_python": "select top 10 int(a.foobar) + 20, 'hello'",
+        "query_js": "select top 10 parseInt(a.foobar) + 20, 'hello'"
     },
     {
         "test_name": "bad dict field name",
@@ -363,7 +366,8 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "randomly_replace_var_names": false,
-        "query_python": "select a['foobar'], 100"
+        "query_python": "select a['foobar'], 100",
+        "query_js": "select a['foobar'], 100"
     },
     {
         "test_name": "named fields in interpolated strings",
@@ -374,7 +378,8 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "minimal_python_version": "3.7",
-        "query_python": "select top 10 a1, f\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc"
+        "query_python": "select top 10 a1, f\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
+        "query_js": "select top 10 a1, `area: ${a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '${a.Country}' stats` where NR > 1 && parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "named fields in interpolated triple-quoted strings",
@@ -384,7 +389,8 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "minimal_python_version": "3.7",
-        "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats\"\"\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc"
+        "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats\"\"\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
+        "query_js": "select top 10 a1, `area: ${a[\\`Area square miles\\`] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats` where NR > 1 && parseInt(a[`Area square miles`]) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "update named fields - unknown field error",
@@ -393,6 +399,7 @@
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', ''), a['foo-bar'] = len(a.country) where NR > 1"
+        "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', ''), a['foo-bar'] = len(a.country) where NR > 1",
+        "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, ''), a['foo-bar'] = a.country.length where NR > 1"
     }
 ]
