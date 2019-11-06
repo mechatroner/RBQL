@@ -9,6 +9,7 @@ const csv_utils = require('./csv_utils.js');
 var debug_mode = false;
 
 class RbqlIOHandlingError extends Error {}
+class RbqlParsingError extends Error {}
 class AssertionError extends Error {}
 
 
@@ -201,22 +202,24 @@ function parse_dictionary_variables(query, prefix, header_columns_names, dst_var
 function parse_attribute_variables(query, prefix, header_columns_names, dst_variables_map) {
     // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
    
-    // FIXME go from the reverse direction: query variables -> csv header columns. This way we will be able to catch the situation when referenced column name is not present in the header and report an error.
     assert(prefix === 'a' || prefix === 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
     let matches = rbql.get_all_matches(rgx, query);
     let column_names = matches.map(v => v[1]);
     for (column_name of column_names) {
         let zero_based_idx = header_columns_names.indexOf(column_name);
-        if (zero_based_idx != -1)
+        if (zero_based_idx != -1) {
             dst_variables_map[`${prefix}.${column_name}`] = {initialize: true, index: zero_based_idx};
+        } else {
+            throw new RbqlParsingError(`Unable to find column "${column_name}" in ${prefix == 'a' ? 'input' : 'join'} CSV header line`);
+        }
     }
 }
 
 
 
 function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', variable_prefix='a') {
-    // CSVRecordIterator works using async producer-consumer model and an internal buffer
+    // CSVRecordIterator implements typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
     // stream.on('data') - producer
 

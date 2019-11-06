@@ -350,7 +350,8 @@
     {
         "test_name": "bad field name",
         "input_table_path": "csv_files/countries.csv",
-        "expected_error": "has no attribute 'foobar'",
+        "expected_error": "Unable to find column \"foobar\" in input CSV header line",
+        "expected_error_exact": true,
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",

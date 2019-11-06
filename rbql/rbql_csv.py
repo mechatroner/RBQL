@@ -32,6 +32,9 @@ debug_mode = False
 class RbqlIOHandlingError(Exception):
     pass
 
+class RbqlParsingError(Exception):
+    pass
+
 
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
@@ -258,6 +261,7 @@ def python_string_escape_column_name(column_name, quote_char):
 
 def parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+    # TODO implement algorithm for honest python f-string parsing
     assert prefix in ['a', 'b']
     if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query) is None:
         return
@@ -280,6 +284,7 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
     # TODO ideally we should either:
     # * not search inside string literals (excluding brackets in f-strings) OR
     # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
+
     assert prefix in ['a', 'b']
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
     rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
@@ -289,6 +294,8 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
         zero_based_idx = header_columns_names.get(column_name)
         if zero_based_idx is not None:
             dst_variables_map['{}.{}'.format(prefix, column_name)] = engine.VariableInfo(initialize=True, index=zero_based_idx)
+        else:
+            raise RbqlParsingError('Unable to find column "{}" in {} CSV header line'.format(column_name, {'a': 'input', 'b': 'join'}[prefix]))
 
 
 
