@@ -5,7 +5,6 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-import readline
 
 from . import csv_utils
 from . import rbql_csv
@@ -14,9 +13,7 @@ from . import _version
 
 PY3 = sys.version_info[0] == 3
 
-# TODO add demo gif to python package README.md, pypi supports image rendering
-
-# FIXME check readline in Windows both with py2 and py3
+# TODO add demo gif to python package README.md for pypi website
 
 
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
@@ -170,6 +167,7 @@ def get_default_output_path(input_path, delim):
 
 
 def run_interactive_loop(args):
+    import readline
     if os.path.exists(history_path):
         readline.read_history_file(history_path)
     readline.set_history_length(100)
@@ -199,6 +197,9 @@ def start_preview_mode(args):
     input_path = args.input
     if not input_path:
         show_error('generic', 'Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', is_interactive=True)
+        return
+    if not os.path.exists(input_path):
+        show_error('generic', 'Input file {} does not exist'.format(input_path), is_interactive=True)
         return
     if args.delim is not None:
         delim = rbql_csv.normalize_delim(args.delim)
@@ -284,6 +285,9 @@ def main():
         if not success:
             sys.exit(1)
     else:
+        if os.name == 'nt':
+            show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False)
+            sys.exit(1)
         start_preview_mode(args)
 
 
