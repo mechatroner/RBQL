@@ -62,19 +62,6 @@ function assert_arrays_are_equal(a, b, exit_at_error=true, silent=false) {
 }
 
 
-function assert_tables_are_equal(a, b, exit_at_error=true, silent=false) {
-    // FIXME get rid of this, replace all usages with assert_arrays_are_equal() - it can check tables too
-    if (a.length != b.length) {
-        return fail(`a.length = ${a.length} != b.length = ${b.length}`, exit_at_error, silent);
-    }
-    for (var i = 0; i < a.length; i++) {
-        if (!assert_arrays_are_equal(a[i], b[i], false))
-            return fail(`Mismatch at row ${i}`, exit_at_error, silent);
-    }
-    return true;
-}
-
-
 function assert_objects_are_equal(a, b, exit_at_error=true, silent=false, current_path='') {
     if (a === b)
         return true;
@@ -135,7 +122,6 @@ module.exports.get_default = get_default;
 module.exports.normalize_warnings = normalize_warnings;
 module.exports.assert_objects_are_equal = assert_objects_are_equal;
 module.exports.assert = assert;
-module.exports.assert_tables_are_equal = assert_tables_are_equal;
 module.exports.assert_arrays_are_equal = assert_arrays_are_equal;
 module.exports.assert_equal = assert_equal;
 module.exports.round_floats = round_floats;

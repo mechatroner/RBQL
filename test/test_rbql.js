@@ -256,7 +256,7 @@ async function test_json_tables() {
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
-        test_common.assert_tables_are_equal(expected_output_table, output_table);
+        test_common.assert_arrays_are_equal(expected_output_table, output_table);
     }
 }
 
@@ -267,7 +267,7 @@ async function test_direct_table_queries() {
 
     let warnings = await rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table);
     test_common.assert(warnings.length == 0);
-    test_common.assert_tables_are_equal(expected_table, output_table);
+    test_common.assert_arrays_are_equal(expected_table, output_table);
 }
 
 
