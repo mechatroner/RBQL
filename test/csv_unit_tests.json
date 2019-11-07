@@ -402,8 +402,8 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "minimal_python_version": "3.7",
-        "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats\"\"\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
-        "query_js": "select top 10 a1, `area: ${a[\\`Area square miles\\`] + ', GDP: ' + a['GDP per capita']} - '{a.Country}' stats` where NR > 1 && parseInt(a[`Area square miles`]) > 1000000 order by parseInt(a['GDP per capita']) desc"
+        "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a[\"GDP per capita\"]} - '{a.Country}' stats\"\"\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
+        "query_js": "select top 10 a1, `area: ${a[`Area square miles`] + ', GDP: ' + a['GDP per capita']} - '${a.Country}' stats` where NR > 1 && parseInt(a[`Area square miles`]) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "update named fields - unknown field error",
