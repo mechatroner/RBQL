@@ -367,8 +367,20 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "randomly_replace_var_names": false,
-        "query_python": "select a['foobar'], 100",
-        "query_js": "select a['foobar'], 100"
+        "query_python": "select a['foobar'], 100"
+    },
+    {
+        "test_name": "JS: demonstration of failure to handle unknown field",
+        "input_table_path": "csv_files/countries.csv",
+        "expected_output_table_path": "csv_files/countries_result4.csv",
+        "expected_warnings": [
+            "null values in output were replaced"
+        ],
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "randomly_replace_var_names": false,
+        "query_js": "select top 3 a['foobar'], 100"
     },
     {
         "test_name": "named fields in interpolated strings",
