@@ -57,10 +57,10 @@ RBQL for CSV files provides the following variables which you can use in your qu
    Description: Number of fields in the current line  
 * _a.name_, _b.Person_age_, ... _a.{good_alphanumeric_column_name}_  
    Variable type: **string**  
-   Description: Value of i-th field. You can use this notation if the field in the first (header) CSV line has a "good" alphanumeric name  
+   Description: Value of the field referenced by it's "name". You can use this notation if the field in the first (header) CSV line has a "good" alphanumeric name  
 * _a["object id"]_, _a['9.12341234']_, _b["%$ !! 10 20"]_ ... _a["arbitrary column name!"]_  
    Variable type: **string**  
-   Description: Value of i-th field. You can use this notation to reference fields by arbitrary values in the first (header) CSV line, even when there are no header at all  
+   Description: Value of the field referenced by it's "name". You can use this notation to reference fields by arbitrary values in the first (header) CSV line, even when there are no header at all  
 
 
 #### Notes:
