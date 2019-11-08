@@ -14,6 +14,8 @@ var error_format = 'hr';
 var interactive_mode = false;
 
 
+// FIXME test readline on Win: disable interactive mode?
+
 // TODO implement query history like in Python version. "readline" modules allows to do that, see "completer" parameter.
 
 

@@ -203,7 +203,7 @@ function parse_attribute_variables(query, prefix, header_columns_names, dst_vari
     // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
    
     assert(prefix === 'a' || prefix === 'b');
-    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)`, 'g');
     let matches = rbql.get_all_matches(rgx, query);
     let column_names = matches.map(v => v[1]);
     for (column_name of column_names) {

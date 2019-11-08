@@ -287,7 +287,7 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
 
     assert prefix in ['a', 'b']
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
-    rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
     matches = list(re.finditer(rgx, query))
     column_names = list(set([m.group(1) for m in matches]))
     for column_name in column_names:

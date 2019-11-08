@@ -14,11 +14,9 @@ var rbql_csv = null;
 var rbql = null;
 
 
-// TODO add all record iterator tests, see python version
-// TODO Add tests: 1. utf decoding errors 2. bom
-
 // TODO add iterator test with random unicode table / separator just like in Python version
 
+// TODO implement random parse header unit tests similar to _do_test_random_headers in the Python test suite
 
 const script_dir = __dirname;
 
