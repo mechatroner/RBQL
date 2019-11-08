@@ -11,6 +11,7 @@ const build_engine = require('../rbql-js/build_engine.js');
 const test_common = require('./test_common.js');
 
 var rbql_csv = null;
+var rbql = null;
 
 
 // TODO add all record iterator tests, see python version
@@ -380,17 +381,37 @@ async function test_whitespace_separated_parsing() {
 }
 
 
+function randomly_replace_columns_dictionary_style(query) {
+    let adjusted_query = query;
+    for (let prefix of ['a', 'b']) {
+        let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)`, 'g');
+        let matches = rbql.get_all_matches(rgx, query);
+        for (let match of matches) {
+            if (random_int(0, 1))
+                continue;
+            let column_name = match[1];
+            let quote_style = ['"', "'", "`"][random_int(0, 2)];
+            adjusted_query = replace_all(adjusted_query, `${prefix}.${column_name}`, `${prefix}[${quote_style}${column_name}${quote_style}]`);
+        }
+    }
+    return adjusted_query;
+}
+
+
 async function process_test_case(tmp_tests_dir, test_case) {
     let test_name = test_case['test_name'];
     let query = test_case['query_js'];
     if (!query)
         return;
     console.log('Running rbql test: ' + test_name);
-    query = query.replace('###UT_TESTS_DIR###', script_dir);
-    // FIXME randomly replace column names with dictionary style, see Python version
 
     let input_table_path = test_case['input_table_path'];
     let local_debug_mode = test_common.get_default(test_case, 'debug_mode', false);
+    let randomly_replace_var_names = test_common.get_default(test_case, 'randomly_replace_var_names', true)
+    query = query.replace('###UT_TESTS_DIR###', script_dir);
+    if (randomly_replace_var_names)
+        query = randomly_replace_columns_dictionary_style(query);
+
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
@@ -697,6 +718,7 @@ function main() {
     }
 
     rbql_csv = require('../rbql-js/rbql_csv.js');
+    rbql = require('../rbql-js/rbql.js');
     if (debug_mode)
         rbql_csv.set_debug_mode();
 
