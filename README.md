@@ -39,14 +39,33 @@ RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries 
 All keywords have the same meaning as in SQL queries. You can check them [online](https://www.w3schools.com/sql/default.asp)  
 
 
-### Special variables
+### RBQL variables
+RBQL for CSV files provides the following variables which you can use in your queries:
 
-| Variable Name            | Variable Type | Variable Description                 |
-|--------------------------|---------------|--------------------------------------|
-| _a1_, _a2_,..., _a{N}_   |string         | Value of i-th column                 |
-| _b1_, _b2_,..., _b{N}_   |string         | Value of i-th column in join table B |
-| _NR_                     |integer        | Line number (1-based)                |
-| _NF_                     |integer        | Number of fields in line             |
+* _a1_, _a2_,..., _a{N}_
+   Variable type: string
+   Description: value of i-th field in the current record in input table
+* _b1_, _b2_,..., _b{N}_
+   Variable type: string
+   Description: value of i-th field in the current record in join table B
+* _NR_
+   Variable type: integer
+   Description: Record number (1-based)
+* _NF_
+   Variable type: integer
+   Description: Number of fields in the current line
+* a.name, b.Person_age, ... a.{good_alphanumeric_column_name}
+   Variable type: string
+   Description: Value of i-th field. You can use this notation if the field in the first (header) CSV line has a "good" alphanumeric name
+* a["object id"], a['9.12341234'], b["%$ !! 10 20"] ... a["arbitrary column name"]
+   Variable type: string
+   Description: Value of i-th field. You can use this notation to reference fields by arbitrary values in the first (header) CSV line, even when there are no header at all
+
+
+#### Notes:
+* You can mix all variable types in a single query
+* Referencing fields by header names does not automatically skip the header line (you can use `where NR > 1` trick to skip it)
+* If you want to use RBQL as a library for your app you can define your own custom variables and do not support the above mentioned CSV-related variables.
 
 
 ### UPDATE statement
@@ -124,6 +143,14 @@ You can define custom functions and/or import libraries in two special files:
 
 ### FAQ
 
+#### How do I skip header record in CSV files?
+
+You can use the following trick: add `... where NR > 1 ...` to your query
+
+And if you are doing math operation you can modify your query like this, example:
+`select int(a3) * 1000, a2` -> `select int(a3) * 1000 if NR > 1 else a3, a2`
+
+
 #### How does RBQL work?
 
 RBQL parses SQL-like user query, creates a new python or javascript worker module, then imports and executes it.  
@@ -169,11 +196,6 @@ Explanation of simplified Python version of RBQL algorithm by example.
 Result set of the original query (`SELECT a3, int(a4) + 100, len(a2) WHERE a1 != 'SELL'`) is in the "result.tsv" file.  
 Adding support of TOP/LIMIT keywords is trivial and to support "ORDER BY" we can introduce an intermediate array.  
 
-
-#### Is this technology reliable?
-
-It should be: RBQL scripts have only 1000 - 2000 lines combined (depending on how you count them) and there are no external dependencies.
-There is no complex logic, even query parsing functions are very simple. If something goes wrong RBQL will show an error instead of producing incorrect output, also there are currently 5 different warning types.
 
 
 ### References
