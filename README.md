@@ -42,24 +42,24 @@ All keywords have the same meaning as in SQL queries. You can check them [online
 ### RBQL variables
 RBQL for CSV files provides the following variables which you can use in your queries:
 
-* _a1_, _a2_,..., _a{N}_
-   Variable type: string
-   Description: value of i-th field in the current record in input table
-* _b1_, _b2_,..., _b{N}_
-   Variable type: string
-   Description: value of i-th field in the current record in join table B
-* _NR_
-   Variable type: integer
-   Description: Record number (1-based)
-* _NF_
-   Variable type: integer
-   Description: Number of fields in the current line
-* a.name, b.Person_age, ... a.{good_alphanumeric_column_name}
-   Variable type: string
-   Description: Value of i-th field. You can use this notation if the field in the first (header) CSV line has a "good" alphanumeric name
-* a["object id"], a['9.12341234'], b["%$ !! 10 20"] ... a["arbitrary column name"]
-   Variable type: string
-   Description: Value of i-th field. You can use this notation to reference fields by arbitrary values in the first (header) CSV line, even when there are no header at all
+* _a1_, _a2_,..., _a{N}_  
+   Variable type: string  
+   Description: value of i-th field in the current record in input table  
+* _b1_, _b2_,..., _b{N}_  
+   Variable type: string  
+   Description: value of i-th field in the current record in join table B  
+* _NR_  
+   Variable type: integer  
+   Description: Record number (1-based)  
+* _NF_  
+   Variable type: integer  
+   Description: Number of fields in the current line  
+* a.name, b.Person_age, ... a.{good_alphanumeric_column_name}  
+   Variable type: string  
+   Description: Value of i-th field. You can use this notation if the field in the first (header) CSV line has a "good" alphanumeric name  
+* a["object id"], a['9.12341234'], b["%$ !! 10 20"] ... a["arbitrary column name"]  
+   Variable type: string  
+   Description: Value of i-th field. You can use this notation to reference fields by arbitrary values in the first (header) CSV line, even when there are no header at all  
 
 
 #### Notes:
@@ -145,10 +145,10 @@ You can define custom functions and/or import libraries in two special files:
 
 #### How do I skip header record in CSV files?
 
-You can use the following trick: add `... where NR > 1 ...` to your query
+You can use the following trick: add `... where NR > 1 ...` to your query  
 
-And if you are doing math operation you can modify your query like this, example:
-`select int(a3) * 1000, a2` -> `select int(a3) * 1000 if NR > 1 else a3, a2`
+And if you are doing math operation you can modify your query like this, example:  
+`select int(a3) * 1000, a2` -> `select int(a3) * 1000 if NR > 1 else a3, a2`  
 
 
 #### How does RBQL work?
