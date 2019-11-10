@@ -12,7 +12,7 @@ RBQL core module is very generic and can process all kind of objects and record 
 * Result set of any query immediately becomes a first-class table on it's own
 * Supports input tables with inconsistent number of fields per record
 * Output records appear in the same order as in input unless _ORDER BY_ is provided
-* Each record has a unique NR (line number) identifier
+* Each record has a unique NR (record number) identifier
 * Supports all main SQL keywords
 * Supports aggregate functions and GROUP BY queries
 * Provides some new useful query modes which traditional SQL engines do not have
@@ -54,7 +54,7 @@ RBQL for CSV files provides the following variables which you can use in your qu
    Description: Record number (1-based)  
 * _NF_  
    Variable type: **integer**  
-   Description: Number of fields in the current line  
+   Description: Number of fields in the current record  
 * _a.name_, _b.Person_age_, ... _a.{good_alphanumeric_column_name}_  
    Variable type: **string**  
    Description: Value of the field referenced by it's "name". You can use this notation if the field in the first (header) CSV line has a "good" alphanumeric name  
@@ -121,7 +121,7 @@ You can define custom functions and/or import libraries in two special files:
 * `select * order by random.random() where NR > 1` - skip header record and random sort
 * `select len(a.vehicle_price) / 10, a2 where NR > 1 and a['Vehicle type'] in ["car", "plane", "boat"] limit 20` - referencing columns by names from header record, skipping the header and using Python's "in" to emulate SQL's "in"
 * `update set a3 = 'NPC' where a3.find('Non-playable character') != -1`
-* `select NR, *` - enumerate lines, NR is 1-based
+* `select NR, *` - enumerate records, NR is 1-based
 * `select * where re.match(".*ab.*", a1) is not None` - select entries where first column has "ab" pattern
 * `select a1, b1, b2 inner join ./countries.txt on a2 == b1 order by a1, a3` - example of join query
 * `select MAX(a1), MIN(a1) where a.Name != 'John' group by a2, a3` - example of aggregate query
@@ -132,7 +132,7 @@ You can define custom functions and/or import libraries in two special files:
 * `select * order by Math.random() where NR > 1` - skip header record and random sort
 * `select top 20 a.vehicle_price.length / 10, a2 where NR > 1 and ["car", "plane", "boat"].indexOf(a['Vehicle type']) > -1 limit 20` - referencing columns by names from header record and skipping the header
 * `update set a3 = 'NPC' where a3.indexOf('Non-playable character') != -1`
-* `select NR, *` - enumerate lines, NR is 1-based
+* `select NR, *` - enumerate records, NR is 1-based
 * `select a1, b1, b2 inner join ./countries.txt on a2 == b1 order by a1, a3` - example of join query
 * `select MAX(a1), MIN(a1) where a.Name != 'John' group by a2, a3` - example of aggregate query
 
