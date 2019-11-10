@@ -3,7 +3,7 @@ const rbql_csv = require('rbql_csv');
 let user_query = 'SELECT a1, parseInt(a2) % 1000 WHERE a3 != "USA" LIMIT 5';
 
 let error_handler = function(exception) {
-    console.log('Error: ' + JSON.stringify(exception));
+    console.log('Error: ' + String(exception));
 }
 
 let success_handler = function(warnings) {
