@@ -1,18 +1,17 @@
 <!DOCTYPE html>
-<html>
-<head>
+<html> <head>
 
 <script src="../../rbql-js/web_rbql.js"></script>
 <script>
     let output_table = [];
-    let error_handler = function(error_type, error_msg) {
-        console.log('Error: ' + error_type + ': ' + error_msg);
+    let error_handler = function(exception) {
+        console.log('RBQL finished with error: ' + String(exception));
     }
     let success_handler = function(warnings) {
         console.log('warnings: ' + JSON.stringify(warnings));
         console.log('output table: ' + JSON.stringify(output_table));
     }
-    rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, success_handler, error_handler);
+    rbql.table_run('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table).then(success_handler).catch(error_handler);
 </script>
 
 <title>RBQL Generic Test</title>
