@@ -45,6 +45,8 @@ from collections import defaultdict, namedtuple
 # TODO show warning when csv fields contain trailing spaces
 
 
+# FIXME make sure column name dict variables does not include newlines
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
