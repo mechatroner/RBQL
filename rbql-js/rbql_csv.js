@@ -254,9 +254,21 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
 
     this.resolve_current_record = null;
     this.reject_current_record = null;
+    this.current_exception = null;
 
     this.produced_records_queue = new RecordQueue();
 
+    this.handle_exception = function(exception) {
+        if (this.reject_current_record) {
+            let reject = this.reject_current_record;
+            this.reject_current_record = null;
+            this.resolve_current_record = null;
+            reject(exception);
+        } else {
+            this.current_exception = exception;
+        }
+
+    }
 
     this.preread_header = async function() {
         let header_record = await this.get_record();
@@ -290,6 +302,7 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
             return;
         let resolve = this.resolve_current_record;
         this.resolve_current_record = null;
+        this.reject_current_record = null;
         resolve(record);
     };
 
@@ -299,11 +312,16 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
             this.start();
         if (this.stream.isPaused())
             this.stream.resume();
+
         let parent_iterator = this;
         let current_record_promise = new Promise(function(resolve, reject) {
             parent_iterator.resolve_current_record = resolve;
             parent_iterator.reject_current_record = reject;
         });
+        if (this.current_exception) {
+            this.reject_current_record(this.current_exception);
+            return;
+        }
         this.try_resolve_next_record();
         return current_record_promise;
     };
@@ -379,9 +397,9 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
                 decoded_string = this.decoder.decode(data_chunk);
             } catch (e) {
                 if (e instanceof TypeError) {
-                    this.reject_current_record(new RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead'));
+                    this.handle_exception(new RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead'));
                 } else {
-                    this.reject_current_record(e);
+                    this.handle_exception(e);
                 }
                 return;
             }
