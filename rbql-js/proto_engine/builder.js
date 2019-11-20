@@ -157,7 +157,7 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
         throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_2}"`);
     }
 
-    let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`
+    let lhs_join_var = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`;
     return [lhs_join_var, rhs_key_index];
 }
 
@@ -651,7 +651,7 @@ function TableWriter(external_table) {
         return [];
     };
 
-    this.finish = async function() {}
+    this.finish = async function() {};
 }
 
 

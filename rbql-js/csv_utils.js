@@ -6,7 +6,7 @@ let field_rgx_external_whitespaces = new RegExp('^ *' + field_regular_expression
 // TODO consider making this file (and rbql.js) both node and browser compatible: https://caolan.org/posts/writing_for_node_and_the_browser.html
 
 
-function split_lines(text) { 
+function split_lines(text) {
     return text.split(/\r\n|\r|\n/);
 }
 
