@@ -613,8 +613,14 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
 }
 
 
-async function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code='') {
-    let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
+async function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code='', options=null) {
+    let input_stream = null;
+    let bulk_input_path = null;
+    if (options && options.hasOwnProperty('bulk_read') && options['bulk_read'] && input_path) {
+        bulk_input_path = input_path;
+    } else {
+        input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
+    }
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy');
@@ -631,7 +637,7 @@ async function csv_run(user_query, input_path, input_delim, input_policy, output
     }
 
     let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding);
-    let input_iterator = new CSVRecordIterator(input_stream, null, csv_encoding, input_delim, input_policy);
+    let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy);
     let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
     if (debug_mode)

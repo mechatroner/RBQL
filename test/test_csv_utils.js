@@ -430,9 +430,12 @@ async function process_test_case(tmp_tests_dir, test_case) {
         actual_output_table_path = path.join(tmp_tests_dir, 'expected_empty_file');
     }
 
+    let bulk_read = random_int(0, 1) ? true : false;
+    let options = {'bulk_read': bulk_read};
+
     let warnings = null;
     try {
-        warnings = await rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, '');
+        warnings = await rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, '', options);
     } catch (e) {
         if (local_debug_mode)
             throw(e);
