@@ -218,12 +218,14 @@ function parse_attribute_variables(query, prefix, header_columns_names, dst_vari
 
 
 
-function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', variable_prefix='a') {
+function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name='input', variable_prefix='a') {
     // CSVRecordIterator implements typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
     // stream.on('data') - producer
 
     this.stream = stream;
+    this.csv_path = csv_path;
+    assert((this.stream === null) != (this.csv_path === null));
     this.encoding = encoding;
     this.delim = delim;
     this.policy = policy;
@@ -275,7 +277,8 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
         if (header_record === null)
             return null;
         this.produced_records_queue.return_to_pull_stack(header_record);
-        this.stream.pause();
+        if (this.stream)
+            this.stream.pause();
         return header_record.slice();
     };
 
@@ -309,8 +312,8 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
 
     this.get_record = async function() {
         if (!this.started)
-            this.start();
-        if (this.stream.isPaused())
+            await this.start();
+        if (this.stream && this.stream.isPaused())
             this.stream.resume();
 
         let parent_iterator = this;
@@ -433,16 +436,32 @@ function CSVRecordIterator(stream, encoding, delim, policy, table_name='input', 
 
 
     this.stop = function() {
-        this.stream.destroy(); // TODO consider using pause() instead
+        if (this.stream)
+            this.stream.destroy(); // TODO consider using pause() instead
     };
 
 
-    this.start = function() {
+    this.start = async function() {
         if (this.started)
             return;
         this.started = true;
-        this.stream.on('data', (data_chunk) => { this.process_data_chunk(data_chunk); });
-        this.stream.on('end', () => { this.process_data_end(); });
+        if (this.stream) {
+            this.stream.on('data', (data_chunk) => { this.process_data_chunk(data_chunk); });
+            this.stream.on('end', () => { this.process_data_end(); });
+        } else {
+            let parent_iterator = this;
+            return new Promise(function(resolve, reject) {
+                fs.readFile(parent_iterator.csv_path, (err, data_chunk) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        parent_iterator.process_data_chunk(data_chunk);
+                        parent_iterator.process_data_end();
+                        resolve();
+                    }
+                });
+            });
+        }
     };
 
 
@@ -588,7 +607,7 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
             throw new RbqlIOHandlingError(`Unable to find join table "${table_id}"`);
         }
         this.stream = fs.createReadStream(table_path);
-        this.record_iterator = new CSVRecordIterator(this.stream, this.encoding, this.delim, this.policy, table_id, 'b');
+        this.record_iterator = new CSVRecordIterator(this.stream, null, this.encoding, this.delim, this.policy, table_id, 'b');
         return this.record_iterator;
     };
 }
@@ -612,7 +631,7 @@ async function csv_run(user_query, input_path, input_delim, input_policy, output
     }
 
     let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding);
-    let input_iterator = new CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy);
+    let input_iterator = new CSVRecordIterator(input_stream, null, csv_encoding, input_delim, input_policy);
     let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
     if (debug_mode)

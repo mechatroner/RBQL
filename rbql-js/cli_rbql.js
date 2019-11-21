@@ -147,7 +147,7 @@ async function sample_lines(table_path) {
 
 async function sample_records(table_path, encoding, delim, policy) {
     let table_stream = fs.createReadStream(table_path);
-    let sampling_iterator = new rbql_csv.CSVRecordIterator(table_stream, encoding, delim, policy);
+    let sampling_iterator = new rbql_csv.CSVRecordIterator(table_stream, null, encoding, delim, policy);
     let sampled_records = await sampling_iterator.get_all_records(10);
     let warnings = sampling_iterator.get_warnings();
     return [sampled_records, warnings];

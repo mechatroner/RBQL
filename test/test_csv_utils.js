@@ -260,7 +260,7 @@ async function write_and_parse_back(table, encoding, delim, policy) {
     let input_stream = new stream.Readable();
     input_stream.push(data_buffer);
     input_stream.push(null);
-    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, null, encoding, delim, policy);
     let output_table = await record_iterator.get_all_records();
     test_common.assert_arrays_are_equal(table, output_table);
 }
@@ -372,7 +372,7 @@ async function test_whitespace_separated_parsing() {
     let delim = ' ';
     let policy = 'whitespace';
     let encoding = 'utf-8';
-    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, null, encoding, delim, policy);
     let output_table = await record_iterator.get_all_records();
     test_common.assert_arrays_are_equal(expected_table, output_table);
     await write_and_parse_back(expected_table, encoding, delim, policy);
@@ -494,7 +494,7 @@ async function do_test_record_iterator(table, delim, policy) {
     if (policy == 'quoted_rfc')
         normalize_newlines_in_fields(table);
     let [stream, encoding] = string_to_randomly_encoded_stream(csv_data);
-    let record_iterator = new rbql_csv.CSVRecordIterator(stream, encoding, delim, policy);
+    let record_iterator = new rbql_csv.CSVRecordIterator(stream, null, encoding, delim, policy);
     let parsed_table = await record_iterator.get_all_records();
     test_common.assert_arrays_are_equal(table, parsed_table);
     await write_and_parse_back(table, encoding, delim, policy);
@@ -510,6 +510,22 @@ async function test_record_iterator() {
         let policy = table_has_delim ? 'quoted' : random_choice(['quoted', 'simple']);
         await do_test_record_iterator(table, delim, policy);
     }
+}
+
+
+async function test_record_iterator_bulk_mode() {
+    let csv_path = path.join(script_dir, 'csv_files', 'movies.tsv');
+    let record_iterator = new rbql_csv.CSVRecordIterator(null, csv_path, 'utf-8', '\t', 'simple');
+    let parsed_table = await record_iterator.get_all_records();
+    let data = fs.readFileSync(csv_path, 'utf-8')
+    let lines = data.split('\n');
+    let table = [];
+    for (let line of lines) {
+        if (line.length)
+            table.push(line.split('\t'));
+    }
+    test_common.assert_equal(table.length, 4464);
+    test_common.assert_arrays_are_equal(table, parsed_table);
 }
 
 
@@ -538,7 +554,7 @@ async function test_large_file() {
     }
     fs.writeFileSync('huge_file.csv', data_lines.join('\n'));
     let input_stream = fs.createReadStream('huge_file.csv');
-    let input_iterator = new rbql_csv.CSVRecordIterator(input_stream, 'utf-8', ',', 'quoted');
+    let input_iterator = new rbql_csv.CSVRecordIterator(input_stream, null, 'utf-8', ',', 'quoted');
     input_iterator.collect_debug_stats = true;
     let records = await input_iterator.get_all_records();
     console.log("input_iterator.num_chunks_got:" + input_iterator.dbg_stats_num_chunks_got);
@@ -560,7 +576,7 @@ async function test_multicharacter_separator_parsing() {
     let delim = ':=)';
     let policy = 'simple';
     let encoding = 'utf-8';
-    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, null, encoding, delim, policy);
     let parsed_table = await record_iterator.get_all_records();
     test_common.assert_arrays_are_equal(expected_table, parsed_table);
     await write_and_parse_back(expected_table, encoding, delim, policy);
@@ -582,7 +598,7 @@ async function test_monocolumn_separated_parsing() {
         let input_stream = new stream.Readable();
         input_stream.push(Buffer.from(csv_data, encoding));
         input_stream.push(null);
-        let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, encoding, delim, policy);
+        let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, null, encoding, delim, policy);
         let parsed_table = await record_iterator.get_all_records();
         test_common.assert_arrays_are_equal(table, parsed_table);
         await write_and_parse_back(table, encoding, delim, policy);
@@ -646,6 +662,7 @@ async function test_everything() {
     test_attribute_variables_parsing();
     await test_whitespace_separated_parsing();
     await test_record_iterator();
+    await test_record_iterator_bulk_mode();
     await test_monocolumn_separated_parsing();
     await test_multicharacter_separator_parsing();
     await test_iterator_rfc();
