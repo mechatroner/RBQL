@@ -636,7 +636,8 @@ async function csv_run(user_query, input_path, input_delim, input_policy, output
         user_init_code = read_user_init_code(default_init_source_path);
     }
 
-    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding);
+    assert(false, 'FIXME - pass bulk_read option to join registry'); // FIXME !!!
+    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding); // FIXME pass bulk_read option
     let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy);
     let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
