@@ -16,6 +16,9 @@ class AssertionError extends Error {}
 // TODO performance improvement: replace smart_split() with polymorphic_split()
 
 
+// FIXME use whole file read + trick from here https://stackoverflow.com/a/32279283/2898283 to solve reliable utf-8 decoding problem
+
+
 function assert(condition, message=null) {
     if (!condition) {
         if (!message) {
@@ -232,13 +235,13 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
     this.table_name = table_name;
     this.variable_prefix = variable_prefix;
 
-    this.collect_debug_stats = false;
-    this.dbg_stats_num_chunks_got = 0;
-    this.dbg_stats_max_records = 0;
-
     this.decoder = null;
-    if (encoding == 'utf-8')
+    if (encoding == 'utf-8' && this.csv_path === null) {
+        // Unfortunately util.TextDecoder has serious flaws:
+        // 1. It doesn't work in Node without ICU: https://nodejs.org/api/util.html#util_new_textdecoder_encoding_options
+        // 2. It is broken in Electron: https://github.com/electron/electron/issues/18733
         this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
+    }
 
     this.input_exhausted = false;
     this.started = false;
@@ -393,7 +396,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
     };
 
 
-    this.process_data_chunk = function(data_chunk) {
+    this.process_data_stream_chunk = function(data_chunk) {
         let decoded_string = null;
         if (this.decoder) {
             try {
@@ -415,15 +418,15 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
         for (let i = 0; i < lines.length; i++) {
             this.process_line(lines[i]);
         }
-
-        if (this.collect_debug_stats) {
-            this.dbg_stats_num_chunks_got += 1;
-            this.dbg_stats_max_records = Math.max(this.dbg_stats_max_records, this.produced_records_queue.push_stack.length + this.produced_records_queue.pull_stack.length);
-        }
     };
 
 
-    this.process_data_end = function() {
+    this.process_data_bulk = function(data_chunk) {
+        //FIXME impl
+    }
+
+
+    this.process_data_stream_end = function() {
         this.input_exhausted = true;
         if (this.partially_decoded_line.length) {
             let last_line = this.partially_decoded_line;
@@ -446,8 +449,8 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
             return;
         this.started = true;
         if (this.stream) {
-            this.stream.on('data', (data_chunk) => { this.process_data_chunk(data_chunk); });
-            this.stream.on('end', () => { this.process_data_end(); });
+            this.stream.on('data', (data_chunk) => { this.process_data_stream_chunk(data_chunk); });
+            this.stream.on('end', () => { this.process_data_stream_end(); });
         } else {
             let parent_iterator = this;
             return new Promise(function(resolve, reject) {
@@ -455,8 +458,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
                     if (err) {
                         reject(err);
                     } else {
-                        parent_iterator.process_data_chunk(data_chunk);
-                        parent_iterator.process_data_end();
+                        parent_iterator.process_data_bulk(data_chunk);
                         resolve();
                     }
                 });
