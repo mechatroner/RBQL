@@ -405,6 +405,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let input_table_path = test_case['input_table_path'];
     let local_debug_mode = test_common.get_default(test_case, 'debug_mode', false);
+    let bulk_read = test_common.get_default(test_case, 'bulk_read', false);
     let randomly_replace_var_names = test_common.get_default(test_case, 'randomly_replace_var_names', true)
     query = query.replace('###UT_TESTS_DIR###', script_dir);
     if (randomly_replace_var_names)
@@ -430,7 +431,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
         actual_output_table_path = path.join(tmp_tests_dir, 'expected_empty_file');
     }
 
-    let bulk_read = random_int(0, 1) ? true : false;
+    bulk_read = bulk_read || random_choice([true, false]);
     let options = {'bulk_read': bulk_read};
 
     let warnings = null;
@@ -466,7 +467,6 @@ async function test_json_scenarios() {
         await process_test_case(tmp_tests_dir, test_case);
     }
     rmtree(tmp_tests_dir);
-    console.log('Finished JS unit tests');
 }
 
 

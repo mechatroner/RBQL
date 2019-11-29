@@ -80,6 +80,7 @@
         "test_name": "utf-8 with bom js only",
         "input_table_path": "csv_files/movies_1_bom.csv",
         "expected_output_table_path": "csv_files/canonic_result_5.csv",
+        "bulk_read": true,
         "expected_warnings": [
             "inconsistent input records",
             "BOM removed from input",
