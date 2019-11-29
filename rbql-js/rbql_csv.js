@@ -336,7 +336,6 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
         });
         if (this.current_exception) {
             this.reject_current_record(this.current_exception);
-            return;
         }
         this.try_resolve_next_record();
         return current_record_promise;
