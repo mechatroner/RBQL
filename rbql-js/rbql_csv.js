@@ -6,6 +6,10 @@ const util = require('util');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
+
+const utf_decoding_error = 'Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead';
+
+
 var debug_mode = false;
 
 class RbqlIOHandlingError extends Error {}
@@ -240,6 +244,12 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
         // Unfortunately util.TextDecoder has serious flaws:
         // 1. It doesn't work in Node without ICU: https://nodejs.org/api/util.html#util_new_textdecoder_encoding_options
         // 2. It is broken in Electron: https://github.com/electron/electron/issues/18733
+
+        // Technically we can implement our own custom streaming text decoder, using 3 following technologies:
+        // 1. decode-encode validation method from https://stackoverflow.com/a/32279283/2898283
+        // 2. Scanning buffer chunks for non-continuation utf-8 bytes from the end of the buffer: 
+        //    src_buffer -> (buffer_before, buffer_after) where buffer_after is very small(a couple of bytes) and buffer_before is large and ends with a non-continuation bytes
+        // 3. Internal buffer to store small tail part from the previous buffer
         this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
     }
 
@@ -403,7 +413,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
                 decoded_string = this.decoder.decode(data_chunk);
             } catch (e) {
                 if (e instanceof TypeError) {
-                    this.handle_exception(new RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead'));
+                    this.handle_exception(new RbqlIOHandlingError(utf_decoding_error));
                 } else {
                     this.handle_exception(e);
                 }
@@ -422,7 +432,22 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
 
 
     this.process_data_bulk = function(data_chunk) {
-        //FIXME impl
+        let decoded_string = data_chunk.toString(this.encoding);
+        if (this.encoding == 'utf-8') {
+            // Using hacky comparison method from here: https://stackoverflow.com/a/32279283/2898283
+            // TODO get rid of this once TextDecoder is really fixed or when alternative method of reliable decoding appears
+            let control_buffer = new Buffer(decoded_string, 'utf-8');
+            if (Buffer.compare(data_chunk, control_buffer) != 0) {
+                this.handle_exception(new RbqlIOHandlingError(utf_decoding_error));
+                return;
+            }
+        }
+        let lines = csv_utils.split_lines(decoded_string);
+        for (let i = 0; i < lines.length; i++) {
+            this.process_line(lines[i]);
+        }
+        this.input_exhausted = true;
+        this.try_resolve_next_record(); // Should be a NOOP here?
     }
 
 
