@@ -443,6 +443,8 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
             }
         }
         let lines = csv_utils.split_lines(decoded_string);
+        if (lines.length && lines[lines.length - 1].length == 0)
+            lines.pop();
         for (let i = 0; i < lines.length; i++) {
             this.process_line(lines[i]);
         }
@@ -621,20 +623,27 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
 }
 
 
-function FileSystemCSVRegistry(delim, policy, encoding) {
+function FileSystemCSVRegistry(delim, policy, encoding, options=null) {
     this.delim = delim;
     this.policy = policy;
     this.encoding = encoding;
     this.stream = null;
     this.record_iterator = null;
 
+    this.options = options;
+    this.bulk_input_path = null;
+
     this.get_iterator_by_table_id = function(table_id) {
         let table_path = find_table_path(table_id);
         if (table_path === null) {
             throw new RbqlIOHandlingError(`Unable to find join table "${table_id}"`);
         }
-        this.stream = fs.createReadStream(table_path);
-        this.record_iterator = new CSVRecordIterator(this.stream, null, this.encoding, this.delim, this.policy, table_id, 'b');
+        if (this.options && this.options['bulk_read']) {
+            this.bulk_input_path = table_path;
+        } else {
+            this.stream = fs.createReadStream(table_path);
+        }
+        this.record_iterator = new CSVRecordIterator(this.stream, this.bulk_input_path, this.encoding, this.delim, this.policy, table_id, 'b');
         return this.record_iterator;
     };
 }
@@ -643,7 +652,7 @@ function FileSystemCSVRegistry(delim, policy, encoding) {
 async function csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code='', options=null) {
     let input_stream = null;
     let bulk_input_path = null;
-    if (options && options.hasOwnProperty('bulk_read') && options['bulk_read'] && input_path) {
+    if (options && options['bulk_read'] && input_path) {
         bulk_input_path = input_path;
     } else {
         input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
@@ -663,8 +672,7 @@ async function csv_run(user_query, input_path, input_delim, input_policy, output
         user_init_code = read_user_init_code(default_init_source_path);
     }
 
-    assert(false, 'FIXME - pass bulk_read option to join registry'); // FIXME !!!
-    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding); // FIXME pass bulk_read option
+    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, options);
     let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy);
     let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 

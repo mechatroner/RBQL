@@ -82,6 +82,7 @@
         "expected_output_table_path": "csv_files/canonic_result_5.csv",
         "expected_warnings": [
             "inconsistent input records",
+            "BOM removed from input",
             "defective double quote escaping",
             "null values in output were replaced"
         ],
