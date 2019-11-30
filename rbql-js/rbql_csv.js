@@ -20,9 +20,6 @@ class AssertionError extends Error {}
 // TODO performance improvement: replace smart_split() with polymorphic_split()
 
 
-// FIXME use whole file read + trick from here https://stackoverflow.com/a/32279283/2898283 to solve reliable utf-8 decoding problem
-
-
 function assert(condition, message=null) {
     if (!condition) {
         if (!message) {
