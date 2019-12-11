@@ -383,6 +383,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
             this.rfc_line_buffer = [];
             this._do_process_line_simple(multiline_row);
         }
+        // FIXME if we have an unbalanced double quote - the last section of rows won't be processed. Reproduce and fix the bug, create unit test.
     };
 
 
