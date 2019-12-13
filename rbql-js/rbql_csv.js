@@ -358,8 +358,13 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
     this._do_process_line_simple = function(line) {
         this.NR += 1;
         var [record, warning] = csv_utils.smart_split(line, this.delim, this.policy, false);
-        if (warning && this.first_defective_line === null)
-            this.first_defective_line = this.NR;
+        if (warning) {
+            if (this.first_defective_line === null) {
+                this.first_defective_line = this.NR;
+                if (this.policy == 'quoted_rfc')
+                    this.handle_exception(new RbqlIOHandlingError(`Defective double quote escaping in ${this.table_name} table at record ${this.NR}`));
+            }
+        }
         let num_fields = record.length;
         if (!this.fields_info.hasOwnProperty(num_fields))
             this.fields_info[num_fields] = this.NR;
