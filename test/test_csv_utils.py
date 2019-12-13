@@ -52,8 +52,8 @@ def normalize_warnings(warnings):
     for warning in warnings:
         if warning.find('Number of fields in "input" table is not consistent') != -1:
             result.append('inconsistent input records')
-        elif warning.find('Defective double quote escaping') != -1:
-            result.append('defective double quote escaping')
+        elif warning.find('Inconsistent double quote escaping') != -1:
+            result.append('inconsistent double quote escaping')
         elif warning.find('None values in output were replaced by empty strings') != -1:
             result.append('null values in output were replaced')
         elif warning == 'UTF-8 Byte Order Mark (BOM) was found and skipped in input table':

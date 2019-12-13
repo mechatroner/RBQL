@@ -362,7 +362,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
             if (this.first_defective_line === null) {
                 this.first_defective_line = this.NR;
                 if (this.policy == 'quoted_rfc')
-                    this.handle_exception(new RbqlIOHandlingError(`Defective double quote escaping in ${this.table_name} table at record ${this.NR}`));
+                    this.handle_exception(new RbqlIOHandlingError(`Inconsistent double quote escaping in ${this.table_name} table at record ${this.NR}`));
             }
         }
         let num_fields = record.length;
@@ -499,7 +499,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
     this.get_warnings = function() {
         let result = [];
         if (this.first_defective_line !== null)
-            result.push(`Defective double quote escaping in ${this.table_name} table. E.g. at line ${this.first_defective_line}`);
+            result.push(`Inconsistent double quote escaping in ${this.table_name} table. E.g. at line ${this.first_defective_line}`);
         if (this.utf8_bom_removed)
             result.push(`UTF-8 Byte Order Mark (BOM) was found and skipped in ${this.table_name} table`);
         if (Object.keys(this.fields_info).length > 1)

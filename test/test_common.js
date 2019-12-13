@@ -97,8 +97,8 @@ function normalize_warnings(warnings) {
     for (let warning of warnings) {
         if (warning.indexOf('Number of fields in "input" table is not consistent') != -1) {
             result.push('inconsistent input records');
-        } else if (warning.indexOf('Defective double quote escaping') != -1) {
-            result.push('defective double quote escaping');
+        } else if (warning.indexOf('Inconsistent double quote escaping') != -1) {
+            result.push('inconsistent double quote escaping');
         } else if (warning.indexOf('None values in output were replaced by empty strings') != -1) {
             result.push('null values in output were replaced');
         } else if (warning === 'UTF-8 Byte Order Mark (BOM) was found and skipped in input table') {

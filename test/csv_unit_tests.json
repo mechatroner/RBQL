@@ -65,7 +65,7 @@
         "expected_output_table_path": "csv_files/canonic_result_5.csv",
         "expected_warnings": [
             "inconsistent input records",
-            "defective double quote escaping",
+            "inconsistent double quote escaping",
             "BOM removed from input",
             "null values in output were replaced"
         ],
@@ -84,7 +84,7 @@
         "expected_warnings": [
             "inconsistent input records",
             "BOM removed from input",
-            "defective double quote escaping",
+            "inconsistent double quote escaping",
             "null values in output were replaced"
         ],
         "csv_separator": ",",
@@ -292,7 +292,7 @@
     {
         "test_name": "RFC-4180 dialect: corrupted file, bad double quote placement",
         "input_table_path": "csv_files/synthetic_rfc_newline_data_corrupted_middle.csv",
-        "expected_error": "Defective double quote escaping in input table at record 3",
+        "expected_error": "Inconsistent double quote escaping in input table at record 3",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "latin-1",
@@ -302,7 +302,7 @@
     {
         "test_name": "RFC-4180 dialect: corrupted file, unbalanced double quote at the end",
         "input_table_path": "csv_files/synthetic_rfc_newline_data_corrupted.csv",
-        "expected_error": "Defective double quote escaping in input table at record 11",
+        "expected_error": "Inconsistent double quote escaping in input table at record 11",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "latin-1",
