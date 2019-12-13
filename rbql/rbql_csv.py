@@ -306,8 +306,7 @@ class CSVRecordIterator:
         self.stream = encode_input_stream(stream, encoding)
         self.close_stream_on_finish = close_stream_on_finish
         self.delim = delim
-        self.is_quoted_rfc = policy == 'quoted_rfc'
-        self.policy = 'quoted' if self.is_quoted_rfc else policy
+        self.policy = policy
         self.table_name = table_name
         self.variable_prefix = variable_prefix
 
@@ -426,7 +425,7 @@ class CSVRecordIterator:
         if warning:
             if self.first_defective_line is None:
                 self.first_defective_line = self.NR
-                if self.is_quoted_rfc:
+                if self.policy == 'quoted_rfc':
                     # TODO add line number when NL is supported
                     raise RbqlIOHandlingError('Defective double quote escaping in {} table at record {}'.format(self.table_name, self.NR))
         num_fields = len(record)
