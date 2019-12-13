@@ -306,7 +306,8 @@ class CSVRecordIterator:
         self.stream = encode_input_stream(stream, encoding)
         self.close_stream_on_finish = close_stream_on_finish
         self.delim = delim
-        self.policy = 'quoted' if policy == 'quoted_rfc' else policy
+        self.is_quoted_rfc = policy == 'quoted_rfc'
+        self.policy = 'quoted' if self.is_quoted_rfc else policy
         self.table_name = table_name
         self.variable_prefix = variable_prefix
 
@@ -422,8 +423,12 @@ class CSVRecordIterator:
                 self.utf8_bom_removed = True
         self.NR += 1
         record, warning = csv_utils.smart_split(line, self.delim, self.policy, preserve_quotes_and_whitespaces=False)
-        if warning and self.first_defective_line is None:
-            self.first_defective_line = self.NR
+        if warning:
+            if self.first_defective_line is None:
+                self.first_defective_line = self.NR
+                if self.is_quoted_rfc:
+                    # TODO add line number when NL is supported
+                    raise RbqlIOHandlingError('Defective double quote escaping in {} table at record {}'.format(self.table_name, self.NR))
         num_fields = len(record)
         if num_fields not in self.fields_info:
             self.fields_info[num_fields] = self.NR
