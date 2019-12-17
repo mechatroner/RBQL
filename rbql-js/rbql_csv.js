@@ -437,7 +437,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
         if (this.encoding == 'utf-8') {
             // Using hacky comparison method from here: https://stackoverflow.com/a/32279283/2898283
             // TODO get rid of this once TextDecoder is really fixed or when alternative method of reliable decoding appears
-            let control_buffer = new Buffer(decoded_string, 'utf-8');
+            let control_buffer = Buffer(decoded_string, 'utf-8'); // For some reason Buffer.from(...) works much slower than this deprecated constructor
             if (Buffer.compare(data_chunk, control_buffer) != 0) {
                 this.handle_exception(new RbqlIOHandlingError(utf_decoding_error));
                 return;
