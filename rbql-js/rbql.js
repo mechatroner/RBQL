@@ -1378,6 +1378,7 @@ async function generic_run(user_query, input_iterator, output_writer, join_table
     let [js_code, join_map] = await parse_to_js(user_query, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
     let rbql_worker = null;
     if (debug_mode) {
+        // This version works a little faster than eval below. The downside is that a temporary file is created
         rbql_worker = load_module_from_file(js_code);
     } else {
         let module = {'exports': {}};
