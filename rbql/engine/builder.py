@@ -34,8 +34,6 @@ from collections import defaultdict, namedtuple
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
-# TODO add "skip-header" interface option and RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records
-
 # TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in template.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
 
 # TODO optimize performance: optional compilation depending on python2/python3
@@ -44,11 +42,17 @@ from collections import defaultdict, namedtuple
 
 # TODO show warning when csv fields contain trailing spaces
 
+# TODO support RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records
 
 
-# FIXME change generic_run/table_run/csv_run interfaces - do not return error object, throw exception instead
+
+# FIXME change generic_run/table_run/csv_run interfaces - do not return error object, throw exception instead, pass output warnings array as input param?
 
 # FIXME make sure column name dict variables does not include newlines
+
+# FIXME allow to run `select rbql_version` to output version
+
+# FIXME add "skip-header" interface option 
 
 
 GROUP_BY = 'GROUP BY'
