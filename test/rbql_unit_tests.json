@@ -1257,7 +1257,7 @@
         "query_js": "select a1, b2 inner join B on aNR == bNR where a.NR > 3 && b.NR < 6"
     },
     {
-        "test_name": "test array indexing",
+        "test_name": "array indexing",
         "input_table": [
             ["5", "alpha", "beta"],
             ["-20", "alpha", "gamma"],
@@ -1270,5 +1270,19 @@
         ],
         "query_python": "select NR, a[1], len(a[3]) where int(a[1]) > 5",
         "query_js": "select NR, a[1], a[3].length where parseInt(a[1]) > 5"
+    },
+    {
+        "test_name": "select version",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            ["0.11.0"]
+        ],
+        "query_python": "select top 1 RBQL_VERSION",
+        "query_js": "select top 1 RBQL_VERSION"
     }
 ]

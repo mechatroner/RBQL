@@ -13,6 +13,7 @@ import shutil
 import time
 from collections import defaultdict, namedtuple
 
+from ._version import __version__
 
 ##########################################################################
 #
@@ -426,6 +427,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
 
     py_meta_params = dict()
     py_meta_params['__RBQLMP__user_init_code'] = user_init_code
+    py_meta_params['__RBQLMP__version'] = __version__
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
         raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries') # UT JSON

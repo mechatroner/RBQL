@@ -16,6 +16,9 @@ from collections import OrderedDict, defaultdict
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator", "split", "line", "path" etc
 
 
+RBQL_VERSION = '__RBQLMP__version'
+
+
 try:
     pass
 __RBQLMP__user_init_code

@@ -8,7 +8,7 @@ import argparse
 
 from . import csv_utils
 from . import rbql_csv
-from . import _version
+from .engine import _version
 
 
 PY3 = sys.version_info[0] == 3
