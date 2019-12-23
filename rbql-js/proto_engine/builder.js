@@ -475,6 +475,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
 
     var js_meta_params = {};
     js_meta_params['__RBQLMP__user_init_code'] = user_init_code;
+    js_meta_params['__RBQLMP__version'] = version;
 
     if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');
@@ -672,6 +673,7 @@ async function generic_run(user_query, input_iterator, output_writer, join_table
     let [js_code, join_map] = await parse_to_js(user_query, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
     let rbql_worker = null;
     if (debug_mode) {
+        // This version works a little faster than eval below. The downside is that a temporary file is created
         rbql_worker = load_module_from_file(js_code);
     } else {
         let module = {'exports': {}};

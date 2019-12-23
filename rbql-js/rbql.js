@@ -38,6 +38,7 @@ var NF = 0;
 
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
+const RBQL_VERSION = '__RBQLMP__version';
 
 
 function stable_compare(a, b) {
@@ -720,7 +721,7 @@ module.exports.rb_transform = rb_transform;
 // TODO replace prototypes with classes: this improves readability
 
 
-const version = '0.10.0';
+const version = '0.11.0';
 
 const GROUP_BY = 'GROUP BY';
 const UPDATE = 'UPDATE';
@@ -1181,6 +1182,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
 
     var js_meta_params = {};
     js_meta_params['__RBQLMP__user_init_code'] = user_init_code;
+    js_meta_params['__RBQLMP__version'] = version;
 
     if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');

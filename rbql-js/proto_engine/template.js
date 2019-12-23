@@ -35,6 +35,7 @@ var NF = 0;
 
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
+const RBQL_VERSION = '__RBQLMP__version';
 
 
 function stable_compare(a, b) {
