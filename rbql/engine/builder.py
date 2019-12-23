@@ -41,10 +41,11 @@ from ._version import __version__
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
-# TODO show warning when csv fields contain trailing spaces
+# TODO show warning when csv fields contain trailing spaces, at least in join mode
 
 # TODO support RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records
 
+# TODO support option to skip comment lines (lines starting with the specified prefix)
 
 
 # FIXME change generic_run/table_run/csv_run interfaces - do not return error object, throw exception instead, pass output warnings array as input param?
