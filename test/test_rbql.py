@@ -220,7 +220,7 @@ class TestTableRun(unittest.TestCase):
         query = 'select a2 // 10, "name " + a1 order by a2'
         expected_output_table = [[-56, 'name Confucius'], [176, 'name Napoleon'], [185, 'name Roosevelt']]
         output_table = []
-        error_info, warnings = rbql.table_run(query, input_table, output_table)
+        error_info, warnings = rbql.query_table(query, input_table, output_table)
         self.assertEqual(error_info, None)
         self.assertEqual(warnings, [])
         self.assertEqual(expected_output_table, output_table)
@@ -233,7 +233,7 @@ class TestTableRun(unittest.TestCase):
         expected_output_table = [[-56, 1386, 'name Confucius'], [176, 67, 'name Napoleon'], [185, 327, 'name Roosevelt']]
         output_table = []
         #rbql.set_debug_mode()
-        error_info, warnings = rbql.table_run(query, input_table, output_table, join_table)
+        error_info, warnings = rbql.query_table(query, input_table, output_table, join_table)
         self.assertEqual(error_info, None)
         self.assertEqual(warnings, [])
         self.assertEqual(expected_output_table, output_table)
@@ -275,7 +275,7 @@ class TestJsonTables(unittest.TestCase):
 
         if debug_mode:
             rbql.set_debug_mode()
-        error_info, warnings = rbql.table_run(query, input_table, output_table, join_table, user_init_code=user_init_code)
+        error_info, warnings = rbql.query_table(query, input_table, output_table, join_table, user_init_code=user_init_code)
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)

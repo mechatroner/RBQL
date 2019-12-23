@@ -259,18 +259,18 @@ def python_string_escape_column_name(column_name, quote_char):
     return column_name.replace("'", "\\'")
 
 
-def parse_dictionary_variables(query, prefix, header_columns_names, dst_variables_map):
+def parse_dictionary_variables(query_text, prefix, header_columns_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
     # TODO implement algorithm for honest python f-string parsing
     assert prefix in ['a', 'b']
-    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query) is None:
+    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query_text) is None:
         return
     for i in polymorphic_xrange(len(header_columns_names)):
         column_name = header_columns_names[i]
         continuous_name_segments = re.findall('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', column_name)
         add_column_name = True
         for continuous_segment in continuous_name_segments:
-            if query.find(continuous_segment) == -1:
+            if query_text.find(continuous_segment) == -1:
                 add_column_name = False
                 break
         if add_column_name:
@@ -278,7 +278,7 @@ def parse_dictionary_variables(query, prefix, header_columns_names, dst_variable
             dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = engine.VariableInfo(initialize=False, index=i)
 
 
-def parse_attribute_variables(query, prefix, header_columns_names, dst_variables_map):
+def parse_attribute_variables(query_text, prefix, header_columns_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
 
     # TODO ideally we should either:
@@ -288,7 +288,7 @@ def parse_attribute_variables(query, prefix, header_columns_names, dst_variables
     assert prefix in ['a', 'b']
     header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
     rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
-    matches = list(re.finditer(rgx, query))
+    matches = list(re.finditer(rgx, query_text))
     column_names = list(set([m.group(1) for m in matches]))
     for column_name in column_names:
         zero_based_idx = header_columns_names.get(column_name)
@@ -328,13 +328,13 @@ class CSVRecordIterator:
             assert not self.header_record_emitted
 
 
-    def get_variables_map(self, query):
+    def get_variables_map(self, query_text):
         variable_map = dict()
-        engine.parse_basic_variables(query, self.variable_prefix, variable_map)
-        engine.parse_array_variables(query, self.variable_prefix, variable_map)
+        engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
+        engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.header_record is not None:
-            parse_attribute_variables(query, self.variable_prefix, self.header_record, variable_map)
-            parse_dictionary_variables(query, self.variable_prefix, self.header_record, variable_map)
+            parse_attribute_variables(query_text, self.variable_prefix, self.header_record, variable_map)
+            parse_dictionary_variables(query_text, self.variable_prefix, self.header_record, variable_map)
         return variable_map
 
 
@@ -487,7 +487,7 @@ class FileSystemCSVRegistry:
             self.record_iterator.finish()
 
 
-def csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code=''):
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     try:
@@ -499,7 +499,7 @@ def csv_run(user_query, input_path, input_delim, input_policy, output_path, outp
         if input_delim != ' ' and input_policy == 'whitespace':
             raise RbqlIOHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
 
-        if not is_ascii(user_query) and csv_encoding == 'latin-1':
+        if not is_ascii(query_text) and csv_encoding == 'latin-1':
             raise RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
 
         if (not is_ascii(input_delim) or not is_ascii(output_delim)) and csv_encoding == 'latin-1':
@@ -514,7 +514,7 @@ def csv_run(user_query, input_path, input_delim, input_policy, output_path, outp
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy)
         if debug_mode:
             engine.set_debug_mode()
-        error_info, warnings = engine.generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code)
+        error_info, warnings = engine.query(query_text, input_iterator, output_writer, join_tables_registry, user_init_code)
         join_tables_registry.finish()
         return (error_info, warnings)
     except Exception as e:

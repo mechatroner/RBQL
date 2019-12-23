@@ -48,11 +48,9 @@ from ._version import __version__
 # TODO support option to skip comment lines (lines starting with the specified prefix)
 
 
-# FIXME change generic_run/table_run/csv_run interfaces - do not return error object, throw exception instead, pass output warnings array as input param?
+# FIXME change query/query_table/csv_run interfaces - do not return error object, throw exception instead, pass output warnings array as input param?
 
 # FIXME make sure column name dict variables does not include newlines
-
-# FIXME allow to run `select rbql_version` to output version
 
 # FIXME add "skip-header" interface option 
 
@@ -156,44 +154,44 @@ def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, 
     return (lhs_join_var, rhs_key_index)
 
 
-def parse_basic_variables(query, prefix, dst_variables_map):
+def parse_basic_variables(query_text, prefix, dst_variables_map):
     assert prefix in ['a', 'b']
     rgx = '(?:^|[^_a-zA-Z0-9]){}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
-    matches = list(re.finditer(rgx, query))
+    matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
         dst_variables_map[prefix + str(field_num)] = VariableInfo(initialize=True, index=field_num - 1)
 
 
-def parse_array_variables(query, prefix, dst_variables_map):
+def parse_array_variables(query_text, prefix, dst_variables_map):
     assert prefix in ['a', 'b']
     rgx = r'(?:^|[^_a-zA-Z0-9]){}\[([1-9][0-9]*)\]'.format(prefix)
-    matches = list(re.finditer(rgx, query))
+    matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
         dst_variables_map['{}[{}]'.format(prefix, field_num)] = VariableInfo(initialize=True, index=field_num - 1)
 
 
-def generate_common_init_code(query, variable_prefix):
+def generate_common_init_code(query_text, variable_prefix):
     assert variable_prefix in ['a', 'b']
     result = list()
     result.append('{} = RBQLRecord()'.format(variable_prefix))
     base_var = 'NR' if variable_prefix == 'a' else 'bNR'
     attr_var = '{}.NR'.format(variable_prefix)
-    if query.find(attr_var) != -1:
+    if query_text.find(attr_var) != -1:
         result.append('{} = {}'.format(attr_var, base_var))
-    if variable_prefix == 'a' and query.find('aNR') != -1:
+    if variable_prefix == 'a' and query_text.find('aNR') != -1:
         result.append('aNR = NR')
     return result
 
 
-def generate_init_statements(query, variables_map, join_variables_map, indent):
-    code_lines = generate_common_init_code(query, 'a')
+def generate_init_statements(query_text, variables_map, join_variables_map, indent):
+    code_lines = generate_common_init_code(query_text, 'a')
     for var_name, var_info in variables_map.items():
         if var_info.initialize:
             code_lines.append('{} = safe_get(record_a, {})'.format(var_name, var_info.index))
     if join_variables_map:
-        code_lines += generate_common_init_code(query, 'b')
+        code_lines += generate_common_init_code(query_text, 'b')
         for var_name, var_info in join_variables_map.items():
             if var_info.initialize:
                 code_lines.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(var_name, var_info.index))
@@ -412,17 +410,17 @@ class HashJoinMap:
         return self.record_iterator.get_warnings()
 
 
-def cleanup_query(query):
-    rbql_lines = query.split('\n')
+def cleanup_query(query_text):
+    rbql_lines = query_text.split('\n')
     rbql_lines = [strip_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
     return ' '.join(rbql_lines)
 
 
-def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, user_init_code):
-    query = cleanup_query(query)
-    format_expression, string_literals = separate_string_literals_py(query)
-    input_variables_map = input_iterator.get_variables_map(query)
+def parse_to_py(query_text, py_template_text, input_iterator, join_tables_registry, user_init_code):
+    query_text = cleanup_query(query_text)
+    format_expression, string_literals = separate_string_literals_py(query_text)
+    input_variables_map = input_iterator.get_variables_map(query_text)
 
     rb_actions = separate_actions(format_expression)
 
@@ -450,7 +448,7 @@ def parse_to_py(query, py_template_text, input_iterator, join_tables_registry, u
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
-        join_variables_map = join_record_iterator.get_variables_map(query)
+        join_variables_map = join_record_iterator.get_variables_map(query_text)
 
         lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals)
         py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
@@ -555,14 +553,14 @@ class RbqlPyEnv:
             pass
 
 
-def generic_run(user_query, input_iterator, output_writer, join_tables_registry=None, user_init_code=''):
+def query(query_text, input_iterator, output_writer, join_tables_registry=None, user_init_code=''):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     try:
         user_init_code = indent_user_init_code(user_init_code)
         rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
         with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
             py_template_text = py_src.read()
-        python_code, join_map = parse_to_py(user_query, py_template_text, input_iterator, join_tables_registry, user_init_code)
+        python_code, join_map = parse_to_py(query_text, py_template_text, input_iterator, join_tables_registry, user_init_code)
         with RbqlPyEnv() as worker_env:
             write_python_module(python_code, worker_env.module_path)
             # TODO find a way to report module_path if exception is thrown.
@@ -609,10 +607,10 @@ class TableIterator:
     def finish(self):
         pass
 
-    def get_variables_map(self, query):
+    def get_variables_map(self, query_text):
         variable_map = dict()
-        parse_basic_variables(query, self.variable_prefix, variable_map)
-        parse_array_variables(query, self.variable_prefix, variable_map)
+        parse_basic_variables(query_text, self.variable_prefix, variable_map)
+        parse_array_variables(query_text, self.variable_prefix, variable_map)
         return variable_map
 
     def get_record(self):
@@ -656,11 +654,11 @@ class SingleTableRegistry:
         return TableIterator(self.table, 'b')
 
 
-def table_run(user_query, input_table, output_table, join_table=None, user_init_code=''):
+def query_table(query_text, input_table, output_table, join_table=None, user_init_code=''):
     input_iterator = TableIterator(input_table)
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else SingleTableRegistry(join_table)
-    return generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
+    return query(query_text, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
 
 
 def set_debug_mode():

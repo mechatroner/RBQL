@@ -72,7 +72,7 @@ def run_with_python(args, is_interactive):
     user_init_code = ''
     if init_source_file is not None:
         user_init_code = rbql_csv.read_user_init_code(init_source_file)
-    error_info, warnings = rbql_csv.csv_run(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, user_init_code)
+    error_info, warnings = rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, user_init_code)
 
     if error_info is None:
         success = True
