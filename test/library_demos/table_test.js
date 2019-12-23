@@ -20,4 +20,4 @@ let success_handler = function(warnings) {
     console.log('output table: ' + JSON.stringify(output_table));
 }
 
-rbql.table_run(user_query, input_table, output_table).then(success_handler).catch(error_handler);
+rbql.query_table(user_query, input_table, output_table).then(success_handler).catch(error_handler);

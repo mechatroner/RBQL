@@ -97,10 +97,10 @@ function combine_string_literals(backend_expression, string_literals) {
 }
 
 
-function parse_basic_variables(query, prefix, dst_variables_map) {
+function parse_basic_variables(query_text, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
-    let matches = get_all_matches(rgx, query);
+    let matches = get_all_matches(rgx, query_text);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
         dst_variables_map[prefix + String(field_num)] = {initialize: true, index: field_num - 1};
@@ -108,10 +108,10 @@ function parse_basic_variables(query, prefix, dst_variables_map) {
 }
 
 
-function parse_array_variables(query, prefix, dst_variables_map) {
+function parse_array_variables(query_text, prefix, dst_variables_map) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\]`, 'g');
-    let matches = get_all_matches(rgx, query);
+    let matches = get_all_matches(rgx, query_text);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
         dst_variables_map[`${prefix}[${field_num}]`] = {initialize: true, index: field_num - 1};
@@ -162,22 +162,22 @@ function resolve_join_variables(input_variables_map, join_variables_map, join_va
 }
 
 
-function generate_common_init_code(query, variable_prefix) {
+function generate_common_init_code(query_text, variable_prefix) {
     assert(variable_prefix == 'a' || variable_prefix == 'b');
     let result = [];
     result.push(`${variable_prefix} = new Object();`);
     let base_var = variable_prefix == 'a' ? 'NR' : 'bNR';
     let attr_var = `${variable_prefix}.NR`;
-    if (query.indexOf(attr_var) != -1)
+    if (query_text.indexOf(attr_var) != -1)
         result.push(`${attr_var} = ${base_var};`);
-    if (variable_prefix == 'a' && query.indexOf('aNR') != -1)
+    if (variable_prefix == 'a' && query_text.indexOf('aNR') != -1)
         result.push('aNR = NR;');
     return result;
 }
 
 
-function generate_init_statements(query, variables_map, join_variables_map, indent) {
-    let code_lines = generate_common_init_code(query, 'a');
+function generate_init_statements(query_text, variables_map, join_variables_map, indent) {
+    let code_lines = generate_common_init_code(query_text, 'a');
     let simple_var_name_rgx = /^[_0-9a-zA-Z]+$/;
     for (const [variable_name, var_info] of Object.entries(variables_map)) {
         if (var_info.initialize) {
@@ -186,7 +186,7 @@ function generate_init_statements(query, variables_map, join_variables_map, inde
         }
     }
     if (join_variables_map) {
-        code_lines = code_lines.concat(generate_common_init_code(query, 'b'));
+        code_lines = code_lines.concat(generate_common_init_code(query_text, 'b'));
         for (const [variable_name, var_info] of Object.entries(join_variables_map)) {
             if (var_info.initialize) {
                 let variable_declaration_keyword = simple_var_name_rgx.exec(variable_name) ? 'var ' : '';
@@ -460,16 +460,16 @@ function HashJoinMap(record_iterator, key_index) {
 }
 
 
-function cleanup_query(query) {
-    return query.split('\n').map(strip_comments).filter(line => line.length).join(' ');
+function cleanup_query(query_text) {
+    return query_text.split('\n').map(strip_comments).filter(line => line.length).join(' ');
 }
 
 
-async function parse_to_js(query, js_template_text, input_iterator, join_tables_registry, user_init_code) {
+async function parse_to_js(query_text, js_template_text, input_iterator, join_tables_registry, user_init_code) {
     user_init_code = indent_user_init_code(user_init_code);
-    query = cleanup_query(query);
-    var [format_expression, string_literals] = separate_string_literals_js(query);
-    var input_variables_map = await input_iterator.get_variables_map(query);
+    query_text = cleanup_query(query_text);
+    var [format_expression, string_literals] = separate_string_literals_js(query_text);
+    var input_variables_map = await input_iterator.get_variables_map(query_text);
 
     var rb_actions = separate_actions(format_expression);
 
@@ -499,7 +499,7 @@ async function parse_to_js(query, js_template_text, input_iterator, join_tables_
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
-        join_variables_map = await join_record_iterator.get_variables_map(query);
+        join_variables_map = await join_record_iterator.get_variables_map(query_text);
         let [lhs_join_var, rhs_key_index] = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals);
         js_meta_params['__RBQLMP__join_operation'] = `"${rb_actions[JOIN]['join_subtype']}"`;
         js_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var;
@@ -612,10 +612,10 @@ function TableIterator(input_table, variable_prefix='a') {
     };
 
 
-    this.get_variables_map = async function(query) {
+    this.get_variables_map = async function(query_text) {
         let variable_map = new Object();
-        parse_basic_variables(query, this.variable_prefix, variable_map);
-        parse_array_variables(query, this.variable_prefix, variable_map);
+        parse_basic_variables(query_text, this.variable_prefix, variable_map);
+        parse_array_variables(query_text, this.variable_prefix, variable_map);
         return variable_map;
     };
 
@@ -669,8 +669,8 @@ function SingleTableRegistry(table, table_id='B') {
 }
 
 
-async function generic_run(user_query, input_iterator, output_writer, join_tables_registry=null, user_init_code='') {
-    let [js_code, join_map] = await parse_to_js(user_query, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
+async function query(query_text, input_iterator, output_writer, join_tables_registry=null, user_init_code='') {
+    let [js_code, join_map] = await parse_to_js(query_text, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
     let rbql_worker = null;
     if (debug_mode) {
         // This version works a little faster than eval below. The downside is that a temporary file is created
@@ -689,11 +689,11 @@ async function generic_run(user_query, input_iterator, output_writer, join_table
 }
 
 
-async function table_run(user_query, input_table, output_table, join_table=null, user_init_code='') {
+async function query_table(query_text, input_table, output_table, join_table=null, user_init_code='') {
     let input_iterator = new TableIterator(input_table);
     let output_writer = new TableWriter(output_table);
     let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table);
-    let warnings = await generic_run(user_query, input_iterator, output_writer, join_tables_registry, user_init_code);
+    let warnings = await query(query_text, input_iterator, output_writer, join_tables_registry, user_init_code);
     return warnings;
 }
 
@@ -704,8 +704,8 @@ function set_debug_mode() {
 
 
 module.exports.version = version;
-module.exports.generic_run = generic_run;
-module.exports.table_run = table_run;
+module.exports.query = query;
+module.exports.query_table = query_table;
 
 module.exports.TableIterator = TableIterator;
 module.exports.TableWriter = TableWriter;

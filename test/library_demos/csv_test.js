@@ -12,4 +12,4 @@ let success_handler = function(warnings) {
     console.log('output table: output.csv');
 }
 
-rbql_csv.csv_run(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8').then(success_handler).catch(error_handler);
+rbql_csv.query_csv(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8').then(success_handler).catch(error_handler);

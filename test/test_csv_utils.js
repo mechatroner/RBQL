@@ -436,7 +436,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let warnings = null;
     try {
-        warnings = await rbql_csv.csv_run(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, '', options);
+        warnings = await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, '', options);
     } catch (e) {
         if (local_debug_mode)
             throw(e);
