@@ -48,7 +48,8 @@ from ._version import __version__
 # TODO support option to skip comment lines (lines starting with the specified prefix)
 
 
-# FIXME change query/query_table/csv_run interfaces - do not return error object, throw exception instead, pass output warnings array as input param?
+# FIXME change query/query_table/query_csv interfaces - do not return error object, throw exception instead, pass output warnings array as input param?
+# FIXME update library docs to reflect the new library API
 
 # FIXME make sure column name dict variables does not include newlines
 
@@ -86,13 +87,12 @@ def exception_to_error_info(e):
         'RbqlParsingError': 'query parsing',
         'RbqlIOHandlingError': 'IO handling'
     }
-
     error_type = 'unexpected'
     error_msg = str(e)
     for k, v in exceptions_type_map.items():
         if type(e).__name__.find(k) != -1:
             error_type = v
-    return {'type': error_type, 'message': error_msg}
+    return (error_type, error_msg)
 
 
 def rbql_meta_format(template_src, meta_params):
@@ -553,7 +553,7 @@ class RbqlPyEnv:
             pass
 
 
-def query(query_text, input_iterator, output_writer, join_tables_registry=None, user_init_code=''):
+def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
     try:
         user_init_code = indent_user_init_code(user_init_code)
@@ -571,19 +571,13 @@ def query(query_text, input_iterator, output_writer, join_tables_registry=None, 
             if debug_mode:
                 rbconvert.set_debug_mode()
             rbconvert.rb_transform(input_iterator, join_map, output_writer)
-            input_warnings = input_iterator.get_warnings()
-            join_warnings = join_map.get_warnings() if join_map is not None else []
-            output_warnings = output_writer.get_warnings()
-            warnings = input_warnings + join_warnings + output_warnings
             worker_env.remove_env_dir()
-            return (None, warnings)
-    except Exception as e:
-        if debug_mode:
-            raise
-        error_info = exception_to_error_info(e)
-        return (error_info, [])
+            output_warnings.extend(input_iterator.get_warnings())
+            if join_map is not None:
+                output_warnings.extend(join_map.get_warnings())
+            output_warnings.extend(output_writer.get_warnings())
     finally:
-        input_iterator.finish()
+        input_iterator.finish() # FIXME do not call finish() here. It is already getting called from query_csv()
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
@@ -654,11 +648,11 @@ class SingleTableRegistry:
         return TableIterator(self.table, 'b')
 
 
-def query_table(query_text, input_table, output_table, join_table=None, user_init_code=''):
+def query_table(query_text, input_table, output_table, output_warnings, join_table=None, user_init_code=''):
     input_iterator = TableIterator(input_table)
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else SingleTableRegistry(join_table)
-    return query(query_text, input_iterator, output_writer, join_tables_registry, user_init_code=user_init_code)
+    query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
 
 
 def set_debug_mode():

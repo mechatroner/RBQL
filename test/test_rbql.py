@@ -220,8 +220,8 @@ class TestTableRun(unittest.TestCase):
         query = 'select a2 // 10, "name " + a1 order by a2'
         expected_output_table = [[-56, 'name Confucius'], [176, 'name Napoleon'], [185, 'name Roosevelt']]
         output_table = []
-        error_info, warnings = rbql.query_table(query, input_table, output_table)
-        self.assertEqual(error_info, None)
+        warnings = []
+        rbql.query_table(query, input_table, output_table, warnings)
         self.assertEqual(warnings, [])
         self.assertEqual(expected_output_table, output_table)
 
@@ -233,8 +233,8 @@ class TestTableRun(unittest.TestCase):
         expected_output_table = [[-56, 1386, 'name Confucius'], [176, 67, 'name Napoleon'], [185, 327, 'name Roosevelt']]
         output_table = []
         #rbql.set_debug_mode()
-        error_info, warnings = rbql.query_table(query, input_table, output_table, join_table)
-        self.assertEqual(error_info, None)
+        warnings = []
+        rbql.query_table(query, input_table, output_table, warnings, join_table)
         self.assertEqual(warnings, [])
         self.assertEqual(expected_output_table, output_table)
 
@@ -275,20 +275,24 @@ class TestJsonTables(unittest.TestCase):
 
         if debug_mode:
             rbql.set_debug_mode()
-        error_info, warnings = rbql.query_table(query, input_table, output_table, join_table, user_init_code=user_init_code)
+        warnings = []
+        error_type, error_msg = None, None
+        try:
+            rbql.query_table(query, input_table, output_table, warnings, join_table, user_init_code=user_init_code)
+        except Exception as e:
+            error_type, error_msg = rbql.exception_to_error_info(e)
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
         self.assertEqual(expected_warnings, warnings, 'Inside json test: {}. Expected warnings: {}; Actual warnings: {}'.format(test_name, ','.join(expected_warnings), ','.join(warnings)))
-        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: {}. expected_error: {}, error_info: {}'.format(test_name, expected_error, error_info))
+        self.assertTrue((expected_error is not None) == (error_type is not None), 'Inside json test: "{}". Expected error: {}, error_type, error_msg: {}'.format(test_name, expected_error, error_type, error_msg))
         if expected_error_type is not None:
-            self.assertTrue(error_info['type'] == expected_error_type, 'Inside json test: {}'.format(test_name))
+            self.assertTrue(error_type == expected_error_type, 'Inside json test: {}'.format(test_name))
         if expected_error is not None:
             if expected_error_exact:
-                #self.assertEqual(expected_error, error_info['message'], 'Inside json test: {}'.format(test_name))
-                self.assertEqual(expected_error, error_info['message'])
+                self.assertEqual(expected_error, error_msg)
             else:
-                self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
+                self.assertTrue(error_msg.find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:
             round_floats(expected_output_table)
             round_floats(output_table)

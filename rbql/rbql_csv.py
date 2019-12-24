@@ -487,7 +487,7 @@ class FileSystemCSVRegistry:
             self.record_iterator.finish()
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code=''):
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     try:
@@ -514,19 +514,14 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy)
         if debug_mode:
             engine.set_debug_mode()
-        error_info, warnings = engine.query(query_text, input_iterator, output_writer, join_tables_registry, user_init_code)
+        engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
         join_tables_registry.finish()
-        return (error_info, warnings)
-    except Exception as e:
-        if debug_mode:
-            raise
-        error_info = engine.exception_to_error_info(e)
-        return (error_info, [])
     finally:
         if close_input_on_finish:
             input_stream.close()
         if close_output_on_finish:
             output_stream.close()
+        # FIXME also finalize join_tables_registry here
 
 
 def set_debug_mode():

@@ -8,6 +8,7 @@ import argparse
 
 from . import csv_utils
 from . import rbql_csv
+from . import engine
 from .engine import _version
 
 
@@ -72,16 +73,20 @@ def run_with_python(args, is_interactive):
     user_init_code = ''
     if init_source_file is not None:
         user_init_code = rbql_csv.read_user_init_code(init_source_file)
-    error_info, warnings = rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, user_init_code)
 
-    if error_info is None:
+    warnings = []
+    error_type, error_msg = None, None
+    try:
+        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, user_init_code)
+    except Exception as e:
+        error_type, error_msg = engine.exception_to_error_info(e)
+
+    if error_type is None:
         success = True
         for warning in warnings:
             show_warning(warning, is_interactive)
     else:
         success = False
-        error_type = error_info['type']
-        error_msg = error_info['message']
         show_error(error_type, error_msg, is_interactive)
 
     return success

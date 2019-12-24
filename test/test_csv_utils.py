@@ -679,8 +679,8 @@ class TestRBQLSimple(unittest.TestCase):
         output_stream = io.BytesIO() if encoding is not None else io.StringIO()
         output_writer = rbql_csv.CSVWriter(output_stream, False, encoding, delim, policy)
 
-        error_info, warnings = rbql.query('select a.name, int(a.value) * 10 where NR > 1 and a.name == "abc"', input_iterator, output_writer)
-        self.assertEqual(error_info, None)
+        warnings = []
+        rbql.query('select a.name, int(a.value) * 10 where NR > 1 and a.name == "abc"', input_iterator, output_writer, warnings)
         self.assertEqual(warnings, [])
 
         output_stream.seek(0)
@@ -749,8 +749,8 @@ class TestRBQLSimple(unittest.TestCase):
         output_stream = io.BytesIO() if encoding is not None else io.StringIO()
         output_writer = rbql_csv.CSVWriter(output_stream, False, encoding, delim, policy)
 
-        error_info, warnings = rbql.query(query, input_iterator, output_writer)
-        self.assertEqual(error_info, None)
+        warnings = []
+        rbql.query(query, input_iterator, output_writer, warnings)
         self.assertEqual(warnings, [])
 
         output_stream.seek(0)
@@ -801,11 +801,16 @@ class TestRBQLWithCSV(unittest.TestCase):
         out_delim, out_policy = (delim, policy) if output_format == 'input' else rbql_csv.interpret_named_csv_format(output_format)
         if debug_mode:
             rbql_csv.set_debug_mode()
-        error_info, warnings = rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding)
+        warnings = []
+        error_type, error_msg = None, None
+        try:
+            rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding, warnings)
+        except Exception as e:
+            error_type, error_msg = rbql.exception_to_error_info(e)
 
-        self.assertTrue((expected_error is not None) == (error_info is not None), 'Inside json test: "{}". Expected error: {}, error_info: {}'.format(test_name, expected_error, error_info))
+        self.assertTrue((expected_error is not None) == (error_type is not None), 'Inside json test: "{}". Expected error: {}, error_type, error_msg: {}'.format(test_name, expected_error, error_type, error_msg))
         if expected_error is not None:
-            self.assertTrue(error_info['message'].find(expected_error) != -1, 'Inside json test: "{}", Expected error: "{}", Actual error: "{}"'.format(test_name, expected_error, error_info['message']))
+            self.assertTrue(error_msg.find(expected_error) != -1, 'Inside json test: "{}", Expected error: "{}", Actual error: "{}"'.format(test_name, expected_error, error_msg))
         else:
             actual_md5 = calc_file_md5(actual_output_table_path)
             self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, actual_output_table_path))

@@ -197,6 +197,10 @@ fi
 
 # Testing performance
 
+
+# FIXME randomly switch between python2/python3 for speed and CLI tests
+# FIXME test CLI errors and warnings
+
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
     python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 0' > /dev/null
@@ -235,7 +239,7 @@ fi
 md5sum_canonic=($( md5sum test/csv_files/canonic_result_4.tsv ))
 
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($(python -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test/csv_files/movies.tsv | md5sum))
+    md5sum_test=($(python3 -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test/csv_files/movies.tsv | md5sum))
     if [ "$md5sum_canonic" != "$md5sum_test" ]; then
         echo "CLI Python test FAIL!"  1>&2
         exit 1
