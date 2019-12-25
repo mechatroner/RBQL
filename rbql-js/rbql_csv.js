@@ -654,7 +654,7 @@ function FileSystemCSVRegistry(delim, policy, encoding, options=null) {
 }
 
 
-async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, user_init_code='', options=null) {
+async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, user_init_code='', options=null) {
     let input_stream = null;
     let bulk_input_path = null;
     if (options && options['bulk_read'] && input_path) {
@@ -683,8 +683,7 @@ async function query_csv(query_text, input_path, input_delim, input_policy, outp
 
     if (debug_mode)
         rbql.set_debug_mode();
-    let warnings = await rbql.query(query_text, input_iterator, output_writer, join_tables_registry, user_init_code);
-    return warnings;
+    await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }
 
 

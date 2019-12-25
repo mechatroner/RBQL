@@ -1380,7 +1380,7 @@ function SingleTableRegistry(table, table_id='B') {
 }
 
 
-async function query(query_text, input_iterator, output_writer, join_tables_registry=null, user_init_code='') {
+async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='') {
     let [js_code, join_map] = await parse_to_js(query_text, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
     let rbql_worker = null;
     if (debug_mode) {
@@ -1392,20 +1392,18 @@ async function query(query_text, input_iterator, output_writer, join_tables_regi
         rbql_worker = module.exports;
     }
     await rbql_worker.rb_transform(input_iterator, join_map, output_writer);
-    let input_warnings = input_iterator.get_warnings();
-    let join_warnings = join_map ? join_map.get_warnings() : [];
-    let output_warnings = output_writer.get_warnings();
-    let warnings = (input_warnings.concat(join_warnings)).concat(output_warnings);
-    return warnings;
+    output_warnings.push(...input_iterator.get_warnings());
+    if (join_map)
+        output_warnings.push(...join_map.get_warnings());
+    output_warnings.push(...output_writer.get_warnings());
 }
 
 
-async function query_table(query_text, input_table, output_table, join_table=null, user_init_code='') {
+async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, user_init_code='') {
     let input_iterator = new TableIterator(input_table);
     let output_writer = new TableWriter(output_table);
     let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table);
-    let warnings = await query(query_text, input_iterator, output_writer, join_tables_registry, user_init_code);
-    return warnings;
+    await query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }
 
 

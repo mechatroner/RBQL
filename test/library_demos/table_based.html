@@ -40,6 +40,7 @@
     function process_query() {
         let input_table = read_html_table_without_header(document.getElementById('src_table'));
         let output_table = [];
+        let warnings = [];
         let user_query = document.getElementById('query_input').value;
         clear_html_table(document.getElementById('dst_table'));
 
@@ -47,13 +48,13 @@
             alert('RBQL Query finished with error: ' + String(exception));
         }
 
-        let success_handler = function(warnings) {
+        let success_handler = function() {
             if (warnings.length)
                 alert('Warnings: ' + warnings.join('\n'))
             write_html_table(output_table, document.getElementById('dst_table'));
         }
 
-        rbql.query_table(user_query, input_table, output_table).then(success_handler).catch(error_handler);
+        rbql.query_table(user_query, input_table, output_table, warnings).then(success_handler).catch(error_handler);
     }
     
     document.addEventListener("DOMContentLoaded", function(event) {

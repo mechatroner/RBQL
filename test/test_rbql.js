@@ -229,10 +229,10 @@ async function test_json_tables() {
         }
         let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
         let output_table = [];
-        let warnings = null;
+        let warnings = [];
         let error_type = null;
         try {
-            warnings = await rbql.query_table(query, input_table, output_table, join_table, user_init_code);
+            await rbql.query_table(query, input_table, output_table, warnings, join_table, user_init_code);
         } catch (e) {
             if (local_debug_mode)
                 throw(e);
@@ -265,7 +265,8 @@ async function test_direct_table_queries() {
     let output_table = [];
     let expected_table = [['foo test', 1], ['bar test', 2]];
 
-    let warnings = await rbql.query_table('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table);
+    let warnings = [];
+    await rbql.query_table('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, warnings);
     test_common.assert(warnings.length == 0);
     test_common.assert_arrays_are_equal(expected_table, output_table);
 }

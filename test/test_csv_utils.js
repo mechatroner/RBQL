@@ -434,9 +434,9 @@ async function process_test_case(tmp_tests_dir, test_case) {
     bulk_read = bulk_read || random_choice([true, false]);
     let options = {'bulk_read': bulk_read};
 
-    let warnings = null;
+    let warnings = [];
     try {
-        warnings = await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, '', options);
+        await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, warnings, '', options);
     } catch (e) {
         if (local_debug_mode)
             throw(e);
