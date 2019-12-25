@@ -48,10 +48,7 @@ from ._version import __version__
 # TODO support option to skip comment lines (lines starting with the specified prefix)
 
 
-# FIXME change query/query_table/query_csv interfaces - do not return error object, throw exception instead, pass output warnings array as input param?
 # FIXME update library docs to reflect the new library API
-
-# FIXME make sure column name dict variables does not include newlines
 
 # FIXME add "skip-header" interface option 
 

@@ -436,5 +436,15 @@
         "csv_encoding": "utf-8",
         "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', ''), a['foo-bar'] = len(a.country) where NR > 1",
         "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, ''), a['foo-bar'] = a.country.length where NR > 1"
+    },
+    {
+        "test_name": "RFC-4180 dialect: newlines in fields",
+        "input_table_path": "csv_files/rfc_newlines_in_header.csv",
+        "expected_output_table_path": "csv_files/rfc_newlines_in_header_result.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "latin-1",
+        "query_python": "select NR, a3 + '|' + a1, a2, NF",
+        "query_js": "select NR, a3 + '|' + a1, a2, NF"
     }
 ]

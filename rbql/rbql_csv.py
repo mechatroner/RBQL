@@ -254,6 +254,9 @@ class CSVWriter:
 def python_string_escape_column_name(column_name, quote_char):
     assert quote_char in ['"', "'"]
     column_name = column_name.replace('\\', '\\\\')
+    column_name = column_name.replace('\n', '\\n')
+    column_name = column_name.replace('\r', '\\r')
+    column_name = column_name.replace('\t', '\\t')
     if quote_char == '"':
         return column_name.replace('"', '\\"')
     return column_name.replace("'", "\\'")

@@ -1,0 +1,39 @@
+1,"value3-part1,
+value3-part2,
+value3-part3|value1-part1
+value1-part2","value2-part1
+value2-part2,
+value2-part3",3
+2,foo13|foo11,bar12,3
+3,"foo13, bar13,
+foo13, foo13,
+|foo11, ""bar11"",
+foo11, bar11, foo11
+","foo12, ""foo12"",
+bar12 "", bar12",3
+4,"
+bar33, foo33,
+|foo31",bar32,3
+5,foo43|foo41,bar42,3
+6,foo43|foo41,bar42,3
+7,foo43|foo41,bar42,3
+8,foo43|foo41,bar42,3
+9,foo43|foo41,bar42,3
+10,"
+bar33, foo33,
+|foo31",bar32,3
+11,foo43|foo41,bar42,3
+12,foo43|foo41,bar42,3
+13,"
+bar33, foo33,
+|foo31",bar32,3
+14,foo43|foo41,bar42,3
+15,foo43|foo41,bar42,3
+16,foo43|foo41,bar42,3
+17,foo43|foo41,bar42,3
+18,foo43|foo41,bar42,3
+19,"
+bar33, foo33,
+|foo31",bar32,3
+20,foo43|foo41,bar42,3
+21,foo43|foo41,bar42,3

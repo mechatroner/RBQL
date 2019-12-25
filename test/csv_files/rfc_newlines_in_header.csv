@@ -1,0 +1,39 @@
+"value1-part1
+value1-part2","value2-part1
+value2-part2,
+value2-part3","value3-part1,
+value3-part2,
+value3-part3"
+foo11,bar12,foo13
+"foo11, ""bar11"",
+foo11, bar11, foo11
+","foo12, ""foo12"",
+bar12 "", bar12", "foo13, bar13,
+foo13, foo13,
+"
+foo31,bar32,"
+bar33, foo33,
+"
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo31,bar32,"
+bar33, foo33,
+"
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo31,bar32,"
+bar33, foo33,
+"
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo41,bar42,foo43
+foo31,bar32,"
+bar33, foo33,
+"
+foo41,bar42,foo43
+foo41,bar42,foo43
