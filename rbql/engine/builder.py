@@ -392,11 +392,9 @@ class HashJoinMap:
             nf = len(fields)
             self.max_record_len = max(self.max_record_len, nf)
             if self.key_index >= nf:
-                self.record_iterator.finish()
                 raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
             key = nr if self.key_index == -1 else fields[self.key_index]
             self.hash_map[key].append((nr, nf, fields))
-        self.record_iterator.finish()
 
 
     def get_join_records(self, key):
@@ -552,29 +550,23 @@ class RbqlPyEnv:
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
     # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
-    try:
-        user_init_code = indent_user_init_code(user_init_code)
-        rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
-        with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
-            py_template_text = py_src.read()
-        python_code, join_map = parse_to_py(query_text, py_template_text, input_iterator, join_tables_registry, user_init_code)
-        with RbqlPyEnv() as worker_env:
-            write_python_module(python_code, worker_env.module_path)
-            # TODO find a way to report module_path if exception is thrown.
-            # One way is just to always create a symlink like "rbql_module_debug" inside tmp_dir.
-            # It would point to the last module if lauch failed, or just a dangling ref.
-            # Generated modules are not re-runnable by themselves now anyway.
-            rbconvert = worker_env.import_worker()
-            if debug_mode:
-                rbconvert.set_debug_mode()
-            rbconvert.rb_transform(input_iterator, join_map, output_writer)
-            worker_env.remove_env_dir()
-            output_warnings.extend(input_iterator.get_warnings())
-            if join_map is not None:
-                output_warnings.extend(join_map.get_warnings())
-            output_warnings.extend(output_writer.get_warnings())
-    finally:
-        input_iterator.finish() # FIXME do not call finish() here. It is already getting called from query_csv()
+    user_init_code = indent_user_init_code(user_init_code)
+    rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
+    with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
+        py_template_text = py_src.read()
+    python_code, join_map = parse_to_py(query_text, py_template_text, input_iterator, join_tables_registry, user_init_code)
+    with RbqlPyEnv() as worker_env:
+        write_python_module(python_code, worker_env.module_path)
+        # TODO find a way to report module_path if exception is thrown
+        rbconvert = worker_env.import_worker()
+        if debug_mode:
+            rbconvert.set_debug_mode()
+        rbconvert.rb_transform(input_iterator, join_map, output_writer)
+        worker_env.remove_env_dir()
+        output_warnings.extend(input_iterator.get_warnings())
+        if join_map is not None:
+            output_warnings.extend(join_map.get_warnings())
+        output_warnings.extend(output_writer.get_warnings())
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
@@ -594,9 +586,6 @@ class TableIterator:
         self.variable_prefix = variable_prefix
         self.NR = 0
         self.fields_info = dict()
-
-    def finish(self):
-        pass
 
     def get_variables_map(self, query_text):
         variable_map = dict()

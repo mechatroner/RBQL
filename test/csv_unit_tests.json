@@ -22,6 +22,7 @@
     {
         "test_name": "empty join",
         "input_table_path": "csv_files/movies.tsv",
+        "debug_mode": true,
         "expected_output_table_path": "csv_files/empty_table.txt",
         "csv_separator": "\t",
         "csv_policy": "simple",

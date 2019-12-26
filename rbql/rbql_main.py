@@ -112,7 +112,7 @@ def sample_lines(src_path, encoding, delim, policy):
     # FIXME this should be an independent function, remove sample line functionality from record iterator
     result = []
     with open(src_path, 'rb') as source:
-        line_iterator = rbql_csv.CSVRecordIterator(source, False, encoding, delim=delim, policy=policy, line_mode=True)
+        line_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, line_mode=True)
         for _i in polymorphic_xrange(10):
             line = line_iterator.polymorphic_get_row()
             if line is None:
@@ -136,7 +136,7 @@ def autodetect_delim_policy(input_path, encoding):
 
 def sample_records(input_path, delim, policy, encoding):
     with open(input_path, 'rb') as source:
-        record_iterator = rbql_csv.CSVRecordIterator(source, False, encoding, delim=delim, policy=policy)
+        record_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy)
         sampled_records = record_iterator.get_all_records(num_rows=10);
         warnings = record_iterator.get_warnings()
         return (sampled_records, warnings)
