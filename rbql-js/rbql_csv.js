@@ -622,7 +622,7 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
     this.get_warnings = function() {
         let result = [];
         if (this.null_in_output)
-            result.push('None values in output were replaced by empty strings');
+            result.push('null values in output were replaced by empty strings');
         if (this.delim_in_simple_output)
             result.push('Some output fields contain separator');
         return result;
