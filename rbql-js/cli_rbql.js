@@ -239,6 +239,8 @@ async function run_with_js(args) {
         await handle_query_success(warnings, output_path, csv_encoding, output_delim, output_policy);
         return true;
     } catch (e) {
+        if (!interactive_mode)
+            throw e;
         show_exception(e);
         return false;
     }
@@ -386,7 +388,7 @@ function main() {
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };
     let args = cli_parser.parse_cmd_args(process.argv, scheme, tool_description, epilog);
-    do_main(args).then(() => {}).catch(error_info => { show_exception(error_info); });
+    do_main(args).then(() => {}).catch(error_info => { show_exception(error_info); process.exit(1); });
 }
 
 
