@@ -488,6 +488,7 @@ class FileSystemCSVRegistry:
 def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
+    join_tables_registry = None
     try:
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
@@ -513,13 +514,13 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         if debug_mode:
             engine.set_debug_mode()
         engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
-        join_tables_registry.finish()
     finally:
         if close_input_on_finish:
             input_stream.close()
         if close_output_on_finish:
             output_stream.close()
-        # FIXME also finalize join_tables_registry here
+        if join_tables_registry:
+            join_tables_registry.finish()
 
 
 def set_debug_mode():

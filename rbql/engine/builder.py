@@ -52,7 +52,6 @@ from ._version import __version__
 
 # FIXME add "skip-header" interface option 
 
-# FIXME fix resource warning: unclosed buffer, in test_all.sh tests
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
