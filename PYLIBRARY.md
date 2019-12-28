@@ -1,0 +1,150 @@
+# Using RBQL as python library
+
+Disclaimer: RBQL is not an SQL server and it is not suitable for multiple automatic queries.  
+All RBQL queries are supposed to be manually entered by human users of your application.  
+
+
+#### Installation:
+You can either use pip or just clone the rbql-py repository:  
+```
+$ pip install rbql
+```
+OR  
+```
+$ git clone https://github.com/mechatroner/rbql-py.git 
+```
+
+## API
+
+rbql library provides 3 main functions that you can use:  
+
+1. [rbql.table_run(...)](#rbqltable_run)  
+2. [rbql_csv.csv_run(...)](#rbqlcsv_run)  
+3. [rbql.generic_run(...)](#rbqlgeneric_run)  
+
+
+### rbql.table_run(...)
+
+Run user query against a list of records and put the result set in the output list.  
+
+#### Signature:  
+  
+`rbql.table_run(user_query, input_table, output_table, join_table=None)`
+
+
+#### Parameters: 
+* _user_query_: **string**  
+  query that user of your app manually enters in some kind of input field.  
+* _input_table_: **list**  
+  a list with input records  
+* _output_table_: **list**  
+  a list where to output records would be pushed  
+* _join_table_: **list**  
+  a list with join table so that user can use join table B in input queries  
+
+
+#### Return Value:
+`(error_info, warnings)`, where:  
+* _error_info_: **dictionary**  
+  error_info has the following keys: "type", "message". If no error, then error_info is None  
+* _warnings_: **list**  
+  contains a list of warnings. Empty if no warnings.
+
+
+#### Usage example:
+```
+import rbql
+
+input_table = [
+    ['Roosevelt',1858,'USA'],
+    ['Napoleon',1769,'France'],
+    ['Dmitri Mendeleev',1834,'Russia'],
+    ['Jane Austen',1775,'England'],
+    ['Hayao Miyazaki',1941,'Japan'],
+]
+user_query = 'SELECT a1, a2 % 1000 WHERE a3 != "USA" LIMIT 3'
+output_table = []
+error_info, warnings = rbql.table_run(user_query, input_table, output_table)
+if error_info is None:
+    for record in output_table:
+        print(','.join([str(v) for v in record]))
+else:
+    print('Error: {}: {}'.format(error_info['type'], error_info['message']))
+```
+
+
+
+### rbql.csv_run(...)
+
+Run user query against input_path CSV file and save it as output_path CSV file.  
+
+#### Signature:  
+  
+`rbql.csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding)`  
+  
+#### Parameters:
+* _user_query_: **string**  
+  query that user of your application manually enters in some kind of input field.  
+* _input_path_: **string**  
+  path of the input csv table  
+* _input_delim_: **string**  
+  field separator character in input table  
+* _input_policy_: **string**  
+  allowed values: `'simple'`, `'quoted'`  
+  along with input_delim defines CSV dialect of input table. "quoted" means that separator can be escaped inside double quoted fields  
+* _output_path_: **string**  
+  path of the output csv table  
+* _output_delim_: **string**  
+  same as input_delim but for output table  
+* _output_policy_: **string**  
+  same as input_policy but for output table  
+* _csv_encoding_: **string**  
+  allowed values: `'latin-1'`, `'utf-8'`  
+  encoding of input, output and join tables (join table can be defined inside the user query)  
+
+#### Return Value:
+`(error_info, warnings)`, see rbql.table_run(...)  
+
+
+
+#### Usage example
+
+```
+import rbql
+from rbql import rbql_csv
+
+user_query = 'SELECT a1, int(a2) % 1000 WHERE a3 != "USA" LIMIT 5'
+error_info, warnings = rbql_csv.csv_run(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8')
+if error_info is None:
+    print(open('output.csv').read())
+else:
+    print('Error: {}: {}'.format(error_info['type'], error_info['message']))
+```
+
+
+### rbql.generic_run(...)
+
+Allows to run queries against any kind of structured data.  
+You will have to implement special wrapper classes for your custom data structures and pass them to the `rbql.generic_run(...)` function.  
+
+#### Signature:
+  
+`generic_run(user_query, input_iterator, output_writer, join_tables_registry=None)`  
+  
+#### Parameters:
+* _user_query_: **string**  
+  query that user of your app manually enters in some kind of input field.  
+* _input_iterator_:  **RBQLInputIterator**  
+  special object which iterates over input records. E.g. over remote table  
+* _output_writer_:  **RBQLOutputWriter**  
+  special object which stores output records somewhere. E.g. to a python list  
+* _join_tables_registry_: **RBQLJoinTablesRegistry**  
+  special object which provides **RBQLInputIterator** iterators for join tables (e.g. table "B") which user can refer to in queries.  
+
+#### Return Value:
+`(error_info, warnings)`, see rbql.table_run(...)  
+
+
+#### Usage example
+See `rbql.generic_run(...)` usage in RBQL [tests](https://github.com/mechatroner/RBQL/blob/master/test/test_rbql.py)  
+Examples of implementation of **RBQLInputIterator**, **RBQLOutputWriter** and **RBQLJoinTablesRegistry** classes can also be found in the RBQL repository  
