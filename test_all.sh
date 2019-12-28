@@ -27,6 +27,41 @@ cleanup_tmp_files() {
 run_unit_tests="yes"
 run_python_tests="yes"
 run_node_tests="yes"
+has_python2="yes"
+has_python3="yes"
+
+
+py2_version=$( python2 --version 2>&1 )
+rc=$?
+if [ "$rc" != 0 ] || [ -z "$py2_version" ]; then
+    echo "WARNING! python2 was not found"  1>&2
+    has_python2="no"
+fi
+
+py3_version=$( python3 --version 2> /dev/null )
+rc=$?
+if [ "$rc" != 0 ] || [ -z "$py3_version" ]; then
+    echo "WARNING! python3 was not found"  1>&2
+    has_python3="no"
+fi
+
+if [ $has_python2 = "yes" ] && [ $has_python3 = "yes" ]; then
+    rand_val=$[ $RANDOM % 2 ]
+    if [ $rand_val = 1 ]; then
+        random_python_interpreter="python3"
+    else
+        random_python_interpreter="python2"
+    fi
+elif [ $has_python2 = "yes" ]; then
+    random_python_interpreter="python2"
+elif [ $has_python3 = "yes" ]; then
+    random_python_interpreter="python3"
+else
+    echo "WARNING! python was not found. Skipping python tests"  1>&2
+    run_python_tests="no"
+fi
+
+echo "Random python interpreter to use: $random_python_interpreter"
 
 
 while [[ $# -gt 0 ]]; do
@@ -239,14 +274,14 @@ fi
 md5sum_canonic=($( md5sum test/csv_files/canonic_result_4.tsv ))
 
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($(python3 -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test/csv_files/movies.tsv | md5sum))
+    md5sum_test=($($random_python_interpreter -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test/csv_files/movies.tsv | md5sum))
     if [ "$md5sum_canonic" != "$md5sum_test" ]; then
         echo "CLI Python test FAIL!"  1>&2
         exit 1
     fi
 
     # XXX theorethically this test can randomly fail because sleep timeout is not long enough
-    (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010") | python -m rbql --delim '\t' --input test/csv_files/movies.tsv --output tmp_out.csv > /dev/null
+    (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010") | $random_python_interpreter -m rbql --delim '\t' --input test/csv_files/movies.tsv --output tmp_out.csv > /dev/null
     md5sum_test=($(cat tmp_out.csv | md5sum))
     if [ "$md5sum_canonic" != "$md5sum_test" ]; then
         echo "Interactive CLI Python test FAIL!"  1>&2
