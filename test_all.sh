@@ -230,11 +230,31 @@ if [ "$run_node_tests" == "yes" ]; then
 fi
 
 
+# FIXME test CLI errors and warnings for Node
+
+
+# Testing CLI errors and warnings
+
+output=$( $random_python_interpreter -m rbql --delim , --query "SELECT top 3 a1, foobarium(a2)" --input test/csv_files/countries.csv 2>&1 )
+rc=$?
+if [ $rc != 1 ] || [[ $output != *"name 'foobarium' is not defined"* ]]; then
+    echo "RBQL does not produce expected error. rc:$rc, otuput:$output "  1>&2
+    exit 1
+fi
+
+output=$( $random_python_interpreter -m rbql --delim , --query "SELECT top 3 a1, None, a2" --input test/csv_files/countries.csv 2>&1 > /dev/null )
+rc=$?
+if [ $rc != 0 ] || [[ $output != *"Warning: None values in output were replaced by empty strings"* ]]; then
+    echo "RBQL does not produce expected error. rc:$rc, otuput:$output "  1>&2
+    exit 1
+fi
+
+exit 1 #FIXME
+
+
+
 # Testing performance
 
-
-# FIXME randomly switch between python2/python3 for speed and CLI tests
-# FIXME test CLI errors and warnings
 
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
@@ -267,7 +287,6 @@ if [ "$run_node_tests" == "yes" ]; then
     elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "JS GROUP BY query took $elapsed seconds. Reference value: 1.1 seconds"
 fi
-
 
 
 # Testing generic CLI
