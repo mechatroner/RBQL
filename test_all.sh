@@ -230,26 +230,37 @@ if [ "$run_node_tests" == "yes" ]; then
 fi
 
 
-# FIXME test CLI errors and warnings for Node
-
 
 # Testing CLI errors and warnings
 
 output=$( $random_python_interpreter -m rbql --delim , --query "SELECT top 3 a1, foobarium(a2)" --input test/csv_files/countries.csv 2>&1 )
 rc=$?
 if [ $rc != 1 ] || [[ $output != *"name 'foobarium' is not defined"* ]]; then
-    echo "RBQL does not produce expected error. rc:$rc, otuput:$output "  1>&2
+    echo "rbql-py does not produce expected error. rc:$rc, output:$output "  1>&2
     exit 1
 fi
 
 output=$( $random_python_interpreter -m rbql --delim , --query "SELECT top 3 a1, None, a2" --input test/csv_files/countries.csv 2>&1 > /dev/null )
 rc=$?
 if [ $rc != 0 ] || [[ $output != *"Warning: None values in output were replaced by empty strings"* ]]; then
-    echo "RBQL does not produce expected error. rc:$rc, otuput:$output "  1>&2
+    echo "rbql-py does not produce expected warning. rc:$rc, output:$output "  1>&2
     exit 1
 fi
 
-exit 1 #FIXME
+
+output=$( node ./rbql-js/cli_rbql.js --delim , --query "SELECT top 3 a1, foobarium(a2)" --input test/csv_files/countries.csv 2>&1 )
+rc=$?
+if [ $rc != 1 ] || [[ $output != *"foobarium is not defined"* ]]; then
+    echo "rbql-js does not produce expected error. rc:$rc, output:$output "  1>&2
+    exit 1
+fi
+
+output=$( node ./rbql-js/cli_rbql.js --delim , --query "SELECT top 3 a1, null, a2" --input test/csv_files/countries.csv 2>&1 > /dev/null )
+rc=$?
+if [ $rc != 0 ] || [[ $output != *"Warning: null values in output were replaced by empty strings"* ]]; then
+    echo "rbql-js does not produce expected warning. rc:$rc, output:$output "  1>&2
+    exit 1
+fi
 
 
 
