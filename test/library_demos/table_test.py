@@ -1,5 +1,4 @@
 import rbql
-
 input_table = [
     ['Roosevelt',1858,'USA'],
     ['Napoleon',1769,'France'],

@@ -48,7 +48,7 @@ from ._version import __version__
 # TODO support option to skip comment lines (lines starting with the specified prefix)
 
 
-# FIXME update library docs to reflect the new library API
+# FIXME add to the list of languages that can compile to Python: https://github.com/vindarel/languages-that-compile-to-python
 
 # FIXME add "skip-header" interface option 
 

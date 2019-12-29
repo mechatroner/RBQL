@@ -18,43 +18,36 @@ $ git clone https://github.com/mechatroner/rbql-py.git
 
 rbql library provides 3 main functions that you can use:  
 
-1. [rbql.table_run(...)](#rbqltable_run)  
-2. [rbql_csv.csv_run(...)](#rbqlcsv_run)  
-3. [rbql.generic_run(...)](#rbqlgeneric_run)  
+1. [rbql.query_table(...)](#rbqlquery_table)  
+2. [rbql_csv.query_csv(...)](#rbqlquery_csv)  
+3. [rbql.query(...)](#rbqlquery)  
 
 
-### rbql.table_run(...)
+### rbql.query_table(...)
 
 Run user query against a list of records and put the result set in the output list.  
 
 #### Signature:  
   
-`rbql.table_run(user_query, input_table, output_table, join_table=None)`
+`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None)`
 
 
 #### Parameters: 
 * _user_query_: **string**  
   query that user of your app manually enters in some kind of input field.  
 * _input_table_: **list**  
-  a list with input records  
+  list with input records  
 * _output_table_: **list**  
-  a list where to output records would be pushed  
+  output records will be stored here after the query completion
+* _output_warnings_: **list**  
+  warnings will be stored here after the query completion. If no warnings - the list would be empty
 * _join_table_: **list**  
-  a list with join table so that user can use join table B in input queries  
-
-
-#### Return Value:
-`(error_info, warnings)`, where:  
-* _error_info_: **dictionary**  
-  error_info has the following keys: "type", "message". If no error, then error_info is None  
-* _warnings_: **list**  
-  contains a list of warnings. Empty if no warnings.
+  list with join table so that user can use join table B in input queries  
 
 
 #### Usage example:
 ```
 import rbql
-
 input_table = [
     ['Roosevelt',1858,'USA'],
     ['Napoleon',1769,'France'],
@@ -64,23 +57,21 @@ input_table = [
 ]
 user_query = 'SELECT a1, a2 % 1000 WHERE a3 != "USA" LIMIT 3'
 output_table = []
-error_info, warnings = rbql.table_run(user_query, input_table, output_table)
-if error_info is None:
-    for record in output_table:
-        print(','.join([str(v) for v in record]))
-else:
-    print('Error: {}: {}'.format(error_info['type'], error_info['message']))
+warnings = []
+rbql.query_table(user_query, input_table, output_table, warnings)
+for record in output_table:
+    print(','.join([str(v) for v in record]))
 ```
 
 
 
-### rbql.csv_run(...)
+### rbql.query_csv(...)
 
 Run user query against input_path CSV file and save it as output_path CSV file.  
 
 #### Signature:  
   
-`rbql.csv_run(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding)`  
+`rbql.query_csv(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings)`  
   
 #### Parameters:
 * _user_query_: **string**  
@@ -101,10 +92,8 @@ Run user query against input_path CSV file and save it as output_path CSV file.
 * _csv_encoding_: **string**  
   allowed values: `'latin-1'`, `'utf-8'`  
   encoding of input, output and join tables (join table can be defined inside the user query)  
-
-#### Return Value:
-`(error_info, warnings)`, see rbql.table_run(...)  
-
+* _output_warnings_: **list**  
+  warnings will be stored here after the query completion. If no warnings - the list would be empty
 
 
 #### Usage example
@@ -112,24 +101,21 @@ Run user query against input_path CSV file and save it as output_path CSV file.
 ```
 import rbql
 from rbql import rbql_csv
-
 user_query = 'SELECT a1, int(a2) % 1000 WHERE a3 != "USA" LIMIT 5'
-error_info, warnings = rbql_csv.csv_run(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8')
-if error_info is None:
-    print(open('output.csv').read())
-else:
-    print('Error: {}: {}'.format(error_info['type'], error_info['message']))
+warnings = []
+rbql_csv.query_csv(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8', warnings)
+print(open('output.csv').read())
 ```
 
 
-### rbql.generic_run(...)
+### rbql.query(...)
 
 Allows to run queries against any kind of structured data.  
-You will have to implement special wrapper classes for your custom data structures and pass them to the `rbql.generic_run(...)` function.  
+You will have to implement special wrapper classes for your custom data structures and pass them to the `rbql.query(...)` function.  
 
 #### Signature:
   
-`generic_run(user_query, input_iterator, output_writer, join_tables_registry=None)`  
+`query(user_query, input_iterator, output_writer, output_warnings, join_tables_registry=None)`  
   
 #### Parameters:
 * _user_query_: **string**  
@@ -138,13 +124,12 @@ You will have to implement special wrapper classes for your custom data structur
   special object which iterates over input records. E.g. over remote table  
 * _output_writer_:  **RBQLOutputWriter**  
   special object which stores output records somewhere. E.g. to a python list  
+* _output_warnings_: **list**  
+  warnings will be stored here after the query completion. If no warnings - the list would be empty
 * _join_tables_registry_: **RBQLJoinTablesRegistry**  
   special object which provides **RBQLInputIterator** iterators for join tables (e.g. table "B") which user can refer to in queries.  
 
-#### Return Value:
-`(error_info, warnings)`, see rbql.table_run(...)  
-
 
 #### Usage example
-See `rbql.generic_run(...)` usage in RBQL [tests](https://github.com/mechatroner/RBQL/blob/master/test/test_rbql.py)  
+See `rbql.query(...)` usage in RBQL [tests](https://github.com/mechatroner/RBQL/blob/master/test/test_rbql.py)  
 Examples of implementation of **RBQLInputIterator**, **RBQLOutputWriter** and **RBQLJoinTablesRegistry** classes can also be found in the RBQL repository  
