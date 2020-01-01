@@ -48,9 +48,10 @@ from ._version import __version__
 # TODO support option to skip comment lines (lines starting with the specified prefix)
 
 
-# FIXME add to the list of languages that can compile to Python: https://github.com/vindarel/languages-that-compile-to-python
+# TODO add "skip-header" interface option 
 
-# FIXME add "skip-header" interface option 
+
+# FIXME add "header" parameter to query_table function
 
 
 GROUP_BY = 'GROUP BY'
@@ -167,6 +168,55 @@ def parse_array_variables(query_text, prefix, dst_variables_map):
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
         dst_variables_map['{}[{}]'.format(prefix, field_num)] = VariableInfo(initialize=True, index=field_num - 1)
+
+
+def query_probably_has_dictionary_variable(query_text, column_name):
+    # It is OK to return false positive - in the worst case we woud just waste some performance on unused variable initialization
+    continuous_name_segments = re.findall('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', column_name)
+    for continuous_segment in continuous_name_segments:
+        if query_text.find(continuous_segment) == -1:
+            return False
+    return True
+
+
+def parse_dictionary_variables(query_text, prefix, column_names, dst_variables_map):
+    # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+    # TODO implement algorithm for honest python f-string parsing
+    assert prefix in ['a', 'b']
+    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(variable_prefix), query_text) is None:
+        return
+    for i in polymorphic_xrange(len(column_names)):
+        column_name = column_names[i]
+        if rbql.query_probably_has_dictionary_variable(query_text, column_name):
+            dst_variables_map['{}["{}"]'.format(prefix, python_string_escape_column_name(column_name, '"'))] = VariableInfo(initialize=True, index=i)
+            dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = VariableInfo(initialize=False, index=i)
+
+
+def parse_attribute_variables(query_text, prefix, column_names, column_names_source, dst_variables_map):
+    # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+
+    # TODO ideally we should either:
+    # * not search inside string literals (excluding brackets in f-strings) OR
+    # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
+    assert prefix in ['a', 'b']
+    column_names = {v: i for i, v in enumerate(column_names)}
+    rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
+    matches = list(re.finditer(rgx, query_text))
+    column_names = list(set([m.group(1) for m in matches]))
+    for column_name in column_names:
+        zero_based_idx = column_names.get(column_name)
+        if zero_based_idx is not None:
+            dst_variables_map['{}.{}'.format(prefix, column_name)] = VariableInfo(initialize=True, index=zero_based_idx)
+        else:
+            raise RbqlParsingError('Unable to find column "{}" in {} {}'.format(column_name, {'a': 'input', 'b': 'join'}[prefix], column_names_source))
+
+
+def map_variables_directly(query_text, column_names, dst_variables_map):
+    for idx, column_name in enumerate(column_names):
+        if re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', column_name) is None:
+            raise RbqlIOHandlingError('Unable to use column name "{}" as RBQL/Python variable'.format(column_name))
+        if query_text.find(column_name) != -1:
+            dst_variables_map[column_name] = VariableInfo(initialize=True, index=idx)
 
 
 def generate_common_init_code(query_text, variable_prefix):
@@ -581,8 +631,10 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 
 
 class TableIterator:
-    def __init__(self, table, variable_prefix='a'):
+    def __init__(self, table, column_names=None, normalize_column_names=True, variable_prefix='a'):
         self.table = table
+        self.column_names = column_names
+        self.normalize_column_names = normalize_column_names
         self.variable_prefix = variable_prefix
         self.NR = 0
         self.fields_info = dict()
@@ -591,6 +643,14 @@ class TableIterator:
         variable_map = dict()
         parse_basic_variables(query_text, self.variable_prefix, variable_map)
         parse_array_variables(query_text, self.variable_prefix, variable_map)
+        if self.column_names is not None:
+            if len(table) and len(self.column_names) != len(table[0]):
+                raise RbqlIOHandlingError('List of column names and table records have different lengths')
+            if normalize_column_names:
+                parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)
+                parse_attribute_variables(query_text, self.variable_prefix, self.column_names, 'column names list', variable_map)
+            else:
+                map_variables_directly(query_text, self.column_names, variable_map)
         return variable_map
 
     def get_record(self):
@@ -624,20 +684,21 @@ class TableWriter:
 
 
 class SingleTableRegistry:
-    def __init__(self, table, table_name='B'):
+    def __init__(self, table, column_names=None, normalize_column_names=True, table_name='B'):
         self.table = table
+        self.column_names = column_names
         self.table_name = table_name
 
     def get_iterator_by_table_id(self, table_id):
         if table_id != self.table_name:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(table_id)) # UT JSON
-        return TableIterator(self.table, 'b')
+        return TableIterator(self.table, self.column_names, self.normalize_column_names, 'b')
 
 
-def query_table(query_text, input_table, output_table, output_warnings, join_table=None, user_init_code=''):
-    input_iterator = TableIterator(input_table)
+def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, normalize_column_names=True, user_init_code=''):
+    input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
-    join_tables_registry = None if join_table is None else SingleTableRegistry(join_table)
+    join_tables_registry = None if join_table is None else SingleTableRegistry(join_table, join_column_names, normalize_column_names)
     query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
 
 

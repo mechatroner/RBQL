@@ -262,46 +262,6 @@ def python_string_escape_column_name(column_name, quote_char):
     return column_name.replace("'", "\\'")
 
 
-def parse_dictionary_variables(query_text, prefix, header_columns_names, dst_variables_map):
-    # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
-    # TODO implement algorithm for honest python f-string parsing
-    assert prefix in ['a', 'b']
-    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query_text) is None:
-        return
-    for i in polymorphic_xrange(len(header_columns_names)):
-        column_name = header_columns_names[i]
-        continuous_name_segments = re.findall('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', column_name)
-        add_column_name = True
-        for continuous_segment in continuous_name_segments:
-            if query_text.find(continuous_segment) == -1:
-                add_column_name = False
-                break
-        if add_column_name:
-            dst_variables_map['{}["{}"]'.format(prefix, python_string_escape_column_name(column_name, '"'))] = engine.VariableInfo(initialize=True, index=i)
-            dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = engine.VariableInfo(initialize=False, index=i)
-
-
-def parse_attribute_variables(query_text, prefix, header_columns_names, dst_variables_map):
-    # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
-
-    # TODO ideally we should either:
-    # * not search inside string literals (excluding brackets in f-strings) OR
-    # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
-
-    assert prefix in ['a', 'b']
-    header_columns_names = {v: i for i, v in enumerate(header_columns_names)}
-    rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
-    matches = list(re.finditer(rgx, query_text))
-    column_names = list(set([m.group(1) for m in matches]))
-    for column_name in column_names:
-        zero_based_idx = header_columns_names.get(column_name)
-        if zero_based_idx is not None:
-            dst_variables_map['{}.{}'.format(prefix, column_name)] = engine.VariableInfo(initialize=True, index=zero_based_idx)
-        else:
-            raise RbqlParsingError('Unable to find column "{}" in {} CSV header line'.format(column_name, {'a': 'input', 'b': 'join'}[prefix]))
-
-
-
 class CSVRecordIterator:
     def __init__(self, stream, encoding, delim, policy, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -335,8 +295,8 @@ class CSVRecordIterator:
         engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
         engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.header_record is not None:
-            parse_attribute_variables(query_text, self.variable_prefix, self.header_record, variable_map)
-            parse_dictionary_variables(query_text, self.variable_prefix, self.header_record, variable_map)
+            rbql.parse_attribute_variables(query_text, self.variable_prefix, self.header_record, 'CSV header line' variable_map)
+            rbql.parse_dictionary_variables(query_text, self.variable_prefix, self.header_record, variable_map)
         return variable_map
 
 
