@@ -233,6 +233,14 @@ def map_variables_directly(query_text, column_names, dst_variables_map):
             dst_variables_map[column_name] = VariableInfo(initialize=True, index=idx)
 
 
+def ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names):
+    join_column_names_set = set(join_column_names)
+    for column_name in input_column_names:
+        if column_name in join_column_names_set and query_text.find(column_name) != -1:
+            raise RbqlParsingError('Ambiguous column name in input and join tables: "{}"'.format(column_name))
+
+
+
 def generate_common_init_code(query_text, variable_prefix):
     assert variable_prefix in ['a', 'b']
     result = list()
@@ -711,6 +719,8 @@ class SingleTableRegistry:
 
 
 def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, normalize_column_names=True, user_init_code=''):
+    if not normalize_column_names and input_column_names is not None and join_column_names is not None:
+        ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names) # FIXME write a unit test
     input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else SingleTableRegistry(join_table, join_column_names, normalize_column_names)
