@@ -1337,7 +1337,7 @@
         "query_js": "select NR, value, letter_right.length where value > 5"
     },
     {
-        "test_name": "join with column names",
+        "test_name": "join with normalized column names",
         "input_table": [
             ["5", "car", "lada"],
             ["-20", "car", "Ferrari"],
@@ -1367,5 +1367,58 @@
         "normalize_column_names": true,
         "query_python": "select NR, * inner join B on a.vehicle == b.vehicle where b['propulsion'] != \"alpha\" and int(a.speed) > -100 and len(b.propulsion) > 1 order by a['vehicle'], int(a1)",
         "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+    },
+    {
+        "test_name": "join with direct column names",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas "],
+            ["plane", "wings  "],
+            ["boat", "wind"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            [6, "200", "plane", "boeing 737", "plane", "wings  "]
+        ],
+        "input_column_names": ["speed", "vehicle", "foobar"],
+        "join_column_names": ["vehicle_name", "foobar"],
+        "normalize_column_names": false,
+        "query_python": "select NR, * inner join B on vehicle == vehicle_name where int(speed) > 50",
+        "query_js": "select NR, * inner join B on vehicle == vehicle_name where parseInt(speed) > 50"
+    },
+    {
+        "test_name": "join with ambiguous direct column names",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas "],
+            ["plane", "wings  "],
+            ["boat", "wind"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "Ambiguous variable name: \"foobar\" is present both in input and in join tables",
+        "input_column_names": ["speed", "vehicle", "foobar"],
+        "join_column_names": ["vehicle_name", "foobar"],
+        "normalize_column_names": false,
+        "query_python": "select NR, * inner join B on vehicle == vehicle_name where int(speed) > 50 and foobar.find('boeing') != -1",
+        "query_js": "select NR, * inner join B on vehicle == vehicle_name where parseInt(speed) > 50 and foobar.find('boeing') != -1"
     }
 ]

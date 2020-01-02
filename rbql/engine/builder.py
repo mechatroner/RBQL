@@ -66,6 +66,7 @@ WHERE = 'WHERE'
 LIMIT = 'LIMIT'
 EXCEPT = 'EXCEPT'
 
+ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join tables'
 
 debug_mode = False
 
@@ -129,7 +130,6 @@ def parse_join_expression(src):
 def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals):
     join_var_1 = combine_string_literals(join_var_1, string_literals)
     join_var_2 = combine_string_literals(join_var_2, string_literals)
-    ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join table'
     if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
         raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
     if join_var_2 in input_variables_map and join_var_2 in join_variables_map:
@@ -237,7 +237,7 @@ def ensure_no_ambiguous_variables(query_text, input_column_names, join_column_na
     join_column_names_set = set(join_column_names)
     for column_name in input_column_names:
         if column_name in join_column_names_set and query_text.find(column_name) != -1:
-            raise RbqlParsingError('Ambiguous column name in input and join tables: "{}"'.format(column_name))
+            raise RbqlParsingError(ambiguous_error_msg.format(column_name))
 
 
 
