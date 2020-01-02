@@ -1280,9 +1280,60 @@
             ["20", "alpha", ""]
         ],
         "expected_output_table": [
-            ["0.11.0"]
+            ["0.12.0"]
         ],
         "query_python": "select top 1 RBQL_VERSION",
         "query_js": "select top 1 RBQL_VERSION"
+    },
+    {
+        "test_name": "test column names direct",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5],
+            [4, "20", 0]
+        ],
+        "input_column_names": ["value", "letter_left", "letter_right"],
+        "normalize_column_names": false,
+        "debug_mode": true,
+        "query_python": "select NR, value, len(letter_right) where int(value) > 5",
+        "query_js": "select NR, value, letter_right.length where value > 5"
+    },
+    {
+        "test_name": "test column names normalized",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5],
+            [4, "20", 0]
+        ],
+        "input_column_names": ["value", "letter left", "letter right"],
+        "normalize_column_names": true,
+        "debug_mode": true,
+        "query_python": "select NR, a.value, len(a['letter right']) where int(a.value) > 5",
+        "query_js": "select NR, a.value, a['letter right'].length where a.value > 5"
+    },
+    {
+        "test_name": "test bad column names direct",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "input_column_names": ["value", "letter left", "letter_right"],
+        "normalize_column_names": false,
+        "expected_error_exact": true,
+        "expected_error": "Unable to use column name \"letter left\" as RBQL/Python variable",
+        "query_python": "select NR, value, len(letter_right) where int(value) > 5",
+        "query_js": "select NR, value, letter_right.length where value > 5"
     }
 ]

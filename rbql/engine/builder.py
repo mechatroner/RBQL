@@ -75,6 +75,9 @@ class RbqlRuntimeError(Exception):
 class RbqlParsingError(Exception):
     pass
 
+class RbqlIOHandlingError(Exception):
+    pass
+
 
 VariableInfo = namedtuple('VariableInfo', ['initialize', 'index'])
 
@@ -179,15 +182,26 @@ def query_probably_has_dictionary_variable(query_text, column_name):
     return True
 
 
+def python_string_escape_column_name(column_name, quote_char):
+    assert quote_char in ['"', "'"]
+    column_name = column_name.replace('\\', '\\\\')
+    column_name = column_name.replace('\n', '\\n')
+    column_name = column_name.replace('\r', '\\r')
+    column_name = column_name.replace('\t', '\\t')
+    if quote_char == '"':
+        return column_name.replace('"', '\\"')
+    return column_name.replace("'", "\\'")
+
+
 def parse_dictionary_variables(query_text, prefix, column_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
     # TODO implement algorithm for honest python f-string parsing
     assert prefix in ['a', 'b']
-    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(variable_prefix), query_text) is None:
+    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query_text) is None:
         return
-    for i in polymorphic_xrange(len(column_names)):
+    for i in range(len(column_names)):
         column_name = column_names[i]
-        if rbql.query_probably_has_dictionary_variable(query_text, column_name):
+        if query_probably_has_dictionary_variable(query_text, column_name):
             dst_variables_map['{}["{}"]'.format(prefix, python_string_escape_column_name(column_name, '"'))] = VariableInfo(initialize=True, index=i)
             dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = VariableInfo(initialize=False, index=i)
 
@@ -202,8 +216,8 @@ def parse_attribute_variables(query_text, prefix, column_names, column_names_sou
     column_names = {v: i for i, v in enumerate(column_names)}
     rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
     matches = list(re.finditer(rgx, query_text))
-    column_names = list(set([m.group(1) for m in matches]))
-    for column_name in column_names:
+    column_names_from_query = list(set([m.group(1) for m in matches]))
+    for column_name in column_names_from_query:
         zero_based_idx = column_names.get(column_name)
         if zero_based_idx is not None:
             dst_variables_map['{}.{}'.format(prefix, column_name)] = VariableInfo(initialize=True, index=zero_based_idx)
@@ -644,9 +658,9 @@ class TableIterator:
         parse_basic_variables(query_text, self.variable_prefix, variable_map)
         parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.column_names is not None:
-            if len(table) and len(self.column_names) != len(table[0]):
+            if len(self.table) and len(self.column_names) != len(self.table[0]):
                 raise RbqlIOHandlingError('List of column names and table records have different lengths')
-            if normalize_column_names:
+            if self.normalize_column_names:
                 parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)
                 parse_attribute_variables(query_text, self.variable_prefix, self.column_names, 'column names list', variable_map)
             else:
@@ -687,6 +701,7 @@ class SingleTableRegistry:
     def __init__(self, table, column_names=None, normalize_column_names=True, table_name='B'):
         self.table = table
         self.column_names = column_names
+        self.normalize_column_names = normalize_column_names
         self.table_name = table_name
 
     def get_iterator_by_table_id(self, table_id):

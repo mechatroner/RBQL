@@ -251,17 +251,6 @@ class CSVWriter:
         return result
 
 
-def python_string_escape_column_name(column_name, quote_char):
-    assert quote_char in ['"', "'"]
-    column_name = column_name.replace('\\', '\\\\')
-    column_name = column_name.replace('\n', '\\n')
-    column_name = column_name.replace('\r', '\\r')
-    column_name = column_name.replace('\t', '\\t')
-    if quote_char == '"':
-        return column_name.replace('"', '\\"')
-    return column_name.replace("'", "\\'")
-
-
 class CSVRecordIterator:
     def __init__(self, stream, encoding, delim, policy, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -295,8 +284,8 @@ class CSVRecordIterator:
         engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
         engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.header_record is not None:
-            rbql.parse_attribute_variables(query_text, self.variable_prefix, self.header_record, 'CSV header line' variable_map)
-            rbql.parse_dictionary_variables(query_text, self.variable_prefix, self.header_record, variable_map)
+            engine.parse_attribute_variables(query_text, self.variable_prefix, self.header_record, 'CSV header line', variable_map)
+            engine.parse_dictionary_variables(query_text, self.variable_prefix, self.header_record, variable_map)
         return variable_map
 
 

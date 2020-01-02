@@ -296,7 +296,7 @@ class TestHeaderParsing(unittest.TestCase):
         header_columns_names = ['foo', 'foo bar', 'max', "lambda-beta{'gamma'}", "lambda-beta{'gamma2'}", "eps\\ilon", "omega", "1", "2", "....", "["]
         expected_variables_map = {'a["foo"]': vinf(True, 0), 'a["foo bar"]': vinf(True, 1), 'a["max"]': vinf(True, 2), "a[\"lambda-beta{'gamma'}\"]": vinf(True, 3), 'a["eps\\\\ilon"]': vinf(True, 5), 'a["1"]': vinf(True, 7), 'a["2"]': vinf(True, 8), 'a["["]': vinf(True, 10), "a['foo']": vinf(False, 0), "a['foo bar']": vinf(False, 1), "a['max']": vinf(False, 2), "a['lambda-beta{\\'gamma\\'}']": vinf(False, 3), "a['eps\\\\ilon']": vinf(False, 5), "a['1']": vinf(False, 7), "a['2']": vinf(False, 8), "a['[']": vinf(False, 10)}
         actual_variables_map = {}
-        rbql_csv.parse_dictionary_variables(query, 'a', header_columns_names, actual_variables_map)
+        rbql.parse_dictionary_variables(query, 'a', header_columns_names, actual_variables_map)
         self.assertEqual(expected_variables_map, actual_variables_map)
 
     def test_attribute_variables_parsing(self):
@@ -304,7 +304,7 @@ class TestHeaderParsing(unittest.TestCase):
         header_columns_names = ['epsilon', 'foo bar', '_name', "Surname", "income", "...", "2", "200"]
         expected_variables_map = {'a.epsilon': vinf(True, 0), 'a._name': vinf(True, 2), "a.Surname": vinf(True, 3)}
         actual_variables_map = {}
-        rbql_csv.parse_attribute_variables(query, 'a', header_columns_names, actual_variables_map)
+        rbql.parse_attribute_variables(query, 'a', header_columns_names, 'CSV header line', actual_variables_map)
         self.assertEqual(expected_variables_map, actual_variables_map)
 
 
@@ -661,7 +661,7 @@ def make_column_variable(column_name):
     if re.match('^[_a-zA-Z][_a-zA-Z0-9]*$', column_name):
         return 'a.' + column_name
     quote_char = random.choice(['"', "'"])
-    return 'a[' + quote_char + rbql_csv.python_string_escape_column_name(column_name, quote_char) + quote_char + ']'
+    return 'a[' + quote_char + rbql.python_string_escape_column_name(column_name, quote_char) + quote_char + ']'
 
 
 class TestRBQLSimple(unittest.TestCase):
