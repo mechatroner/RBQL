@@ -161,69 +161,6 @@ class RecordQueue {
 }
 
 
-function js_string_escape_column_name(column_name, quote_char) {
-    column_name = column_name.replace(/\\/g, '\\\\');
-    column_name = column_name.replace(/\n/g, '\\n');
-    column_name = column_name.replace(/\r/g, '\\r');
-    column_name = column_name.replace(/\t/g, '\\t');
-    if (quote_char === "'")
-        return column_name.replace(/'/g, "\\'");
-    if (quote_char === '"')
-        return column_name.replace(/"/g, '\\"');
-    assert(quote_char === "`");
-    return column_name.replace(/`/g, "\\`");
-}
-
-
-function parse_dictionary_variables(query_text, prefix, header_columns_names, dst_variables_map) {
-    // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
-
-    // FIXME to prevent typos in attribute names either use query-based variable parsing which can properly handle back-tick strings or wrap "a" and "b" variables with ES6 Proxies https://stackoverflow.com/a/25658975/2898283
-    assert(prefix === 'a' || prefix === 'b');
-    let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[`);
-    if (query_text.search(dict_test_rgx) == -1)
-        return;
-    let rgx = new RegExp('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', 'g');
-    for (let i = 0; i < header_columns_names.length; i++) {
-        let column_name = header_columns_names[i];
-        let continuous_name_segments = rbql.get_all_matches(rgx, column_name);
-        let add_column_name = true;
-        for (let continuous_segment of continuous_name_segments) {
-            if (query_text.indexOf(continuous_segment) == -1) {
-                add_column_name = false;
-                break;
-            }
-        }
-        if (add_column_name) {
-            let escaped_column_name = js_string_escape_column_name(column_name, '"');
-            dst_variables_map[`${prefix}["${escaped_column_name}"]`] = {initialize: true, index: i};
-            escaped_column_name = js_string_escape_column_name(column_name, "'");
-            dst_variables_map[`${prefix}['${escaped_column_name}']`] = {initialize: false, index: i};
-            escaped_column_name = js_string_escape_column_name(column_name, "`");
-            dst_variables_map[`${prefix}[\`${escaped_column_name}\`]`] = {initialize: false, index: i};
-        }
-    }
-}
-
-
-function parse_attribute_variables(query_text, prefix, header_columns_names, dst_variables_map) {
-    // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
-
-    assert(prefix === 'a' || prefix === 'b');
-    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)`, 'g');
-    let matches = rbql.get_all_matches(rgx, query_text);
-    let column_names = matches.map(v => v[1]);
-    for (let column_name of column_names) {
-        let zero_based_idx = header_columns_names.indexOf(column_name);
-        if (zero_based_idx != -1) {
-            dst_variables_map[`${prefix}.${column_name}`] = {initialize: true, index: zero_based_idx};
-        } else {
-            throw new RbqlParsingError(`Unable to find column "${column_name}" in ${prefix == 'a' ? 'input' : 'join'} CSV header line`);
-        }
-    }
-}
-
-
 function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name='input', variable_prefix='a') {
     // CSVRecordIterator implements typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
@@ -302,8 +239,8 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
 
         let header_record = await this.preread_header(); // TODO optimize: do not start the stream if query_text doesn't seem to have dictionary or attribute -looking patterns
         if (header_record) {
-            parse_attribute_variables(query_text, this.variable_prefix, header_record, variable_map);
-            parse_dictionary_variables(query_text, this.variable_prefix, header_record, variable_map);
+            rbql.parse_attribute_variables(query_text, this.variable_prefix, header_record, 'CSV header line', variable_map);
+            rbql.parse_dictionary_variables(query_text, this.variable_prefix, header_record, variable_map);
         }
         return variable_map;
     };
@@ -704,5 +641,3 @@ module.exports.read_user_init_code = read_user_init_code;
 module.exports.query_csv = query_csv;
 module.exports.set_debug_mode = set_debug_mode;
 module.exports.RecordQueue = RecordQueue;
-module.exports.parse_dictionary_variables = parse_dictionary_variables;
-module.exports.parse_attribute_variables = parse_attribute_variables;

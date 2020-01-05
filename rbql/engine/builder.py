@@ -173,15 +173,6 @@ def parse_array_variables(query_text, prefix, dst_variables_map):
         dst_variables_map['{}[{}]'.format(prefix, field_num)] = VariableInfo(initialize=True, index=field_num - 1)
 
 
-def query_probably_has_dictionary_variable(query_text, column_name):
-    # It is OK to return false positive - in the worst case we woud just waste some performance on unused variable initialization
-    continuous_name_segments = re.findall('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', column_name)
-    for continuous_segment in continuous_name_segments:
-        if query_text.find(continuous_segment) == -1:
-            return False
-    return True
-
-
 def python_string_escape_column_name(column_name, quote_char):
     assert quote_char in ['"', "'"]
     column_name = column_name.replace('\\', '\\\\')
@@ -191,6 +182,15 @@ def python_string_escape_column_name(column_name, quote_char):
     if quote_char == '"':
         return column_name.replace('"', '\\"')
     return column_name.replace("'", "\\'")
+
+
+def query_probably_has_dictionary_variable(query_text, column_name):
+    # It is OK to return false positive - in the worst case we woud just waste some performance on unused variable initialization
+    continuous_name_segments = re.findall('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', column_name)
+    for continuous_segment in continuous_name_segments:
+        if query_text.find(continuous_segment) == -1:
+            return False
+    return True
 
 
 def parse_dictionary_variables(query_text, prefix, column_names, dst_variables_map):
@@ -236,7 +236,7 @@ def map_variables_directly(query_text, column_names, dst_variables_map):
 def ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names):
     join_column_names_set = set(join_column_names)
     for column_name in input_column_names:
-        if column_name in join_column_names_set and query_text.find(column_name) != -1:
+        if column_name in join_column_names_set and query_text.find(column_name) != -1: # False positive is tolerable here
             raise RbqlParsingError(ambiguous_error_msg.format(column_name))
 
 
@@ -720,7 +720,7 @@ class SingleTableRegistry:
 
 def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, normalize_column_names=True, user_init_code=''):
     if not normalize_column_names and input_column_names is not None and join_column_names is not None:
-        ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names) # FIXME write a unit test
+        ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names)
     input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else SingleTableRegistry(join_table, join_column_names, normalize_column_names)

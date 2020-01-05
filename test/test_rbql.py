@@ -259,7 +259,6 @@ class TestJsonTables(unittest.TestCase):
         input_table = test_case['input_table']
         join_table = test_case.get('join_table', None)
         input_column_names = test_case.get('input_column_names', None)
-        # FIXME add ut with join_column_names
         join_column_names = test_case.get('join_column_names', None)
         normalize_column_names = test_case.get('normalize_column_names', True)
         user_init_code = test_case.get('python_init_code', '')

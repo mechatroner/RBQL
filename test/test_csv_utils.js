@@ -616,7 +616,7 @@ function test_dictionary_variables_parsing() {
     let header_columns_names = ['foo', 'foo bar', 'max', "lambda-beta{'gamma'}", "lambda-beta{'gamma2'}", "eps\\ilon", "omega", "1", "2", "....", "["];
     let expected_variables_map = {'a["foo"]': vinf(true, 0), 'a["foo bar"]': vinf(true, 1), 'a["max"]': vinf(true, 2), "a[\"lambda-beta{'gamma'}\"]": vinf(true, 3), 'a["eps\\\\ilon"]': vinf(true, 5), 'a["1"]': vinf(true, 7), 'a["2"]': vinf(true, 8), 'a["["]': vinf(true, 10), "a['foo']": vinf(false, 0), "a['foo bar']": vinf(false, 1), "a['max']": vinf(false, 2), "a['lambda-beta{\\'gamma\\'}']": vinf(false, 3), "a['eps\\\\ilon']": vinf(false, 5), "a['1']": vinf(false, 7), "a['2']": vinf(false, 8), "a['[']": vinf(false, 10), "a[`foo`]": vinf(false, 0), "a[`foo bar`]": vinf(false, 1), "a[`max`]": vinf(false, 2), "a[`lambda-beta{'gamma'}`]": vinf(false, 3), "a[`eps\\\\ilon`]": vinf(false, 5), "a[`1`]": vinf(false, 7), "a[`2`]": vinf(false, 8), "a[`[`]": vinf(false, 10)};
     let actual_variables_map = {};
-    rbql_csv.parse_dictionary_variables(query, 'a', header_columns_names, actual_variables_map);
+    rbql.parse_dictionary_variables(query, 'a', header_columns_names, actual_variables_map);
     test_common.assert_objects_are_equal(expected_variables_map, actual_variables_map);
 }
 
@@ -626,7 +626,7 @@ function test_attribute_variables_parsing() {
     let header_columns_names = ['epsilon', 'foo bar', '_name', "Surname", "income", "...", "2", "200"];
     let expected_variables_map = {'a.epsilon': vinf(true, 0), 'a._name': vinf(true, 2), "a.Surname": vinf(true, 3)};
     let actual_variables_map = {};
-    rbql_csv.parse_attribute_variables(query, 'a', header_columns_names, actual_variables_map);
+    rbql.parse_attribute_variables(query, 'a', header_columns_names, 'CSV header line', actual_variables_map);
     test_common.assert_objects_are_equal(expected_variables_map, actual_variables_map);
 }
 

@@ -725,7 +725,7 @@ module.exports.rb_transform = rb_transform;
 // TODO replace prototypes with classes: this improves readability
 
 
-const version = '0.11.0';
+const version = '0.12.0';
 
 const GROUP_BY = 'GROUP BY';
 const UPDATE = 'UPDATE';
@@ -759,6 +759,11 @@ function assert(condition, message=null) {
 
 function regexp_escape(text) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // $& means the whole matched text
+}
+
+
+function get_ambiguous_error_msg(variable_name) {
+    return `Ambiguous variable name: "${variable_name}" is present both in input and in join table`;
 }
 
 
@@ -830,12 +835,99 @@ function parse_array_variables(query_text, prefix, dst_variables_map) {
 }
 
 
+function js_string_escape_column_name(column_name, quote_char) {
+    column_name = column_name.replace(/\\/g, '\\\\');
+    column_name = column_name.replace(/\n/g, '\\n');
+    column_name = column_name.replace(/\r/g, '\\r');
+    column_name = column_name.replace(/\t/g, '\\t');
+    if (quote_char === "'")
+        return column_name.replace(/'/g, "\\'");
+    if (quote_char === '"')
+        return column_name.replace(/"/g, '\\"');
+    assert(quote_char === "`");
+    return column_name.replace(/`/g, "\\`");
+}
+
+
+function query_probably_has_dictionary_variable(query_text, column_name) {
+    let rgx = new RegExp('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', 'g');
+    let continuous_name_segments = get_all_matches(rgx, column_name);
+    let add_column_name = true;
+    for (let continuous_segment of continuous_name_segments) {
+        if (query_text.indexOf(continuous_segment) == -1) {
+            add_column_name = false;
+            break;
+        }
+    }
+}
+
+
+function parse_dictionary_variables(query_text, prefix, column_names, dst_variables_map) {
+    // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+
+    // FIXME to prevent typos in attribute names either use query-based variable parsing which can properly handle back-tick strings or wrap "a" and "b" variables with ES6 Proxies https://stackoverflow.com/a/25658975/2898283
+    assert(prefix === 'a' || prefix === 'b');
+    let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[`);
+    if (query_text.search(dict_test_rgx) == -1)
+        return;
+    console.log("column_names:" + column_names); //FOR_DEBUG
+    for (let i = 0; i < column_names.length; i++) {
+        let column_name = column_names[i];
+        if (query_probably_has_dictionary_variable(query_text, column_name)) {
+            let escaped_column_name = js_string_escape_column_name(column_name, '"');
+            dst_variables_map[`${prefix}["${escaped_column_name}"]`] = {initialize: true, index: i};
+            escaped_column_name = js_string_escape_column_name(column_name, "'");
+            dst_variables_map[`${prefix}['${escaped_column_name}']`] = {initialize: false, index: i};
+            escaped_column_name = js_string_escape_column_name(column_name, "`");
+            dst_variables_map[`${prefix}[\`${escaped_column_name}\`]`] = {initialize: false, index: i};
+        }
+    }
+}
+
+
+function parse_attribute_variables(query_text, prefix, column_names, column_names_source, dst_variables_map) {
+    // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+
+    assert(prefix === 'a' || prefix === 'b');
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)`, 'g');
+    let matches = get_all_matches(rgx, query_text);
+    let column_names_from_query = matches.map(v => v[1]);
+    for (let column_name of column_names_from_query) {
+        let zero_based_idx = column_names.indexOf(column_name);
+        if (zero_based_idx != -1) {
+            dst_variables_map[`${prefix}.${column_name}`] = {initialize: true, index: zero_based_idx};
+        } else {
+            throw new RbqlParsingError(`Unable to find column "${column_name}" in ${prefix == 'a' ? 'input' : 'join'} ${column_names_source}`);
+        }
+    }
+}
+
+
+function map_variables_directly(query_text, column_names, dst_variables_map) {
+    for (let i = 0; i < column_names.length; i++) {
+        let column_name = column_names[i];
+        if ( /^[_a-zA-Z][_a-zA-Z0-9]*$/.exec(column_name) === null)
+            throw new RbqlIOHandlingError(`Unable to use column name "${column_name}" as RBQL/JS variable`)
+        if (query_text.indexOf(column_name) != -1)
+            dst_variables_map[column_name] = {initialize: true, index: i};
+    }
+}
+
+
+function ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names) {
+    let join_column_names_set = new Set(join_column_names);
+    for (let column_name of input_column_names) {
+        if (join_column_names_set.has(column_name) && query_text.indexOf(column_name) != -1) // False positive is tolerable here
+            throw new RbqlParsingError(get_ambiguous_error_msg(column_name));
+    }
+}
+
+
 function parse_join_expression(src) {
     var rgx = /^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$/i;
     var match = rgx.exec(src);
-    if (match === null) {
+    if (match === null)
         throw new RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."');
-    }
     return [match[1], match[2], match[3]];
 }
 
@@ -843,7 +935,6 @@ function parse_join_expression(src) {
 function resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals) {
     join_var_1 = combine_string_literals(join_var_1, string_literals);
     join_var_2 = combine_string_literals(join_var_2, string_literals);
-    const get_ambiguous_error_msg = function(v) { return `Ambiguous variable name: "${v}" is present both in input and in join table`; };
     if (input_variables_map.hasOwnProperty(join_var_1) && join_variables_map.hasOwnProperty(join_var_1))
         throw new RbqlParsingError(get_ambiguous_error_msg(join_var_1));
     if (input_variables_map.hasOwnProperty(join_var_2) && join_variables_map.hasOwnProperty(join_var_2))
@@ -1310,8 +1401,10 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
 }
 
 
-function TableIterator(input_table, variable_prefix='a') {
-    this.input_table = input_table;
+function TableIterator(table, column_names=null, normalize_column_names=true, variable_prefix='a') {
+    this.table = table;
+    this.column_names = column_names;
+    this.normalize_column_names = normalize_column_names;
     this.variable_prefix = variable_prefix;
     this.nr = 0;
     this.fields_info = new Object();
@@ -1327,6 +1420,16 @@ function TableIterator(input_table, variable_prefix='a') {
         let variable_map = new Object();
         parse_basic_variables(query_text, this.variable_prefix, variable_map);
         parse_array_variables(query_text, this.variable_prefix, variable_map);
+        if (this.column_names !== null) {
+            if (this.table.length && this.column_names.length != this.table[0].length)
+                throw new RbqlIOHandlingError('List of column names and table records have different lengths');
+            if (this.normalize_column_names) {
+                parse_dictionary_variables(query_text, this.variable_prefix, this.column_names, variable_map);
+                parse_attribute_variables(query_text, this.variable_prefix, this.column_names, 'column names list', variable_map);
+            } else {
+                map_variables_directly(query_text, this.column_names, variable_map);
+            }
+        }
         return variable_map;
     };
 
@@ -1334,9 +1437,9 @@ function TableIterator(input_table, variable_prefix='a') {
     this.get_record = async function() {
         if (this.stopped)
             return null;
-        if (this.nr >= this.input_table.length)
+        if (this.nr >= this.table.length)
             return null;
-        let record = this.input_table[this.nr];
+        let record = this.table[this.nr];
         this.nr += 1;
         let num_fields = record.length;
         if (!this.fields_info.hasOwnProperty(num_fields))
@@ -1367,15 +1470,16 @@ function TableWriter(external_table) {
 }
 
 
-function SingleTableRegistry(table, table_id='B') {
+function SingleTableRegistry(table, column_names=null, normalize_column_names=true, table_id='B') {
     this.table = table;
     this.table_id = table_id;
+    this.column_names = column_names;
+    this.normalize_column_names = normalize_column_names;
 
     this.get_iterator_by_table_id = function(table_id) {
-        if (table_id !== this.table_id) {
+        if (table_id !== this.table_id)
             throw new RbqlIOHandlingError(`Unable to find join table: "${table_id}"`);
-        }
-        return new TableIterator(this.table, 'b');
+        return new TableIterator(this.table, this.column_names, this.normalize_column_names, 'b');
     };
 }
 
@@ -1399,10 +1503,12 @@ async function query(query_text, input_iterator, output_writer, output_warnings,
 }
 
 
-async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, user_init_code='') {
-    let input_iterator = new TableIterator(input_table);
+async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, normalize_column_names=true, user_init_code='') {
+    if (!normalize_column_names && input_column_names !== null && join_column_names !== null)
+        ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names);
+    let input_iterator = new TableIterator(input_table, input_column_names, normalize_column_names);
     let output_writer = new TableWriter(output_table);
-    let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table);
+    let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table, join_column_names, normalize_column_names);
     await query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }
 
@@ -1421,6 +1527,8 @@ module.exports.TableWriter = TableWriter;
 module.exports.SingleTableRegistry = SingleTableRegistry;
 module.exports.parse_basic_variables = parse_basic_variables;
 module.exports.parse_array_variables = parse_array_variables;
+module.exports.parse_dictionary_variables = parse_dictionary_variables;
+module.exports.parse_attribute_variables = parse_attribute_variables;
 module.exports.get_all_matches = get_all_matches;
 
 module.exports.strip_comments = strip_comments;
