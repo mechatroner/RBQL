@@ -763,7 +763,7 @@ function regexp_escape(text) {
 
 
 function get_ambiguous_error_msg(variable_name) {
-    return `Ambiguous variable name: "${variable_name}" is present both in input and in join table`;
+    return `Ambiguous variable name: "${variable_name}" is present both in input and in join tables`;
 }
 
 
@@ -852,13 +852,11 @@ function js_string_escape_column_name(column_name, quote_char) {
 function query_probably_has_dictionary_variable(query_text, column_name) {
     let rgx = new RegExp('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', 'g');
     let continuous_name_segments = get_all_matches(rgx, column_name);
-    let add_column_name = true;
     for (let continuous_segment of continuous_name_segments) {
-        if (query_text.indexOf(continuous_segment) == -1) {
-            add_column_name = false;
-            break;
-        }
+        if (query_text.indexOf(continuous_segment) == -1)
+            return false;
     }
+    return true;
 }
 
 
@@ -870,7 +868,6 @@ function parse_dictionary_variables(query_text, prefix, column_names, dst_variab
     let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[`);
     if (query_text.search(dict_test_rgx) == -1)
         return;
-    console.log("column_names:" + column_names); //FOR_DEBUG
     for (let i = 0; i < column_names.length; i++) {
         let column_name = column_names[i];
         if (query_probably_has_dictionary_variable(query_text, column_name)) {

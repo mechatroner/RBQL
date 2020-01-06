@@ -1332,7 +1332,8 @@
         "input_column_names": ["value", "letter left", "letter_right"],
         "normalize_column_names": false,
         "expected_error_exact": true,
-        "expected_error": "Unable to use column name \"letter left\" as RBQL/Python variable",
+        "expected_error_py": "Unable to use column name \"letter left\" as RBQL/Python variable",
+        "expected_error_js": "Unable to use column name \"letter left\" as RBQL/JS variable",
         "query_python": "select NR, value, len(letter_right) where int(value) > 5",
         "query_js": "select NR, value, letter_right.length where value > 5"
     },
