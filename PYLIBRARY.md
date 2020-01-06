@@ -29,20 +29,27 @@ Run user query against a list of records and put the result set in the output li
 
 #### Signature:  
   
-`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None)`
+`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, normalize_column_names=True)`
 
 
 #### Parameters: 
 * _user_query_: **string**  
-  query that user of your app manually enters in some kind of input field.  
+  Query that user of your app manually enters in some kind of input field  
 * _input_table_: **list**  
-  list with input records  
+  List with input records  
 * _output_table_: **list**  
-  output records will be stored here after the query completion
+  Output records will be stored here after the query completion
 * _output_warnings_: **list**  
-  warnings will be stored here after the query completion. If no warnings - the list would be empty
+  Warnings will be stored here after the query completion. If no warnings - the list would be empty
 * _join_table_: **list**  
-  list with join table so that user can use join table B in input queries  
+  List with join table so that user can use join table B in input queries  
+* _input_column_names_: **list**  
+  Names of _input_table_ columns which users of the app can use in queries
+* _join_column_names_: **list**  
+  Names of _join_table_ columns which users of the app can use in queries
+* _normalize_column_names_: **boolean**  
+  If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".
+  If set to False - column names can be used in user queries "as is".
 
 
 #### Usage example:
