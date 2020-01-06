@@ -51,9 +51,6 @@ from ._version import __version__
 # TODO add "skip-header" interface option 
 
 
-# FIXME add "header" parameter to query_table function
-
-
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
