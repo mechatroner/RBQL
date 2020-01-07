@@ -44,9 +44,9 @@ Run user query against a list of records and put the result set in the output li
 * _join_table_: **list**  
   List with join table so that user can use join table B in input queries  
 * _input_column_names_: **list**  
-  Names of _input_table_ columns which users of the app can use in queries
+  Names of _input_table_ columns which users of the app can use in their queries
 * _join_column_names_: **list**  
-  Names of _join_table_ columns which users of the app can use in queries
+  Names of _join_table_ columns which users of the app can use in their queries
 * _normalize_column_names_: **boolean**  
   If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
   If set to False - column names can be used in user queries "as is".  
@@ -134,7 +134,7 @@ You will have to implement special wrapper classes for your custom data structur
 * _output_warnings_: **list**  
   warnings will be stored here after the query completion. If no warnings - the list would be empty
 * _join_tables_registry_: **RBQLJoinTablesRegistry**  
-  special object which provides **RBQLInputIterator** iterators for join tables (e.g. table "B") which user can refer to in queries.  
+  special object which provides **RBQLInputIterator** iterators for join tables (e.g. table "B") which users can refer to in their queries.  
 
 
 #### Usage example
