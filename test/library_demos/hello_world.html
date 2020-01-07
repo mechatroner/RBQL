@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html> <head>
-
+<html><head>
 <script src="../../rbql-js/web_rbql.js"></script>
 <script>
     let output_table = [];
@@ -14,7 +13,6 @@
     }
     rbql.query_table('select a2 + " test", a1 limit 2', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, warnings).then(success_handler).catch(error_handler);
 </script>
-
 <title>RBQL Generic Test</title>
 </head><body>
 <div><span>Open browser console</span></div>
