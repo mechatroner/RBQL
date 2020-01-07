@@ -48,8 +48,8 @@ Run user query against a list of records and put the result set in the output li
 * _join_column_names_: **list**  
   Names of _join_table_ columns which users of the app can use in queries
 * _normalize_column_names_: **boolean**  
-  If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".
-  If set to False - column names can be used in user queries "as is".
+  If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
+  If set to False - column names can be used in user queries "as is".  
 
 
 #### Usage example:
