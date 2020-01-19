@@ -1421,5 +1421,22 @@
         "normalize_column_names": false,
         "query_python": "select NR, * inner join B on vehicle == vehicle_name where int(speed) > 50 and foobar.find('boeing') != -1",
         "query_js": "select NR, * inner join B on vehicle == vehicle_name where parseInt(speed) > 50 and foobar.find('boeing') != -1"
+    },
+    {
+        "test_name": "unpack operator",
+        "input_table": [
+            ["5", "alpha"],
+            ["-20", "alpha|beta|gamma|epsilon"],
+            ["50", "alpha|delta"],
+            ["20", ""]
+        ],
+        "expected_output_table": [
+            ["alpha"],
+            ["alpha", "beta", "gamma", "epsilon"],
+            ["alpha", "delta"],
+            [""]
+        ],
+        "query_python": "select *a2.split('|')",
+        "query_js": "select ...a2.split('|')"
     }
 ]
