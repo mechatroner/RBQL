@@ -456,8 +456,8 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "skip_headers": true,
-        "query_python": "select top 5 *",
-        "query_js": "select top 5 *"
+        "query_python": "select top 5 NR, *",
+        "query_js": "select top 5 NR, *"
     },
     {
         "test_name": "join named fields skip header",
@@ -471,7 +471,7 @@
         "expected_warnings": [
             "The first (header) record was also skipped in the JOIN file: countries.csv"
         ],
-        "query_python": "select top 20 a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc",
-        "query_js": "select top 20 a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc"
+        "query_python": "select top 20 NR, a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc",
+        "query_js": "select top 20 NR, a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc"
     }
 ]

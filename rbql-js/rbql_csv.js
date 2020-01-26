@@ -161,7 +161,7 @@ class RecordQueue {
 }
 
 
-function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name='input', variable_prefix='a') {
+function CSVRecordIterator(stream, csv_path, encoding, delim, policy, skip_headers=false, table_name='input', variable_prefix='a') {
     // CSVRecordIterator implements typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
     // stream.on('data') - producer
@@ -172,6 +172,7 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
     this.encoding = encoding;
     this.delim = delim;
     this.policy = policy;
+    this.skip_headers = skip_headers;
     this.table_name = table_name;
     this.variable_prefix = variable_prefix;
 
@@ -225,7 +226,8 @@ function CSVRecordIterator(stream, csv_path, encoding, delim, policy, table_name
         let header_record = await this.get_record();
         if (header_record === null)
             return null;
-        this.produced_records_queue.return_to_pull_stack(header_record);
+        if (!this.skip_headers)
+            this.produced_records_queue.return_to_pull_stack(header_record);
         if (this.stream)
             this.stream.pause();
         return header_record.slice();
