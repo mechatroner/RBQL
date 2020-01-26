@@ -794,6 +794,7 @@ class TestRBQLWithCSV(unittest.TestCase):
             return
         debug_mode = test_case.get('debug_mode', False)
         randomly_replace_var_names = test_case.get('randomly_replace_var_names', True)
+        skip_headers = test_case.get('skip_headers', False)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
         if randomly_replace_var_names:
@@ -821,7 +822,7 @@ class TestRBQLWithCSV(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding, warnings)
+            rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding, warnings, skip_headers)
         except Exception as e:
             if debug_mode:
                 raise

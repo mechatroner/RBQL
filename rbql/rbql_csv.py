@@ -252,7 +252,7 @@ class CSVWriter:
 
 
 class CSVRecordIterator:
-    def __init__(self, stream, encoding, delim, policy, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
+    def __init__(self, stream, encoding, delim, policy, skip_headers=False, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = encode_input_stream(stream, encoding)
@@ -274,9 +274,8 @@ class CSVRecordIterator:
 
         if not line_mode:
             self.header_record = None
-            self.header_record_emitted = False
+            self.header_record_emitted = skip_headers
             self.header_record = self.get_record()
-            assert not self.header_record_emitted
 
 
     def get_variables_map(self, query_text):
@@ -414,27 +413,31 @@ class CSVRecordIterator:
 
 
 class FileSystemCSVRegistry:
-    def __init__(self, delim, policy, encoding):
+    def __init__(self, delim, policy, encoding, skip_headers):
         self.delim = delim
         self.policy = policy
         self.encoding = encoding
         self.record_iterator = None
         self.input_stream = None
+        self.skip_headers = skip_headers
+        self.table_path = None
 
     def get_iterator_by_table_id(self, table_id):
-        table_path = find_table_path(table_id)
-        if table_path is None:
+        self.table_path = find_table_path(table_id)
+        if self.table_path is None:
             raise RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
-        self.input_stream = open(table_path, 'rb')
-        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, table_name=table_id, variable_prefix='b')
+        self.input_stream = open(self.table_path, 'rb')
+        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.skip_headers, table_name=table_id, variable_prefix='b')
         return self.record_iterator
 
-    def finish(self):
+    def finish(self, output_warnings):
         if self.input_stream is not None:
             self.input_stream.close()
+            if self.skip_headers:
+                output_warnings.append('The first (header) record was skipped in the JOIN {} file too'.format(self.table_path)) #FIXME add UT
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, user_init_code=''):
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=False, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -457,8 +460,8 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = read_user_init_code(default_init_source_path)
 
-        join_tables_registry = FileSystemCSVRegistry(input_delim, input_policy, csv_encoding)
-        input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy)
+        join_tables_registry = FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, skip_headers)
+        input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, skip_headers)
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy)
         if debug_mode:
             engine.set_debug_mode()
@@ -469,7 +472,7 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         if close_output_on_finish:
             output_stream.close()
         if join_tables_registry:
-            join_tables_registry.finish()
+            join_tables_registry.finish(output_warnings)
 
 
 def set_debug_mode():
