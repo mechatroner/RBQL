@@ -434,7 +434,7 @@ class FileSystemCSVRegistry:
         if self.input_stream is not None:
             self.input_stream.close()
             if self.skip_headers:
-                output_warnings.append('The first (header) record was skipped in the JOIN {} file too'.format(self.table_path)) #FIXME add UT
+                output_warnings.append('The first (header) record was also skipped in the JOIN file: {}'.format(os.path.basename(self.table_path))) # UT JSON CSV
 
 
 def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=False, user_init_code=''):

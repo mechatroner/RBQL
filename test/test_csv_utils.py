@@ -47,6 +47,7 @@ python_version = float('{}.{}'.format(sys.version_info[0], sys.version_info[1]))
 
 
 def normalize_warnings(warnings):
+    # TODO can we get rid of this function? Why do we need to normalize warnings?
     # TODO move into a common test lib module e.g. "tests_common.py"
     result = []
     for warning in warnings:
@@ -59,7 +60,7 @@ def normalize_warnings(warnings):
         elif warning == 'UTF-8 Byte Order Mark (BOM) was found and skipped in input table':
             result.append('BOM removed from input')
         else:
-            assert False, 'unknown warning'
+            result.append(warning)
     return result
 
 

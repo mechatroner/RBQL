@@ -468,6 +468,9 @@
         "csv_encoding": "utf-8",
         "skip_headers": true,
         "debug_mode": true,
+        "expected_warnings": [
+            "The first (header) record was also skipped in the JOIN file: countries.csv"
+        ],
         "query_python": "select top 20 a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc",
         "query_js": "select top 20 a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc"
     }
