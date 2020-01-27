@@ -235,7 +235,8 @@ async function run_with_js(args) {
         user_init_code = rbql_csv.read_user_init_code(init_source_file);
     try {
         let warnings = [];
-        await rbql_csv.query_csv(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, warnings, user_init_code, {'bulk_read': true});
+        let skip_headers = false;
+        await rbql_csv.query_csv(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, warnings, skip_headers, user_init_code, {'bulk_read': true});
         await handle_query_success(warnings, output_path, csv_encoding, output_delim, output_policy);
         return true;
     } catch (e) {
