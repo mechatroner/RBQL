@@ -1436,6 +1436,7 @@
             ["alpha", "delta"],
             [""]
         ],
+        "minimal_python_version": "3.5",
         "query_python": "select *a2.split('|')",
         "query_js": "select ...a2.split('|')"
     }
