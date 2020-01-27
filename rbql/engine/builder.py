@@ -47,10 +47,10 @@ from ._version import __version__
 
 # TODO support option to skip comment lines (lines starting with the specified prefix)
 
-
-# TODO add "skip-header" interface option 
-
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
+
+
+# FIXME add cli skip-headers option
 
 
 GROUP_BY = 'GROUP BY'

@@ -570,33 +570,41 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
 }
 
 
-function FileSystemCSVRegistry(delim, policy, encoding, options=null) {
+function FileSystemCSVRegistry(delim, policy, encoding, skip_headers=false, options=null) {
     this.delim = delim;
     this.policy = policy;
     this.encoding = encoding;
+    this.skip_headers = skip_headers;
     this.stream = null;
     this.record_iterator = null;
 
     this.options = options;
     this.bulk_input_path = null;
+    this.table_path = null;
 
     this.get_iterator_by_table_id = function(table_id) {
-        let table_path = find_table_path(table_id);
-        if (table_path === null) {
+        this.table_path = find_table_path(table_id);
+        if (this.table_path === null) {
             throw new RbqlIOHandlingError(`Unable to find join table "${table_id}"`);
         }
         if (this.options && this.options['bulk_read']) {
-            this.bulk_input_path = table_path;
+            this.bulk_input_path = this.table_path;
         } else {
-            this.stream = fs.createReadStream(table_path);
+            this.stream = fs.createReadStream(this.table_path);
         }
-        this.record_iterator = new CSVRecordIterator(this.stream, this.bulk_input_path, this.encoding, this.delim, this.policy, table_id, 'b');
+        this.record_iterator = new CSVRecordIterator(this.stream, this.bulk_input_path, this.encoding, this.delim, this.policy, skip_headers, table_id, 'b');
         return this.record_iterator;
     };
+
+    this.get_warnings = function(output_warnings) {
+        if (this.record_iterator && this.skip_headers) {
+            output_warnings.push(`The first (header) record was also skipped in the JOIN file: ${path.basename(this.table_path)}`);
+        }
+    }
 }
 
 
-async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, user_init_code='', options=null) {
+async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=false, user_init_code='', options=null) {
     let input_stream = null;
     let bulk_input_path = null;
     if (options && options['bulk_read'] && input_path) {
@@ -619,13 +627,14 @@ async function query_csv(query_text, input_path, input_delim, input_policy, outp
         user_init_code = read_user_init_code(default_init_source_path);
     }
 
-    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, options);
-    let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy);
+    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, skip_headers, options);
+    let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy, skip_headers);
     let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
     if (debug_mode)
         rbql.set_debug_mode();
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
+    join_tables_registry.get_warnings(output_warnings);
 }
 
 

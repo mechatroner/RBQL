@@ -414,6 +414,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
+    let skip_headers = test_common.get_default(test_case, 'skip_headers', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
     let delim = test_case['csv_separator'];
     let policy = test_case['csv_policy'];
@@ -436,7 +437,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let warnings = [];
     try {
-        await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, warnings, '', options);
+        await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, warnings, skip_headers, '', options);
     } catch (e) {
         if (local_debug_mode)
             throw(e);

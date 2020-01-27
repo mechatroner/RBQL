@@ -104,7 +104,7 @@ function normalize_warnings(warnings) {
         } else if (warning === 'UTF-8 Byte Order Mark (BOM) was found and skipped in input table') {
             result.push('BOM removed from input');
         } else {
-            assert(false, 'Unknown warning');
+            result.push(warning);
         }
     }
     return result;
