@@ -63,6 +63,7 @@ def run_with_python(args, is_interactive):
     delim = rbql_csv.normalize_delim(args.delim)
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
+    skip_header = args.skip_header
     input_path = args.input
     output_path = args.output
     init_source_file = args.init_source_file
@@ -77,7 +78,7 @@ def run_with_python(args, is_interactive):
     warnings = []
     error_type, error_msg = None, None
     try:
-        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, user_init_code)
+        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, skip_header, user_init_code)
     except Exception as e:
         error_type, error_msg = engine.exception_to_error_info(e)
 
@@ -142,18 +143,18 @@ def sample_records(input_path, delim, policy, encoding):
         return (sampled_records, warnings)
 
 
-def print_colorized(records, delim, encoding, show_column_names):
+def print_colorized(records, delim, encoding, show_column_names, skip_header):
     # TODO consider colorizing a1,a2,... in different default color
     reset_color_code = u'\u001b[0m'
     color_codes = [u'\u001b[0m', u'\u001b[31m', u'\u001b[32m', u'\u001b[33m', u'\u001b[34m', u'\u001b[35m', u'\u001b[36m', u'\u001b[31;1m', u'\u001b[32;1m', u'\u001b[33;1m']
-    for record in records:
+    for rnum, record in enumerate(records):
         out_fields = []
         for i, field in enumerate(record):
             color_code = color_codes[i % len(color_codes)]
-            if show_column_names:
-                colored_field = '{}a{}:{}'.format(color_code, i + 1, field)
-            else:
+            if not show_column_names or (skip_header and rnum == 0):
                 colored_field = '{}{}'.format(color_code, field)
+            else:
+                colored_field = '{}a{}:{}'.format(color_code, i + 1, field)
             out_fields.append(colored_field)
         out_line = delim.join(out_fields) + reset_color_code
         if PY3:
@@ -192,7 +193,7 @@ def run_interactive_loop(args):
             print('\nOutput table preview:')
             print('====================================')
             records, _warnings = sample_records(args.output, args.output_delim, args.output_policy, args.encoding)
-            print_colorized(records, args.output_delim, args.encoding, show_column_names=False)
+            print_colorized(records, args.output_delim, args.encoding, show_column_names=False, skip_header=False)
             print('====================================')
             print('Success! Result table was saved to: ' + args.output)
             break
@@ -219,7 +220,7 @@ def start_preview_mode(args):
     records, warnings = sample_records(input_path, delim, policy, args.encoding)
     print('Input table preview:')
     print('====================================')
-    print_colorized(records, delim, args.encoding, show_column_names=True)
+    print_colorized(records, delim, args.encoding, show_column_names=True, skip_header=args.skip_header)
     print('====================================\n')
     for warning in warnings:
         show_warning(warning, is_interactive=True)
@@ -254,15 +255,16 @@ Description of the available CSV split policies:
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=tool_description, epilog=epilog)
+    parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--delim', help='Delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode')
     parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
-    parser.add_argument('--out-format', help='Output format', default='input', choices=out_format_names)
+    parser.add_argument('--skip-header', action='store_true', help='Skip header line in input and join tables')
     parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if empty')
-    parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Required in interactive mode')
+    parser.add_argument('--out-format', help='Output format', default='input', choices=out_format_names)
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout')
-    parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     parser.add_argument('--encoding', help='Manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
+    parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     args = parser.parse_args()
 
     if args.version:
