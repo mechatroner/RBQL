@@ -29,6 +29,9 @@ polymorphic_xrange = range if PY3 else xrange
 debug_mode = False
 
 
+ansi_reset_color_code = '\u001b[0m'
+
+
 class RbqlIOHandlingError(Exception):
     pass
 
@@ -160,52 +163,113 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
     return warn_msg
 
 
+def init_ansi_terminal_colors():
+    result = [ansi_reset_color_code]
+    foreground_codes = list(range(31, 37 + 1))
+    background_codes = list(range(41, 47 + 1))
+    for fc in foreground_codes:
+        result.append('\u001b[{}m'.format(fc))
+    for fc in foreground_codes:
+        for bc in background_codes:
+            if fc % 10 == bc % 10:
+                continue
+            if fc % 10 in [2, 6] and bc % 10 in [2, 6]: # Skipping green - cyan pair cause they might have low contrast
+                continue
+            result.append('\u001b[{};{}m'.format(fc, bc))
+    return result
+
+
 
 class CSVWriter:
-    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n'):
+    def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n', colorize_output=False):
+        # FIXME add option to do colored output. Do not implement for rbql-js
+        # FIXME add tests to cover all cases
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = encode_output_stream(stream, encoding)
         self.line_separator = line_separator
         self.delim = delim
         self.sub_array_delim = '|' if delim != '|' else ';'
         self.close_stream_on_finish = close_stream_on_finish
-        if policy == 'simple':
-            self.polymorphic_join = self.simple_join
+        self.polymorphic_preprocess = None
+        self.polymorphic_join = self.join_by_delim 
+        self.check_separators_after_join = False
+        self.colors = None
+        if policy == 'simple' or policy == 'whitespace':
+            if colorize_output:
+                self.polymorphic_preprocess = self.check_separators_in_fields_before_join
+            else:
+                self.check_separators_after_join = True
         elif policy == 'quoted':
-            self.polymorphic_join = self.quoted_join
+            self.polymorphic_preprocess = self.quote_fields
         elif policy == 'quoted_rfc':
-            self.polymorphic_join = self.rfc_quoted_join
+            self.polymorphic_preprocess = self.quote_fields_rfc
         elif policy == 'monocolumn':
-            self.polymorphic_join = self.mono_join
-        elif policy == 'whitespace':
-            self.polymorphic_join = self.simple_join
+            colorize_output = False
+            self.polymorphic_preprocess = self.ensure_single_field
+            self.polymorphic_join = lambda _self, f: f[0]
         else:
             raise RuntimeError('unknown output csv policy')
+
+        if colorize_output:
+            self.colors = init_ansi_terminal_colors()
 
         self.none_in_output = False
         self.delim_in_simple_output = False
 
 
-    def quoted_join(self, fields):
-        return self.delim.join([csv_utils.quote_field(f, self.delim) for f in fields])
+    def check_separators_in_fields_before_join(self, fields):
+        if ''.join(fields).find(self.delim) != -1:
+            self.delim_in_simple_output = True
 
 
-    def rfc_quoted_join(self, fields):
-        return self.delim.join([csv_utils.rfc_quote_field(f, self.delim) for f in fields])
+    def check_separator_in_fields_after_join(self, output_line, num_fields_expected):
+        num_fields_calculated = output_line.count(self.delim) + 1
+        if num_fields_calculated != num_fields_expected:
+            self.delim_in_simple_output = True
 
 
-    def mono_join(self, fields):
+    def join_by_delim(self, fields):
+        return self.delim.join(fields)
+
+
+    def write(self, fields):
+        self.normalize_fields(fields)
+
+        if self.polymorphic_preprocess is not None:
+            self.polymorphic_preprocess(fields)
+
+        if self.colors is not None:
+            self.colorize_fields(fields)
+
+        out_line = self.polymorphic_join(fields)
+
+        if self.check_separators_after_join:
+            self.check_separator_in_fields_after_join(out_line, len(fields))
+
+        self.stream.write(out_line)
+        if self.colors is not None:
+            self.stream.write(ansi_reset_color_code)
+        self.stream.write(self.line_separator)
+
+
+    def colorize_fields(self, fields):
+        for i in polymorphic_xrange(len(fields)):
+            fields[i] = self.colors[i % len(self.colors)] + fields[i]
+
+
+    def quote_fields(self, fields):
+        for i in polymorphic_xrange(len(fields)):
+            fields[i] = csv_utils.quote_field(fields[i], self.delim)
+
+
+    def quote_fields_rfc(self, fields):
+        for i in polymorphic_xrange(len(fields)):
+            fields[i] = csv_utils.rfc_quote_field(fields[i], self.delim)
+
+
+    def ensure_single_field(self, fields):
         if len(fields) > 1:
             raise RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
-        return fields[0]
-
-
-    def simple_join(self, fields):
-        res = self.delim.join([f for f in fields])
-        num_fields = res.count(self.delim)
-        if num_fields + 1 != len(fields):
-            self.delim_in_simple_output = True
-        return res
 
 
     def normalize_fields(self, fields):
@@ -218,12 +282,6 @@ class CSVWriter:
                 fields[i] = self.sub_array_delim.join(fields[i])
             else:
                 fields[i] = polymorphic_str(fields[i])
-
-
-    def write(self, fields):
-        self.normalize_fields(fields)
-        self.stream.write(self.polymorphic_join(fields))
-        self.stream.write(self.line_separator)
 
 
     def _write_all(self, table):
@@ -437,7 +495,7 @@ class FileSystemCSVRegistry:
                 output_warnings.append('The first (header) record was also skipped in the JOIN file: {}'.format(os.path.basename(self.table_path))) # UT JSON CSV
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=False, user_init_code=''):
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=False, user_init_code='', colorize_output=False):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -462,7 +520,7 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
 
         join_tables_registry = FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, skip_headers)
         input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, skip_headers)
-        output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy)
+        output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
         if debug_mode:
             engine.set_debug_mode()
         engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)

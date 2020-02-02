@@ -45,7 +45,7 @@ def get_default_policy(delim):
 
 def show_error(error_type, error_msg, is_interactive):
     if is_interactive:
-        full_msg = '{}Error [{}]:{} {}'.format(u'\u001b[31;1m', error_type, u'\u001b[0m', error_msg)
+        full_msg = '{}Error [{}]:{} {}'.format('\u001b[31;1m', error_type, '\u001b[0m', error_msg)
         print(full_msg)
     else:
         eprint('Error [{}]: {}'.format(error_type, error_msg))
@@ -53,7 +53,7 @@ def show_error(error_type, error_msg, is_interactive):
 
 def show_warning(msg, is_interactive):
     if is_interactive:
-        full_msg = '{}Warning:{} {}'.format(u'\u001b[33;1m', u'\u001b[0m', msg)
+        full_msg = '{}Warning:{} {}'.format('\u001b[33;1m', '\u001b[0m', msg)
         print(full_msg)
     else:
         eprint('Warning: ' + msg)
@@ -78,7 +78,7 @@ def run_with_python(args, is_interactive):
     warnings = []
     error_type, error_msg = None, None
     try:
-        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, skip_header, user_init_code)
+        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, skip_header, user_init_code, args.color)
     except Exception as e:
         error_type, error_msg = engine.exception_to_error_info(e)
 
@@ -145,8 +145,8 @@ def sample_records(input_path, delim, policy, encoding):
 
 def print_colorized(records, delim, encoding, show_column_names, skip_header):
     # TODO consider colorizing a1,a2,... in different default color
-    reset_color_code = u'\u001b[0m'
-    color_codes = [u'\u001b[0m', u'\u001b[31m', u'\u001b[32m', u'\u001b[33m', u'\u001b[34m', u'\u001b[35m', u'\u001b[36m', u'\u001b[31;1m', u'\u001b[32;1m', u'\u001b[33;1m']
+    reset_color_code = '\u001b[0m'
+    color_codes = ['\u001b[0m', '\u001b[31m', '\u001b[32m', '\u001b[33m', '\u001b[34m', '\u001b[35m', '\u001b[36m', '\u001b[31;1m', '\u001b[32;1m', '\u001b[33;1m']
     for rnum, record in enumerate(records):
         out_fields = []
         for i, field in enumerate(record):
@@ -258,11 +258,12 @@ def main():
     parser.add_argument('--input', metavar='FILE', help='Read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--delim', help='Delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode')
     parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
-    parser.add_argument('--skip-header', action='store_true', help='Skip header line in input and join tables')
+    parser.add_argument('--skip-header', action='store_true', help='Skip header line in input and join tables. Roughly equivalent of ... WHERE NR > 1 ... in your Query')
     parser.add_argument('--query', help='Query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--out-format', help='Output format', default='input', choices=out_format_names)
-    parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout')
     parser.add_argument('--encoding', help='Manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
+    parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout')
+    parser.add_argument('--color', action='store_true', help='Colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
     args = parser.parse_args()
@@ -276,6 +277,10 @@ def main():
 
     if args.delim is None and args.policy is not None:
         show_error('generic', 'Using "--policy" without "--delim" is not allowed', is_interactive=False)
+        sys.exit(1)
+
+    if args.output is not None and args.color:
+        show_error('generic', '"--output" is not compatible with "--color" option', is_interactive=False)
         sys.exit(1)
 
     if args.encoding != 'latin-1' and not PY3:
@@ -292,6 +297,9 @@ def main():
         if not success:
             sys.exit(1)
     else:
+        if args.color:
+            show_error('generic', '"--color" option is not compatible with interactive mode. Output and Input files preview would be colorized anyway', is_interactive=False)
+            sys.exit(1)
         if os.name == 'nt':
             show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False)
             sys.exit(1)
