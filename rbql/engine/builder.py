@@ -694,6 +694,7 @@ class TableWriter:
 
     def write(self, fields):
         self.table.append(fields)
+        return True
 
     def finish(self):
         pass

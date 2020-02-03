@@ -443,9 +443,10 @@ class TopWriter(object):
     def write(self, record):
         if __RBQLMP__top_count is not None and self.NW >= __RBQLMP__top_count:
             return False
-        self.subwriter.write(record)
-        self.NW += 1
-        return True
+        success = self.subwriter.write(record)
+        if success:
+            self.NW += 1
+        return success
 
     def finish(self):
         self.subwriter.finish()

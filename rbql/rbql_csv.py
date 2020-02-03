@@ -189,6 +189,7 @@ class CSVWriter:
         self.line_separator = line_separator
         self.delim = delim
         self.sub_array_delim = '|' if delim != '|' else ';'
+        self.broken_pipe = False
         self.close_stream_on_finish = close_stream_on_finish
         self.polymorphic_preprocess = None
         self.polymorphic_join = self.join_by_delim 
@@ -246,10 +247,15 @@ class CSVWriter:
         if self.check_separators_after_join:
             self.check_separator_in_fields_after_join(out_line, len(fields))
 
-        self.stream.write(out_line)
-        if self.colors is not None:
-            self.stream.write(ansi_reset_color_code)
-        self.stream.write(self.line_separator)
+        try:
+            self.stream.write(out_line)
+            if self.colors is not None:
+                self.stream.write(ansi_reset_color_code)
+            self.stream.write(self.line_separator)
+            return True
+        except BrokenPipeError:
+            self.broken_pipe = True
+            return False
 
 
     def colorize_fields(self, fields):
@@ -291,13 +297,17 @@ class CSVWriter:
 
 
     def finish(self):
-        try:
-            if self.close_stream_on_finish:
-                self.stream.close()
-            else:
-                self.stream.flush()
-        except Exception:
-            pass
+        if self.broken_pipe:
+            return
+        if self.close_stream_on_finish:
+            self.stream.close()
+        else:
+            try:
+                self.stream.flush() # FIXME this still can throw if all flushes before were sucessfull! And the exceptions would be printed anyway, even if it was explicitly catched just couple of lines after.
+                # Basically this fails if output is small and this is the first flush after the pipe was broken e.g. second flush if piped to head -n 1
+                # Here head -n 1 finished after the first flush, and the final explict flush here just killing it
+            except BrokenPipeError:
+                pass
 
 
     def get_warnings(self):

@@ -60,6 +60,8 @@ def show_warning(msg, is_interactive):
 
 
 def run_with_python(args, is_interactive):
+    if args.debug_mode:
+        rbql_csv.set_debug_mode()
     delim = rbql_csv.normalize_delim(args.delim)
     policy = args.policy if args.policy is not None else get_default_policy(delim)
     query = args.query
@@ -80,6 +82,8 @@ def run_with_python(args, is_interactive):
     try:
         rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, skip_header, user_init_code, args.color)
     except Exception as e:
+        if args.debug_mode:
+            raise
         error_type, error_msg = engine.exception_to_error_info(e)
 
     if error_type is None:
@@ -264,8 +268,9 @@ def main():
     parser.add_argument('--encoding', help='Manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='Write output table to FILE instead of stdout')
     parser.add_argument('--color', action='store_true', help='Colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
-    parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--version', action='store_true', help='Print RBQL version and exit')
+    parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
+    parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
     args = parser.parse_args()
 
     if args.version:
