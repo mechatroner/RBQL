@@ -207,7 +207,7 @@ class CSVWriter:
         elif policy == 'monocolumn':
             colorize_output = False
             self.polymorphic_preprocess = self.ensure_single_field
-            self.polymorphic_join = lambda _self, f: f[0]
+            self.polymorphic_join = self.monocolumn_join
         else:
             raise RuntimeError('unknown output csv policy')
 
@@ -216,6 +216,10 @@ class CSVWriter:
 
         self.none_in_output = False
         self.delim_in_simple_output = False
+
+
+    def monocolumn_join(self, fields):
+        return fields[0]
 
 
     def check_separators_in_fields_before_join(self, fields):
@@ -292,7 +296,7 @@ class CSVWriter:
 
     def _write_all(self, table):
         for record in table:
-            self.write(record)
+            self.write(record[:])
         self.finish()
 
 
