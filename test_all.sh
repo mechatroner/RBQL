@@ -21,6 +21,7 @@ cleanup_tmp_files() {
     rm tmp_out.csv 2> /dev/null
     rm random_tmp_table.txt 2> /dev/null
     rm speed_test.csv 2> /dev/null
+    rm rbql_warning.out 2> /dev/null
 }
 
 
@@ -193,6 +194,35 @@ if [ "$run_node_tests" == "yes" ]; then
 fi
 
 
+# Testing broken pipe
+md5sum_canonic="c5693303e0cc70fcd068df626f49bf75"
+if [ "$run_python_tests" == "yes" ]; then
+    rm rbql_warning.out 2> /dev/null
+    md5sum_test=($(python3 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
+    warning_test=$( cat rbql_warning.out )
+    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+        echo "Python3 broken pipe test fail!"  1>&2
+        exit 1
+    fi
+    if [ "$warning_test" != "Warning: None values in output were replaced by empty strings" ]; then
+        echo "Python3 broken pipe test fail: wrong warning!"  1>&2
+        exit 1
+    fi
+
+    rm rbql_warning.out 2> /dev/null
+    md5sum_test=($(python2 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
+    warning_test=$( cat rbql_warning.out )
+    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+        echo "Python2 broken pipe test fail!"  1>&2
+        exit 1
+    fi
+    if [ "$warning_test" != "Warning: None values in output were replaced by empty strings" ]; then
+        echo "Python2 broken pipe test fail: wrong warning!"  1>&2
+        exit 1
+    fi
+fi
+
+
 # Testing warnings
 if [ "$run_python_tests" == "yes" ]; then
     expected_warning="Warning: Number of fields in \"input\" table is not consistent: e.g. record 1 -> 8 fields, record 3 -> 6 fields"
@@ -236,8 +266,6 @@ fi
 
 # Testing skip-header / named columns in CLI
 md5sum_canonic=($( md5sum test/csv_files/canonic_result_14.csv ))
-
-
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($($random_python_interpreter -m rbql --input ~/wsl_share/rainbow_tables/countries.csv --query "select top 5 a.Country, a['GDP per capita'] order by int(a['GDP per capita']) desc" --delim , --skip-header | md5sum))
     if [ "$md5sum_canonic" != "$md5sum_test" ]; then
