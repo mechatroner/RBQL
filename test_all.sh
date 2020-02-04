@@ -146,8 +146,9 @@ if [ $run_unit_tests == "yes" ]; then
 fi
 
 
-md5sum_canonic="bdb725416a7b17e64034e0a128c6bb96"
+
 # Testing unicode separators
+md5sum_canonic="bdb725416a7b17e64034e0a128c6bb96"
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($(python3 -m rbql --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
     if [ "$md5sum_canonic" != "$md5sum_test" ]; then
@@ -192,6 +193,7 @@ if [ "$run_node_tests" == "yes" ]; then
 fi
 
 
+# Testing warnings
 if [ "$run_python_tests" == "yes" ]; then
     expected_warning="Warning: Number of fields in \"input\" table is not consistent: e.g. record 1 -> 8 fields, record 3 -> 6 fields"
     actual_warning=$( python3 -m rbql --input test/csv_files/movies_variable_width.tsv --delim TAB --policy simple --query 'select a1, a2' 2>&1 1> /dev/null )
@@ -211,6 +213,8 @@ if [ "$run_node_tests" == "yes" ]; then
 fi
 
 
+
+# Testing errors
 if [ "$run_python_tests" == "yes" ]; then
     expected_error="Error [query execution]: At record 1, Details: name 'unknown_func' is not defined"
     actual_error=$( python3 -m rbql --input test/csv_files/countries.csv --query 'select top 10 unknown_func(a1)' --delim , --policy quoted 2>&1 )
@@ -255,7 +259,6 @@ fi
 
 
 # Testing CLI errors and warnings
-
 output=$( $random_python_interpreter -m rbql --delim , --query "SELECT top 3 a1, foobarium(a2)" --input test/csv_files/countries.csv 2>&1 )
 rc=$?
 if [ $rc != 1 ] || [[ $output != *"name 'foobarium' is not defined"* ]]; then
@@ -288,8 +291,6 @@ fi
 
 
 # Testing performance
-
-
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
     python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 0' > /dev/null
