@@ -7,6 +7,7 @@ import os
 import codecs
 import io
 import re
+from errno import EPIPE
 
 from . import engine
 from . import csv_utils
@@ -30,6 +31,12 @@ debug_mode = False
 
 
 ansi_reset_color_code = '\u001b[0m'
+
+
+try:
+    broken_pipe_exception = BrokenPipeError
+except NameError: # Python 2
+    broken_pipe_exception = IOError
 
 
 class RbqlIOHandlingError(Exception):
@@ -257,7 +264,10 @@ class CSVWriter:
                 self.stream.write(ansi_reset_color_code)
             self.stream.write(self.line_separator)
             return True
-        except BrokenPipeError:
+        except broken_pipe_exception as exc:
+            if broken_pipe_exception == IOError:
+                if exc.errno != EPIPE:
+                    raise
             self.broken_pipe = True
             return False
 
@@ -307,11 +317,20 @@ class CSVWriter:
             self.stream.close()
         else:
             try:
-                self.stream.flush() # FIXME this still can throw if all flushes before were sucessfull! And the exceptions would be printed anyway, even if it was explicitly catched just couple of lines after.
+                self.stream.flush() # This flush still can throw if all flushes before were sucessfull! And the exceptions would be printed anyway, even if it was explicitly catched just couple of lines after.
                 # Basically this fails if output is small and this is the first flush after the pipe was broken e.g. second flush if piped to head -n 1
                 # Here head -n 1 finished after the first flush, and the final explict flush here just killing it
-            except BrokenPipeError:
-                pass
+            except broken_pipe_exception as exc:
+                if broken_pipe_exception == IOError:
+                    if exc.errno != EPIPE:
+                        raise
+                # In order to avoid BrokenPipeError from being printed as a warning to stderr, we need to perform this magic below. See:
+                # Explanation 1: https://stackoverflow.com/a/35761190/2898283
+                # Explanation 2: https://bugs.python.org/issue11380
+                try:
+                    sys.stdout.close()
+                except Exception:
+                    pass
 
 
     def get_warnings(self):
