@@ -232,6 +232,23 @@ if [ "$run_python_tests" == "yes" ]; then
         exit 1
     fi
 fi
+md5sum_canonic="27a29bfe96e6dceacdc9b6ed197a9158"
+if [ "$run_python_tests" == "yes" ]; then
+    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/universities.monocolumn --query 'select str(NR) + " " + a1 where a1.find(" of ") != -1' --policy monocolumn --color | head -n 20 | md5sum))
+    # Monocolumn policy should disregard --color parameter
+    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+        echo "Python monocolumn non-colored output test fail: monocolumn policy should disregard --column argument!"  1>&2
+        exit 1
+    fi
+fi
+md5sum_canonic="b259b60f8ac1f51a1a1b9d6db416c5f9"
+if [ "$run_python_tests" == "yes" ]; then
+    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/rfc_newlines_in_header.csv --delim , --policy quoted_rfc --query 'select NR, a3 + a1, a2, NF' --color | md5sum))
+    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+        echo "Python colored output rfc test fail!"  1>&2
+        exit 1
+    fi
+fi
 
 
 # Testing warnings

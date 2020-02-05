@@ -189,8 +189,6 @@ def init_ansi_terminal_colors():
 
 class CSVWriter:
     def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n', colorize_output=False):
-        # FIXME add option to do colored output. Do not implement for rbql-js
-        # FIXME add tests to cover all cases
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = encode_output_stream(stream, encoding)
         self.line_separator = line_separator
