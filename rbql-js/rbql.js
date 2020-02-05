@@ -721,7 +721,7 @@ module.exports.rb_transform = rb_transform;
 // TODO replace prototypes with classes: this improves readability
 
 
-const version = '0.12.0';
+const version = '0.14.0';
 
 const GROUP_BY = 'GROUP BY';
 const UPDATE = 'UPDATE';
