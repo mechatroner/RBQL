@@ -125,6 +125,7 @@ You can define custom functions and/or import libraries in two special files:
 * `select * where re.match(".*ab.*", a1) is not None` - select entries where first column has "ab" pattern
 * `select a1, b1, b2 inner join ./countries.txt on a2 == b1 order by a1, a3` - example of join query
 * `select MAX(a1), MIN(a1) where a.Name != 'John' group by a2, a3` - example of aggregate query
+* `select *a1.split(':')` - Using Python3 unpack operator to split one column into many. Do not try this with other SQL engines!
 
 #### With JavaScript expressions
 
@@ -135,6 +136,7 @@ You can define custom functions and/or import libraries in two special files:
 * `select NR, *` - enumerate records, NR is 1-based
 * `select a1, b1, b2 inner join ./countries.txt on a2 == b1 order by a1, a3` - example of join query
 * `select MAX(a1), MIN(a1) where a.Name != 'John' group by a2, a3` - example of aggregate query
+* `select ...a1.split(':')` - Using JS "destructuring assignment" syntax to split one column into many. Do not try this with other SQL engines!
 
 
 ### FAQ
