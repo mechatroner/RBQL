@@ -223,6 +223,17 @@ if [ "$run_python_tests" == "yes" ]; then
 fi
 
 
+# Testing colored output
+md5sum_canonic="4798e34af6a68d76119048ed2cf0a0c2"
+if [ "$run_python_tests" == "yes" ]; then
+    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB --color 2> /dev/null | head -n 10 | md5sum))
+    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+        echo "Python colored output test fail!"  1>&2
+        exit 1
+    fi
+fi
+
+
 # Testing warnings
 if [ "$run_python_tests" == "yes" ]; then
     expected_warning="Warning: Number of fields in \"input\" table is not consistent: e.g. record 1 -> 8 fields, record 3 -> 6 fields"
