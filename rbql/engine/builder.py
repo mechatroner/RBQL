@@ -3,15 +3,10 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 import sys
-import os
 import re
-#import importlib
-#import codecs
-#import tempfile
-#import shutil
 import random
 import time
-from collections import defaultdict, namedtuple
+from collections import OrderedDict, defaultdict, namedtuple
 
 from ._version import __version__
 
@@ -89,13 +84,14 @@ class RBQLContext:
         self.writer = output_writer
         
         self.unnest_list = None
-        self.aggregation_stage = 0
         self.top_count = None
 
         self.sort_key_expression = None
         self.reverse_sort = False
 
+        self.aggregation_stage = 0
         self.aggregation_key_expression = None
+        self.functional_aggregators = []
 
         self.join_map_impl = None
         self.join_map = None
@@ -118,6 +114,7 @@ class RBQLContext:
 
 import datetime # For date manipulations
 import re # For regexes
+import os
 
 
 RBQL_VERSION = __version__
@@ -377,11 +374,11 @@ class ConstGroupVerifier:
 
 def init_aggregator(generator_name, val, post_proc=None):
     query_context.aggregation_stage = 1
-    res = RBQLAggregationToken(len(functional_aggregators), val)
+    res = RBQLAggregationToken(len(query_context.functional_aggregators), val)
     if post_proc is not None:
-        functional_aggregators.append(generator_name(post_proc))
+        query_context.functional_aggregators.append(generator_name(post_proc))
     else:
-        functional_aggregators.append(generator_name())
+        query_context.functional_aggregators.append(generator_name())
     return res
 
 
@@ -637,10 +634,10 @@ def select_except(src, except_fields):
 
 def select_simple(sort_key, out_fields):
     if query_context.sort_key_expression is not None:
-        if not writer.write(sort_key, out_fields):
+        if not query_context.writer.write(sort_key, out_fields):
             return False
     else:
-        if not writer.write(out_fields):
+        if not query_context.writer.write(out_fields):
             return False
     return True
 
@@ -654,12 +651,12 @@ def select_aggregated(key, transparent_values):
         for i, trans_value in enumerate(transparent_values):
             if isinstance(trans_value, RBQLAggregationToken):
                 num_aggregators_found += 1
-                query_context.writer.aggregators.append(functional_aggregators[trans_value.marker_id])
+                query_context.writer.aggregators.append(query_context.functional_aggregators[trans_value.marker_id])
                 query_context.writer.aggregators[-1].increment(key, trans_value.value)
             else:
                 query_context.writer.aggregators.append(ConstGroupVerifier(len(query_context.writer.aggregators)))
                 query_context.writer.aggregators[-1].increment(key, trans_value)
-        if num_aggregators_found != len(functional_aggregators):
+        if num_aggregators_found != len(query_context.functional_aggregators):
             raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
         query_context.aggregation_stage = 2
     else:
@@ -675,7 +672,7 @@ def select_unnested(sort_key, folded_fields):
             unnest_pos = i
             break
     assert unnest_pos is not None
-    for v in unnest_list:
+    for v in query_context.unnest_list:
         out_fields = folded_fields[:]
         out_fields[unnest_pos] = v
         if not select_simple(sort_key, out_fields):
@@ -692,8 +689,8 @@ def process_select_join(NR, NF, record_a, join_matches):
 
 
 def rb_transform(input_iterator):
-    polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][__RBQLMP__is_select_query][join_map_impl is not None];
     join_map = query_context.join_map
+    polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][query_context.select_expression is not None][join_map is not None];
     NR = 0
     while True:
         record_a = input_iterator.get_record()
@@ -1149,7 +1146,7 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
         query_context.join_operation = rb_actions[JOIN]['join_subtype']
         query_context.lhs_join_var = lhs_join_var
         query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_key_index)
-        query_context.join_map = joiner_type(join_map_impl)
+        query_context.join_map = joiner_type(query_context.join_map_impl)
 
 
     if WHERE in rb_actions:
@@ -1187,7 +1184,7 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
     user_init_code = indent_user_init_code(user_init_code) # FIXME do something with user_init_code
-    parse_to_py(query_text, py_template_text, input_iterator, output_writer, join_tables_registry, user_init_code)
+    parse_to_py(query_text, input_iterator, output_writer, join_tables_registry, user_init_code)
     rb_transform(input_iterator)
     output_warnings.extend(input_iterator.get_warnings())
     if query_context.join_map_impl is not None:
