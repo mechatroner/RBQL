@@ -680,12 +680,48 @@ def select_unnested(sort_key, folded_fields):
     return True
 
 
-def process_select_join(NR, NF, record_a, join_matches):
-    for join_match in join_matches:
-        if not process_select_simple(NR, NF, record_a, join_match):
-            return False
-    return True
 
+
+
+def generate_main_loop_code():
+    loop_body = '''
+
+    '''
+
+
+
+#def rb_transform(input_iterator):
+#    join_map = query_context.join_map
+#    polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][query_context.select_expression is not None][join_map is not None];
+#    NR = 0
+#    while True:
+#        record_a = input_iterator.get_record()
+#        if record_a is None:
+#            break
+#        NR += 1
+#        NF = len(record_a)
+#        try:
+#            join_matches = None if join_map is None else join_map.get_rhs(query_context.lhs_join_var)
+#            if not polymorphic_process(NR, NF, record_a, join_matches):
+#                break
+#        except InternalBadKeyError as e:
+#            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
+#        except InternalBadFieldError as e:
+#            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
+#        except RbqlParsingError:
+#            raise
+#        except Exception as e:
+#            if debug_mode:
+#                raise
+#            if str(e).find('RBQLAggregationToken') != -1:
+#                raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
+#            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
+#    writer.finish()
+
+
+
+
+# FIXME we can use mad_max.py trick here: just make sure that content of loop_template.py is equal to content of stringified loop
 
 
 def rb_transform(input_iterator):
@@ -698,6 +734,8 @@ def rb_transform(input_iterator):
             break
         NR += 1
         NF = len(record_a)
+        query_context.unnest_list = None
+
         try:
             join_matches = None if join_map is None else join_map.get_rhs(query_context.lhs_join_var)
             if not polymorphic_process(NR, NF, record_a, join_matches):
