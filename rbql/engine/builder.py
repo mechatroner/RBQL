@@ -5,11 +5,11 @@ from __future__ import print_function
 import sys
 import os
 import re
-import importlib
-import codecs
-import tempfile
+#import importlib
+#import codecs
+#import tempfile
+#import shutil
 import random
-import shutil
 import time
 from collections import defaultdict, namedtuple
 
@@ -80,6 +80,650 @@ class RbqlIOHandlingError(Exception):
 VariableInfo = namedtuple('VariableInfo', ['initialize', 'index'])
 
 
+
+query_context = None
+
+
+class RBQLContext:
+    def __init__(self, output_writer):
+        self.writer = output_writer
+        
+        self.unnest_list = None
+        self.aggregation_stage = 0
+        self.top_count = None
+
+        self.sort_key_expression = None
+        self.reverse_sort = False
+
+        self.aggregation_key_expression = None
+
+        self.join_map_impl = None
+        self.join_map = None
+        self.join_operation = None
+        self.lhs_join_var = None
+
+        self.where_expression = None
+
+        self.select_expression = None
+
+        self.update_statements = None
+
+        self.init_column_vars_update = None
+        self.init_column_vars_select = None
+
+
+
+###################################### From template.py
+############################################################
+
+import datetime # For date manipulations
+import re # For regexes
+
+
+RBQL_VERSION = __version__
+
+
+wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
+numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
+
+
+PY3 = sys.version_info[0] == 3
+
+
+def iteritems6(x):
+    if PY3:
+        return x.items()
+    return x.iteritems()
+
+
+class InternalBadFieldError(Exception):
+    def __init__(self, bad_idx):
+        self.bad_idx = bad_idx
+
+
+class InternalBadKeyError(Exception):
+    def __init__(self, bad_key):
+        self.bad_key = bad_key
+
+
+class RBQLRecord:
+    def __init__(self):
+        self.storage = dict()
+
+    def __getitem__(self, key):
+        try:
+            return self.storage[key]
+        except KeyError:
+            raise InternalBadKeyError(key)
+
+    def __setitem__(self, key, value):
+        self.storage[key] = value
+
+
+def safe_get(record, idx):
+    return record[idx] if idx < len(record) else None
+
+
+def safe_join_get(record, idx):
+    try:
+        return record[idx]
+    except IndexError as e:
+        raise InternalBadFieldError(idx)
+
+
+def safe_set(record, idx, value):
+    try:
+        record[idx] = value
+    except IndexError as e:
+        raise InternalBadFieldError(idx)
+
+
+class RBQLAggregationToken(object):
+    def __init__(self, marker_id, value):
+        self.marker_id = marker_id
+        self.value = value
+
+    def __str__(self):
+        raise TypeError('RBQLAggregationToken')
+
+
+class UNNEST:
+    def __init__(self, vals):
+        if query_context.unnest_list is not None:
+            # Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
+            raise RbqlParsingError('Only one UNNEST is allowed per query') # UT JSON
+        query_context.unnest_list = vals
+
+    def __str__(self):
+        raise TypeError('UNNEST')
+
+unnest = UNNEST
+Unnest = UNNEST
+
+
+class NumHandler:
+    def __init__(self, start_with_int):
+        self.is_int = start_with_int
+        self.string_detection_done = False
+        self.is_str = False
+    
+    def parse(self, val):
+        if not self.string_detection_done:
+            self.string_detection_done = True
+            if PY3 and isinstance(val, str):
+                self.is_str = True
+            if not PY3 and isinstance(val, basestring):
+                self.is_str = True
+        if not self.is_str:
+            return val
+        if self.is_int:
+            try:
+                return int(val)
+            except ValueError:
+                self.is_int = False
+        try:
+            return float(val)
+        except ValueError:
+            raise RbqlRuntimeError(numeric_conversion_error.format(val)) # UT JSON
+
+
+class MinAggregator:
+    def __init__(self):
+        self.stats = dict()
+        self.num_handler = NumHandler(True)
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = val
+        else:
+            self.stats[key] = builtin_min(cur_aggr, val)
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class MaxAggregator:
+    def __init__(self):
+        self.stats = dict()
+        self.num_handler = NumHandler(True)
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = val
+        else:
+            self.stats[key] = builtin_max(cur_aggr, val)
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class SumAggregator:
+    def __init__(self):
+        self.stats = defaultdict(int)
+        self.num_handler = NumHandler(True)
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        self.stats[key] += val
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class AvgAggregator:
+    def __init__(self):
+        self.stats = dict()
+        self.num_handler = NumHandler(False)
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = (val, 1)
+        else:
+            cur_sum, cur_cnt = cur_aggr
+            self.stats[key] = (cur_sum + val, cur_cnt + 1)
+
+    def get_final(self, key):
+        final_sum, final_cnt = self.stats[key]
+        return float(final_sum) / final_cnt
+
+
+class VarianceAggregator:
+    def __init__(self):
+        self.stats = dict()
+        self.num_handler = NumHandler(False)
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        cur_aggr = self.stats.get(key)
+        if cur_aggr is None:
+            self.stats[key] = (val, val ** 2, 1)
+        else:
+            cur_sum, cur_sum_of_squares, cur_cnt = cur_aggr
+            self.stats[key] = (cur_sum + val, cur_sum_of_squares + val ** 2, cur_cnt + 1)
+
+    def get_final(self, key):
+        final_sum, final_sum_of_squares, final_cnt = self.stats[key]
+        return float(final_sum_of_squares) / final_cnt - (float(final_sum) / final_cnt) ** 2
+
+
+class MedianAggregator:
+    def __init__(self):
+        self.stats = defaultdict(list)
+        self.num_handler = NumHandler(True)
+
+    def increment(self, key, val):
+        val = self.num_handler.parse(val)
+        self.stats[key].append(val)
+
+    def get_final(self, key):
+        sorted_vals = sorted(self.stats[key])
+        assert len(sorted_vals)
+        m = int(len(sorted_vals) / 2)
+        if len(sorted_vals) % 2:
+            return sorted_vals[m]
+        else:
+            a = sorted_vals[m - 1]
+            b = sorted_vals[m]
+            return a if a == b else (a + b) / 2.0
+
+
+class CountAggregator:
+    def __init__(self):
+        self.stats = defaultdict(int)
+
+    def increment(self, key, val):
+        self.stats[key] += 1
+
+    def get_final(self, key):
+        return self.stats[key]
+
+
+class ArrayAggAggregator:
+    def __init__(self, post_proc=None):
+        self.stats = defaultdict(list)
+        self.post_proc = post_proc
+
+    def increment(self, key, val):
+        self.stats[key].append(val)
+
+    def get_final(self, key):
+        res = self.stats[key]
+        if self.post_proc is not None:
+            return self.post_proc(res)
+        return res
+
+
+class ConstGroupVerifier:
+    def __init__(self, output_index):
+        self.const_values = dict()
+        self.output_index = output_index
+
+    def increment(self, key, value):
+        old_value = self.const_values.get(key)
+        if old_value is None:
+            self.const_values[key] = value
+        elif old_value != value:
+            raise RbqlRuntimeError('Invalid aggregate expression: non-constant values in output column {}. E.g. "{}" and "{}"'.format(self.output_index + 1, old_value, value)) # UT JSON
+
+    def get_final(self, key):
+        return self.const_values[key]
+
+
+def init_aggregator(generator_name, val, post_proc=None):
+    query_context.aggregation_stage = 1
+    res = RBQLAggregationToken(len(functional_aggregators), val)
+    if post_proc is not None:
+        functional_aggregators.append(generator_name(post_proc))
+    else:
+        functional_aggregators.append(generator_name())
+    return res
+
+
+def MIN(val):
+    return init_aggregator(MinAggregator, val) if query_context.aggregation_stage < 2 else val
+
+# min = MIN - see the mad max copypaste below
+Min = MIN
+
+
+def MAX(val):
+    return init_aggregator(MaxAggregator, val) if query_context.aggregation_stage < 2 else val
+
+# max = MAX - see the mad max copypaste below
+Max = MAX 
+
+
+def COUNT(val):
+    return init_aggregator(CountAggregator, 1) if query_context.aggregation_stage < 2 else 1
+
+count = COUNT
+Count = COUNT
+
+
+def SUM(val):
+    return init_aggregator(SumAggregator, val) if query_context.aggregation_stage < 2 else val
+
+# sum = SUM - see the mad max copypaste below
+Sum = SUM
+
+
+def AVG(val):
+    return init_aggregator(AvgAggregator, val) if query_context.aggregation_stage < 2 else val
+
+avg = AVG
+Avg = AVG
+
+
+def VARIANCE(val):
+    return init_aggregator(VarianceAggregator, val) if query_context.aggregation_stage < 2 else val
+
+variance = VARIANCE
+Variance = VARIANCE
+
+
+def MEDIAN(val):
+    return init_aggregator(MedianAggregator, val) if query_context.aggregation_stage < 2 else val
+
+median = MEDIAN
+Median = MEDIAN
+
+
+def ARRAY_AGG(val, post_proc=None):
+    # TODO consider passing array to output writer
+    return init_aggregator(ArrayAggAggregator, val, post_proc) if query_context.aggregation_stage < 2 else val
+
+array_agg = ARRAY_AGG
+
+
+# <<<< COPYPASTE FROM "mad_max.py"
+#####################################
+#####################################
+# This is to ensure that "mad_max.py" file has exactly the same content as this fragment. This condition will be ensured by test_mad_max.py
+# To edit this code you need to simultaneously edit this fragment and content of mad_max.py, otherwise test_mad_max.py will fail.
+
+builtin_max = max
+builtin_min = min
+builtin_sum = sum
+
+
+def max(*args, **kwargs):
+    single_arg = len(args) == 1 and not kwargs
+    if single_arg:
+        if PY3 and isinstance(args[0], str):
+            return MAX(args[0])
+        if not PY3 and isinstance(args[0], basestring):
+            return MAX(args[0])
+        if isinstance(args[0], int) or isinstance(args[0], float):
+            return MAX(args[0])
+    try:
+        return builtin_max(*args, **kwargs)
+    except TypeError:
+        if single_arg:
+            return MAX(args[0])
+        raise
+
+
+def min(*args, **kwargs):
+    single_arg = len(args) == 1 and not kwargs
+    if single_arg:
+        if PY3 and isinstance(args[0], str):
+            return MIN(args[0])
+        if not PY3 and isinstance(args[0], basestring):
+            return MIN(args[0])
+        if isinstance(args[0], int) or isinstance(args[0], float):
+            return MIN(args[0])
+    try:
+        return builtin_min(*args, **kwargs)
+    except TypeError:
+        if single_arg:
+            return MIN(args[0])
+        raise
+
+
+def sum(*args):
+    try:
+        return builtin_sum(*args)
+    except TypeError:
+        if len(args) == 1:
+            return SUM(args[0])
+        raise
+
+#####################################
+#####################################
+# >>>> COPYPASTE END
+
+
+
+def add_to_set(dst_set, value):
+    len_before = len(dst_set)
+    dst_set.add(value)
+    return len_before != len(dst_set)
+
+
+class TopWriter(object):
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
+        self.NW = 0
+
+    def write(self, record):
+        if query_context.top_count is not None and self.NW >= query_context.top_count:
+            return False
+        success = self.subwriter.write(record)
+        if success:
+            self.NW += 1
+        return success
+
+    def finish(self):
+        self.subwriter.finish()
+
+
+class UniqWriter(object):
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
+        self.seen = set()
+
+    def write(self, record):
+        immutable_record = tuple(record)
+        if not add_to_set(self.seen, immutable_record):
+            return True
+        if not self.subwriter.write(record):
+            return False
+        return True
+
+    def finish(self):
+        self.subwriter.finish()
+
+
+class UniqCountWriter(object):
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
+        self.records = OrderedDict()
+
+    def write(self, record):
+        record = tuple(record)
+        if record in self.records:
+            self.records[record] += 1
+        else:
+            self.records[record] = 1
+        return True
+
+    def finish(self):
+        for record, count in iteritems6(self.records):
+            mutable_record = list(record)
+            mutable_record.insert(0, count)
+            if not self.subwriter.write(mutable_record):
+                break
+        self.subwriter.finish()
+
+
+class SortedWriter(object):
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
+        self.unsorted_entries = list()
+
+    def write(self, sort_key_value, record):
+        self.unsorted_entries.append((sort_key_value, record))
+        return True
+
+    def finish(self):
+        sorted_entries = sorted(self.unsorted_entries, key=lambda x: x[0])
+        if query_context.reverse_sort:
+            sorted_entries.reverse()
+        for e in sorted_entries:
+            if not self.subwriter.write(e[1]):
+                break
+        self.subwriter.finish()
+
+
+class AggregateWriter(object):
+    def __init__(self, subwriter):
+        self.subwriter = subwriter
+        self.aggregators = []
+        self.aggregation_keys = set()
+
+    def finish(self):
+        all_keys = sorted(list(self.aggregation_keys))
+        for key in all_keys:
+            out_fields = [ag.get_final(key) for ag in self.aggregators]
+            if not self.subwriter.write(out_fields):
+                break
+        self.subwriter.finish()
+
+
+class InnerJoiner(object):
+    def __init__(self, join_map):
+        self.join_map = join_map
+
+    def get_rhs(self, lhs_key):
+        return self.join_map.get_join_records(lhs_key)
+
+
+class LeftJoiner(object):
+    def __init__(self, join_map):
+        self.join_map = join_map
+        self.null_record = [(None, join_map.max_record_len, [None] * join_map.max_record_len)]
+
+    def get_rhs(self, lhs_key):
+        result = self.join_map.get_join_records(lhs_key)
+        if len(result) == 0:
+            return self.null_record
+        return result
+
+
+class StrictLeftJoiner(object):
+    def __init__(self, join_map):
+        self.join_map = join_map
+
+    def get_rhs(self, lhs_key):
+        result = self.join_map.get_join_records(lhs_key)
+        if len(result) != 1:
+            raise RbqlRuntimeError('In "{}" each key in A must have exactly one match in B. Bad A key: "{}"'.format(STRICT_LEFT_JOIN, lhs_key)) # UT JSON
+        return result
+
+
+def select_except(src, except_fields):
+    result = list()
+    for i, v in enumerate(src):
+        if i not in except_fields:
+            result.append(v)
+    return result
+
+
+def select_simple(sort_key, out_fields):
+    if query_context.sort_key_expression is not None:
+        if not writer.write(sort_key, out_fields):
+            return False
+    else:
+        if not writer.write(out_fields):
+            return False
+    return True
+
+
+def select_aggregated(key, transparent_values):
+    if query_context.aggregation_stage == 1:
+        if type(query_context.writer) is SortedWriter or type(query_context.writer) is UniqWriter or type(query_context.writer) is UniqCountWriter:
+            raise RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries') # UT JSON (the same error can be triggered statically, see builder.py)
+        query_context.writer = AggregateWriter(query_context.writer)
+        num_aggregators_found = 0
+        for i, trans_value in enumerate(transparent_values):
+            if isinstance(trans_value, RBQLAggregationToken):
+                num_aggregators_found += 1
+                query_context.writer.aggregators.append(functional_aggregators[trans_value.marker_id])
+                query_context.writer.aggregators[-1].increment(key, trans_value.value)
+            else:
+                query_context.writer.aggregators.append(ConstGroupVerifier(len(query_context.writer.aggregators)))
+                query_context.writer.aggregators[-1].increment(key, trans_value)
+        if num_aggregators_found != len(functional_aggregators):
+            raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
+        query_context.aggregation_stage = 2
+    else:
+        for i, trans_value in enumerate(transparent_values):
+            query_context.writer.aggregators[i].increment(key, trans_value)
+    query_context.writer.aggregation_keys.add(key)
+
+
+def select_unnested(sort_key, folded_fields):
+    unnest_pos = None
+    for i, trans_value in enumerate(folded_fields):
+        if isinstance(trans_value, UNNEST):
+            unnest_pos = i
+            break
+    assert unnest_pos is not None
+    for v in unnest_list:
+        out_fields = folded_fields[:]
+        out_fields[unnest_pos] = v
+        if not select_simple(sort_key, out_fields):
+            return False
+    return True
+
+
+def process_select_join(NR, NF, record_a, join_matches):
+    for join_match in join_matches:
+        if not process_select_simple(NR, NF, record_a, join_match):
+            return False
+    return True
+
+
+
+def rb_transform(input_iterator):
+    polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][__RBQLMP__is_select_query][join_map_impl is not None];
+    join_map = query_context.join_map
+    NR = 0
+    while True:
+        record_a = input_iterator.get_record()
+        if record_a is None:
+            break
+        NR += 1
+        NF = len(record_a)
+        try:
+            join_matches = None if join_map is None else join_map.get_rhs(query_context.lhs_join_var)
+            if not polymorphic_process(NR, NF, record_a, join_matches):
+                break
+        except InternalBadKeyError as e:
+            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
+        except InternalBadFieldError as e:
+            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
+        except RbqlParsingError:
+            raise
+        except Exception as e:
+            if debug_mode:
+                raise
+            if str(e).find('RBQLAggregationToken') != -1:
+                raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
+            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
+    writer.finish()
+
+
+############################################################
+
+
+
 def exception_to_error_info(e):
     exceptions_type_map = {
         'RbqlRuntimeError': 'query execution',
@@ -92,16 +736,6 @@ def exception_to_error_info(e):
         if type(e).__name__.find(k) != -1:
             error_type = v
     return (error_type, error_msg)
-
-
-def rbql_meta_format(template_src, meta_params):
-    for key, value in meta_params.items():
-        # TODO make special replace for multiple statements, like in update, it should be indent-aware. values should be a list in this case to avoid join/split
-        template_src_upd = template_src.replace(key, value)
-        assert template_src_upd != template_src
-        template_src = template_src_upd
-    assert template_src.find('__RBQLMP__') == -1, 'Unitialized __RBQLMP__ template variables found'
-    return template_src
 
 
 def strip_comments(cline):
@@ -481,16 +1115,15 @@ def cleanup_query(query_text):
     return ' '.join(rbql_lines)
 
 
-def parse_to_py(query_text, py_template_text, input_iterator, join_tables_registry, user_init_code):
+def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry, user_init_code):
+    global query_context
+    query_context = RBQLContext(output_writer)
+
     query_text = cleanup_query(query_text)
     format_expression, string_literals = separate_string_literals_py(query_text)
     input_variables_map = input_iterator.get_variables_map(query_text)
 
     rb_actions = separate_actions(format_expression)
-
-    py_meta_params = dict()
-    py_meta_params['__RBQLMP__user_init_code'] = user_init_code
-    py_meta_params['__RBQLMP__version'] = __version__
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
         raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries') # UT JSON
@@ -498,12 +1131,9 @@ def parse_to_py(query_text, py_template_text, input_iterator, join_tables_regist
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
             raise RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries') # UT JSON (the same error can be triggered dynamically, see template.py)
-        aggregation_key_expression = rb_actions[GROUP_BY]['text']
-        py_meta_params['__RBQLMP__aggregation_key_expression'] = '({},)'.format(combine_string_literals(aggregation_key_expression, string_literals))
-    else:
-        py_meta_params['__RBQLMP__aggregation_key_expression'] = 'None'
+        query_context.aggregation_key_expression = '({},)'.format(combine_string_literals(rb_actions[GROUP_BY]['text'], string_literals))
 
-    join_map = None
+
     join_variables_map = None
     if JOIN in rb_actions:
         rhs_table_id, join_var_1, join_var_2 = parse_join_expression(rb_actions[JOIN]['text'])
@@ -515,127 +1145,72 @@ def parse_to_py(query_text, py_template_text, input_iterator, join_tables_regist
         join_variables_map = join_record_iterator.get_variables_map(query_text)
 
         lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals)
-        py_meta_params['__RBQLMP__join_operation'] = '"{}"'.format(rb_actions[JOIN]['join_subtype'])
-        py_meta_params['__RBQLMP__lhs_join_var'] = lhs_join_var
-        join_map = HashJoinMap(join_record_iterator, rhs_key_index)
-    else:
-        py_meta_params['__RBQLMP__join_operation'] = 'None'
-        py_meta_params['__RBQLMP__lhs_join_var'] = 'None'
+        joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
+        query_context.join_operation = rb_actions[JOIN]['join_subtype']
+        query_context.lhs_join_var = lhs_join_var
+        query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_key_index)
+        query_context.join_map = joiner_type(join_map_impl)
+
 
     if WHERE in rb_actions:
         where_expression = rb_actions[WHERE]['text']
         if re.search(r'[^!=]=[^=]', where_expression) is not None:
             raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="') # UT JSON
-        py_meta_params['__RBQLMP__where_expression'] = combine_string_literals(where_expression, string_literals)
-    else:
-        py_meta_params['__RBQLMP__where_expression'] = 'True'
+        query_context.where_expression = combine_string_literals(where_expression, string_literals)
+
 
     if UPDATE in rb_actions:
         update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals, ' ' * 8)
-        py_meta_params['__RBQLMP__writer_type'] = '"simple"'
-        py_meta_params['__RBQLMP__select_expression'] = 'None'
-        py_meta_params['__RBQLMP__update_statements'] = combine_string_literals(update_expression, string_literals)
-        py_meta_params['__RBQLMP__is_select_query'] = 'False'
-        py_meta_params['__RBQLMP__top_count'] = 'None'
-        py_meta_params['__RBQLMP__init_column_vars_select'] = ''
-        py_meta_params['__RBQLMP__init_column_vars_update'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
+        query_context.update_statements = combine_string_literals(update_expression, string_literals)
+        query_context.init_column_vars_update = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
 
 
     if SELECT in rb_actions:
-        py_meta_params['__RBQLMP__init_column_vars_select'] = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
-        py_meta_params['__RBQLMP__init_column_vars_update'] = ''
-        top_count = find_top(rb_actions)
-        py_meta_params['__RBQLMP__top_count'] = str(top_count) if top_count is not None else 'None'
+        query_context.init_column_vars_select = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
+        query_context.top_count = find_top(rb_actions)
+        query_context.writer = TopWriter(query_context.writer)
         if 'distinct_count' in rb_actions[SELECT]:
-            py_meta_params['__RBQLMP__writer_type'] = '"uniq_count"'
+            query_context.writer = UniqCountWriter(query_context.writer)
         elif 'distinct' in rb_actions[SELECT]:
-            py_meta_params['__RBQLMP__writer_type'] = '"uniq"'
-        else:
-            py_meta_params['__RBQLMP__writer_type'] = '"simple"'
+            query_context.writer = UniqWriter(query_context.writer)
         if EXCEPT in rb_actions:
-            py_meta_params['__RBQLMP__select_expression'] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals)
+            query_context.select_expression = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals)
         else:
             select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
-            py_meta_params['__RBQLMP__select_expression'] = combine_string_literals(select_expression, string_literals)
-        py_meta_params['__RBQLMP__update_statements'] = 'pass'
-        py_meta_params['__RBQLMP__is_select_query'] = 'True'
+            query_context.select_expression = combine_string_literals(select_expression, string_literals)
 
     if ORDER_BY in rb_actions:
-        order_expression = rb_actions[ORDER_BY]['text']
-        py_meta_params['__RBQLMP__sort_key_expression'] = combine_string_literals(order_expression, string_literals)
-        py_meta_params['__RBQLMP__reverse_flag'] = 'True' if rb_actions[ORDER_BY]['reverse'] else 'False'
-        py_meta_params['__RBQLMP__sort_flag'] = 'True'
-    else:
-        py_meta_params['__RBQLMP__sort_key_expression'] = 'None'
-        py_meta_params['__RBQLMP__reverse_flag'] = 'False'
-        py_meta_params['__RBQLMP__sort_flag'] = 'False'
-
-    python_code = rbql_meta_format(py_template_text, py_meta_params)
-    return (python_code, join_map)
-
-
-def write_python_module(python_code, dst_path):
-    with codecs.open(dst_path, 'w', encoding='utf-8') as dst:
-        dst.write(python_code)
-
-
-class RbqlPyEnv:
-    def __init__(self):
-        self.env_dir_name = None
-        self.env_dir = None
-        self.module_path = None
-        self.module_name = None
-
-    def __enter__(self):
-        tmp_dir = tempfile.gettempdir()
-        self.env_dir_name = 'rbql_{}_{}'.format(time.time(), random.randint(1, 100000000)).replace('.', '_')
-        self.env_dir = os.path.join(tmp_dir, self.env_dir_name)
-        self.module_name = 'worker_{}'.format(self.env_dir_name)
-        module_filename = '{}.py'.format(self.module_name)
-        self.module_path = os.path.join(self.env_dir, module_filename)
-        os.mkdir(self.env_dir)
-        return self
-
-    def import_worker(self):
-        # We need to add env_dir to sys.path after worker module has been generated to avoid calling `importlib.invalidate_caches()`
-        # Description of the problem: http://ballingt.com/import-invalidate-caches/
-        assert os.path.exists(self.module_path), 'Unable to find generated module at {}'.format(self.module_path)
-        sys.path.append(self.env_dir)
-        return importlib.import_module(self.module_name)
-
-    def remove_env_dir(self):
-        # Should be called on success only: do not put in __exit__. In case of error we may need to have the generated module
-        try:
-            shutil.rmtree(self.env_dir)
-        except Exception:
-            pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            sys.path.remove(self.env_dir)
-        except ValueError:
-            pass
+        query_context.sort_key_expression = combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals)
+        query_context.reverse_sort = rb_actions[ORDER_BY]['reverse']
+        query_context.writer = SortedWriter(query_context.writer)
 
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
-    # Join registry can cotain info about any number of tables (e.g. about one table "B" only)
-    user_init_code = indent_user_init_code(user_init_code)
-    rbql_home_dir = os.path.dirname(os.path.abspath(__file__))
-    with codecs.open(os.path.join(rbql_home_dir, 'template.py'), encoding='utf-8') as py_src:
-        py_template_text = py_src.read()
-    python_code, join_map = parse_to_py(query_text, py_template_text, input_iterator, join_tables_registry, user_init_code)
-    with RbqlPyEnv() as worker_env:
-        write_python_module(python_code, worker_env.module_path)
-        # TODO find a way to report module_path if exception is thrown
-        rbconvert = worker_env.import_worker()
-        if debug_mode:
-            rbconvert.set_debug_mode()
-        rbconvert.rb_transform(input_iterator, join_map, output_writer)
-        worker_env.remove_env_dir()
-        output_warnings.extend(input_iterator.get_warnings())
-        if join_map is not None:
-            output_warnings.extend(join_map.get_warnings())
-        output_warnings.extend(output_writer.get_warnings())
+    user_init_code = indent_user_init_code(user_init_code) # FIXME do something with user_init_code
+    parse_to_py(query_text, py_template_text, input_iterator, output_writer, join_tables_registry, user_init_code)
+    rb_transform(input_iterator)
+    output_warnings.extend(input_iterator.get_warnings())
+    if query_context.join_map_impl is not None:
+        output_warnings.extend(query_context.join_map_impl.get_warnings())
+    output_warnings.extend(output_writer.get_warnings())
+
+    #FIXME  use compile + exec
+
+    # essential expressions:
+    # __RBQLMP__user_init_code
+
+    # __RBQLMP__init_vars_update_expression
+    # __RBQLMP__init_vars_select_expression
+
+    # __RBQLMP__where_expression
+    # __RBQLMP__update_expressions
+    # __RBQLMP__aggregation_key_expression
+    # __RBQLMP__select_expression
+    # __RBQLMP__sort_key_expression
+
+
+    # So there are only 3 functions that contain compiled expressions
+
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):

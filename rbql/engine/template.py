@@ -572,22 +572,22 @@ def process_update_join(NR, NF, record_a, join_matches):
     else:
         bNR, bNF, record_b = None, None, None
     up_fields = record_a[:]
-    __RBQLMP__init_column_vars_update
+    __RBQLMP__init_vars_update_expression
     if len(join_matches) == 1 and (__RBQLMP__where_expression):
         global NU
         NU += 1
-        __RBQLMP__update_statements
+        __RBQLMP__update_expressions
     return writer.write(up_fields)
 
 
 def process_update_simple(NR, NF, record_a, _join_matches):
     # TODO refactoring, do not pass _join_matches at all
     up_fields = record_a[:]
-    __RBQLMP__init_column_vars_update
+    __RBQLMP__init_vars_update_expression
     if __RBQLMP__where_expression:
         global NU
         NU += 1
-        __RBQLMP__update_statements
+        __RBQLMP__update_expressions
     return writer.write(up_fields)
 
 
@@ -649,7 +649,7 @@ def process_select_simple(NR, NF, record_a, join_match):
     else:
         bNR, bNF, record_b = join_match
         star_fields = record_a + record_b
-    __RBQLMP__init_column_vars_select
+    __RBQLMP__init_vars_select_expression
     if not (__RBQLMP__where_expression):
         return True
     out_fields = __RBQLMP__select_expression
