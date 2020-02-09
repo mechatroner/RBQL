@@ -681,7 +681,7 @@ PROCESS_SELECT_COMMON = '''
 __RBQLMP__variables_init_code
 if __RBQLMP__where_expression:
     out_fields = __RBQLMP__select_expression
-    if aggregation_stage > 0:
+    if query_context.aggregation_stage > 0:
         key = __RBQLMP__aggregation_key_expression
         select_aggregated(key, out_fields)
     else:
@@ -806,9 +806,9 @@ def generate_main_loop_code():
     sort_key_expression = 'None' if query_context.sort_key_expression is None else query_context.sort_key_expression
     if is_select_query:
         if is_join_query:
-            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON)
-        else:
             python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_JOIN), '__CODE__', PROCESS_SELECT_COMMON)
+        else:
+            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON)
         python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
         python_code = embed_expression(python_code, '__RBQLMP__select_expression', query_context.select_expression)
         python_code = embed_expression(python_code, '__RBQLMP__where_expression', where_expression)
@@ -831,6 +831,7 @@ def rb_transform(input_iterator):
     NR = 0
     NU = 0
     stop_flag = False
+    join_map = query_context.join_map
 
     main_loop_body = generate_main_loop_code()
     compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
