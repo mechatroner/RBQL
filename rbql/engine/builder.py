@@ -82,7 +82,7 @@ query_context = None
 class RBQLContext:
     def __init__(self, output_writer):
         self.writer = output_writer
-        
+
         self.unnest_list = None
         self.top_count = None
 
@@ -111,7 +111,6 @@ class RBQLContext:
 ###################################### From template.py
 
 import datetime # For date manipulations
-import re # For regexes
 import os
 
 
@@ -201,7 +200,7 @@ class NumHandler:
         self.is_int = start_with_int
         self.string_detection_done = False
         self.is_str = False
-    
+
     def parse(self, val):
         if not self.string_detection_done:
             self.string_detection_done = True
@@ -391,7 +390,7 @@ def MAX(val):
     return init_aggregator(MaxAggregator, val) if query_context.aggregation_stage < 2 else val
 
 # max = MAX - see the mad max copypaste below
-Max = MAX 
+Max = MAX
 
 
 def COUNT(val):
@@ -549,9 +548,9 @@ class UniqCountWriter(object):
         return True
 
     def finish(self):
-        for record, count in iteritems6(self.records):
+        for record, cnt in iteritems6(self.records):
             mutable_record = list(record)
-            mutable_record.insert(0, count)
+            mutable_record.insert(0, cnt)
             if not self.subwriter.write(mutable_record):
                 break
         self.subwriter.finish()
@@ -778,13 +777,13 @@ def embed_code(parent_code, child_placeholder, child_code):
     parent_lines = parent_code.strip().split('\n')
     child_lines = child_code.strip().split('\n')
     placeholder_indentation = None
-    for i in enumerate(len(parent_lines)): 
+    for i in enumerate(len(parent_lines)):
         pos = parent_lines[i].find(child_placeholder)
         if pos == -1:
             continue
         assert pos % 4 == 0
         placeholder_indentation = parent_lines[i][:pos]
-        assert placeholder_indentation = ' ' * pos
+        assert placeholder_indentation == ' ' * pos
         child_lines = [placeholder_indentation + cl for cl in child_lines]
         result = parent_lines[:i] + child_lines + parent_lines[i + 1:]
         return '\n'.join(result) + '\n'
