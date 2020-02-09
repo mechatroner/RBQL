@@ -102,15 +102,13 @@ class RBQLContext:
 
         self.select_expression = None
 
-        self.update_statements = None
+        self.update_expressions = None
 
-        self.init_column_vars_update = None
-        self.init_column_vars_select = None
+        self.init_expressions = None
 
 
 
 ###################################### From template.py
-############################################################
 
 import datetime # For date manipulations
 import re # For regexes
@@ -680,79 +678,160 @@ def select_unnested(sort_key, folded_fields):
     return True
 
 
+PROCESS_SELECT_COMMON = '''
+__RBQLMP__init_expressions
+if __RBQLMP__where_expression:
+    out_fields = __RBQLMP__select_expression
+    if aggregation_stage > 0:
+        key = __RBQLMP__aggregation_key_expression
+        select_aggregated(key, out_fields)
+    else:
+        sort_key = __RBQLMP__sort_key_expression
+        if query_context.unnest_list is not None:
+            if not select_unnested(sort_key, out_fields):
+                stop_flag = True
+        else:
+            if not select_simple(sort_key, out_fields):
+                stop_flag = True
+'''
 
+
+PROCESS_SELECT_SIMPLE = '''
+star_fields = record_a
+__EXPRESSION__
+'''
+
+
+PROCESS_SELECT_JOIN = '''
+join_matches = join_map.get_rhs(query_context.lhs_join_var)
+for join_match in join_matches:
+    bNR, bNF, record_b = join_match
+    star_fields = record_a + record_b
+    __EXPRESSION__
+    if stop_flag:
+        break
+'''
+
+
+PROCESS_UPDATE_JOIN = '''
+join_matches = join_map.get_rhs(query_context.lhs_join_var)
+if len(join_matches) > 1:
+    raise RbqlRuntimeError('More than one record in UPDATE query matched a key from the input table in the join table') # UT JSON # TODO output the failed key
+if len(join_matches) == 1:
+    bNR, bNF, record_b = join_matches[0]
+else:
+    bNR, bNF, record_b = None, None, None
+up_fields = record_a[:]
+__RBQLMP__init_expressions
+if len(join_matches) == 1 and (__RBQLMP__where_expression):
+    NU += 1
+    __RBQLMP__update_expressions
+if not writer.write(up_fields):
+    stop_flag = True
+'''
+
+
+PROCESS_UPDATE_SIMPLE = '''
+up_fields = record_a[:]
+__RBQLMP__init_expressions
+if __RBQLMP__where_expression:
+    NU += 1
+    __RBQLMP__update_expressions
+if not writer.write(up_fields)
+    stop_flag = True
+'''
+
+
+MAIN_LOOP_BODY = '''
+while not stop_flag:
+    record_a = input_iterator.get_record()
+    if record_a is None:
+        break
+    NR += 1
+    NF = len(record_a)
+    query_context.unnest_list = None # TODO optimize, don't need to set this every iteration
+    try:
+        __EXPRESSION__
+    except InternalBadKeyError as e:
+        raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
+    except InternalBadFieldError as e:
+        raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
+    except RbqlParsingError:
+        raise
+    except Exception as e:
+        if debug_mode:
+            raise
+        if str(e).find('RBQLAggregationToken') != -1:
+            raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
+        raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
+'''
+
+
+def indent_code(code, indentation_level):
+    source_lines = code.strip().split('\n')
+    source_lines = ['    ' * indentation_level + l.rstrip() for l in source_lines]
+    return '\n'.join(source_lines) + '\n'
+
+
+def embed_code(parent_code, child_placeholder, child_code):
+    assert parent_code.count(child_placeholder) == 1
+    parent_lines = parent_code.strip().split('\n')
+    child_lines = child_code.strip().split('\n')
+    placeholder_indentation = None
+    for i in enumerate(len(parent_lines)): 
+        pos = parent_lines[i].find(child_placeholder)
+        if pos == -1:
+            continue
+        assert pos % 4 == 0
+        placeholder_indentation = parent_lines[i][:pos]
+        assert placeholder_indentation = ' ' * pos
+        child_lines = [placeholder_indentation + cl for cl in child_lines]
+        result = parent_lines[:i] + child_lines + parent_lines[i + 1:]
+        return '\n'.join(result) + '\n'
+    assert False
 
 
 def generate_main_loop_code():
-    loop_body = '''
-
-    '''
-
-
-
-#def rb_transform(input_iterator):
-#    join_map = query_context.join_map
-#    polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][query_context.select_expression is not None][join_map is not None];
-#    NR = 0
-#    while True:
-#        record_a = input_iterator.get_record()
-#        if record_a is None:
-#            break
-#        NR += 1
-#        NF = len(record_a)
-#        try:
-#            join_matches = None if join_map is None else join_map.get_rhs(query_context.lhs_join_var)
-#            if not polymorphic_process(NR, NF, record_a, join_matches):
-#                break
-#        except InternalBadKeyError as e:
-#            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
-#        except InternalBadFieldError as e:
-#            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
-#        except RbqlParsingError:
-#            raise
-#        except Exception as e:
-#            if debug_mode:
-#                raise
-#            if str(e).find('RBQLAggregationToken') != -1:
-#                raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
-#            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
-#    writer.finish()
+    # FIXME we can use mad_max.py trick here: just make sure that content of loop_template.py is equal to content of stringified loop
+    is_select_query = query_context.select_expression is not None
+    is_join_query = query_context.join_map is not None
+    python_code = None
+    where_expression = 'True' if query_context.where_expression is None else query_context.where_expression
+    aggregation_key_expression = 'None' if query_context.aggregation_key_expression is None else query_context.aggregation_key_expression
+    sort_key_expression = 'None' if query_context.sort_key_expression is None else query_context.sort_key_expression
+    if is_select_query:
+        if is_join_query:
+            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_SELECT_SIMPLE), '__EXPRESSION__', PROCESS_SELECT_COMMON)
+        else:
+            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_SELECT_JOIN), '__EXPRESSION__', PROCESS_SELECT_COMMON)
+        python_code = embed_code(python_code, '__RBQLMP__init_expressions', query_context.init_expressions)
+        python_code = embed_code(python_code, '__RBQLMP__select_expression', query_context.select_expression)
+        python_code = embed_code(python_code, '__RBQLMP__where_expression', where_expression)
+        python_code = embed_code(python_code, '__RBQLMP__aggregation_key_expression', aggregation_key_expression)
+        python_code = embed_code(python_code, '__RBQLMP__sort_key_expression', sort_key_expression)
+    else:
+        if is_join_query:
+            python_code = embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_UPDATE_JOIN)
+        else:
+            python_code = embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_UPDATE_SIMPLE)
+        python_code = embed_code(python_code, '__RBQLMP__init_expressions', query_context.init_expressions)
+        python_code = embed_code(python_code, '__RBQLMP__update_expressions', query_context.update_expressions)
+        python_code = embed_code(python_code, '__RBQLMP__where_expression', where_expression)
+    return python_code
 
 
-
-
-# FIXME we can use mad_max.py trick here: just make sure that content of loop_template.py is equal to content of stringified loop
 
 
 def rb_transform(input_iterator):
-    join_map = query_context.join_map
-    polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][query_context.select_expression is not None][join_map is not None];
     NR = 0
-    while True:
-        record_a = input_iterator.get_record()
-        if record_a is None:
-            break
-        NR += 1
-        NF = len(record_a)
-        query_context.unnest_list = None
+    NU = 0
+    stop_flag = False
 
-        try:
-            join_matches = None if join_map is None else join_map.get_rhs(query_context.lhs_join_var)
-            if not polymorphic_process(NR, NF, record_a, join_matches):
-                break
-        except InternalBadKeyError as e:
-            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
-        except InternalBadFieldError as e:
-            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
-        except RbqlParsingError:
-            raise
-        except Exception as e:
-            if debug_mode:
-                raise
-            if str(e).find('RBQLAggregationToken') != -1:
-                raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
-            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
-    writer.finish()
+    main_loop_body = generate_main_loop_code()
+    compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
+    exec(compiled_main_loop)
+
+    query_context.writer.finish()
 
 
 ############################################################
@@ -947,26 +1026,26 @@ def replace_star_vars(rbql_expression):
 
 def translate_update_expression(update_expression, input_variables_map, string_literals, indent):
     assignment_looking_rgx = re.compile(r'(?:^|,) *(a[.#a-zA-Z0-9\[\]_]*) *=(?=[^=])')
-    update_statements = []
+    update_expressions = []
     pos = 0
     first_assignment_error = 'Unable to parse "UPDATE" expression: the expression must start with assignment, but "{}" does not look like an assignable field name'.format(update_expression.split('=')[0].strip())
     while True:
         match = assignment_looking_rgx.search(update_expression, pos)
-        if not len(update_statements) and (match is None or match.start() != 0):
+        if not len(update_expressions) and (match is None or match.start() != 0):
             raise RbqlParsingError(first_assignment_error) # UT JSON
         if match is None:
-            update_statements[-1] += update_expression[pos:].strip() + ')'
+            update_expressions[-1] += update_expression[pos:].strip() + ')'
             break
-        if len(update_statements):
-            update_statements[-1] += update_expression[pos:match.start()].strip() + ')'
+        if len(update_expressions):
+            update_expressions[-1] += update_expression[pos:match.start()].strip() + ')'
         dst_var_name = combine_string_literals(match.group(1).strip(), string_literals)
         var_info = input_variables_map.get(dst_var_name)
         if var_info is None:
             raise RbqlParsingError('Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name)) # UT JSON
-        current_indent = indent if len(update_statements) else ''
-        update_statements.append('{}safe_set(up_fields, {}, '.format(current_indent, var_info.index))
+        current_indent = indent if len(update_expressions) else ''
+        update_expressions.append('{}safe_set(up_fields, {}, '.format(current_indent, var_info.index))
         pos = match.end()
-    return combine_string_literals('\n'.join(update_statements), string_literals)
+    return combine_string_literals('\n'.join(update_expressions), string_literals)
 
 
 def translate_select_expression_py(select_expression):
@@ -1090,12 +1169,6 @@ def find_top(rb_actions):
     return rb_actions[SELECT].get('top', None)
 
 
-def indent_user_init_code(user_init_code):
-    source_lines = user_init_code.split('\n')
-    source_lines = ['    ' + l.rstrip() for l in source_lines]
-    return '\n'.join(source_lines) + '\n'
-
-
 def translate_except_expression(except_expression, input_variables_map, string_literals):
     skip_vars = except_expression.split(',')
     skip_vars = [v.strip() for v in skip_vars]
@@ -1193,15 +1266,15 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
             raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="') # UT JSON
         query_context.where_expression = combine_string_literals(where_expression, string_literals)
 
+    query_context.init_expressions = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
+
 
     if UPDATE in rb_actions:
         update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals, ' ' * 8)
-        query_context.update_statements = combine_string_literals(update_expression, string_literals)
-        query_context.init_column_vars_update = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
+        query_context.update_expressions = combine_string_literals(update_expression, string_literals)
 
 
     if SELECT in rb_actions:
-        query_context.init_column_vars_select = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
         query_context.top_count = find_top(rb_actions)
         query_context.writer = TopWriter(query_context.writer)
         if 'distinct_count' in rb_actions[SELECT]:
@@ -1215,37 +1288,19 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
             query_context.select_expression = combine_string_literals(select_expression, string_literals)
 
     if ORDER_BY in rb_actions:
-        query_context.sort_key_expression = combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals)
+        query_context.sort_key_expression = '({})'.format(combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals))
         query_context.reverse_sort = rb_actions[ORDER_BY]['reverse']
         query_context.writer = SortedWriter(query_context.writer)
 
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
-    user_init_code = indent_user_init_code(user_init_code) # FIXME do something with user_init_code
+    user_init_code = indent_code(user_init_code, 1) # FIXME do something with user_init_code
     parse_to_py(query_text, input_iterator, output_writer, join_tables_registry, user_init_code)
     rb_transform(input_iterator)
     output_warnings.extend(input_iterator.get_warnings())
     if query_context.join_map_impl is not None:
         output_warnings.extend(query_context.join_map_impl.get_warnings())
     output_warnings.extend(output_writer.get_warnings())
-
-    #FIXME  use compile + exec
-
-    # essential expressions:
-    # __RBQLMP__user_init_code
-
-    # __RBQLMP__init_vars_update_expression
-    # __RBQLMP__init_vars_select_expression
-
-    # __RBQLMP__where_expression
-    # __RBQLMP__update_expressions
-    # __RBQLMP__aggregation_key_expression
-    # __RBQLMP__select_expression
-    # __RBQLMP__sort_key_expression
-
-
-    # So there are only 3 functions that contain compiled expressions
-
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):

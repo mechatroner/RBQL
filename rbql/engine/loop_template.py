@@ -1,13 +1,13 @@
 # PROCESS_SELECT_COMMON
 __RBQLMP__init_vars_select_expression
-if (__RBQLMP__where_expression):
+if __RBQLMP__where_expression:
     out_fields = __RBQLMP__select_expression
     if aggregation_stage > 0:
         key = __RBQLMP__aggregation_key_expression
         select_aggregated(key, out_fields)
     else:
         sort_key = (__RBQLMP__sort_key_expression)
-        if unnest_list is not None:
+        if query_context.unnest_list is not None:
             if not select_unnested(sort_key, out_fields):
                 stop_flag = True
         else:
@@ -61,6 +61,7 @@ if not writer.write(up_fields)
 
 
 # MAIN_LOOP_BODY:
+NR = 0
 NU = 0
 stop_flag = False
 while not stop_flag:
@@ -72,9 +73,6 @@ while not stop_flag:
     query_context.unnest_list = None # TODO optimize, don't need to set this every iteration
     try:
         __EXPRESSION_PLACEHOLDER__
-        #join_matches = None if join_map is None else join_map.get_rhs(query_context.lhs_join_var)
-        #if not polymorphic_process(NR, NF, record_a, join_matches):
-        #    break
     except InternalBadKeyError as e:
         raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
     except InternalBadFieldError as e:
