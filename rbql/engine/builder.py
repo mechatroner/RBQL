@@ -45,6 +45,8 @@ from ._version import __version__
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
 
+# FIXME remove template.py and loop_template.py
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -96,7 +98,7 @@ class RBQLContext:
         self.join_map_impl = None
         self.join_map = None
         self.join_operation = None
-        self.lhs_join_var = None
+        self.lhs_join_var_expression = None
 
         self.where_expression = None
 
@@ -702,7 +704,7 @@ __CODE__
 
 
 PROCESS_SELECT_JOIN = '''
-join_matches = join_map.get_rhs(query_context.lhs_join_var)
+join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var_expression)
 for join_match in join_matches:
     bNR, bNF, record_b = join_match
     star_fields = record_a + record_b
@@ -713,7 +715,7 @@ for join_match in join_matches:
 
 
 PROCESS_UPDATE_JOIN = '''
-join_matches = join_map.get_rhs(query_context.lhs_join_var)
+join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var_expression)
 if len(join_matches) > 1:
     raise RbqlRuntimeError('More than one record in UPDATE query matched a key from the input table in the join table') # UT JSON # TODO output the failed key
 if len(join_matches) == 1:
@@ -807,6 +809,7 @@ def generate_main_loop_code():
     if is_select_query:
         if is_join_query:
             python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_JOIN), '__CODE__', PROCESS_SELECT_COMMON)
+            python_code = embed_expression(python_code, '__RBQLMP__lhs_join_var_expression', query_context.lhs_join_var_expression)
         else:
             python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON)
         python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
@@ -817,6 +820,7 @@ def generate_main_loop_code():
     else:
         if is_join_query:
             python_code = embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_UPDATE_JOIN)
+            python_code = embed_expression(python_code, '__RBQLMP__lhs_join_var_expression', query_context.lhs_join_var_expression)
         else:
             python_code = embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_UPDATE_SIMPLE)
         python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
@@ -902,8 +906,8 @@ def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, 
     else:
         raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"'.format(join_var_2)) # UT JSON
 
-    lhs_join_var = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
-    return (lhs_join_var, rhs_key_index)
+    lhs_join_var_expression = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
+    return (lhs_join_var_expression, rhs_key_index)
 
 
 def parse_basic_variables(query_text, prefix, dst_variables_map):
@@ -1256,11 +1260,12 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
         join_variables_map = join_record_iterator.get_variables_map(query_text)
 
-        lhs_join_var, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals)
+        lhs_join_var_expression, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals)
         joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
         query_context.join_operation = rb_actions[JOIN]['join_subtype']
-        query_context.lhs_join_var = lhs_join_var
+        query_context.lhs_join_var_expression = lhs_join_var_expression
         query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_key_index)
+        query_context.join_map_impl.build()
         query_context.join_map = joiner_type(query_context.join_map_impl)
 
 
