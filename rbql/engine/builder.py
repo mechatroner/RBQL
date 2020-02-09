@@ -104,7 +104,7 @@ class RBQLContext:
 
         self.update_expressions = None
 
-        self.init_expressions = None
+        self.variables_init_code = None
 
 
 
@@ -678,7 +678,7 @@ def select_unnested(sort_key, folded_fields):
 
 
 PROCESS_SELECT_COMMON = '''
-__RBQLMP__init_expressions
+__RBQLMP__variables_init_code
 if __RBQLMP__where_expression:
     out_fields = __RBQLMP__select_expression
     if aggregation_stage > 0:
@@ -697,7 +697,7 @@ if __RBQLMP__where_expression:
 
 PROCESS_SELECT_SIMPLE = '''
 star_fields = record_a
-__EXPRESSION__
+__CODE__
 '''
 
 
@@ -706,7 +706,7 @@ join_matches = join_map.get_rhs(query_context.lhs_join_var)
 for join_match in join_matches:
     bNR, bNF, record_b = join_match
     star_fields = record_a + record_b
-    __EXPRESSION__
+    __CODE__
     if stop_flag:
         break
 '''
@@ -721,7 +721,7 @@ if len(join_matches) == 1:
 else:
     bNR, bNF, record_b = None, None, None
 up_fields = record_a[:]
-__RBQLMP__init_expressions
+__RBQLMP__variables_init_code
 if len(join_matches) == 1 and (__RBQLMP__where_expression):
     NU += 1
     __RBQLMP__update_expressions
@@ -732,7 +732,7 @@ if not writer.write(up_fields):
 
 PROCESS_UPDATE_SIMPLE = '''
 up_fields = record_a[:]
-__RBQLMP__init_expressions
+__RBQLMP__variables_init_code
 if __RBQLMP__where_expression:
     NU += 1
     __RBQLMP__update_expressions
@@ -750,7 +750,7 @@ while not stop_flag:
     NF = len(record_a)
     query_context.unnest_list = None # TODO optimize, don't need to set this every iteration
     try:
-        __EXPRESSION__
+        __CODE__
     except InternalBadKeyError as e:
         raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
     except InternalBadFieldError as e:
@@ -772,12 +772,18 @@ def indent_code(code, indentation_level):
     return '\n'.join(source_lines) + '\n'
 
 
+def embed_expression(parent_code, child_placeholder, child_expression):
+    assert parent_code.count(child_placeholder) == 1
+    assert child_expression.find('\n') == -1
+    return parent_code.strip().replace(child_placeholder, child_expression) + '\n'
+
+
 def embed_code(parent_code, child_placeholder, child_code):
     assert parent_code.count(child_placeholder) == 1
     parent_lines = parent_code.strip().split('\n')
     child_lines = child_code.strip().split('\n')
     placeholder_indentation = None
-    for i in enumerate(len(parent_lines)):
+    for i in range(len(parent_lines)):
         pos = parent_lines[i].find(child_placeholder)
         if pos == -1:
             continue
@@ -800,22 +806,22 @@ def generate_main_loop_code():
     sort_key_expression = 'None' if query_context.sort_key_expression is None else query_context.sort_key_expression
     if is_select_query:
         if is_join_query:
-            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_SELECT_SIMPLE), '__EXPRESSION__', PROCESS_SELECT_COMMON)
+            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON)
         else:
-            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_SELECT_JOIN), '__EXPRESSION__', PROCESS_SELECT_COMMON)
-        python_code = embed_code(python_code, '__RBQLMP__init_expressions', query_context.init_expressions)
-        python_code = embed_code(python_code, '__RBQLMP__select_expression', query_context.select_expression)
-        python_code = embed_code(python_code, '__RBQLMP__where_expression', where_expression)
-        python_code = embed_code(python_code, '__RBQLMP__aggregation_key_expression', aggregation_key_expression)
-        python_code = embed_code(python_code, '__RBQLMP__sort_key_expression', sort_key_expression)
+            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_JOIN), '__CODE__', PROCESS_SELECT_COMMON)
+        python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
+        python_code = embed_expression(python_code, '__RBQLMP__select_expression', query_context.select_expression)
+        python_code = embed_expression(python_code, '__RBQLMP__where_expression', where_expression)
+        python_code = embed_expression(python_code, '__RBQLMP__aggregation_key_expression', aggregation_key_expression)
+        python_code = embed_expression(python_code, '__RBQLMP__sort_key_expression', sort_key_expression)
     else:
         if is_join_query:
-            python_code = embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_UPDATE_JOIN)
+            python_code = embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_UPDATE_JOIN)
         else:
-            python_code = embed_code(MAIN_LOOP_BODY, '__EXPRESSION__', PROCESS_UPDATE_SIMPLE)
-        python_code = embed_code(python_code, '__RBQLMP__init_expressions', query_context.init_expressions)
-        python_code = embed_code(python_code, '__RBQLMP__update_expressions', query_context.update_expressions)
-        python_code = embed_code(python_code, '__RBQLMP__where_expression', where_expression)
+            python_code = embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_UPDATE_SIMPLE)
+        python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
+        python_code = embed_expression(python_code, '__RBQLMP__update_expressions', query_context.update_expressions)
+        python_code = embed_expression(python_code, '__RBQLMP__where_expression', where_expression)
     return python_code
 
 
@@ -998,7 +1004,7 @@ def generate_common_init_code(query_text, variable_prefix):
     return result
 
 
-def generate_init_statements(query_text, variables_map, join_variables_map, indent):
+def generate_init_statements(query_text, variables_map, join_variables_map):
     code_lines = generate_common_init_code(query_text, 'a')
     for var_name, var_info in variables_map.items():
         if var_info.initialize:
@@ -1008,8 +1014,6 @@ def generate_init_statements(query_text, variables_map, join_variables_map, inde
         for var_name, var_info in join_variables_map.items():
             if var_info.initialize:
                 code_lines.append('{} = safe_get(record_b, {}) if record_b is not None else None'.format(var_name, var_info.index))
-    for i in range(1, len(code_lines)):
-        code_lines[i] = indent + code_lines[i]
     return '\n'.join(code_lines)
 
 
@@ -1265,7 +1269,7 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
             raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="') # UT JSON
         query_context.where_expression = combine_string_literals(where_expression, string_literals)
 
-    query_context.init_expressions = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' ' * 4), string_literals)
+    query_context.variables_init_code = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map), string_literals)
 
 
     if UPDATE in rb_actions:
