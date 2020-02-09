@@ -287,9 +287,6 @@ class TestJsonTables(unittest.TestCase):
                 raise
             error_type, error_msg = rbql.exception_to_error_info(e)
 
-        warnings = sorted(normalize_warnings(warnings))
-        expected_warnings = sorted(expected_warnings)
-        self.assertEqual(expected_warnings, warnings, 'Inside json test: {}. Expected warnings: {}; Actual warnings: {}'.format(test_name, ','.join(expected_warnings), ','.join(warnings)))
         self.assertTrue((expected_error is not None) == (error_type is not None), 'Inside json test: "{}". Expected error: {}, error_type: {}, error_msg: {}'.format(test_name, expected_error, error_type, error_msg))
         if expected_error_type is not None:
             self.assertTrue(error_type == expected_error_type, 'Inside json test: {}'.format(test_name))
@@ -302,6 +299,10 @@ class TestJsonTables(unittest.TestCase):
             round_floats(expected_output_table)
             round_floats(output_table)
             self.assertEqual(expected_output_table, output_table, 'Inside json test: {}'.format(test_name))
+
+            warnings = sorted(normalize_warnings(warnings))
+            expected_warnings = sorted(expected_warnings)
+            self.assertEqual(expected_warnings, warnings, 'Inside json test: {}. Expected warnings: {}; Actual warnings: {}'.format(test_name, ','.join(expected_warnings), ','.join(warnings)))
 
 
     def test_json_tables(self):
