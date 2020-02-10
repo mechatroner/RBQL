@@ -705,7 +705,7 @@ __CODE__
 
 
 PROCESS_SELECT_JOIN = '''
-join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var_expression)
+join_matches = query_context.join_map.get_rhs(__RBQLMP__lhs_join_var_expression)
 for join_match in join_matches:
     bNR, bNF, record_b = join_match
     star_fields = record_a + record_b
@@ -716,7 +716,7 @@ for join_match in join_matches:
 
 
 PROCESS_UPDATE_JOIN = '''
-join_matches = join_map.get_rhs(__RBQLMP__lhs_join_var_expression)
+join_matches = query_context.join_map.get_rhs(__RBQLMP__lhs_join_var_expression)
 if len(join_matches) > 1:
     raise RbqlRuntimeError('More than one record in UPDATE query matched a key from the input table in the join table') # UT JSON # TODO output the failed key
 if len(join_matches) == 1:
@@ -728,7 +728,7 @@ __RBQLMP__variables_init_code
 if len(join_matches) == 1 and (__RBQLMP__where_expression):
     NU += 1
     __RBQLMP__update_expressions
-if not writer.write(up_fields):
+if not query_context.writer.write(up_fields):
     stop_flag = True
 '''
 
@@ -739,7 +739,7 @@ __RBQLMP__variables_init_code
 if __RBQLMP__where_expression:
     NU += 1
     __RBQLMP__update_expressions
-if not writer.write(up_fields):
+if not query_context.writer.write(up_fields):
     stop_flag = True
 '''
 
@@ -836,14 +836,12 @@ def rb_transform(input_iterator):
     NR = 0
     NU = 0
     stop_flag = False
-    join_map = query_context.join_map
-    writer = query_context.writer
 
     main_loop_body = generate_main_loop_code()
     compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
     exec(compiled_main_loop)
 
-    writer.finish()
+    query_context.writer.finish()
 
 
 ############################################################
