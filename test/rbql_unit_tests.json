@@ -467,7 +467,7 @@
             [100, "alpha    zeta beta", ""],
             ["-20", "alpha   zeta", "gamma"]
         ],
-        "debug_mode": true,
+        "debug_mode": false,
         "query_python": "update a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
         "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
     },
@@ -1300,7 +1300,7 @@
         ],
         "input_column_names": ["value", "letter_left", "letter_right"],
         "normalize_column_names": false,
-        "debug_mode": true,
+        "debug_mode": false,
         "query_python": "select NR, value, len(letter_right) where int(value) > 5",
         "query_js": "select NR, value, letter_right.length where value > 5"
     },
@@ -1318,7 +1318,7 @@
         ],
         "input_column_names": ["value", "letter left", "letter right"],
         "normalize_column_names": true,
-        "debug_mode": true,
+        "debug_mode": false,
         "query_python": "select NR, a.value, len(a['letter right']) where int(a.value) > 5",
         "query_js": "select NR, a.value, a['letter right'].length where a.value > 5"
     },
