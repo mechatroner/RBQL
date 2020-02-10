@@ -82,8 +82,10 @@ query_context = None
 
 
 class RBQLContext:
-    def __init__(self, output_writer):
+    def __init__(self, input_iterator, output_writer, user_init_code):
+        self.input_iterator = input_iterator
         self.writer = output_writer
+        self.user_init_code = user_init_code
 
         self.unnest_list = None
         self.top_count = None
@@ -745,8 +747,18 @@ if not query_context.writer.write(up_fields):
 
 
 MAIN_LOOP_BODY = '''
+try:
+    pass
+    __USER_INIT_CODE__
+except Exception as e:
+    raise RuntimeError('Exception while executing user-provided init code: {}'.format(e))
+
+NR = 0
+NU = 0
+stop_flag = False
+
 while not stop_flag:
-    record_a = input_iterator.get_record()
+    record_a = query_context.input_iterator.get_record()
     if record_a is None:
         break
     NR += 1
@@ -767,12 +779,6 @@ while not stop_flag:
             raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
         raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
 '''
-
-
-def indent_code(code, indentation_level):
-    source_lines = code.strip().split('\n')
-    source_lines = ['    ' * indentation_level + l.rstrip() for l in source_lines]
-    return '\n'.join(source_lines) + '\n'
 
 
 def embed_expression(parent_code, child_placeholder, child_expression):
@@ -800,19 +806,19 @@ def embed_code(parent_code, child_placeholder, child_code):
 
 
 def generate_main_loop_code():
-    # FIXME we can use mad_max.py trick here: just make sure that content of loop_template.py is equal to content of stringified loop
     is_select_query = query_context.select_expression is not None
     is_join_query = query_context.join_map is not None
     python_code = None
     where_expression = 'True' if query_context.where_expression is None else query_context.where_expression
     aggregation_key_expression = 'None' if query_context.aggregation_key_expression is None else query_context.aggregation_key_expression
     sort_key_expression = 'None' if query_context.sort_key_expression is None else query_context.sort_key_expression
+    python_code = embed_code(MAIN_LOOP_BODY, '__USER_INIT_CODE__', query_context.user_init_code)
     if is_select_query:
         if is_join_query:
-            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_JOIN), '__CODE__', PROCESS_SELECT_COMMON)
+            python_code = embed_code(embed_code(python_code, '__CODE__', PROCESS_SELECT_JOIN), '__CODE__', PROCESS_SELECT_COMMON)
             python_code = embed_expression(python_code, '__RBQLMP__lhs_join_var_expression', query_context.lhs_join_var_expression)
         else:
-            python_code = embed_code(embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON)
+            python_code = embed_code(embed_code(python_code, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON)
         python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
         python_code = embed_expression(python_code, '__RBQLMP__select_expression', query_context.select_expression)
         python_code = embed_expression(python_code, '__RBQLMP__where_expression', where_expression)
@@ -820,10 +826,10 @@ def generate_main_loop_code():
         python_code = embed_expression(python_code, '__RBQLMP__sort_key_expression', sort_key_expression)
     else:
         if is_join_query:
-            python_code = embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_UPDATE_JOIN)
+            python_code = embed_code(python_code, '__CODE__', PROCESS_UPDATE_JOIN)
             python_code = embed_expression(python_code, '__RBQLMP__lhs_join_var_expression', query_context.lhs_join_var_expression)
         else:
-            python_code = embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_UPDATE_SIMPLE)
+            python_code = embed_code(python_code, '__CODE__', PROCESS_UPDATE_SIMPLE)
         python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
         python_code = embed_code(python_code, '__RBQLMP__update_expressions', query_context.update_expressions)
         python_code = embed_expression(python_code, '__RBQLMP__where_expression', where_expression)
@@ -831,17 +837,11 @@ def generate_main_loop_code():
 
 
 
-
-def rb_transform(input_iterator):
-    NR = 0
-    NU = 0
-    stop_flag = False
-
+def compile_and_run():
     main_loop_body = generate_main_loop_code()
     compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
     exec(compiled_main_loop)
 
-    query_context.writer.finish()
 
 
 ############################################################
@@ -1230,10 +1230,7 @@ def cleanup_query(query_text):
     return ' '.join(rbql_lines)
 
 
-def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry, user_init_code):
-    global query_context
-    query_context = RBQLContext(output_writer)
-
+def parse_to_py(query_text, input_iterator, join_tables_registry):
     query_text = cleanup_query(query_text)
     format_expression, string_literals = separate_string_literals_py(query_text)
     input_variables_map = input_iterator.get_variables_map(query_text)
@@ -1302,9 +1299,11 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
 
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
-    user_init_code = indent_code(user_init_code, 1) # FIXME do something with user_init_code
-    parse_to_py(query_text, input_iterator, output_writer, join_tables_registry, user_init_code)
-    rb_transform(input_iterator)
+    global query_context
+    query_context = RBQLContext(input_iterator, output_writer, user_init_code)
+    parse_to_py(query_text, input_iterator, join_tables_registry)
+    compile_and_run()
+    query_context.writer.finish()
     output_warnings.extend(input_iterator.get_warnings())
     if query_context.join_map_impl is not None:
         output_warnings.extend(query_context.join_map_impl.get_warnings())
