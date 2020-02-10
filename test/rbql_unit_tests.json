@@ -467,6 +467,7 @@
             [100, "alpha    zeta beta", ""],
             ["-20", "alpha   zeta", "gamma"]
         ],
+        "debug_mode": true,
         "query_python": "update a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
         "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
     },

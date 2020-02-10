@@ -112,8 +112,9 @@ class RBQLContext:
 
 ###################################### From template.py
 
-import datetime # For date manipulations
-import os
+import datetime # For date operations
+import os # For system operations
+import math # For math operations
 
 
 RBQL_VERSION = __version__
@@ -738,7 +739,7 @@ __RBQLMP__variables_init_code
 if __RBQLMP__where_expression:
     NU += 1
     __RBQLMP__update_expressions
-if not writer.write(up_fields)
+if not writer.write(up_fields):
     stop_flag = True
 '''
 
@@ -824,7 +825,7 @@ def generate_main_loop_code():
         else:
             python_code = embed_code(MAIN_LOOP_BODY, '__CODE__', PROCESS_UPDATE_SIMPLE)
         python_code = embed_code(python_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
-        python_code = embed_expression(python_code, '__RBQLMP__update_expressions', query_context.update_expressions)
+        python_code = embed_code(python_code, '__RBQLMP__update_expressions', query_context.update_expressions)
         python_code = embed_expression(python_code, '__RBQLMP__where_expression', where_expression)
     return python_code
 
@@ -836,12 +837,13 @@ def rb_transform(input_iterator):
     NU = 0
     stop_flag = False
     join_map = query_context.join_map
+    writer = query_context.writer
 
     main_loop_body = generate_main_loop_code()
     compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
     exec(compiled_main_loop)
 
-    query_context.writer.finish()
+    writer.finish()
 
 
 ############################################################
@@ -1032,7 +1034,7 @@ def replace_star_vars(rbql_expression):
     return rbql_expression
 
 
-def translate_update_expression(update_expression, input_variables_map, string_literals, indent):
+def translate_update_expression(update_expression, input_variables_map, string_literals):
     assignment_looking_rgx = re.compile(r'(?:^|,) *(a[.#a-zA-Z0-9\[\]_]*) *=(?=[^=])')
     update_expressions = []
     pos = 0
@@ -1050,8 +1052,7 @@ def translate_update_expression(update_expression, input_variables_map, string_l
         var_info = input_variables_map.get(dst_var_name)
         if var_info is None:
             raise RbqlParsingError('Unable to parse "UPDATE" expression: Unknown field name: "{}"'.format(dst_var_name)) # UT JSON
-        current_indent = indent if len(update_expressions) else ''
-        update_expressions.append('{}safe_set(up_fields, {}, '.format(current_indent, var_info.index))
+        update_expressions.append('safe_set(up_fields, {}, '.format(var_info.index))
         pos = match.end()
     return combine_string_literals('\n'.join(update_expressions), string_literals)
 
@@ -1279,7 +1280,7 @@ def parse_to_py(query_text, input_iterator, output_writer, join_tables_registry,
 
 
     if UPDATE in rb_actions:
-        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals, ' ' * 8)
+        update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals)
         query_context.update_expressions = combine_string_literals(update_expression, string_literals)
 
 
