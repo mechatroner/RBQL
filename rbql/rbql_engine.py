@@ -45,8 +45,6 @@ from ._version import __version__
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
 
-# FIXME remove template.py and loop_template.py
-
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
