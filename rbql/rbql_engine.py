@@ -166,14 +166,14 @@ def safe_get(record, idx):
 def safe_join_get(record, idx):
     try:
         return record[idx]
-    except IndexError as e:
+    except IndexError:
         raise InternalBadFieldError(idx)
 
 
 def safe_set(record, idx, value):
     try:
         record[idx] = value
-    except IndexError as e:
+    except IndexError:
         raise InternalBadFieldError(idx)
 
 
@@ -336,7 +336,7 @@ class CountAggregator:
     def __init__(self):
         self.stats = defaultdict(int)
 
-    def increment(self, key, val):
+    def increment(self, key, _val):
         self.stats[key] += 1
 
     def get_final(self, key):
@@ -398,7 +398,7 @@ def MAX(val):
 Max = MAX
 
 
-def COUNT(val):
+def COUNT(_val):
     return init_aggregator(CountAggregator, 1) if query_context.aggregation_stage < 2 else 1
 
 count = COUNT
