@@ -19,7 +19,7 @@ $ git clone https://github.com/mechatroner/rbql-py.git
 rbql library provides 3 main functions that you can use:  
 
 1. [rbql.query_table(...)](#rbqlquery_table)  
-2. [rbql_csv.query_csv(...)](#rbqlquery_csv)  
+2. [rbql.query_csv(...)](#rbqlquery_csv)  
 3. [rbql.query(...)](#rbqlquery)  
 
 
@@ -107,10 +107,9 @@ Run user query against input_path CSV file and save it as output_path CSV file.
 
 ```
 import rbql
-from rbql import rbql_csv
 user_query = 'SELECT a1, int(a2) % 1000 WHERE a3 != "USA" LIMIT 5'
 warnings = []
-rbql_csv.query_csv(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8', warnings)
+rbql.query_csv(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8', warnings)
 print(open('output.csv').read())
 ```
 
