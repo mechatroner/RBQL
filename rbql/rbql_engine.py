@@ -830,6 +830,7 @@ def generate_main_loop_code():
 
 
 def compile_and_run():
+    # TODO consider putting mad_max stuff here instead of keeping it in the global scope
     main_loop_body = generate_main_loop_code()
     compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
     exec(compiled_main_loop)
