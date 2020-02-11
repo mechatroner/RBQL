@@ -9,7 +9,7 @@ import io
 import re
 from errno import EPIPE
 
-from . import engine
+from . import rbql_engine
 from . import csv_utils
 
 
@@ -369,11 +369,11 @@ class CSVRecordIterator:
 
     def get_variables_map(self, query_text):
         variable_map = dict()
-        engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
-        engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
+        rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
+        rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.header_record is not None:
-            engine.parse_attribute_variables(query_text, self.variable_prefix, self.header_record, 'CSV header line', variable_map)
-            engine.parse_dictionary_variables(query_text, self.variable_prefix, self.header_record, variable_map)
+            rbql_engine.parse_attribute_variables(query_text, self.variable_prefix, self.header_record, 'CSV header line', variable_map)
+            rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.header_record, variable_map)
         return variable_map
 
 
@@ -553,8 +553,8 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, skip_headers)
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
         if debug_mode:
-            engine.set_debug_mode()
-        engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
+            rbql_engine.set_debug_mode()
+        rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
     finally:
         if close_input_on_finish:
             input_stream.close()

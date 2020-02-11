@@ -1298,6 +1298,17 @@ def parse_to_py(query_text, input_iterator, join_tables_registry):
         query_context.writer = SortedWriter(query_context.writer)
 
 
+def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
+    assert len(inconsistent_records_info) > 1
+    inconsistent_records_info = inconsistent_records_info.items()
+    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
+    num_fields_1, record_num_1 = inconsistent_records_info[0]
+    num_fields_2, record_num_2 = inconsistent_records_info[1]
+    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
+    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
+    return warn_msg
+
+
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
     global query_context
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
@@ -1308,17 +1319,6 @@ def query(query_text, input_iterator, output_writer, output_warnings, join_table
     if query_context.join_map_impl is not None:
         output_warnings.extend(query_context.join_map_impl.get_warnings())
     output_warnings.extend(output_writer.get_warnings())
-
-
-def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
-    assert len(inconsistent_records_info) > 1
-    inconsistent_records_info = inconsistent_records_info.items()
-    inconsistent_records_info = sorted(inconsistent_records_info, key=lambda v: v[1])
-    num_fields_1, record_num_1 = inconsistent_records_info[0]
-    num_fields_2, record_num_2 = inconsistent_records_info[1]
-    warn_msg = 'Number of fields in "{}" table is not consistent: '.format(table_name)
-    warn_msg += 'e.g. record {} -> {} fields, record {} -> {} fields'.format(record_num_1, num_fields_1, record_num_2, num_fields_2)
-    return warn_msg
 
 
 class TableIterator:

@@ -150,7 +150,7 @@ class TestMadMax(unittest.TestCase):
         test_dir_path = os.path.dirname(this_file_path)
         rbql_dir_path = os.path.dirname(test_dir_path)
         mad_max_path = os.path.join(test_dir_path, 'mad_max.py')
-        template_path = os.path.join(rbql_dir_path, 'rbql', 'engine', 'template.py')
+        template_path = os.path.join(rbql_dir_path, 'rbql', 'rbql_engine.py')
         original_data = read_file(mad_max_path)
         this_data = read_file(this_file_path)
         template_data = read_file(template_path)

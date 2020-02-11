@@ -8,8 +8,8 @@ import argparse
 
 from . import csv_utils
 from . import rbql_csv
-from . import engine
-from .engine import _version
+from . import rbql_engine
+from . import _version
 
 
 PY3 = sys.version_info[0] == 3
@@ -84,7 +84,7 @@ def run_with_python(args, is_interactive):
     except Exception as e:
         if args.debug_mode:
             raise
-        error_type, error_msg = engine.exception_to_error_info(e)
+        error_type, error_msg = rbql_engine.exception_to_error_info(e)
 
     if error_type is None:
         success = True
