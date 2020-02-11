@@ -438,12 +438,9 @@ def ARRAY_AGG(val, post_proc=None):
 array_agg = ARRAY_AGG
 
 
-# <<<< COPYPASTE FROM "mad_max.py"
-#####################################
-#####################################
-# This is to ensure that "mad_max.py" file has exactly the same content as this fragment. This condition will be ensured by test_mad_max.py
-# To edit this code you need to simultaneously edit this fragment and content of mad_max.py, otherwise test_mad_max.py will fail.
 
+
+# Redefining builtin max, min and sum. See test_max_max.py unit test for explanation
 builtin_max = max
 builtin_min = min
 builtin_sum = sum
@@ -491,9 +488,6 @@ def sum(*args):
             return SUM(args[0])
         raise
 
-#####################################
-#####################################
-# >>>> COPYPASTE END
 
 
 
