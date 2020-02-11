@@ -199,6 +199,6 @@ Adding support of TOP/LIMIT keywords is trivial and to support "ORDER BY" we can
 ### References
 
 * [RBQL: Official Site](https://rbql.org/)
-RBQL is integrated with Rainbow CSV extensions in [Vim](https://github.com/mechatroner/rainbow_csv), [VSCode](https://marketplace.visualstudio.com/items?itemName=mechatroner.rainbow-csv), [Sublime Text](https://packagecontrol.io/packages/rainbow_csv) and [Atom](https://atom.io/packages/rainbow-csv) editors.
+* RBQL is integrated with Rainbow CSV extensions in [Vim](https://github.com/mechatroner/rainbow_csv), [VSCode](https://marketplace.visualstudio.com/items?itemName=mechatroner.rainbow-csv), [Sublime Text](https://packagecontrol.io/packages/rainbow_csv) and [Atom](https://atom.io/packages/rainbow-csv) editors.
 * [RBQL in npm](https://www.npmjs.com/package/rbql): `$ npm install -g rbql`
 * [RBQL in PyPI](https://pypi.org/project/rbql/): `$ pip install rbql`
