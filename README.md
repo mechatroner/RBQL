@@ -1,6 +1,6 @@
 # RBQL (Rainbow Query Language) Description
 
-RBQL is a technology which provides SQL-like language that supports _SELECT_ and _UPDATE_ queries with Python or JavaScript expressions.  
+RBQL is a technology for (not only) CSV files processing. It provides SQL-like language that supports SELECT queries with Python or JavaScript expressions.  
 RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries and can work in web browsers.  
 RBQL core module is very generic and can process all kind of objects and record formats, but most popular RBQL implementation works with CSV files.  
 
@@ -151,7 +151,7 @@ And if you are doing math operation you can modify your query like this, example
 
 #### How does RBQL work?
 
-RBQL parses SQL-like user query, creates a new python or javascript worker module, then imports and executes it.  
+RBQL parses SQL-like user query, generates new Python or JavaScript code and executes it.  
 
 Explanation of simplified Python version of RBQL algorithm by example.
 1. User enters the following query, which is stored as a string _Q_:
