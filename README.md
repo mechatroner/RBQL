@@ -187,7 +187,7 @@ Explanation of simplified Python version of RBQL algorithm by example.
             print ','.join([str(v) for v in out_fields])
 ```
 
-6. RBQL runs the patched script against user's data file: 
+6. RBQL runs the patched script against user's data file (real RBQL implementation calls "exec" in Python or "eval" in JS): 
 ```
     ./tmp_script.py < data.tsv > result.tsv
 ```
