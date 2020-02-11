@@ -1200,7 +1200,7 @@ class HashJoinMap:
                 break
             nr += 1
             nf = len(fields)
-            self.max_record_len = max(self.max_record_len, nf)
+            self.max_record_len = builtin_max(self.max_record_len, nf)
             if self.key_index >= nf:
                 raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
             key = nr if self.key_index == -1 else fields[self.key_index]
