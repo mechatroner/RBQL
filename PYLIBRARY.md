@@ -1,17 +1,9 @@
 # Using RBQL as python library
 
-Disclaimer: RBQL is not an SQL server and it is not suitable for multiple automatic queries.  
-All RBQL queries are supposed to be manually entered by human users of your application.  
-
 
 #### Installation:
-You can either use pip or just clone the rbql-py repository:  
 ```
 $ pip install rbql
-```
-OR  
-```
-$ git clone https://github.com/mechatroner/rbql-py.git 
 ```
 
 ## API
