@@ -30,13 +30,15 @@ from ._version import __version__
 
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
-# TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in template.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
+# TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in rbql_engine.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
 
 # TODO optimize performance: optional compilation depending on python2/python3
 
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
 
 # TODO show warning when csv fields contain trailing spaces, at least in join mode
+
+# TODO support custom (virtual) headers for CSV version
 
 # TODO support RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records
 
@@ -59,6 +61,7 @@ LIMIT = 'LIMIT'
 EXCEPT = 'EXCEPT'
 
 ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join tables'
+invalid_keyword_in_aggregate_query_error_msg = '"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries'
 
 debug_mode = False
 
@@ -110,7 +113,8 @@ class RBQLContext:
 
 
 
-###################################### From template.py
+######################################
+
 
 import datetime # For date operations
 import os # For system operations
@@ -639,7 +643,7 @@ def select_simple(sort_key, out_fields):
 def select_aggregated(key, transparent_values):
     if query_context.aggregation_stage == 1:
         if type(query_context.writer) is SortedWriter or type(query_context.writer) is UniqWriter or type(query_context.writer) is UniqCountWriter:
-            raise RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries') # UT JSON (the same error can be triggered statically, see builder.py)
+            raise RbqlParsingError(invalid_keyword_in_aggregate_query_error_msg) # UT JSON
         query_context.writer = AggregateWriter(query_context.writer)
         num_aggregators_found = 0
         for i, trans_value in enumerate(transparent_values):
@@ -1235,7 +1239,7 @@ def parse_to_py(query_text, input_iterator, join_tables_registry):
 
     if GROUP_BY in rb_actions:
         if ORDER_BY in rb_actions or UPDATE in rb_actions:
-            raise RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries') # UT JSON (the same error can be triggered dynamically, see template.py)
+            raise RbqlParsingError(invalid_keyword_in_aggregate_query_error_msg) # UT JSON
         query_context.aggregation_key_expression = '({},)'.format(combine_string_literals(rb_actions[GROUP_BY]['text'], string_literals))
 
 
