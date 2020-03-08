@@ -46,7 +46,9 @@ from ._version import __version__
 
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
+# TODO handle FROM keyword in query - either ignore or print an error
 
+# FIXME add unit tests for syntax error handling
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -851,6 +853,14 @@ def exception_to_error_info(e):
         'RbqlParsingError': 'query parsing',
         'RbqlIOHandlingError': 'IO handling'
     }
+    if isinstance(e, SyntaxError):
+        import traceback
+        etype, evalue, etb = sys.exc_info()
+        error_strings = traceback.format_exception_only(etype, evalue)
+        if len(error_strings) and re.search('File.*line', error_strings[0]) is not None:
+            error_strings[0] = '\n'
+        error_msg = ''.join(error_strings)
+        return ('syntax error', error_msg)
     error_type = 'unexpected'
     error_msg = str(e)
     for k, v in exceptions_type_map.items():
