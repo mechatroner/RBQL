@@ -48,7 +48,6 @@ from ._version import __version__
 
 # TODO handle FROM keyword in query - either ignore or print an error
 
-# FIXME add unit tests for syntax error handling
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -859,7 +858,7 @@ def exception_to_error_info(e):
         error_strings = traceback.format_exception_only(etype, evalue)
         if len(error_strings) and re.search('File.*line', error_strings[0]) is not None:
             error_strings[0] = '\n'
-        error_msg = ''.join(error_strings)
+        error_msg = ''.join(error_strings).rstrip()
         return ('syntax error', error_msg)
     error_type = 'unexpected'
     error_msg = str(e)

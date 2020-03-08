@@ -1440,5 +1440,18 @@
         "minimal_python_version": "3.5",
         "query_python": "select *a2.split('|')",
         "query_js": "select ...a2.split('|')"
+    },
+    {
+        "test_name": "user-friendly syntax error report",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "randomly_replace_var_names": false,
+        "expected_error_exact": true,
+        "expected_error_py": "\n    out_fields = [a1{, a2]\n                    ^\nSyntaxError: invalid syntax",
+        "query_python": "select a1{, a2"
     }
 ]
