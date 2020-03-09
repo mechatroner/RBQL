@@ -48,6 +48,8 @@ from ._version import __version__
 
 # TODO handle FROM keyword in query - either ignore or print an error
 
+# FIXME add LIKE unit tests, for invalid operator usage too.
+# FIXME add LIKE for JS version
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -91,6 +93,8 @@ class RBQLContext:
 
         self.unnest_list = None
         self.top_count = None
+
+        self.like_regex_cache = dict()
 
         self.sort_key_expression = None
         self.reverse_sort = False
@@ -178,6 +182,32 @@ def safe_set(record, idx, value):
         record[idx] = value
     except IndexError:
         raise InternalBadFieldError(idx)
+
+
+def _like_to_regex(pattern):
+    p = 0
+    i = 0
+    converted = ''
+    while i < len(pattern):
+        if pattern[i] in ['_', '%']:
+            converted += re.escape(pattern[p:i])
+            p = i + 1
+            if pattern[i] == '_':
+                converted += '.'
+            else:
+                converted += '.*'
+        i += 1
+    converted += re.escape(pattern[p:i])
+    return '^' + converted + '$'
+
+
+def like(text, pattern):
+    matcher = query_context.like_regex_cache.get(pattern, None)
+    if matcher is None:
+        matcher = re.compile(_like_to_regex(pattern))
+        query_context.like_regex_cache[pattern] = matcher
+    return matcher.match(text) is not None
+LIKE = like
 
 
 class RBQLAggregationToken(object):
@@ -859,6 +889,8 @@ def exception_to_error_info(e):
         if len(error_strings) and re.search('File.*line', error_strings[0]) is not None:
             error_strings[0] = '\n'
         error_msg = ''.join(error_strings).rstrip()
+        if re.search(' like[ (]', error_msg, flags=re.IGNORECASE) is not None:
+            error_msg += "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "
         return ('syntax error', error_msg)
     error_type = 'unexpected'
     error_msg = str(e)
