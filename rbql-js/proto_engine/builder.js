@@ -47,6 +47,7 @@ function assert(condition, message=null) {
 
 
 function regexp_escape(text) {
+    // From here: https://stackoverflow.com/a/6969486/2898283
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // $& means the whole matched text
 }
 

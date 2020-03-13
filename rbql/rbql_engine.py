@@ -48,8 +48,11 @@ from ._version import __version__
 
 # TODO handle FROM keyword in query - either ignore or print an error
 
+
 # FIXME add LIKE unit tests, for invalid operator usage too.
-# FIXME add LIKE for JS version
+# FIXME add like-only unit tests just to test euqivalence of coversion from like to regex expression both in python and js
+# FIXME add invalid syntax error for JS, same as it was done for Python
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -184,7 +187,7 @@ def safe_set(record, idx, value):
         raise InternalBadFieldError(idx)
 
 
-def _like_to_regex(pattern):
+def like_to_regex(pattern):
     p = 0
     i = 0
     converted = ''
@@ -204,7 +207,7 @@ def _like_to_regex(pattern):
 def like(text, pattern):
     matcher = query_context.like_regex_cache.get(pattern, None)
     if matcher is None:
-        matcher = re.compile(_like_to_regex(pattern))
+        matcher = re.compile(like_to_regex(pattern))
         query_context.like_regex_cache[pattern] = matcher
     return matcher.match(text) is not None
 LIKE = like

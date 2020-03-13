@@ -45,6 +45,9 @@ const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions insid
 const RBQL_VERSION = '__RBQLMP__version';
 
 
+var like_regex_cache = new Map();
+
+
 function stable_compare(a, b) {
     for (var i = 0; i < a.length; i++) {
         if (a[i] !== b[i])
@@ -73,6 +76,44 @@ function safe_set(record, idx, value) {
         throw new InternalBadFieldError(idx);
     }
 }
+
+
+function regexp_escape(text) {
+    // From here: https://stackoverflow.com/a/6969486/2898283
+    return text.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&');  // $& means the whole matched text
+}
+
+
+function like_to_regex(pattern) {
+    let p = 0;
+    let i = 0;
+    let converted = '';
+    while (i < pattern.length) {
+        if (pattern.charAt(i) == '_' || pattern.charAt(i) == '%') {
+            converted += regexp_escape(pattern.substring(p, i));
+            p = i + 1;
+            if (pattern.charAt(i) == '_') {
+                converted += '.';
+            } else {
+                converted += '.*';
+            }
+        }
+        i += 1;
+    }
+    converted += regexp_escape(pattern.substring(p, i));
+    return '^' + converted + '$';
+}
+
+
+function like(text, pattern) {
+    let matcher = like_regex_cache.get(pattern);
+    if (matcher === undefined) {
+        matcher = new RegExp(like_to_regex(pattern));
+        like_regex_cache.set(pattern, matcher);
+    }
+    return matcher.test(text);
+}
+LIKE = like;
 
 
 function RBQLAggregationToken(marker_id, value) {
@@ -758,6 +799,7 @@ function assert(condition, message=null) {
 
 
 function regexp_escape(text) {
+    // From here: https://stackoverflow.com/a/6969486/2898283
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // $& means the whole matched text
 }
 
