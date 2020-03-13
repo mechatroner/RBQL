@@ -1453,5 +1453,20 @@
         "expected_error_exact": true,
         "expected_error_py": "\n    out_fields = [a1{, a2]\n                    ^\nSyntaxError: invalid syntax",
         "query_python": "select a1{, a2"
+    },
+    {
+        "test_name": "like function",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            ["5", "alpha", "beta"],
+            ["50", "alpha", "delta"]
+        ],
+        "query_python": "select * where LIKE(a3, '%ta')",
+        "query_js": "select * where LIKE(a3, '%ta')"
     }
 ]

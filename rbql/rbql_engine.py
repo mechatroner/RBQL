@@ -51,7 +51,6 @@ from ._version import __version__
 
 # FIXME add LIKE unit tests, for invalid operator usage too.
 # FIXME add like-only unit tests just to test euqivalence of coversion from like to regex expression both in python and js
-# FIXME add invalid syntax error for JS, same as it was done for Python
 
 
 GROUP_BY = 'GROUP BY'
