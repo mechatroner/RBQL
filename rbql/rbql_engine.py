@@ -49,8 +49,7 @@ from ._version import __version__
 # TODO handle FROM keyword in query - either ignore or print an error
 
 
-# FIXME add LIKE unit tests, for invalid operator usage too.
-# FIXME add like-only unit tests just to test euqivalence of coversion from like to regex expression both in python and js
+# FIXME add like-only unit tests just to test equivalence of conversion from like to regex expression both in python and js
 
 
 GROUP_BY = 'GROUP BY'

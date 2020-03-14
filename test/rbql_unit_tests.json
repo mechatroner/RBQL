@@ -1468,5 +1468,17 @@
         ],
         "query_python": "select * where LIKE(a3, '%ta')",
         "query_js": "select * where LIKE(a3, '%ta')"
+    },
+    {
+        "test_name": "invalid like operator usage",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error": "RBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ...",
+        "query_python": "select * where a1 LIKE '%ta'",
+        "query_js": "select * where a1 LIKE '%ta'"
     }
 ]

@@ -1526,13 +1526,20 @@ function SingleTableRegistry(table, column_names=null, normalize_column_names=tr
 async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='') {
     let [js_code, join_map] = await parse_to_js(query_text, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
     let rbql_worker = null;
-    if (debug_mode) {
-        // This version works a little faster than eval below. The downside is that a temporary file is created
-        rbql_worker = load_module_from_file(js_code);
-    } else {
-        let module = {'exports': {}};
-        eval('(function(){' + js_code + '})()');
-        rbql_worker = module.exports;
+    try {
+        if (debug_mode) {
+            // This version works a little faster than eval below. The downside is that a temporary file is created
+            rbql_worker = load_module_from_file(js_code);
+        } else {
+            let module = {'exports': {}};
+            eval('(function(){' + js_code + '})()');
+            rbql_worker = module.exports;
+        }
+    } catch (e) {
+        if ((e instanceof SyntaxError) && query_text.toLowerCase().indexOf(' like ') != -1) {
+            throw new SyntaxError(e.message + "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... ");
+        }
+        throw e;
     }
     await rbql_worker.rb_transform(input_iterator, join_map, output_writer);
     output_warnings.push(...input_iterator.get_warnings());
@@ -1554,6 +1561,22 @@ async function query_table(query_text, input_table, output_table, output_warning
 
 function set_debug_mode() {
     debug_mode = true;
+}
+
+
+function exception_to_error_info(e) {
+    let exceptions_type_map = {
+        'RbqlRuntimeError': 'query execution',
+        'RbqlParsingError': 'query parsing',
+        'SyntaxError': 'JS syntax error',
+        'RbqlIOHandlingError': 'IO handling'
+    };
+    let error_type = 'unexpected';
+    if (e.constructor && e.constructor.name && exceptions_type_map.hasOwnProperty(e.constructor.name)) {
+        error_type = exceptions_type_map[e.constructor.name];
+    }
+    let error_msg = e.hasOwnProperty('message') ? e.message : String(e);
+    return [error_type, error_msg];
 }
 
 
@@ -1579,6 +1602,8 @@ module.exports.parse_join_expression = parse_join_expression;
 module.exports.resolve_join_variables = resolve_join_variables;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
+
+module.exports.exception_to_error_info = exception_to_error_info;
 
 module.exports.set_debug_mode = set_debug_mode;
 })()
