@@ -49,9 +49,6 @@ from ._version import __version__
 # TODO handle FROM keyword in query - either ignore or print an error
 
 
-# FIXME add like-only unit tests just to test equivalence of conversion from like to regex expression both in python and js
-
-
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'

@@ -42,6 +42,12 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(a_strp, '')
 
 
+    def test_like_to_regex_conversion(self):
+        a = '%hello_world.foo.*bar%'
+        b = rbql_engine.like_to_regex(a)
+        self.assertEqual(r'^.*hello.world\.foo\.\*bar.*$', b)
+
+
     def test_string_literals_separation(self):
         #TODO generate some random examples: Generate some strings randomly and then parse them
         test_cases = list()
