@@ -1457,17 +1457,19 @@
     {
         "test_name": "like function",
         "input_table": [
-            ["5", "alpha", "beta"],
+            ["5", "alpha", ".be.*ta"],
             ["-20", "alpha", "gamma"],
-            ["50", "alpha", "delta"],
+            ["50", "alpha", ".del.*ta"],
+            ["5", "alpha", "bbe.*ta"],
+            ["50", "alpha", "del..ta"],
             ["20", "alpha", ""]
         ],
         "expected_output_table": [
-            ["5", "alpha", "beta"],
-            ["50", "alpha", "delta"]
+            ["5", "alpha", ".be.*ta"],
+            ["50", "alpha", ".del.*ta"]
         ],
-        "query_python": "select * where LIKE(a3, '%ta')",
-        "query_js": "select * where LIKE(a3, '%ta')"
+        "query_python": "select * where LIKE(a3, '.%.*ta')",
+        "query_js": "select * where LIKE(a3, '.%.*ta')"
     },
     {
         "test_name": "invalid like operator usage",
