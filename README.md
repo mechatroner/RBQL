@@ -105,6 +105,11 @@ UNNEST(list) takes a list/array as an argument and repeats the output record mul
 Example: `SELECT a1, UNNEST(a2.split(';'))`  
 
 
+### LIKE() function
+RBQL does not support LIKE operator, instead it provides "like()" function which can be used like this:
+`SELECT * where like(a1, 'foo%bar')`
+
+
 ### User Defined Functions (UDF)
 
 RBQL supports User Defined Functions  
