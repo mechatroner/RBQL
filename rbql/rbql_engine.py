@@ -912,38 +912,60 @@ def combine_string_literals(backend_expression, string_literals):
 
 
 def parse_join_expression(src):
-    match = re.match(r'(?i)^ *([^ ]+) +on +([^ ]+) *== *([^ ]+) *$', src)
+    src = src.strip()
+    invalid_join_syntax_error = 'Invalid join syntax. Valid syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]'
+    match = re.search(r'^([^ ]+) +on +', src, re.IGNORECASE)
     if match is None:
-        raise RbqlParsingError('Invalid join syntax. Must be: "<JOIN> /path/to/B/table on a... == b..."') # UT JSON
-    return (match.group(1), match.group(2), match.group(3))
+        raise RbqlParsingError(invalid_join_syntax_error)
+    table_id = match.group(1)
+    src = src[match.end():]
+    variable_pairs = []
+    while True:
+        # FIXME this would fail for `JOIN test.csv ON a['foo bar'] = b['FOO BAR']
+        match = re.search('^([^ ]+) *== *([^ ]+)', src)
+        if match is None:
+            raise RbqlParsingError(invalid_join_syntax_error)
+        variable_pair = (match.group(1), match.group(2))
+        variable_pairs.append(variable_pair)
+        src = src[match.end():]
+        if not len(src):
+            break
+        match = re.search('and +', src, re.IGNORECASE)
+        if match is None:
+            raise RbqlParsingError(invalid_join_syntax_error)
+        src = src[match.end():]
+    assert len(variable_pairs)
+    return (table_id, variable_pairs)
 
 
-def resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals):
-    join_var_1 = combine_string_literals(join_var_1, string_literals)
-    join_var_2 = combine_string_literals(join_var_2, string_literals)
-    if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
-        raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
-    if join_var_2 in input_variables_map and join_var_2 in join_variables_map:
-        raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
-    if join_var_2 in input_variables_map:
-        join_var_1, join_var_2 = join_var_2, join_var_1
-
-    if join_var_1 in ['NR', 'a.NR', 'aNR']:
-        lhs_key_index = -1
-    elif join_var_1 in input_variables_map:
-        lhs_key_index = input_variables_map.get(join_var_1).index
-    else:
-        raise RbqlParsingError('Unable to parse JOIN expression: Input table does not have field "{}"'.format(join_var_1)) # UT JSON
-
-    if join_var_2 in ['bNR', 'b.NR']:
-        rhs_key_index = -1
-    elif join_var_2 in join_variables_map:
-        rhs_key_index = join_variables_map.get(join_var_2).index
-    else:
-        raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"'.format(join_var_2)) # UT JSON
-
-    lhs_join_var_expression = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
-    return (lhs_join_var_expression, rhs_key_index)
+def resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals):
+    lhs_variables = []
+    rhs_indices = []
+    for join_var_1, join_var_2 in variable_pairs:
+        join_var_1 = combine_string_literals(join_var_1, string_literals)
+        join_var_2 = combine_string_literals(join_var_2, string_literals)
+        if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
+            raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
+        if join_var_2 in input_variables_map and join_var_2 in join_variables_map:
+            raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
+        if join_var_2 in input_variables_map:
+            join_var_1, join_var_2 = join_var_2, join_var_1
+        if join_var_1 in ['NR', 'a.NR', 'aNR']:
+            lhs_key_index = -1
+        elif join_var_1 in input_variables_map:
+            lhs_key_index = input_variables_map.get(join_var_1).index
+        else:
+            raise RbqlParsingError('Unable to parse JOIN expression: Input table does not have field "{}"'.format(join_var_1)) # UT JSON
+        if join_var_2 in ['bNR', 'b.NR']:
+            rhs_key_index = -1
+        elif join_var_2 in join_variables_map:
+            rhs_key_index = join_variables_map.get(join_var_2).index
+        else:
+            raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"'.format(join_var_2)) # UT JSON
+        lhs_join_var_expression = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
+        rhs_indices.append(rhs_key_index)
+        lhs_variables.append(lhs_join_var_expression)
+    return (tuple(lhs_variables), tuple(rhs_indices))
 
 
 def parse_basic_variables(query_text, prefix, dst_variables_map):
@@ -1229,11 +1251,33 @@ def translate_except_expression(except_expression, input_variables_map, string_l
 
 class HashJoinMap:
     # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
-    def __init__(self, record_iterator, key_index):
+    def __init__(self, record_iterator, key_indices):
         self.max_record_len = 0
         self.hash_map = defaultdict(list)
         self.record_iterator = record_iterator
-        self.key_index = key_index
+        self.key_indices = None
+        self.key_index = None
+        if len(key_indices) == 1:
+            self.key_index = key_indices[0]
+            self.polymorphic_get_key = self.get_single_key
+        else:
+            self.key_indices = key_indices
+            self.polymorphic_get_key = self.get_multi_key
+
+
+    def get_single_key(self, nr, fields):
+        if self.key_index >= len(fields):
+            raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
+        return nr if self.key_index == -1 else fields[self.key_index]
+
+
+    def get_multi_key(self, nr, fields):
+        result = []
+        for ki in key_indices:
+            if ki >= len(fields):
+                raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(ki + 1, nr))
+            result.append(nr if ki == -1 else fields[ki])
+        return tuple(result)
 
 
     def build(self):
@@ -1245,9 +1289,7 @@ class HashJoinMap:
             nr += 1
             nf = len(fields)
             self.max_record_len = builtin_max(self.max_record_len, nf)
-            if self.key_index >= nf:
-                raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
-            key = nr if self.key_index == -1 else fields[self.key_index]
+            key = self.polymorphic_get_key(nr, fields)
             self.hash_map[key].append((nr, nf, fields))
 
 
@@ -1284,7 +1326,7 @@ def parse_to_py(query_text, input_iterator, join_tables_registry):
 
     join_variables_map = None
     if JOIN in rb_actions:
-        rhs_table_id, join_var_1, join_var_2 = parse_join_expression(rb_actions[JOIN]['text'])
+        rhs_table_id, variable_pairs = parse_join_expression(rb_actions[JOIN]['text'])
         if join_tables_registry is None:
             raise RbqlParsingError('JOIN operations are not supported by the application') # UT JSON
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
@@ -1292,11 +1334,11 @@ def parse_to_py(query_text, input_iterator, join_tables_registry):
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
         join_variables_map = join_record_iterator.get_variables_map(query_text)
 
-        lhs_join_var_expression, rhs_key_index = resolve_join_variables(input_variables_map, join_variables_map, join_var_1, join_var_2, string_literals)
+        lhs_variables_tuple, rhs_indices_tuple = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals)
         joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
         query_context.join_operation = rb_actions[JOIN]['join_subtype']
-        query_context.lhs_join_var_expression = lhs_join_var_expression
-        query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_key_index)
+        query_context.lhs_join_var_expression = lhs_variables_tuple[0] if len(lhs_variables_tuple) == 1 else lhs_variables_tuple
+        query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_indices_tuple)
         query_context.join_map_impl.build()
         query_context.join_map = joiner_type(query_context.join_map_impl)
 

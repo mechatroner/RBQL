@@ -460,6 +460,16 @@
         "query_js": "select top 5 NR, *"
     },
     {
+        "test_name": "join with whitespace in join var",
+        "input_table_path": "csv_files/university_ranking.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result4.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "query_python": "select top 20 a2, b['country name'], b.Population join ###UT_TESTS_DIR###/csv_files/countries2.csv on a.country == b['country name'] order by a.university_name",
+        "query_js": "select top 20 a2, b['country name'], b.Population join ###UT_TESTS_DIR###/csv_files/countries2.csv on a.country == b['country name'] order by a.university_name"
+    },
+    {
         "test_name": "join named fields skip header",
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_output_table_path": "csv_files/university_ranking_result5.csv",

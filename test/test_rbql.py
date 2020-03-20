@@ -84,10 +84,25 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_join_parsing(self):
         join_part = '/path/to/the/file.tsv on a1 == b3'
-        self.assertEqual(('/path/to/the/file.tsv', 'a1', 'b3'), rbql_engine.parse_join_expression(join_part))
+        self.assertEqual(('/path/to/the/file.tsv', [('a1', 'b3')]), rbql_engine.parse_join_expression(join_part))
 
         join_part = ' file.tsv on b[20]== a.name  '
-        self.assertEqual(('file.tsv', 'b[20]', 'a.name'), rbql_engine.parse_join_expression(join_part))
+        self.assertEqual(('file.tsv', [('b[20]', 'a.name')]), rbql_engine.parse_join_expression(join_part))
+
+        join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 '
+        self.assertEqual(('file.tsv', [('b[20]', 'a.name'), ('a1', 'b3')]), rbql_engine.parse_join_expression(join_part))
+
+        join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 and '
+        with self.assertRaises(Exception) as cm:
+            rbql_engine.parse_join_expression(join_part)
+        e = cm.exception
+        self.assertTrue(str(e).find('Invalid join syntax') != -1)
+
+        join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 + "foo" '
+        with self.assertRaises(Exception) as cm:
+            rbql_engine.parse_join_expression(join_part)
+        e = cm.exception
+        self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
         join_part = ' Bon b1 == a.age '
         with self.assertRaises(Exception) as cm:
@@ -95,20 +110,20 @@ class TestRBQLQueryParsing(unittest.TestCase):
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
-        self.assertEqual(('safe_join_get(record_a, 0)', 1), rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b2', []))
+        self.assertEqual((('safe_join_get(record_a, 0)',), (1,)), rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, [('a1', 'b2')], []))
 
         with self.assertRaises(Exception) as cm:
-            rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b.name', [])
+            rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, [('a1', 'b.name')], [])
         e = cm.exception
         self.assertTrue(str(e).find('Unable to parse JOIN expression: Join table does not have field "b.name"') != -1)
 
         with self.assertRaises(Exception) as cm:
-            rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'a1', 'b["foo bar"]', [])
+            rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, [('a1', 'b["foo bar"]')], [])
         e = cm.exception
         self.assertTrue(str(e).find('Unable to parse JOIN expression: Join table does not have field "b["foo bar"]"') != -1)
 
         with self.assertRaises(Exception) as cm:
-            rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, 'b1', 'b2', [])
+            rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, [('b1', 'b2')], [])
         e = cm.exception
         self.assertTrue(str(e).find('Unable to parse JOIN expression: Input table does not have field "b1"') != -1)
 

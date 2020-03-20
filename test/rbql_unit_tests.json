@@ -218,7 +218,7 @@
             ["rocket", "some stuff"]
         ],
         "expected_error_exact": true,
-        "expected_error": "Invalid join syntax. Must be: \"<JOIN> /path/to/B/table on a... == b...\"",
+        "expected_error": "Invalid join syntax. Valid syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]",
         "query_python": "select NR, * inner join B on: a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
         "query_js": "select NR, * inner join B on: a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
