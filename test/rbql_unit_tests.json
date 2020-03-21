@@ -1472,6 +1472,43 @@
         "query_js": "select * where LIKE(a3, '.%.*ta')"
     },
     {
+        "test_name": "two key join simple",
+        "input_table": [
+            ["Russia", "Moscow", "1147", "100"],
+            ["Russia", "Moscow", "2019", "10000000"],
+            ["Russia", "Moscow", "1811", "270000"],
+            ["Japan", "Tokio", "2019", "9000000"],
+            ["United Kingdom", "London", "1992", "7000000"],
+            ["USA", "New York", "2010", "8000000"],
+            ["USA", "New York", "980", "0"]
+        ],
+        "join_table": [
+            ["Red Square", "Russia", "Moscow"],
+            ["Statue of Lenin", "Russia", "Moscow"],
+            ["BMSTU", "Russia", "Moscow"],
+            ["McDonalds", "Russia", "Moscow"],
+            ["Trafalgar Square", "United Kingdom", "London"],
+            ["Big Ben", "United Kingdom", "London"],
+            ["Eiffel Tower", "France", "Paris"],
+            ["Statue Of Liberty", "USA", "New York"]
+        ],
+        "expected_output_table": [
+            ["Russia", "Moscow", "1147", "100", "Red Square"],
+            ["Russia", "Moscow", "1147", "100", "Statue of Lenin"],
+            ["Russia", "Moscow", "1147", "100", "BMSTU"],
+            ["Russia", "Moscow", "2019", "10000000", "Red Square"],
+            ["Russia", "Moscow", "2019", "10000000", "Statue of Lenin"],
+            ["Russia", "Moscow", "2019", "10000000", "BMSTU"],
+            ["United Kingdom", "London", "1992", "7000000", "Trafalgar Square"],
+            ["United Kingdom", "London", "1992", "7000000", "Big Ben"],
+            ["USA", "New York", "2010", "8000000", "Statue Of Liberty"],
+            ["USA", "New York", "980", "0", "Statue Of Liberty"]
+        ],
+        "debug_mode": true,
+        "query_python": "select a1, a2, a3, a4, b1 join B on a1 == b2 and a2 == b3 where b1 != 'McDonalds' and a3 != '1811'",
+        "query_js": "select a1, a2, a3, a4, b1 join B on a1 == b2 and a2 == b3 where b1 != 'McDonalds' and a3 != '1811'"
+    },
+    {
         "test_name": "invalid like operator usage",
         "input_table": [
             ["5", "alpha", "beta"],

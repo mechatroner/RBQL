@@ -110,7 +110,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
         e = cm.exception
         self.assertTrue(str(e).find('Invalid join syntax') != -1)
 
-        self.assertEqual((('safe_join_get(record_a, 0)',), (1,)), rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, [('a1', 'b2')], []))
+        self.assertEqual((['safe_join_get(record_a, 0)'], [1]), rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, [('a1', 'b2')], []))
 
         with self.assertRaises(Exception) as cm:
             rbql_engine.resolve_join_variables({'a1': vinf(True, 0), 'a2': vinf(True, 1)}, {'b1': vinf(True, 0), 'b2': vinf(True, 1)}, [('a1', 'b.name')], [])
