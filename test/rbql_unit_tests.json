@@ -1504,9 +1504,43 @@
             ["USA", "New York", "2010", "8000000", "Statue Of Liberty"],
             ["USA", "New York", "980", "0", "Statue Of Liberty"]
         ],
-        "debug_mode": true,
         "query_python": "select a1, a2, a3, a4, b1 join B on a1 == b2 and a2 == b3 where b1 != 'McDonalds' and a3 != '1811'",
         "query_js": "select a1, a2, a3, a4, b1 join B on a1 == b2 and a2 == b3 where b1 != 'McDonalds' and a3 != '1811'"
+    },
+    {
+        "test_name": "three key join simple",
+        "input_table": [
+            ["alpha", 100, true, 0.123],
+            ["alpha", 100, false, 0.133],
+            ["alpha", 200, false, 8.3],
+            ["beta", 100, true, 12.3],
+            ["beta", 100, true, 18.3],
+            ["gamma", 300, true, 20.3],
+            ["delta", 300, true, 20.3],
+            ["delta", 300, false, 20.3]
+        ],
+        "join_table": [
+            ["alpha", 100, true, "foo"],
+            ["alpha", 100, false, "bar"],
+            ["alpha", 200, false, "foo"],
+            ["beta", 100, true, "foo"],
+            ["beta", 100, true, "bar"],
+            ["gamma", 300, true, "foo"],
+            ["epsilon", 300, true, "foo"],
+            ["epsilon", 300, false, "foo"]
+        ],
+        "expected_output_table": [
+            ["alpha", 100, true, 0.123, "alpha", 100, true, "foo"],
+            ["alpha", 100, false, 0.133, "alpha", 100, false, "bar"],
+            ["alpha", 200, false, 8.3, "alpha", 200, false, "foo"],
+            ["beta", 100, true, 12.3, "beta", 100, true, "foo"],
+            ["beta", 100, true, 12.3, "beta", 100, true, "bar"],
+            ["beta", 100, true, 18.3, "beta", 100, true, "foo"],
+            ["beta", 100, true, 18.3, "beta", 100, true, "bar"],
+            ["gamma", 300, true, 20.3, "gamma", 300, true, "foo"]
+        ],
+        "query_python": "select * join B on a1 == b1 and a2 == b2 and a3 == b3",
+        "query_js": "select * join B on a1 == b1 and a2 == b2 and a3 == b3"
     },
     {
         "test_name": "invalid like operator usage",
