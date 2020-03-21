@@ -256,7 +256,7 @@
         ],
         "randomly_replace_var_names": false,
         "expected_error_exact": true,
-        "expected_error": "Unable to parse JOIN expression: Input table does not have field \"b2\"",
+        "expected_error": "Unable to parse JOIN expression: Input table does not have field \"b2\"\nValid JOIN syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]",
         "query_python": "select NR, * inner join B on b2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
         "query_js": "select NR, * inner join B on b2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
@@ -280,7 +280,7 @@
         ],
         "randomly_replace_var_names": false,
         "expected_error_exact": true,
-        "expected_error": "Unable to parse JOIN expression: Join table does not have field \"b.vehicle\"",
+        "expected_error": "Unable to parse JOIN expression: Join table does not have field \"b.vehicle\"\nValid JOIN syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]",
         "query_python": "select NR, * inner join B on a2 == b.vehicle where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
         "query_js": "select NR, * inner join B on a2 == b.vehicle where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },

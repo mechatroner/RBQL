@@ -921,7 +921,6 @@ def parse_join_expression(src):
     src = src[match.end():]
     variable_pairs = []
     while True:
-        # FIXME this would fail for `JOIN test.csv ON a['foo bar'] = b['FOO BAR']
         match = re.search('^([^ ]+) *== *([^ ]+)', src)
         if match is None:
             raise RbqlParsingError(invalid_join_syntax_error)
@@ -941,6 +940,7 @@ def parse_join_expression(src):
 def resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals):
     lhs_variables = []
     rhs_indices = []
+    valid_join_syntax_msg = 'Valid JOIN syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]'
     for join_var_1, join_var_2 in variable_pairs:
         join_var_1 = combine_string_literals(join_var_1, string_literals)
         join_var_2 = combine_string_literals(join_var_2, string_literals)
@@ -955,13 +955,13 @@ def resolve_join_variables(input_variables_map, join_variables_map, variable_pai
         elif join_var_1 in input_variables_map:
             lhs_key_index = input_variables_map.get(join_var_1).index
         else:
-            raise RbqlParsingError('Unable to parse JOIN expression: Input table does not have field "{}"'.format(join_var_1)) # UT JSON
+            raise RbqlParsingError('Unable to parse JOIN expression: Input table does not have field "{}"\n{}'.format(join_var_1, valid_join_syntax_msg)) # UT JSON
         if join_var_2 in ['bNR', 'b.NR']:
             rhs_key_index = -1
         elif join_var_2 in join_variables_map:
             rhs_key_index = join_variables_map.get(join_var_2).index
         else:
-            raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"'.format(join_var_2)) # UT JSON
+            raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"\n{}'.format(join_var_2, valid_join_syntax_msg)) # UT JSON
         lhs_join_var_expression = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
         rhs_indices.append(rhs_key_index)
         lhs_variables.append(lhs_join_var_expression)
