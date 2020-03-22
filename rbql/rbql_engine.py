@@ -929,7 +929,7 @@ def parse_join_expression(src):
         src = src[match.end():]
         if not len(src):
             break
-        match = re.search('and +', src, re.IGNORECASE)
+        match = re.search('^ +and +', src, re.IGNORECASE)
         if match is None:
             raise RbqlParsingError(invalid_join_syntax_error)
         src = src[match.end():]
