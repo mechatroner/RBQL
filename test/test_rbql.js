@@ -95,10 +95,31 @@ function test_join_parsing() {
     join_part = ' file.tsv on b[20]== a.name  ';
     test_common.assert_arrays_are_equal(['file.tsv', [['b[20]', 'a.name']]], rbql.parse_join_expression(join_part));
 
-    // FIXME add more join parsing tests like in Python version
+    join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 '
+    test_common.assert_arrays_are_equal(['file.tsv', [['b[20]', 'a.name'], ['a1', 'b3']]], rbql.parse_join_expression(join_part));
+
+    join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 and ';
+    let catched = false;
+    try {
+        rbql.parse_join_expression(join_part);
+    } catch (e) {
+        catched = true;
+        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
+    }
+    test_common.assert(catched);
+
+    join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 + "foo" ';
+    catched = false;
+    try {
+        rbql.parse_join_expression(join_part);
+    } catch (e) {
+        catched = true;
+        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
+    }
+    test_common.assert(catched);
 
     join_part = ' Bon b1 == a.age ';
-    let catched = false;
+    catched = false;
     try {
         rbql.parse_join_expression(join_part);
     } catch (e) {
