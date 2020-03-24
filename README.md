@@ -91,7 +91,7 @@ There is a workaround for the limitation above for _ARRAY_AGG_ function which su
 
 Join table B can be referenced either by it's file path or by it's name - an arbitary string which user should provide before executing the JOIN query.  
 RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an error if any key in left table "A" doesn't have exactly one matching key in the right table "B".  
-Limitation: _JOIN_ statements must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON ai == bj_  
+Limitation: _JOIN_ statements can't contain Python/JS expressions and must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON a... == b... [AND a... == b... [AND ... ]]_
 
 
 ### SELECT EXCEPT statement
