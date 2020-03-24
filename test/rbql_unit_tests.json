@@ -1505,7 +1505,7 @@
             ["USA", "New York", "980", "0", "Statue Of Liberty"]
         ],
         "query_python": "select a1, a2, a3, a4, b1 join B on a1 == b2 and a2 == b3 where b1 != 'McDonalds' and a3 != '1811'",
-        "query_js": "select a1, a2, a3, a4, b1 join B on a1 == b2 and a2 == b3 where b1 != 'McDonalds' and a3 != '1811'"
+        "query_js": "select a1, a2, a3, a4, b1 join B on a1 == b2 and a2 == b3 where b1 != 'McDonalds' && a3 != '1811'"
     },
     {
         "test_name": "three key join simple",
@@ -1539,8 +1539,8 @@
             ["beta", 100, true, 18.3, "beta", 100, true, "bar"],
             ["gamma", 300, true, 20.3, "gamma", 300, true, "foo"]
         ],
-        "query_python": "select * join B on a1 == b1 and a2 == b2 and a3 == b3",
-        "query_js": "select * join B on a1 == b1 and a2 == b2 and a3 == b3"
+        "query_python": "select * join B on a1 == b1 and a2 == b2 AND a3 == b3",
+        "query_js": "select * join B on a1 == b1 && a2 == b2 AND a3 == b3"
     },
     {
         "test_name": "invalid like operator usage",

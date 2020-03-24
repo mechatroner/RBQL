@@ -933,7 +933,6 @@ def parse_join_expression(src):
         if match is None:
             raise RbqlParsingError(invalid_join_syntax_error)
         src = src[match.end():]
-    assert len(variable_pairs)
     return (table_id, variable_pairs)
 
 
