@@ -973,7 +973,7 @@ function parse_join_expression(src) {
     src = src.substr(match[0].length);
 
     let variable_pairs = [];
-    var pair_rgx = /^([^ ]+) *== *([^ ]+)/;
+    var pair_rgx = /^([^ =]+) *==? *([^ =]+)/;
     var and_rgx = /^ +(and|&&) +/i;
     while (true) {
         match = pair_rgx.exec(src);

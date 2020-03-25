@@ -921,7 +921,7 @@ def parse_join_expression(src):
     src = src[match.end():]
     variable_pairs = []
     while True:
-        match = re.search('^([^ ]+) *== *([^ ]+)', src)
+        match = re.search('^([^ =]+) *==? *([^ =]+)', src)
         if match is None:
             raise RbqlParsingError(invalid_join_syntax_error)
         variable_pair = (match.group(1), match.group(2))

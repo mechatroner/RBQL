@@ -351,7 +351,7 @@
         "query_js": "select b1,b2,   a1 strict left join B on a2 == b1 where b2 != \"wings\""
     },
     {
-        "test_name": "test9",
+        "test_name": "strict left join with single equal char comparison",
         "input_table": [
             ["5", "car", "lada"],
             ["-20", "car", "ferrari"],
@@ -370,8 +370,8 @@
             [5, "plane"],
             [5, "plane"]
         ],
-        "query_python": "select len(b1), a2 strict left join B on a2 == b1",
-        "query_js": "select b1.length,  a2 strict left join B on a2 == b1"
+        "query_python": "select len(b1), a2 strict left join B on a2 = b1",
+        "query_js": "select b1.length,  a2 strict left join B on a2 = b1"
     },
     {
         "test_name": "test_OR",
