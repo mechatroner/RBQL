@@ -15,6 +15,18 @@
         "query_js": "select NR, a1, a3.length where a1 > 5"
     },
     {
+        "test_name": "Invalid FROM",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error": "RBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM",
+        "query_python": "select * from A",
+        "query_js": "select * from A"
+    },
+    {
         "test_name": "unknown function",
         "input_table": [
             ["5", "alpha", "beta"],

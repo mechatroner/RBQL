@@ -831,8 +831,11 @@ async function query(query_text, input_iterator, output_writer, output_warnings,
             rbql_worker = module.exports;
         }
     } catch (e) {
-        if ((e instanceof SyntaxError) && query_text.toLowerCase().indexOf(' like ') != -1) {
-            throw new SyntaxError(e.message + "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... ");
+        if (e instanceof SyntaxError) { 
+            if (query_text.toLowerCase().indexOf(' like ') != -1)
+                throw new SyntaxError(e.message + "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "); // UT JSON
+            if (query_text.toLowerCase().indexOf(' from ') != -1)
+                throw new SyntaxError(e.message + "\nRBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM"); // UT JSON
         }
         throw e;
     }

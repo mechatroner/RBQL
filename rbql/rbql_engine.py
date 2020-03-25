@@ -888,7 +888,9 @@ def exception_to_error_info(e):
             error_strings[0] = '\n'
         error_msg = ''.join(error_strings).rstrip()
         if re.search(' like[ (]', error_msg, flags=re.IGNORECASE) is not None:
-            error_msg += "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "
+            error_msg += "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... " # UT JSON
+        if error_msg.lower().find(' from ') != -1:
+            error_msg += "\nRBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM" # UT JSON
         return ('syntax error', error_msg)
     error_type = 'unexpected'
     error_msg = str(e)
