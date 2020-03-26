@@ -48,6 +48,8 @@ from ._version import __version__
 
 # TODO handle FROM keyword in query - either ignore or print an error
 
+# FIXME drop out ' FROM a ' substring from the query before parsing: replace it with ' '
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -1086,8 +1088,19 @@ def replace_star_count(aggregate_expression):
 
 
 def replace_star_vars(rbql_expression):
+    # We need to do two replacements here, so we can handle situation with multiple consecutive stars. Example:  SELECT *, *, *
+    # The first substitution will replace stars # 1, 2 and we get: ] + star_fields + [] + star_fields + [, *
+    # After the second substitution we will have: ] + star_fields + [] + star_fields + [] + star_fields + [
+
     rbql_expression = re.sub(r'(?:^|,) *\* *(?=, *\* *($|,))', '] + star_fields + [', rbql_expression)
     rbql_expression = re.sub(r'(?:^|,) *\* *(?:$|,)', '] + star_fields + [', rbql_expression)
+
+    rbql_expression = re.sub(r'(?:^|,) *a\.\* *(?=, *a\.\* *($|,))', '] + record_a + [', rbql_expression)
+    rbql_expression = re.sub(r'(?:^|,) *a\.\* *(?:$|,)', '] + record_a + [', rbql_expression)
+
+    rbql_expression = re.sub(r'(?:^|,) *b\.\* *(?=, *b\.\* *($|,))', '] + record_b + [', rbql_expression)
+    rbql_expression = re.sub(r'(?:^|,) *b\.\* *(?:$|,)', '] + record_b + [', rbql_expression)
+
     return rbql_expression
 
 
