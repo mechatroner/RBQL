@@ -327,6 +327,7 @@ function replace_star_count(aggregate_expression) {
 
 
 function replace_star_vars(rbql_expression) {
+    // FIXME add functional replacement unit tests for complex mixed cases like a.*, b.*, *, a.*, b.*, *
     var middle_star_rgx = /(?:^|,) *\* *(?=, *\* *($|,))/g;
     rbql_expression = rbql_expression.replace(middle_star_rgx, ']).concat(star_fields).concat([');
     var last_star_rgx = /(?:^|,) *\* *(?:$|,)/g;

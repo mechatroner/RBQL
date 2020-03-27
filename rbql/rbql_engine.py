@@ -1088,20 +1088,18 @@ def replace_star_count(aggregate_expression):
 
 
 def replace_star_vars(rbql_expression):
-    # We need to do two replacements here, so we can handle situation with multiple consecutive stars. Example:  SELECT *, *, *
-    # The first substitution will replace stars # 1, 2 and we get: ] + star_fields + [] + star_fields + [, *
-    # After the second substitution we will have: ] + star_fields + [] + star_fields + [] + star_fields + [
-
-    rbql_expression = re.sub(r'(?:^|,) *\* *(?=, *\* *($|,))', '] + star_fields + [', rbql_expression)
-    rbql_expression = re.sub(r'(?:^|,) *\* *(?:$|,)', '] + star_fields + [', rbql_expression)
-
-    rbql_expression = re.sub(r'(?:^|,) *a\.\* *(?=, *a\.\* *($|,))', '] + record_a + [', rbql_expression)
-    rbql_expression = re.sub(r'(?:^|,) *a\.\* *(?:$|,)', '] + record_a + [', rbql_expression)
-
-    rbql_expression = re.sub(r'(?:^|,) *b\.\* *(?=, *b\.\* *($|,))', '] + record_b + [', rbql_expression)
-    rbql_expression = re.sub(r'(?:^|,) *b\.\* *(?:$|,)', '] + record_b + [', rbql_expression)
-
-    return rbql_expression
+    star_matches = list(re.finditer('(?:^|,) *(\*|a\.\*|b\.\*) *(?=$|,)', rbql_expression))
+    last_pos = 0
+    result = ''
+    for match in star_matches:
+        star_expression = match.group(1)
+        replacement_expression = '] + ' + {'*': 'star_fields', 'a.*': 'record_a', 'b.*': 'record_b'}[star_expression] + ' + ['
+        if last_pos < match.start():
+            result += rbql_expression[last_pos:match.start()]
+        result += replacement_expression
+        last_pos = match.end() + 1 # Adding one to skip the lookahead comma
+    result += rbql_expression[last_pos:]
+    return result
 
 
 def translate_update_expression(update_expression, input_variables_map, string_literals):
