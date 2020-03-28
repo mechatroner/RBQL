@@ -361,6 +361,16 @@
         "query_js": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 && parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
+        "test_name": "dict fields unicode",
+        "input_table_path": "csv_files/countries_utf_header.csv",
+        "expected_output_table_path": "csv_files/countries_result1.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "query_python": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where NR > 1 and int(a['Площадь - Квадратные мили']) > 1000000 order by int(a['ВВП на душу населения']) desc",
+        "query_js": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where NR > 1 && parseInt(a['Площадь - Квадратные мили']) > 1000000 order by parseInt(a['ВВП на душу населения']) desc"
+    },
+    {
         "test_name": "aggregate dict fields",
         "input_table_path": "csv_files/countries.csv",
         "expected_output_table_path": "csv_files/countries_result2.csv",
