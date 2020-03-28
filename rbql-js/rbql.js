@@ -1358,10 +1358,16 @@ function cleanup_query(query_text) {
 }
 
 
+function remove_redundant_keyword_from(query_text) {
+    return str_strip(query_text.replace(/ +from +a(?: +|$)/gi, ' '));
+}
+
+
 async function parse_to_js(query_text, js_template_text, input_iterator, join_tables_registry, user_init_code) {
     user_init_code = indent_user_init_code(user_init_code);
     query_text = cleanup_query(query_text);
     var [format_expression, string_literals] = separate_string_literals_js(query_text);
+    format_expression = remove_redundant_keyword_from(format_expression);
     var input_variables_map = await input_iterator.get_variables_map(query_text);
 
     var rb_actions = separate_actions(format_expression);

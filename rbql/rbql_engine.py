@@ -46,9 +46,7 @@ from ._version import __version__
 
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
-# TODO handle FROM keyword in query - either ignore or print an error
-
-# FIXME drop out ' FROM a ' substring from the query before parsing: replace it with ' '
+# FIXME add csv test with unicode header names which are used in the query i.e.. a['<some_unicode_value>']
 
 
 GROUP_BY = 'GROUP BY'
@@ -1320,9 +1318,14 @@ def cleanup_query(query_text):
     return ' '.join(rbql_lines)
 
 
+def remove_redundant_keyword_from(query_text):
+    return re.sub(' +from +a(?: +|$)', ' ', query_text, flags=re.IGNORECASE).strip()
+
+
 def parse_to_py(query_text, input_iterator, join_tables_registry):
     query_text = cleanup_query(query_text)
     format_expression, string_literals = separate_string_literals_py(query_text)
+    format_expression = remove_redundant_keyword_from(format_expression)
     input_variables_map = input_iterator.get_variables_map(query_text)
 
     rb_actions = separate_actions(format_expression)

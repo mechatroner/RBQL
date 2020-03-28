@@ -1,5 +1,20 @@
 [
     {
+        "test_name": "valid FROM",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5],
+            [4, "20", 0]
+        ],
+        "query_python": "select NR, a1, len(a3) FROM a where int(a1) > 5",
+        "query_js": "select NR, a1, a3.length FROM a where a1 > 5"
+    },
+    {
         "test_name": "test1",
         "input_table": [
             ["5", "alpha", "beta"],
@@ -23,8 +38,8 @@
             ["20", "alpha", ""]
         ],
         "expected_error": "RBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM",
-        "query_python": "select * from A",
-        "query_js": "select * from A"
+        "query_python": "select * from some_table.txt",
+        "query_js": "select * from some_table.txt"
     },
     {
         "test_name": "unknown function",
