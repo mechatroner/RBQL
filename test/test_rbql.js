@@ -192,6 +192,12 @@ function test_select_translation() {
     canonic_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     test_common.assert(canonic_dst === test_dst, 'translation 2');
 
+
+    rbql_src = ' *, a1,  a2,a1,*,a.* ,b.* , a.*  , *,*,b1, * ,   * ';
+    test_dst = rbql.translate_select_expression_js(rbql_src);
+    canonic_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(record_a).concat([]).concat(record_b).concat([]).concat(record_a).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
+    test_common.assert_equal(canonic_dst, test_dst);
+
     rbql_src = ' * ';
     test_dst = rbql.translate_select_expression_js(rbql_src);
     canonic_dst = '[].concat([]).concat(star_fields).concat([])';

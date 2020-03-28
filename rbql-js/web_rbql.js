@@ -1079,11 +1079,20 @@ function replace_star_count(aggregate_expression) {
 
 
 function replace_star_vars(rbql_expression) {
-    var middle_star_rgx = /(?:^|,) *\* *(?=, *\* *($|,))/g;
-    rbql_expression = rbql_expression.replace(middle_star_rgx, ']).concat(star_fields).concat([');
-    var last_star_rgx = /(?:^|,) *\* *(?:$|,)/g;
-    rbql_expression = rbql_expression.replace(last_star_rgx, ']).concat(star_fields).concat([');
-    return rbql_expression;
+    let star_rgx = /(?:^|,) *(\*|a\.\*|b\.\*) *(?=$|,)/g;
+    let matches = get_all_matches(star_rgx, rbql_expression);
+    let last_pos = 0;
+    let result = '';
+    for (let match of matches) {
+        let star_expression = match[1];
+        let replacement_expression = ']).concat(' + {'*': 'star_fields', 'a.*': 'record_a', 'b.*': 'record_b'}[star_expression] + ').concat([';
+        if (last_pos < match.index)
+            result += rbql_expression.substring(last_pos, match.index);
+        result += replacement_expression;
+        last_pos = match.index + match[0].length + 1 // Adding one to skip the lookahead comma
+    }
+    result += rbql_expression.substring(last_pos);
+    return result;
 }
 
 
