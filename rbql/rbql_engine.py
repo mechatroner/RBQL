@@ -880,7 +880,7 @@ def exception_to_error_info(e):
     }
     if isinstance(e, SyntaxError):
         import traceback
-        etype, evalue, etb = sys.exc_info()
+        etype, evalue, _etb = sys.exc_info()
         error_strings = traceback.format_exception_only(etype, evalue)
         if len(error_strings) and re.search('File.*line', error_strings[0]) is not None:
             error_strings[0] = '\n'
@@ -1084,7 +1084,7 @@ def replace_star_count(aggregate_expression):
 
 
 def replace_star_vars(rbql_expression):
-    star_matches = list(re.finditer('(?:^|,) *(\*|a\.\*|b\.\*) *(?=$|,)', rbql_expression))
+    star_matches = list(re.finditer(r'(?:^|,) *(\*|a\.\*|b\.\*) *(?=$|,)', rbql_expression))
     last_pos = 0
     result = ''
     for match in star_matches:
