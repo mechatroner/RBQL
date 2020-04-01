@@ -942,7 +942,7 @@ function map_variables_directly(query_text, column_names, dst_variables_map) {
     for (let i = 0; i < column_names.length; i++) {
         let column_name = column_names[i];
         if ( /^[_a-zA-Z][_a-zA-Z0-9]*$/.exec(column_name) === null)
-            throw new RbqlIOHandlingError(`Unable to use column name "${column_name}" as RBQL/JS variable`)
+            throw new RbqlIOHandlingError(`Unable to use column name "${column_name}" as RBQL/JS variable`);
         if (query_text.indexOf(column_name) != -1)
             dst_variables_map[column_name] = {initialize: true, index: i};
     }
@@ -976,7 +976,7 @@ function parse_join_expression(src) {
         if (match === null)
             throw new RbqlParsingError(invalid_join_syntax_error);
         variable_pairs.push([match[1], match[2]]);
-        src = src.substr(match[0].length)
+        src = src.substr(match[0].length);
         if (!src.length)
             break;
         match = and_rgx.exec(src);
@@ -1085,7 +1085,7 @@ function replace_star_vars(rbql_expression) {
         if (last_pos < match.index)
             result += rbql_expression.substring(last_pos, match.index);
         result += replacement_expression;
-        last_pos = match.index + match[0].length + 1 // Adding one to skip the lookahead comma
+        last_pos = match.index + match[0].length + 1; // Adding one to skip the lookahead comma
     }
     result += rbql_expression.substring(last_pos);
     return result;
@@ -1302,7 +1302,7 @@ function HashJoinMap(record_iterator, key_indices) {
         if (this.key_index >= fields.length)
             throw new RbqlRuntimeError(`No field with index ${this.key_index + 1} at record ${this.nr} in "B" table`);
         return this.key_index === -1 ? this.nr : fields[this.key_index];
-    }
+    };
 
     this.get_multi_key = function(nr, fields) {
         let result = [];
@@ -1312,7 +1312,7 @@ function HashJoinMap(record_iterator, key_indices) {
             result.push(ki === -1 ? this.nr : fields[ki]);
         }
         return JSON.stringify(result);
-    }
+    };
 
     if (key_indices.length == 1) {
         this.key_index = key_indices[0];
@@ -1594,7 +1594,7 @@ async function query(query_text, input_iterator, output_writer, output_warnings,
             rbql_worker = module.exports;
         }
     } catch (e) {
-        if (e instanceof SyntaxError) { 
+        if (e instanceof SyntaxError) {
             if (query_text.toLowerCase().indexOf(' like ') != -1)
                 throw new SyntaxError(e.message + "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "); // UT JSON
             if (query_text.toLowerCase().indexOf(' from ') != -1)
