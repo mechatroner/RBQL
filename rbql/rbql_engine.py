@@ -46,6 +46,7 @@ from ._version import __version__
 
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
+# FIXME add unit tests for import inside init
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -768,39 +769,41 @@ if not query_context.writer.write(up_fields):
     stop_flag = True
 '''
 
-
+# We need dummy_wrapper_for_exec function in MAIN_LOOP_BODY because otherwise "import" statements won't work as expected, see: https://github.com/mechatroner/sublime_rainbow_csv/issues/22
 MAIN_LOOP_BODY = '''
-try:
-    pass
-    __USER_INIT_CODE__
-except Exception as e:
-    raise RuntimeError('Exception while executing user-provided init code: {}'.format(e))
-
-NR = 0
-NU = 0
-stop_flag = False
-
-while not stop_flag:
-    record_a = query_context.input_iterator.get_record()
-    if record_a is None:
-        break
-    NR += 1
-    NF = len(record_a)
-    query_context.unnest_list = None # TODO optimize, don't need to set this every iteration
+def dummy_wrapper_for_exec():
     try:
-        __CODE__
-    except InternalBadKeyError as e:
-        raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
-    except InternalBadFieldError as e:
-        raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
-    except RbqlParsingError:
-        raise
+        pass
+        __USER_INIT_CODE__
     except Exception as e:
-        if debug_mode:
+        raise RuntimeError('Exception while executing user-provided init code: {}'.format(e))
+
+    NR = 0
+    NU = 0
+    stop_flag = False
+
+    while not stop_flag:
+        record_a = query_context.input_iterator.get_record()
+        if record_a is None:
+            break
+        NR += 1
+        NF = len(record_a)
+        query_context.unnest_list = None # TODO optimize, don't need to set this every iteration
+        try:
+            __CODE__
+        except InternalBadKeyError as e:
+            raise RbqlRuntimeError('No "{}" field at record {}'.format(e.bad_key, NR)) # UT JSON
+        except InternalBadFieldError as e:
+            raise RbqlRuntimeError('No "a{}" field at record {}'.format(e.bad_idx + 1, NR)) # UT JSON
+        except RbqlParsingError:
             raise
-        if str(e).find('RBQLAggregationToken') != -1:
-            raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
-        raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
+        except Exception as e:
+            if debug_mode:
+                raise
+            if str(e).find('RBQLAggregationToken') != -1:
+                raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
+            raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
+dummy_wrapper_for_exec()
 '''
 
 
