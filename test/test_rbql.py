@@ -273,6 +273,11 @@ class TestJsonTables(unittest.TestCase):
     def process_test_case(self, test_case):
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
+        if query is None:
+            if python_version >= 3:
+                query = test_case.get('query_python_3', None)
+            else:
+                query = test_case.get('query_python_2', None)
         debug_mode = test_case.get('debug_mode', False)
         minimal_python_version = float(test_case.get('minimal_python_version', 2.7))
         if python_version < minimal_python_version:

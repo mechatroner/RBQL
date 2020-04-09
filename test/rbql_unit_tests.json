@@ -1004,6 +1004,20 @@
         "query_js": "select a1, foobar(a2), a3"
     },
     {
+        "test_name": "User init code with import",
+        "input_table": [
+            ["rbql.org", "alpha", "gamma"],
+            ["python.org", "alpha", "beta"]
+        ],
+        "expected_output_table": [
+            ["d31b1b93-2426-5851-ae93-a08ab394b8e7", "alpha", "gamma"],
+            ["886313e1-3b8a-5372-9b90-0c9aee199e5d", "alpha", "beta"]
+        ],
+        "python_init_code": "import uuid\nimport sys\ndef joe(val):\n        return str(uuid.uuid5(uuid.NAMESPACE_DNS, val))\n\n",
+        "query_python_2": "update set a1 = joe(a1.encode('ascii'))",
+        "query_python_3": "update set a1 = joe(a1)"
+    },
+    {
         "test_name": "array_agg_with_grouping",
         "input_table": [
             ["car", 1, "100", "1"],
