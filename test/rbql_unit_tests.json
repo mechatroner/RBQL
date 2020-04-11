@@ -611,8 +611,8 @@
         "expected_warnings": [
             "inconsistent input records"
         ],
-        "query_python": "update set a2= \"Наполеон\" ",
-        "query_js": "update  set  a2= \"Наполеон\" "
+        "query_python": " update A set a2= \"Наполеон\" ",
+        "query_js": " update A set  a2= \"Наполеон\" "
     },
     {
         "test_name": "update_with_join_1",
@@ -640,8 +640,8 @@
             ["10", "boat", "yacht"],
             ["200", "plane", "boeing 737"]
         ],
-        "query_python": "update set a2 = \"{} ({})\".format(a2, b2) inner join B on a2 == b1 where b2 != \"wings\"",
-        "query_js": "update set a2 = a2 + \" (\" + b2 + \")\" inner join B on a2 == b1 where b2 != \"wings\""
+        "query_python": " UPDATE  a   SET  a2 = \"{} ({})\".format(a2, b2) inner join B on a2 == b1 where b2 != \"wings\"",
+        "query_js": " UPDATE  a   SET  a2 = a2 + \" (\" + b2 + \")\" inner join B on a2 == b1 where b2 != \"wings\""
     },
     {
         "test_name": "update_with_join_2",
