@@ -493,5 +493,15 @@
         ],
         "query_python": "select top 20 NR, a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc",
         "query_js": "select top 20 NR, a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc"
+    },
+    {
+        "test_name": "Bad header: empty strings and duplicate values in header",
+        "input_table_path": "csv_files/countries_bad_header.csv",
+        "expected_output_table_path": "csv_files/countries_bad_header_result1.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "query_python": "select top 100 a.Dup_header, a[''], * where NR < 20",
+        "query_js": "select top 100 a.Dup_header, a[''], * where NR < 20"
     }
 ]
