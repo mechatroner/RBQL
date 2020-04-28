@@ -1573,14 +1573,14 @@ function TableWriter(external_table) {
 }
 
 
-function SingleTableRegistry(table, column_names=null, normalize_column_names=true, table_id='B') {
+function SingleTableRegistry(table, column_names=null, normalize_column_names=true, table_id='b') {
     this.table = table;
     this.table_id = table_id;
     this.column_names = column_names;
     this.normalize_column_names = normalize_column_names;
 
     this.get_iterator_by_table_id = function(table_id) {
-        if (table_id !== this.table_id)
+        if (table_id.toLowerCase() !== this.table_id)
             throw new RbqlIOHandlingError(`Unable to find join table: "${table_id}"`);
         return new TableIterator(this.table, this.column_names, this.normalize_column_names, 'b');
     };

@@ -1471,14 +1471,14 @@ class TableWriter:
 
 
 class SingleTableRegistry:
-    def __init__(self, table, column_names=None, normalize_column_names=True, table_name='B'):
+    def __init__(self, table, column_names=None, normalize_column_names=True, table_name='b'):
         self.table = table
         self.column_names = column_names
         self.normalize_column_names = normalize_column_names
         self.table_name = table_name
 
     def get_iterator_by_table_id(self, table_id):
-        if table_id != self.table_name:
+        if table_id.lower() != self.table_name:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(table_id)) # UT JSON
         return TableIterator(self.table, self.column_names, self.normalize_column_names, 'b')
 
