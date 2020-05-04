@@ -860,6 +860,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--create_random_csv_table', metavar='FILE', help='create random csv table')
     parser.add_argument('--create_big_csv_table', metavar='FILE', help='create random csv table for speed test')
+    parser.add_argument('--dummy_csv_speedtest', metavar='FILE', help='run dummy CSV speedtest')
     args = parser.parse_args()
 
     if args.create_random_csv_table is not None:
@@ -873,6 +874,15 @@ def main():
                 dst.write('{}\t{}\t{}\n'.format(escaped_entry, canonic_warning, ';'.join(canonic_fields)))
         return
 
+    if args.dummy_csv_speedtest is not None:
+        num_fields = 0
+        src_path = args.dummy_csv_speedtest
+        with open(src_path, 'r') as src:
+            for line in src:
+                fields = line.rstrip().split(',')
+                num_fields += len(fields)
+        print(num_fields)
+        return
 
     if args.create_big_csv_table is not None:
         dst_path = args.create_big_csv_table
