@@ -349,7 +349,7 @@ fi
 # Testing performance
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
-    PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv
+    PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv > /dev/null
     end_tm=$(date +%s.%N)
     elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python reference split test took $elapsed seconds"
