@@ -779,8 +779,8 @@
             ["50", "plane", "tu-134"],
             ["200", "plane", "boeing 737"]
         ],
-        "query_python": "select a1,a2,a3 left join B on a2 == b1 where b1 is not None",
-        "query_js": "select a1,a2,a3 left join B on a2 == b1 where b1 != null"
+        "query_python": "select a1,a2,a3 left outer join B on a2 == b1 where b1 is not None",
+        "query_js": "select a1,a2,a3 left outer join B on a2 == b1 where b1 != null"
     },
     {
         "test_name": "aggregate_funcs_without_group_by",

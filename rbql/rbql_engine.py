@@ -53,6 +53,7 @@ SELECT = 'SELECT'
 JOIN = 'JOIN'
 INNER_JOIN = 'INNER JOIN'
 LEFT_JOIN = 'LEFT JOIN'
+LEFT_OUTER_JOIN = 'LEFT OUTER JOIN'
 STRICT_LEFT_JOIN = 'STRICT LEFT JOIN'
 ORDER_BY = 'ORDER BY'
 WHERE = 'WHERE'
@@ -1153,7 +1154,7 @@ def separate_string_literals_py(rbql_expression):
 
 def locate_statements(rbql_expression):
     statement_groups = list()
-    statement_groups.append([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN])
+    statement_groups.append([STRICT_LEFT_JOIN, LEFT_OUTER_JOIN, LEFT_JOIN, INNER_JOIN, JOIN])
     statement_groups.append([SELECT])
     statement_groups.append([ORDER_BY])
     statement_groups.append([WHERE])
@@ -1195,7 +1196,7 @@ def separate_actions(rbql_expression):
 
         statement_params = dict()
 
-        if statement in [STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]:
+        if statement in [STRICT_LEFT_JOIN, LEFT_OUTER_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]:
             statement_params['join_subtype'] = statement
             statement = JOIN
 
@@ -1352,7 +1353,7 @@ def parse_to_py(query_text, input_iterator, join_tables_registry):
         join_variables_map = join_record_iterator.get_variables_map(query_text)
 
         lhs_variables, rhs_indices = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals)
-        joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
+        joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_OUTER_JOIN: LeftJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
         query_context.join_operation = rb_actions[JOIN]['join_subtype']
         query_context.lhs_join_var_expression = lhs_variables[0] if len(lhs_variables) == 1 else '({})'.format(', '.join(lhs_variables))
         query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_indices)

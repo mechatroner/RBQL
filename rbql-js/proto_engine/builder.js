@@ -22,6 +22,7 @@ const SELECT = 'SELECT';
 const JOIN = 'JOIN';
 const INNER_JOIN = 'INNER JOIN';
 const LEFT_JOIN = 'LEFT JOIN';
+const LEFT_OUTER_JOIN = 'LEFT OUTER JOIN';
 const STRICT_LEFT_JOIN = 'STRICT LEFT JOIN';
 const ORDER_BY = 'ORDER BY';
 const WHERE = 'WHERE';
@@ -409,7 +410,7 @@ function separate_string_literals_js(rbql_expression) {
 
 function locate_statements(rbql_expression) {
     let statement_groups = [];
-    statement_groups.push([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
+    statement_groups.push([STRICT_LEFT_JOIN, LEFT_OUTER_JOIN, LEFT_JOIN, INNER_JOIN, JOIN]);
     statement_groups.push([SELECT]);
     statement_groups.push([ORDER_BY]);
     statement_groups.push([WHERE]);
@@ -452,7 +453,7 @@ function separate_actions(rbql_expression) {
         assert(span_start <= span_end);
         var span = rbql_expression.substring(span_start, span_end);
         var statement_params = {};
-        if ([STRICT_LEFT_JOIN, LEFT_JOIN, INNER_JOIN, JOIN].indexOf(statement) != -1) {
+        if ([STRICT_LEFT_JOIN, LEFT_OUTER_JOIN, LEFT_JOIN, INNER_JOIN, JOIN].indexOf(statement) != -1) {
             statement_params['join_subtype'] = statement;
             statement = JOIN;
         }

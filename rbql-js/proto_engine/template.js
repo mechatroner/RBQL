@@ -700,7 +700,7 @@ async function rb_transform(input_iterator, join_map_impl, output_writer) {
     let join_map = null;
     if (join_map_impl !== null) {
         await join_map_impl.build();
-        let sql_join_type = {'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
+        let sql_join_type = {'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'LEFT OUTER JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
         join_map = new sql_join_type(join_map_impl);
     }
 
