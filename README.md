@@ -1,16 +1,16 @@
 # RBQL (Rainbow Query Language) Description
 
-RBQL is a technology for (not only) CSV files processing. It provides SQL-like language that supports SELECT queries with Python or JavaScript expressions.  
+RBQL is a technology for (not only) CSV file processing. It provides SQL-like language that supports SELECT queries with Python or JavaScript expressions.  
 RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries and can work in web browsers.  
-RBQL core module is very generic and can process all kind of objects and record formats, but most popular RBQL implementation works with CSV files.  
+RBQL core module is very generic and can process all kinds of objects and record formats, but the most popular RBQL implementation works with CSV files.  
 
 [Official Site](https://rbql.org/)
 
 ### Main Features
 
 * Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
-* Result set of any query immediately becomes a first-class table on it's own
-* Supports input tables with inconsistent number of fields per record
+* Result set of any query immediately becomes a first-class table on its own
+* Supports input tables with an inconsistent number of fields per record
 * Output records appear in the same order as in input unless _ORDER BY_ is provided
 * Each record has a unique NR (record number) identifier
 * Supports all main SQL keywords
@@ -89,8 +89,8 @@ There is a workaround for the limitation above for _ARRAY_AGG_ function which su
 
 ### JOIN statements
 
-Join table B can be referenced either by it's file path or by it's name - an arbitary string which user should provide before executing the JOIN query.  
-RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an error if any key in left table "A" doesn't have exactly one matching key in the right table "B".  
+Join table B can be referenced either by its file path or by its name - an arbitrary string which the user should provide before executing the JOIN query.  
+RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an error if any key in the left table "A" doesn't have exactly one matching key in the right table "B".  
 Limitation: _JOIN_ statements can't contain Python/JS expressions and must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON a... == b... [AND a... == b... [AND ... ]]_
 
 
