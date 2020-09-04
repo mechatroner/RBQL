@@ -130,4 +130,6 @@ You will have to implement special wrapper classes for your custom data structur
 
 #### Usage example
 See `rbql.query(...)` usage in RBQL [tests](https://github.com/mechatroner/RBQL/blob/master/test/test_rbql.py)  
-Examples of implementation of **RBQLInputIterator**, **RBQLOutputWriter** and **RBQLJoinTablesRegistry** classes can also be found in the RBQL repository  
+* Examples of classes which support **RBQLInputIterator** interface: **TableIterator**, **CSVRecordIterator** (these classes can be found in RBQL source code)
+* Examples of classes which support **RBQLOutputWriter** interface: **TableWriter**, **CSVWriter** (these classes can be found in RBQL source code)
+* Examples of classes which support **RBQLJoinTablesRegistry** interface: **SingleTableRegistry**, **FileSystemCSVRegistry** (these classes can be found in RBQL source code)
