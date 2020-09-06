@@ -47,6 +47,9 @@ from ._version import __version__
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
 
+# FIXME refactor this module in sync with the JS version. There wasn't any cleanup after the last redesign
+
+
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
@@ -102,7 +105,6 @@ class RBQLContext:
 
         self.join_map_impl = None
         self.join_map = None
-        self.join_operation = None
         self.lhs_join_var_expression = None
 
         self.where_expression = None
@@ -834,7 +836,6 @@ def embed_code(parent_code, child_placeholder, child_code):
 def generate_main_loop_code():
     is_select_query = query_context.select_expression is not None
     is_join_query = query_context.join_map is not None
-    python_code = None
     where_expression = 'True' if query_context.where_expression is None else query_context.where_expression
     aggregation_key_expression = 'None' if query_context.aggregation_key_expression is None else query_context.aggregation_key_expression
     sort_key_expression = 'None' if query_context.sort_key_expression is None else query_context.sort_key_expression
@@ -860,7 +861,6 @@ def generate_main_loop_code():
         python_code = embed_code(python_code, '__RBQLMP__update_expressions', query_context.update_expressions)
         python_code = embed_expression(python_code, '__RBQLMP__where_expression', where_expression)
     return python_code
-
 
 
 def compile_and_run():
@@ -1325,7 +1325,7 @@ def remove_redundant_input_table_name(query_text):
     return query_text
 
 
-def parse_to_py(query_text, input_iterator, join_tables_registry):
+def parse_to_py(query_text, input_iterator, join_tables_registry, query_context):
     query_text = cleanup_query(query_text)
     format_expression, string_literals = separate_string_literals_py(query_text)
     format_expression = remove_redundant_input_table_name(format_expression)
@@ -1354,11 +1354,12 @@ def parse_to_py(query_text, input_iterator, join_tables_registry):
 
         lhs_variables, rhs_indices = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals)
         joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_OUTER_JOIN: LeftJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
-        query_context.join_operation = rb_actions[JOIN]['join_subtype']
         query_context.lhs_join_var_expression = lhs_variables[0] if len(lhs_variables) == 1 else '({})'.format(', '.join(lhs_variables))
         query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_indices)
         query_context.join_map_impl.build()
         query_context.join_map = joiner_type(query_context.join_map_impl)
+
+    query_context.variables_init_code = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map), string_literals)
 
 
     if WHERE in rb_actions:
@@ -1366,8 +1367,6 @@ def parse_to_py(query_text, input_iterator, join_tables_registry):
         if re.search(r'[^!=]=[^=]', where_expression) is not None:
             raise RbqlParsingError('Assignments "=" are not allowed in "WHERE" expressions. For equality test use "=="') # UT JSON
         query_context.where_expression = combine_string_literals(where_expression, string_literals)
-
-    query_context.variables_init_code = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map), string_literals)
 
 
     if UPDATE in rb_actions:
@@ -1408,7 +1407,7 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
     global query_context
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
-    parse_to_py(query_text, input_iterator, join_tables_registry)
+    parse_to_py(query_text, input_iterator, join_tables_registry, query_context)
     compile_and_run()
     query_context.writer.finish()
     output_warnings.extend(input_iterator.get_warnings())
