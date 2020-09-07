@@ -23,6 +23,11 @@ function assert(condition, message=null) {
 }
 
 
+function replace_all(src, search, replacement) {
+    return src.split(search).join(replacement);
+}
+
+
 class InternalBadFieldError extends Error {
     constructor(bad_idx, ...params) {
         super(...params);
@@ -596,45 +601,13 @@ function select_except(src, except_fields) {
 }
 
 
-
-const external_js_template_text = `__RBQLMP__user_init_code
-
-function process_update_join(record_a, join_matches) {
-    if (join_matches.length > 1)
-        throw new RbqlRuntimeError('More than one record in UPDATE query matched a key from the input table in the join table');
-    let record_b = null;
-    let bNR = null;
-    let bNF = null;
-    if (join_matches.length == 1)
-        [bNR, bNF, record_b] = join_matches[0];
-    var up_fields = record_a;
-    __RBQLMP__init_column_vars_update
-    if (join_matches.length == 1 && (__RBQLMP__where_expression)) {
-        NU += 1;
-        __RBQLMP__update_statements
-    }
-    return writer.write(up_fields);
-}
-
-
-function process_update_simple(record_a, _join_matches) {
-    var up_fields = record_a;
-    __RBQLMP__init_column_vars_update
-    if (__RBQLMP__where_expression) {
-        NU += 1;
-        __RBQLMP__update_statements
-    }
-    return writer.write(up_fields);
-}
-
-
 function select_simple(sort_key, out_fields) {
-    if (__RBQLMP__sort_flag) {
+    if (query_context.sort_key_expression !== null) {
         var sort_entry = sort_key.concat([NR, out_fields]);
-        if (!writer.write(sort_entry))
+        if (!query_context.writer.write(sort_entry))
             return false;
     } else {
-        if (!writer.write(out_fields))
+        if (!query_context.writer.write(out_fields))
             return false;
     }
     return true;
@@ -646,20 +619,20 @@ function select_aggregated(key, transparent_values) {
         key = JSON.stringify(key);
     }
     if (aggregation_stage === 1) {
-        if (!(writer instanceof TopWriter)) {
+        if (!(query_context.writer instanceof TopWriter)) {
             throw new RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries');
         }
-        writer = new AggregateWriter(writer);
+        query_context.writer = new AggregateWriter(query_context.writer);
         let num_aggregators_found = 0;
         for (var i = 0; i < transparent_values.length; i++) {
             var trans_value = transparent_values[i];
             if (trans_value instanceof RBQLAggregationToken) {
-                writer.aggregators.push(functional_aggregators[trans_value.marker_id]);
-                writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value.value);
+                query_context.writer.aggregators.push(functional_aggregators[trans_value.marker_id]);
+                query_context.writer.aggregators[query_context.writer.aggregators.length - 1].increment(key, trans_value.value);
                 num_aggregators_found += 1;
             } else {
-                writer.aggregators.push(new ConstGroupVerifier(writer.aggregators.length));
-                writer.aggregators[writer.aggregators.length - 1].increment(key, trans_value);
+                query_context.writer.aggregators.push(new ConstGroupVerifier(query_context.writer.aggregators.length));
+                query_context.writer.aggregators[query_context.writer.aggregators.length - 1].increment(key, trans_value);
             }
         }
         if (num_aggregators_found != functional_aggregators.length) {
@@ -669,10 +642,10 @@ function select_aggregated(key, transparent_values) {
     } else {
         for (var i = 0; i < transparent_values.length; i++) {
             var trans_value = transparent_values[i];
-            writer.aggregators[i].increment(key, trans_value);
+            query_context.writer.aggregators[i].increment(key, trans_value);
         }
     }
-    writer.aggregation_keys.add(key)
+    query_context.writer.aggregation_keys.add(key)
 }
 
 
@@ -688,97 +661,94 @@ function select_unnested(sort_key, folded_fields) {
 }
 
 
-function process_select_simple(record_a, join_match) {
-    unnest_list = null;
-    if (join_match === null) {
-        var star_fields = record_a;
-    } else {
-        var [bNR, bNF, record_b] = join_match;
-        var star_fields = record_a.concat(record_b);
-    }
-    __RBQLMP__init_column_vars_select
-    if (!(__RBQLMP__where_expression))
-        return true;
+const PROCESS_SELECT_COMMON = `
+__RBQLMP__variables_init_code
+if (__RBQLMP__where_expression) {
     let out_fields = __RBQLMP__select_expression;
-    if (aggregation_stage > 0) {
+    if (query_context.aggregation_stage > 0) {
         let key = __RBQLMP__aggregation_key_expression;
         select_aggregated(key, out_fields);
     } else {
         let sort_key = [__RBQLMP__sort_key_expression];
-        if (unnest_list !== null) {
+        if (query_context.unnest_list !== null) {
             if (!select_unnested(sort_key, out_fields))
-                return false;
+                stop_flag = true;
         } else {
             if (!select_simple(sort_key, out_fields))
-                return false;
+                stop_flag = true;
         }
     }
-    return true;
 }
-
-
-function process_select_join(record_a, join_matches) {
-    for (let join_match of join_matches) {
-        if (!process_select_simple(record_a, join_match))
-            return false;
-    }
-    return true;
-}
-
-
-async function rb_transform(input_iterator, join_map_impl, output_writer) {
-    if (module_was_used_failsafe) {
-        throw new Error('Module can only be used once');
-    }
-    module_was_used_failsafe = true;
-    assert((join_map_impl === null) === (__RBQLMP__join_operation === null), 'JOIN inconsistency');
-    let join_map = null;
-    if (join_map_impl !== null) {
-        await join_map_impl.build();
-        let sql_join_type = {'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'LEFT OUTER JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[__RBQLMP__join_operation];
-        join_map = new sql_join_type(join_map_impl);
-    }
-
-    let polymorphic_process = [[process_update_simple, process_update_join], [process_select_simple, process_select_join]][__RBQLMP__is_select_query][join_map ? 1 : 0];
-    writer = new TopWriter(output_writer);
-
-    if (__RBQLMP__writer_type == 'uniq') {
-        writer = new UniqWriter(writer);
-    } else if (__RBQLMP__writer_type == 'uniq_count') {
-        writer = new UniqCountWriter(writer);
-    }
-
-    if (__RBQLMP__sort_flag)
-        writer = new SortedWriter(writer);
-
-    while (true) {
-        let record_a = await input_iterator.get_record();
-        if (record_a === null)
-            break;
-        NR += 1;
-        NF = record_a.length;
-
-        try {
-            let join_matches = join_map ? join_map.get_rhs(__RBQLMP__lhs_join_var) : null;
-            if (!polymorphic_process(record_a, join_matches)) {
-                input_iterator.stop();
-                break;
-            }
-        } catch (e) {
-            if (e.constructor.name === 'InternalBadFieldError') {
-                throw new RbqlRuntimeError(\`No "a\${e.bad_idx + 1}" field at record \${NR}\`);
-            } else if (e.constructor.name === 'RbqlParsingError') {
-                throw(e);
-            } else {
-                throw new RbqlRuntimeError(\`At record \${NR}, Details: \${e.message}\`);
-            }
-        }
-    }
-    await writer.finish();
-}
-
-module.exports.rb_transform = rb_transform;
 `;
+
+
+const PROCESS_SELECT_SIMPLE = `
+let star_fields = record_a;
+__CODE__
+`;
+
+
+const PROCESS_SELECT_JOIN = `
+let join_matches = query_context.join_map.get_rhs(__RBQLMP__lhs_join_var_expression);
+for (let join_match of join_matches) {
+    let [bNR, bNF, record_b] = join_match;
+    let star_fields = record_a.concat(record_b);
+    __CODE__
+    if (stop_flag)
+        break;
+}
+`;
+
+
+const MAIN_LOOP_BODY = `
+__USER_INIT_CODE__
+
+let NU = 0;
+let NR = 0;
+
+let stop_flag = false;
+while (!stop_flag) {
+    let record_a = await input_iterator.get_record();
+    if (record_a === null)
+        break;
+    NR += 1;
+    let NF = record_a.length;
+    query_context.unnest_list = null; // TODO optimize, don't need to set this every iteration
+    try {
+        __CODE__
+    } catch (e) {
+        if (e.constructor.name === 'InternalBadFieldError') {
+            throw new RbqlRuntimeError(\`No "a\${e.bad_idx + 1}" field at record \${NR}\`);
+        } else if (e.constructor.name === 'RbqlParsingError') {
+            throw(e);
+        } else {
+            throw new RbqlRuntimeError(\`At record \${NR}, Details: \${e.message}\`);
+        }
+    }
+}
+`;
+
+
+function embed_expression(parent_code, child_placeholder, child_expression) {
+    return replace_all(parent_code, child_placeholder, child_expression);
+}
+
+
+function embed_code(parent_code, child_placeholder, child_code) {
+    let parent_lines = parent_code.split('\n');
+    let child_lines = child_code.split('\n');
+    for (let i = 0; i < parent_lines.length; i++) {
+        let pos = parent_lines[i].indexOf(child_placeholder);
+        if (pos == -1)
+            continue;
+        assert(pos % 4 == 0);
+        let placeholder_indentation = parent_lines[i].substring(0, pos);
+        child_lines = child_lines.map(l => placeholder_indentation + l);
+        let result_lines = parent_lines.slice(0, i).concat(child_lines).concat(parent_lines.slice(i + 1));
+        return result_lines.join('\n') + '\n';
+    }
+    assert(false);
+}
 
 
 function generate_main_loop_code() {
@@ -788,7 +758,21 @@ function generate_main_loop_code() {
     let aggregation_key_expression = query_context.aggregation_key_expression === null ? 'null' : query_context.aggregation_key_expression;
     let sort_key_expression = query_context.sort_key_expression === null ? 'null' : query_context.sort_key_expression;
     let js_code = embed_code(MAIN_LOOP_BODY, '__USER_INIT_CODE__', query_context.user_init_code);
-    // FIXME complete the function
+    if (is_select_query) {
+        if (is_join_query) {
+            js_code = embed_code(embed_code(js_code, '__CODE__', PROCESS_SELECT_JOIN), '__CODE__', PROCESS_SELECT_COMMON);
+            js_code = embed_expression(js_code, '__RBQLMP__lhs_join_var_expression', query_context.lhs_join_var_expression);
+        } else {
+            js_code = embed_code(embed_code(js_code, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON);
+        }
+        js_code = embed_code(js_code, '__RBQLMP__variables_init_code', query_context.variables_init_code)
+        js_code = embed_expression(js_code, '__RBQLMP__select_expression', query_context.select_expression)
+        js_code = embed_expression(js_code, '__RBQLMP__where_expression', where_expression)
+        js_code = embed_expression(js_code, '__RBQLMP__aggregation_key_expression', aggregation_key_expression)
+        js_code = embed_expression(js_code, '__RBQLMP__sort_key_expression', sort_key_expression)
+    } else {
+        // FIXME complete the update part
+    }
     
     return `(function(){${js_code}})()`;
     //return js_code;
@@ -837,23 +821,8 @@ function get_all_matches(regexp, text) {
 }
 
 
-function replace_all(src, search, replacement) {
-    return src.split(search).join(replacement);
-}
-
-
 function str_strip(src) {
     return src.replace(/^ +| +$/g, '');
-}
-
-
-function rbql_meta_format(template_src, meta_params) {
-    for (const [key, value] of Object.entries(meta_params)) {
-        var template_src_upd = replace_all(template_src, key, value);
-        assert(template_src_upd != template_src);
-        template_src = template_src_upd;
-    }
-    return template_src;
 }
 
 
@@ -1564,6 +1533,36 @@ async function query(query_text, input_iterator, output_writer, output_warnings,
         output_warnings.push(...query_context.join_map_impl.get_warnings());
     output_warnings.push(...output_writer.get_warnings());
 }
+
+
+//async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='') {
+//    let [js_code, join_map] = await parse_to_js(query_text, external_js_template_text, input_iterator, join_tables_registry, user_init_code);
+//    let rbql_worker = null;
+//    try {
+//        if (debug_mode) {
+//            // This version works a little faster than eval below. The downside is that a temporary file is created
+//            rbql_worker = load_module_from_file(js_code);
+//        } else {
+//            let module = {'exports': {}};
+//            eval('(function(){' + js_code + '})()');
+//            rbql_worker = module.exports;
+//        }
+//    } catch (e) {
+//        if (e instanceof SyntaxError) {
+//            if (query_text.toLowerCase().indexOf(' like ') != -1)
+//                throw new SyntaxError(e.message + "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "); // UT JSON
+//            if (query_text.toLowerCase().indexOf(' from ') != -1)
+//                throw new SyntaxError(e.message + "\nRBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM"); // UT JSON
+//        }
+//        throw e;
+//    }
+//    await rbql_worker.rb_transform(input_iterator, join_map, output_writer);
+//    output_warnings.push(...input_iterator.get_warnings());
+//    if (join_map)
+//        output_warnings.push(...join_map.get_warnings());
+//    output_warnings.push(...output_writer.get_warnings());
+//}
+
 
 
 async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, normalize_column_names=true, user_init_code='') {
