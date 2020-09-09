@@ -446,12 +446,13 @@ function add_to_set(dst_set, value) {
 }
 
 
-function TopWriter(subwriter) {
+function TopWriter(subwriter, top_count) {
     this.subwriter = subwriter;
     this.NW = 0;
+    this.top_count = top_count
 
     this.write = function(record) {
-        if (__RBQLMP__top_count !== null && this.NW >= __RBQLMP__top_count)
+        if (this.top_count !== null && this.NW >= this.top_count)
             return false;
         this.subwriter.write(record);
         this.NW += 1;
@@ -740,7 +741,7 @@ let NR = 0;
 
 let stop_flag = false;
 while (!stop_flag) {
-    let record_a = await input_iterator.get_record();
+    let record_a = await query_context.input_iterator.get_record();
     if (record_a === null)
         break;
     NR += 1;
@@ -813,8 +814,9 @@ function generate_main_loop_code(query_context) {
         js_code = embed_code(js_code, '__RBQLMP__update_expressions', query_context.variables_init_code);
         js_code = embed_expression(js_code, '__RBQLMP__where_expression', where_expression);
     }
-    return `(function(){${js_code}})()`;
-    //return js_code; // FIXME delete this line
+    return "(async () => {" + js_code + "})()"
+    //return `(async function(){${js_code}})()`;
+    //return js_code; // FIXME delete this line, switch to async/await
 }
 
 
@@ -1539,7 +1541,7 @@ async function parse_to_js(query_text, input_iterator, join_tables_registry, que
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         query_context.top_count = find_top(rb_actions);
-        query_context.writer = new TopWriter(query_context.writer);
+        query_context.writer = new TopWriter(query_context.writer, query_context.top_count);
 
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
             query_context.writer = new UniqCountWriter(query_context.writer);
