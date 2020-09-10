@@ -819,7 +819,6 @@ def embed_code(parent_code, child_placeholder, child_code):
     assert parent_code.count(child_placeholder) == 1
     parent_lines = parent_code.strip().split('\n')
     child_lines = child_code.strip().split('\n')
-    placeholder_indentation = None
     for i in range(len(parent_lines)):
         pos = parent_lines[i].find(child_placeholder)
         if pos == -1:
@@ -828,8 +827,8 @@ def embed_code(parent_code, child_placeholder, child_code):
         placeholder_indentation = parent_lines[i][:pos]
         assert placeholder_indentation == ' ' * pos
         child_lines = [placeholder_indentation + cl for cl in child_lines]
-        result = parent_lines[:i] + child_lines + parent_lines[i + 1:]
-        return '\n'.join(result) + '\n'
+        result_lines = parent_lines[:i] + child_lines + parent_lines[i + 1:]
+        return '\n'.join(result_lines) + '\n'
     assert False
 
 
