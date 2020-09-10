@@ -37,7 +37,8 @@ class InternalBadFieldError extends Error {
 
 
 class RBQLContext {
-    constructor(input_iterator, output_writer, user_init_code) {
+    constructor(query_text, input_iterator, output_writer, user_init_code) {
+        this.query_text = query_text;
         this.input_iterator = input_iterator;
         this.writer = output_writer;
         this.user_init_code = user_init_code;
@@ -815,15 +816,23 @@ function generate_main_loop_code(query_context) {
         js_code = embed_expression(js_code, '__RBQLMP__where_expression', where_expression);
     }
     return "(async () => {" + js_code + "})()"
-    //return `(async function(){${js_code}})()`;
-    //return js_code; // FIXME delete this line, switch to async/await
 }
 
 
 async function compile_and_run(query_context) {
     let main_loop_body = generate_main_loop_code(query_context);
-    eval(main_loop_body);
-    // FIXME handle like/from syntax exceptions, see the prod version
+    try {
+        let main_loop_promise = eval(main_loop_body);
+        await main_loop_promise;
+    } catch (e) {
+        if (e instanceof SyntaxError) {
+            if (query_context.query_text.toLowerCase().indexOf(' like ') != -1)
+                throw new SyntaxError(e.message + "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "); // UT JSON
+            if (query_context.query_text.toLowerCase().indexOf(' from ') != -1)
+                throw new SyntaxError(e.message + "\nRBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM"); // UT JSON
+        }
+        throw e;
+    }
 }
 
 
@@ -1565,7 +1574,7 @@ async function parse_to_js(query_text, input_iterator, join_tables_registry, que
 
 
 async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='') {
-    query_context = new RBQLContext(input_iterator, output_writer, user_init_code);
+    query_context = new RBQLContext(query_text, input_iterator, output_writer, user_init_code);
     await parse_to_js(query_text, input_iterator, join_tables_registry, query_context);
     await compile_and_run(query_context);
     await query_context.writer.finish();
