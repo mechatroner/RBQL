@@ -49,7 +49,6 @@ class RBQLContext {
         this.like_regex_cache = new Map();
 
         this.sort_key_expression = null;
-        this.reverse_sort = false;
 
         this.aggregation_stage = 0;
         this.aggregation_key_expression = null;
@@ -511,8 +510,9 @@ function UniqCountWriter(subwriter) {
 }
 
 
-function SortedWriter(subwriter) {
+function SortedWriter(subwriter, reverse_sort) {
     this.subwriter = subwriter;
+    this.reverse_sort = reverse_sort;
     this.unsorted_entries = [];
 
     this.write = function(stable_entry) {
@@ -523,7 +523,7 @@ function SortedWriter(subwriter) {
     this.finish = async function() {
         var unsorted_entries = this.unsorted_entries;
         unsorted_entries.sort(stable_compare);
-        if (__RBQLMP__reverse_flag)
+        if (this.reverse_sort)
             unsorted_entries.reverse();
         for (var i = 0; i < unsorted_entries.length; i++) {
             var entry = unsorted_entries[i];
@@ -603,7 +603,7 @@ function select_except(src, except_fields) {
 }
 
 
-function select_simple(sort_key, out_fields) {
+function select_simple(sort_key, NR, out_fields) {
     if (query_context.sort_key_expression !== null) {
         var sort_entry = sort_key.concat([NR, out_fields]);
         if (!query_context.writer.write(sort_entry))
@@ -651,12 +651,12 @@ function select_aggregated(key, transparent_values) {
 }
 
 
-function select_unnested(sort_key, folded_fields) {
+function select_unnested(sort_key, NR, folded_fields) {
     let out_fields = folded_fields.slice();
     let unnest_pos = folded_fields.findIndex(val => val instanceof UnnestMarker);
     for (var i = 0; i < unnest_list.length; i++) {
         out_fields[unnest_pos] = unnest_list[i];
-        if (!select_simple(sort_key, out_fields.slice()))
+        if (!select_simple(sort_key, NR, out_fields.slice()))
             return false;
     }
     return true;
@@ -673,10 +673,10 @@ if (__RBQLMP__where_expression) {
     } else {
         let sort_key = [__RBQLMP__sort_key_expression];
         if (query_context.unnest_list !== null) {
-            if (!select_unnested(sort_key, out_fields))
+            if (!select_unnested(sort_key, NR, out_fields))
                 stop_flag = true;
         } else {
-            if (!select_simple(sort_key, out_fields))
+            if (!select_simple(sort_key, NR, out_fields))
                 stop_flag = true;
         }
     }
@@ -1531,7 +1531,7 @@ async function parse_to_js(query_text, input_iterator, join_tables_registry, que
         query_context.lhs_join_var_expression = lhs_variables.length == 1 ? lhs_variables[0] : 'JSON.stringify([' + lhs_variables.join(',') + '])';
         query_context.join_map_impl = new HashJoinMap(join_record_iterator, rhs_indices);
         await query_context.join_map_impl.build();
-        query_context.join_map = new sql_join_type(join_map_impl);
+        query_context.join_map = new sql_join_type(query_context.join_map_impl);
     }
 
     query_context.variables_init_code = combine_string_literals(generate_init_statements(format_expression, input_variables_map, join_variables_map, ' '.repeat(4)), string_literals);
@@ -1567,8 +1567,8 @@ async function parse_to_js(query_text, input_iterator, join_tables_registry, que
 
     if (rb_actions.hasOwnProperty(ORDER_BY)) {
         query_context.sort_key_expression = combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals);
-        query_context.reverse_sort = rb_actions[ORDER_BY]['reverse'];
-        query_context.writer = new SortedWriter(query_context.writer);
+        reverse_sort = rb_actions[ORDER_BY]['reverse'];
+        query_context.writer = new SortedWriter(query_context.writer, reverse_sort);
     }
 }
 
