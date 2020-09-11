@@ -97,7 +97,6 @@ class RBQLContext:
         self.like_regex_cache = dict()
 
         self.sort_key_expression = None
-        self.reverse_sort = False
 
         self.aggregation_stage = 0
         self.aggregation_key_expression = None
@@ -588,8 +587,9 @@ class UniqCountWriter(object):
 
 
 class SortedWriter(object):
-    def __init__(self, subwriter):
+    def __init__(self, subwriter, reverse_sort):
         self.subwriter = subwriter
+        self.reverse_sort = reverse_sort
         self.unsorted_entries = list()
 
     def write(self, sort_key_value, record):
@@ -598,7 +598,7 @@ class SortedWriter(object):
 
     def finish(self):
         sorted_entries = sorted(self.unsorted_entries, key=lambda x: x[0])
-        if query_context.reverse_sort:
+        if self.reverse_sort:
             sorted_entries.reverse()
         for e in sorted_entries:
             if not self.subwriter.write(e[1]):
@@ -1388,8 +1388,7 @@ def parse_to_py(query_text, input_iterator, join_tables_registry, query_context)
 
     if ORDER_BY in rb_actions:
         query_context.sort_key_expression = '({})'.format(combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals))
-        query_context.reverse_sort = rb_actions[ORDER_BY]['reverse']
-        query_context.writer = SortedWriter(query_context.writer)
+        query_context.writer = SortedWriter(query_context.writer, reverse_sort=rb_actions[ORDER_BY]['reverse'])
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
