@@ -1,5 +1,4 @@
 const fs = require('fs');
-const build_engine = require('../rbql-js/build_engine.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
 const test_common = require('./test_common.js');
 var rbql = null;
@@ -314,7 +313,7 @@ async function test_direct_table_queries() {
 async function test_everything() {
     test_test_common();
     test_comment_strip();
-    //test_like_to_regex_conversion(); // TODO enable this test after builder.js and template.js are merged into a single module just like in Python version
+    //test_like_to_regex_conversion(); // FIXME enable this test after builder.js and template.js are merged into a single module just like in Python version
     test_string_literals_separation();
     test_separate_actions();
     test_except_parsing();
@@ -328,29 +327,7 @@ async function test_everything() {
 
 function main() {
     console.log('Starting JS unit tests');
-
-    var scheme = {
-        '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine'},
-        '--dbg': {'boolean': true, 'help': 'Run tests in debug mode (require worker template from a tmp module file)'}
-    };
-    var args = cli_parser.parse_cmd_args(process.argv, scheme);
-
-    if (args['auto-rebuild-engine']) {
-        build_engine.build_engine();
-    }
-
-    debug_mode = args['dbg'];
-
-    let engine_text_current = build_engine.read_engine_text();
-    let engine_text_expected = build_engine.build_engine_text();
-    if (engine_text_current != engine_text_expected) {
-        test_common.die("rbql.js must be rebuild from template.js and builder.js");
-    }
-
     rbql = require('../rbql-js/rbql.js')
-    if (debug_mode)
-        rbql.set_debug_mode();
-
     test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + JSON.stringify(error_info)); console.log(error_info.stack); });
 }
 
