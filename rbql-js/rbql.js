@@ -812,7 +812,7 @@ function generate_main_loop_code(query_context) {
             js_code = embed_code(js_code, '__CODE__', PROCESS_UPDATE_SIMPLE);
         }
         js_code = embed_code(js_code, '__RBQLMP__variables_init_code', query_context.variables_init_code);
-        js_code = embed_code(js_code, '__RBQLMP__update_expressions', query_context.variables_init_code);
+        js_code = embed_code(js_code, '__RBQLMP__update_expressions', query_context.update_expressions);
         js_code = embed_expression(js_code, '__RBQLMP__where_expression', where_expression);
     }
     return "(async () => {" + js_code + "})()"
@@ -1476,6 +1476,7 @@ function TableWriter(external_table) {
 
     this.write = function(fields) {
         this.table.push(fields);
+        return true;
     };
 
     this.get_warnings = function() {

@@ -533,6 +533,7 @@ function CSVWriter(stream, close_stream_on_finish, encoding, delim, policy, line
         this.normalize_fields(fields);
         this.stream.write(this.polymorphic_join(fields));
         this.stream.write(this.line_separator);
+        return true;
     };
 
 
