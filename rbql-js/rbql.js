@@ -110,7 +110,7 @@ function safe_set(record, idx, value) {
 
 function regexp_escape(text) {
     // From here: https://stackoverflow.com/a/6969486/2898283
-    return text.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&');  // $& means the whole matched text
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // $& means the whole matched text
 }
 
 
@@ -136,10 +136,10 @@ function like_to_regex(pattern) {
 
 
 function like(text, pattern) {
-    let matcher = like_regex_cache.get(pattern);
+    let matcher = query_context.like_regex_cache.get(pattern);
     if (matcher === undefined) {
         matcher = new RegExp(like_to_regex(pattern));
-        like_regex_cache.set(pattern, matcher);
+        query_context.like_regex_cache.set(pattern, matcher);
     }
     return matcher.test(text);
 }
@@ -172,10 +172,10 @@ const UNFOLD = UNNEST; // "UNFOLD" is deprecated, just for backward compatibilit
 
 
 function parse_number(val) {
-    // We can do a more pedantic number test like \`/^ *-{0,1}[0-9]+\\.{0,1}[0-9]* *$/.test(val)\`, but  user will probably use just Number(val) or parseInt/parseFloat
+    // We can do a more pedantic number test like `/^ *-{0,1}[0-9]+\.{0,1}[0-9]* *$/.test(val)`, but  user will probably use just Number(val) or parseInt/parseFloat
     let result = Number(val);
     if (isNaN(result)) {
-        throw new RbqlRuntimeError(`Unable to convert value "\${val}" to a number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values`);
+        throw new RbqlRuntimeError(`Unable to convert value "${val}" to a number. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values`);
     }
     return result;
 }
@@ -367,7 +367,7 @@ function ConstGroupVerifier(output_index) {
         if (old_value === undefined) {
             this.const_values.set(key, value);
         } else if (old_value != value) {
-            throw new RbqlRuntimeError(`Invalid aggregate expression: non-constant values in output column \${this.output_index + 1}. E.g. "\${old_value}" and "\${value}"`);
+            throw new RbqlRuntimeError(`Invalid aggregate expression: non-constant values in output column ${this.output_index + 1}. E.g. "${old_value}" and "${value}"`);
         }
     }
 
@@ -848,12 +848,6 @@ const ORDER_BY = 'ORDER BY';
 const WHERE = 'WHERE';
 const LIMIT = 'LIMIT';
 const EXCEPT = 'EXCEPT';
-
-
-function regexp_escape(text) {
-    // From here: https://stackoverflow.com/a/6969486/2898283
-    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');  // $& means the whole matched text
-}
 
 
 function get_ambiguous_error_msg(variable_name) {
