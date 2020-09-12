@@ -68,7 +68,7 @@ class RBQLContext {
     }
 }
 
-//var query_context = null; // FIXME delete this line
+var query_context = null; // Needs to be global for MIN(), MAX(), etc functions
 
 
 ///////////////////////////////////////////////////
@@ -159,11 +159,11 @@ function UnnestMarker() {}
 
 
 function UNNEST(vals) {
-    if (unnest_list !== null) {
+    if (query_context.unnest_list !== null) {
         // Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
         throw new RbqlParsingError('Only one UNNEST is allowed per query');
     }
-    unnest_list = vals;
+    query_context.unnest_list = vals;
     return new UnnestMarker();
 }
 const unnest = UNNEST;
@@ -378,62 +378,62 @@ function ConstGroupVerifier(output_index) {
 
 
 function init_aggregator(generator_name, val, post_proc=null) {
-    aggregation_stage = 1;
-    var res = new RBQLAggregationToken(functional_aggregators.length, val);
+    query_context.aggregation_stage = 1;
+    var res = new RBQLAggregationToken(query_context.functional_aggregators.length, val);
     if (post_proc === null) {
-        functional_aggregators.push(new generator_name());
+        query_context.functional_aggregators.push(new generator_name());
     } else {
-        functional_aggregators.push(new generator_name(post_proc));
+        query_context.functional_aggregators.push(new generator_name(post_proc));
     }
     return res;
 }
 
 
 function MIN(val) {
-    return aggregation_stage < 2 ? init_aggregator(MinAggregator, val) : val;
+    return query_context.aggregation_stage < 2 ? init_aggregator(MinAggregator, val) : val;
 }
 const min = MIN;
 const Min = MIN;
 
 
 function MAX(val) {
-    return aggregation_stage < 2 ? init_aggregator(MaxAggregator, val) : val;
+    return query_context.aggregation_stage < 2 ? init_aggregator(MaxAggregator, val) : val;
 }
 const max = MAX;
 const Max = MAX;
 
 function COUNT(val) {
-    return aggregation_stage < 2 ? init_aggregator(CountAggregator, 1) : 1;
+    return query_context.aggregation_stage < 2 ? init_aggregator(CountAggregator, 1) : 1;
 }
 const count = COUNT;
 const Count = COUNT;
 
 function SUM(val) {
-    return aggregation_stage < 2 ? init_aggregator(SumAggregator, val) : val;
+    return query_context.aggregation_stage < 2 ? init_aggregator(SumAggregator, val) : val;
 }
 const sum = SUM;
 const Sum = SUM;
 
 function AVG(val) {
-    return aggregation_stage < 2 ? init_aggregator(AvgAggregator, val) : val;
+    return query_context.aggregation_stage < 2 ? init_aggregator(AvgAggregator, val) : val;
 }
 const avg = AVG;
 const Avg = AVG;
 
 function VARIANCE(val) {
-    return aggregation_stage < 2 ? init_aggregator(VarianceAggregator, val) : val;
+    return query_context.aggregation_stage < 2 ? init_aggregator(VarianceAggregator, val) : val;
 }
 const variance = VARIANCE;
 const Variance = VARIANCE;
 
 function MEDIAN(val) {
-    return aggregation_stage < 2 ? init_aggregator(MedianAggregator, val) : val;
+    return query_context.aggregation_stage < 2 ? init_aggregator(MedianAggregator, val) : val;
 }
 const median = MEDIAN;
 const Median = MEDIAN;
 
 function ARRAY_AGG(val, post_proc=null) {
-    return aggregation_stage < 2 ? init_aggregator(ArrayAggAggregator, val, post_proc) : val;
+    return query_context.aggregation_stage < 2 ? init_aggregator(ArrayAggAggregator, val, post_proc) : val;
 }
 const array_agg = ARRAY_AGG;
 const FOLD = ARRAY_AGG; // "FOLD" is deprecated, just for backward compatibility
@@ -620,7 +620,7 @@ function select_aggregated(key, transparent_values) {
     if (key !== null) {
         key = JSON.stringify(key);
     }
-    if (aggregation_stage === 1) {
+    if (query_context.aggregation_stage === 1) {
         if (!(query_context.writer instanceof TopWriter)) {
             throw new RbqlParsingError('"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries');
         }
@@ -629,7 +629,7 @@ function select_aggregated(key, transparent_values) {
         for (var i = 0; i < transparent_values.length; i++) {
             var trans_value = transparent_values[i];
             if (trans_value instanceof RBQLAggregationToken) {
-                query_context.writer.aggregators.push(functional_aggregators[trans_value.marker_id]);
+                query_context.writer.aggregators.push(query_context.functional_aggregators[trans_value.marker_id]);
                 query_context.writer.aggregators[query_context.writer.aggregators.length - 1].increment(key, trans_value.value);
                 num_aggregators_found += 1;
             } else {
@@ -637,10 +637,10 @@ function select_aggregated(key, transparent_values) {
                 query_context.writer.aggregators[query_context.writer.aggregators.length - 1].increment(key, trans_value);
             }
         }
-        if (num_aggregators_found != functional_aggregators.length) {
+        if (num_aggregators_found != query_context.functional_aggregators.length) {
             throw new RbqlParsingError(wrong_aggregation_usage_error);
         }
-        aggregation_stage = 2;
+        query_context.aggregation_stage = 2;
     } else {
         for (var i = 0; i < transparent_values.length; i++) {
             var trans_value = transparent_values[i];
@@ -654,8 +654,8 @@ function select_aggregated(key, transparent_values) {
 function select_unnested(sort_key, NR, folded_fields) {
     let out_fields = folded_fields.slice();
     let unnest_pos = folded_fields.findIndex(val => val instanceof UnnestMarker);
-    for (var i = 0; i < unnest_list.length; i++) {
-        out_fields[unnest_pos] = unnest_list[i];
+    for (var i = 0; i < query_context.unnest_list.length; i++) {
+        out_fields[unnest_pos] = query_context.unnest_list[i];
         if (!select_simple(sort_key, NR, out_fields.slice()))
             return false;
     }

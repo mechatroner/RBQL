@@ -82,7 +82,7 @@ VariableInfo = namedtuple('VariableInfo', ['initialize', 'index'])
 
 
 
-query_context = None
+query_context = None # Needs to be global for MIN(), MAX(), etc functions
 
 
 class RBQLContext:
