@@ -4,8 +4,6 @@
 // This module works with records only. It is CSV-agnostic.
 // Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
-// FIXME replace prototypes with classes: this improves readability
-
 
 class RbqlParsingError extends Error {}
 class RbqlRuntimeError extends Error {}
