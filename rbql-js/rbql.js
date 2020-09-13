@@ -1352,21 +1352,30 @@ function translate_except_expression(except_expression, input_variables_map, str
 }
 
 
-function HashJoinMap(record_iterator, key_indices) {
-    this.max_record_len = 0;
-    this.hash_map = new Map();
-    this.record_iterator = record_iterator;
-    this.key_index = null;
-    this.key_indices = null;
-    this.nr = 0;
+class HashJoinMap {
+    constructor(record_iterator, key_indices) {
+        this.max_record_len = 0;
+        this.hash_map = new Map();
+        this.record_iterator = record_iterator;
+        this.nr = 0;
+        if (key_indices.length == 1) {
+            this.key_index = key_indices[0];
+            this.key_indices = null;
+            this.polymorphic_get_key = this.get_single_key;
+        } else {
+            this.key_index = null;
+            this.key_indices = key_indices;
+            this.polymorphic_get_key = this.get_multi_key;
+        }
+    }
 
-    this.get_single_key = function(nr, fields) {
+    get_single_key(nr, fields) {
         if (this.key_index >= fields.length)
             throw new RbqlRuntimeError(`No field with index ${this.key_index + 1} at record ${this.nr} in "B" table`);
         return this.key_index === -1 ? this.nr : fields[this.key_index];
     };
 
-    this.get_multi_key = function(nr, fields) {
+    get_multi_key(nr, fields) {
         let result = [];
         for (let ki of this.key_indices) {
             if (ki >= fields.length)
@@ -1376,15 +1385,7 @@ function HashJoinMap(record_iterator, key_indices) {
         return JSON.stringify(result);
     };
 
-    if (key_indices.length == 1) {
-        this.key_index = key_indices[0];
-        this.polymorphic_get_key = this.get_single_key;
-    } else {
-        this.key_indices = key_indices;
-        this.polymorphic_get_key = this.get_multi_key;
-    }
-
-    this.build = async function() {
+    async build() {
         while (true) {
             let fields = await this.record_iterator.get_record();
             if (fields === null)
@@ -1402,14 +1403,14 @@ function HashJoinMap(record_iterator, key_indices) {
         }
     };
 
-    this.get_join_records = function(key) {
+    get_join_records(key) {
         let result = this.hash_map.get(key);
         if (result === undefined)
             return [];
         return result;
     };
 
-    this.get_warnings = function() {
+    get_warnings() {
         return this.record_iterator.get_warnings();
     };
 }
@@ -1445,22 +1446,24 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
 }
 
 
-function TableIterator(table, column_names=null, normalize_column_names=true, variable_prefix='a') {
-    this.table = table;
-    this.column_names = column_names;
-    this.normalize_column_names = normalize_column_names;
-    this.variable_prefix = variable_prefix;
-    this.nr = 0;
-    this.fields_info = new Object();
-    this.stopped = false;
+class TableIterator {
+    constructor(table, column_names=null, normalize_column_names=true, variable_prefix='a') {
+        this.table = table;
+        this.column_names = column_names;
+        this.normalize_column_names = normalize_column_names;
+        this.variable_prefix = variable_prefix;
+        this.nr = 0;
+        this.fields_info = new Object();
+        this.stopped = false;
+    }
 
 
-    this.stop = function() {
+    stop() {
         this.stopped = true;
     };
 
 
-    this.get_variables_map = async function(query_text) {
+    async get_variables_map(query_text) {
         let variable_map = new Object();
         parse_basic_variables(query_text, this.variable_prefix, variable_map);
         parse_array_variables(query_text, this.variable_prefix, variable_map);
@@ -1478,7 +1481,7 @@ function TableIterator(table, column_names=null, normalize_column_names=true, va
     };
 
 
-    this.get_record = async function() {
+    async get_record() {
         if (this.stopped)
             return null;
         if (this.nr >= this.table.length)
@@ -1491,7 +1494,7 @@ function TableIterator(table, column_names=null, normalize_column_names=true, va
         return record;
     };
 
-    this.get_warnings = function() {
+    get_warnings() {
         if (Object.keys(this.fields_info).length > 1)
             return [make_inconsistent_num_fields_warning('input', this.fields_info)];
         return [];
@@ -1499,29 +1502,33 @@ function TableIterator(table, column_names=null, normalize_column_names=true, va
 }
 
 
-function TableWriter(external_table) {
-    this.table = external_table;
+class TableWriter {
+    constructor(external_table) {
+        this.table = external_table;
+    }
 
-    this.write = function(fields) {
+    write(fields) {
         this.table.push(fields);
         return true;
     };
 
-    this.get_warnings = function() {
+    get_warnings() {
         return [];
     };
 
-    this.finish = async function() {};
+    async finish() {};
 }
 
 
-function SingleTableRegistry(table, column_names=null, normalize_column_names=true, table_id='b') {
-    this.table = table;
-    this.table_id = table_id;
-    this.column_names = column_names;
-    this.normalize_column_names = normalize_column_names;
+class SingleTableRegistry {
+    constructor(table, column_names=null, normalize_column_names=true, table_id='b') {
+        this.table = table;
+        this.table_id = table_id;
+        this.column_names = column_names;
+        this.normalize_column_names = normalize_column_names;
+    }
 
-    this.get_iterator_by_table_id = function(table_id) {
+    get_iterator_by_table_id(table_id) {
         if (table_id.toLowerCase() !== this.table_id)
             throw new RbqlIOHandlingError(`Unable to find join table: "${table_id}"`);
         return new TableIterator(this.table, this.column_names, this.normalize_column_names, 'b');
