@@ -1156,7 +1156,7 @@ function translate_update_expression(update_expression, input_variables_map, str
 }
 
 
-function translate_select_expression_js(select_expression) {
+function translate_select_expression(select_expression) {
     var translated = replace_star_count(select_expression);
     translated = replace_star_vars(translated);
     translated = str_strip(translated);
@@ -1554,7 +1554,7 @@ async function parse_to_js(query_text, input_iterator, join_tables_registry, que
         if (rb_actions.hasOwnProperty(EXCEPT)) {
             query_context.select_expression = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals);
         } else {
-            let select_expression = translate_select_expression_js(rb_actions[SELECT]['text']);
+            let select_expression = translate_select_expression(rb_actions[SELECT]['text']);
             query_context.select_expression = combine_string_literals(select_expression, string_literals);
         }
     }
@@ -1615,7 +1615,7 @@ exports.SingleTableRegistry = SingleTableRegistry;
 exports.exception_to_error_info = exception_to_error_info;
 
 
-// TODO add ut_ prefixes to the exported functions below to indicate that they should be used for unit tests only
+// The functions below are exported just for unit tests, they are not part of the rbql API
 exports.parse_basic_variables = parse_basic_variables;
 exports.parse_array_variables = parse_array_variables;
 exports.parse_dictionary_variables = parse_dictionary_variables;
@@ -1629,7 +1629,7 @@ exports.translate_except_expression = translate_except_expression;
 exports.parse_join_expression = parse_join_expression;
 exports.resolve_join_variables = resolve_join_variables;
 exports.translate_update_expression = translate_update_expression;
-exports.translate_select_expression_js = translate_select_expression_js;
+exports.translate_select_expression = translate_select_expression;
 exports.like_to_regex = like_to_regex;
 
 }(typeof exports === 'undefined' ? this.rbql = {} : exports));

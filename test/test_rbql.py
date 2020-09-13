@@ -177,43 +177,43 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_select_translation(self):
         rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * '
-        test_dst = rbql_engine.translate_select_expression_py(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)
         expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * '
-        test_dst = rbql_engine.translate_select_expression_py(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)
         expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *, a1,  a2,a1,*,a.* ,b.* , a.*  , *,*,b1, * ,   * '
-        test_dst = rbql_engine.translate_select_expression_py(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)
         expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + record_a + [] + record_b + [] + record_a + [] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' * '
-        test_dst = rbql_engine.translate_select_expression_py(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)
         expected_dst = '[] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,* '
-        test_dst = rbql_engine.translate_select_expression_py(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)
         expected_dst = '[] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,*, * '
-        test_dst = rbql_engine.translate_select_expression_py(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)
         expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,*, * , *'
-        test_dst = rbql_engine.translate_select_expression_py(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)
         expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = '   '
         with self.assertRaises(Exception) as cm:
-            rbql_engine.translate_select_expression_py(rbql_src)
+            rbql_engine.translate_select_expression(rbql_src)
         e = cm.exception
         self.assertEqual(str(e), '''"SELECT" expression is empty''')
 

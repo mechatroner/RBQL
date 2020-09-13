@@ -1107,7 +1107,7 @@ def translate_update_expression(update_expression, input_variables_map, string_l
     return combine_string_literals('\n'.join(update_expressions), string_literals)
 
 
-def translate_select_expression_py(select_expression):
+def translate_select_expression(select_expression):
     translated = replace_star_count(select_expression)
     translated = replace_star_vars(translated)
     translated = translated.strip()
@@ -1367,7 +1367,7 @@ def parse_to_py(query_text, input_iterator, join_tables_registry, query_context)
         if EXCEPT in rb_actions:
             query_context.select_expression = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals)
         else:
-            select_expression = translate_select_expression_py(rb_actions[SELECT]['text'])
+            select_expression = translate_select_expression(rb_actions[SELECT]['text'])
             query_context.select_expression = combine_string_literals(select_expression, string_literals)
 
     if ORDER_BY in rb_actions:
