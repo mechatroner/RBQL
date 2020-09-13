@@ -58,7 +58,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
         test_cases.append((r'Select "hello", "world", "hello \" world", "hello \\\" world", "hello \\\\\\\" world" order by "world"', ['"hello"', '"world"', r'"hello \" world"', r'"hello \\\" world"', r'"hello \\\\\\\" world"', '"world"']))
 
         for tc in test_cases:
-            format_expression, string_literals = rbql_engine.separate_string_literals_py(tc[0])
+            format_expression, string_literals = rbql_engine.separate_string_literals(tc[0])
             expected_literals = tc[1]
             self.assertEqual(expected_literals, string_literals)
             self.assertEqual(tc[0], rbql_engine.combine_string_literals(format_expression, string_literals))

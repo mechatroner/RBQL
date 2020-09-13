@@ -1116,7 +1116,7 @@ def translate_select_expression(select_expression):
     return '[{}]'.format(translated)
 
 
-def separate_string_literals_py(rbql_expression):
+def separate_string_literals(rbql_expression):
     # The regex is improved expression from here: https://stackoverflow.com/a/14366904/2898283
     string_literals_regex = r'''(\"\"\"|\'\'\'|\"|\')((?<!\\)(\\\\)*\\\1|.)*?\1'''
     matches = list(re.finditer(string_literals_regex, rbql_expression))
@@ -1310,7 +1310,7 @@ def remove_redundant_input_table_name(query_text):
 
 def parse_to_py(query_text, input_iterator, join_tables_registry, query_context):
     query_text = cleanup_query(query_text)
-    format_expression, string_literals = separate_string_literals_py(query_text)
+    format_expression, string_literals = separate_string_literals(query_text)
     format_expression = remove_redundant_input_table_name(format_expression)
     input_variables_map = input_iterator.get_variables_map(query_text)
 

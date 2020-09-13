@@ -58,7 +58,7 @@ function test_string_literals_separation() {
         let test_case = test_cases[i];
         let query = test_case[0];
         let expected_literals = test_case[1];
-        let [format_expression, string_literals] = rbql.separate_string_literals_js(query);
+        let [format_expression, string_literals] = rbql.separate_string_literals(query);
         test_common.assert_arrays_are_equal(expected_literals, string_literals);
         test_common.assert(query == rbql.combine_string_literals(format_expression, string_literals));
     }
