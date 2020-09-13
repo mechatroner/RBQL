@@ -1606,19 +1606,22 @@ function exception_to_error_info(e) {
 }
 
 
-module.exports.version = RBQL_VERSION;
 module.exports.query = query;
 module.exports.query_table = query_table;
 
+module.exports.version = RBQL_VERSION;
 module.exports.TableIterator = TableIterator;
 module.exports.TableWriter = TableWriter;
 module.exports.SingleTableRegistry = SingleTableRegistry;
+module.exports.exception_to_error_info = exception_to_error_info;
+
+
+// TODO add ut_ prefixes to the exported functions below to indicate that they should be used for unit tests only
 module.exports.parse_basic_variables = parse_basic_variables;
 module.exports.parse_array_variables = parse_array_variables;
 module.exports.parse_dictionary_variables = parse_dictionary_variables;
 module.exports.parse_attribute_variables = parse_attribute_variables;
 module.exports.get_all_matches = get_all_matches;
-
 module.exports.strip_comments = strip_comments;
 module.exports.separate_actions = separate_actions;
 module.exports.separate_string_literals_js = separate_string_literals_js;
@@ -1628,7 +1631,7 @@ module.exports.parse_join_expression = parse_join_expression;
 module.exports.resolve_join_variables = resolve_join_variables;
 module.exports.translate_update_expression = translate_update_expression;
 module.exports.translate_select_expression_js = translate_select_expression_js;
+module.exports.like_to_regex = like_to_regex;
 
-module.exports.exception_to_error_info = exception_to_error_info;
 
 

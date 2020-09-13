@@ -42,7 +42,7 @@ function test_comment_strip() {
 
 function test_like_to_regex_conversion() {
     let a = '%hello_world.foo.*bar%';
-    let b = rbql.like_to_regex(a); // This won't work until template and builder are merged into a single module just like in Python version
+    let b = rbql.like_to_regex(a);
     test_common.assert_equal('^.*hello.world\\.foo\\.\\*bar.*$', b);
 }
 
@@ -313,7 +313,7 @@ async function test_direct_table_queries() {
 async function test_everything() {
     test_test_common();
     test_comment_strip();
-    //test_like_to_regex_conversion(); // FIXME enable this test after builder.js and template.js are merged into a single module just like in Python version
+    test_like_to_regex_conversion();
     test_string_literals_separation();
     test_separate_actions();
     test_except_parsing();
