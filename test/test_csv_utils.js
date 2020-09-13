@@ -7,7 +7,6 @@ const stream = require('stream');
 
 const csv_utils = require('../rbql-js/csv_utils.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
-const build_engine = require('../rbql-js/build_engine.js');
 const test_common = require('./test_common.js');
 
 var rbql_csv = null;
@@ -688,14 +687,9 @@ function main() {
 
     var scheme = {
         '--run-random-csv-mode': {'help': 'run in random csv mode'},
-        '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine'},
         '--dbg': {'boolean': true, 'help': 'Run tests in debug mode (require worker template from a tmp module file)'}
     };
     var args = cli_parser.parse_cmd_args(process.argv, scheme);
-
-    if (args['auto-rebuild-engine']) {
-        build_engine.build_engine();
-    }
 
     if (args.hasOwnProperty('run-random-csv-mode')) {
         let random_table_path = args['run-random-csv-mode'];
@@ -705,17 +699,8 @@ function main() {
 
     debug_mode = args['dbg'];
 
-    let engine_text_current = build_engine.read_engine_text();
-    let engine_text_expected = build_engine.build_engine_text();
-    if (engine_text_current != engine_text_expected) {
-        die("rbql.js must be rebuild from template.js and builder.js");
-    }
-
     rbql_csv = require('../rbql-js/rbql_csv.js');
     rbql = require('../rbql-js/rbql.js');
-    if (debug_mode)
-        rbql_csv.set_debug_mode();
-
     test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + JSON.stringify(error_info)); console.log(error_info.stack); });
 }
 
