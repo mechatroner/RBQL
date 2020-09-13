@@ -2,8 +2,6 @@ const fs = require('fs');
 const cli_parser = require('../rbql-js/cli_parser.js');
 const test_common = require('./test_common.js');
 var rbql = null;
-var debug_mode = false;
-
 
 
 function test_test_common() {

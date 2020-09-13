@@ -217,8 +217,6 @@ async function run_with_js(args) {
         [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
     }
 
-    if (args['debug-mode'])
-        rbql_csv.set_debug_mode();
     let user_init_code = '';
     if (init_source_file !== null)
         user_init_code = rbql_csv.read_user_init_code(init_source_file);
@@ -366,7 +364,6 @@ function main() {
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format', 'metavar': 'POLICY'},
         '--error-format': {'default': 'hr', 'help': 'Errors and warnings format. [hr|json]', 'hidden': true},
         '--version': {'boolean': true, 'help': 'Print RBQL version and exit'},
-        '--debug-mode': {'boolean': true, 'help': 'Run in debug mode', 'hidden': true},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };
     let args = cli_parser.parse_cmd_args(process.argv, scheme, tool_description, epilog);
