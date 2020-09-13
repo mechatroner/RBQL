@@ -143,16 +143,19 @@ function like(text, pattern) {
 LIKE = like;
 
 
-function RBQLAggregationToken(marker_id, value) {
-    this.marker_id = marker_id;
-    this.value = value;
-    this.toString = function() {
+class RBQLAggregationToken {
+    constructor(marker_id, value) {
+        this.marker_id = marker_id;
+        this.value = value;
+    }
+
+    toString() {
         throw new RbqlParsingError(wrong_aggregation_usage_error);
     }
 }
 
 
-function UnnestMarker() {}
+class UnnestMarker {}
 
 
 function UNNEST(vals) {
@@ -178,10 +181,12 @@ function parse_number(val) {
 }
 
 
-function MinAggregator() {
-    this.stats = new Map();
+class MinAggregator {
+    constructor() {
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
@@ -191,17 +196,19 @@ function MinAggregator() {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         return this.stats.get(key);
     }
 }
 
 
 
-function MaxAggregator() {
-    this.stats = new Map();
+class MaxAggregator {
+    constructor() {
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
@@ -211,16 +218,18 @@ function MaxAggregator() {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         return this.stats.get(key);
     }
 }
 
 
-function SumAggregator() {
-    this.stats = new Map();
+class SumAggregator {
+    constructor() {
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
@@ -230,16 +239,18 @@ function SumAggregator() {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         return this.stats.get(key);
     }
 }
 
 
-function AvgAggregator() {
-    this.stats = new Map();
+class AvgAggregator {
+    constructor() {
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
@@ -251,7 +262,7 @@ function AvgAggregator() {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         var cur_aggr = this.stats.get(key);
         var cur_sum = cur_aggr[0];
         var cur_cnt = cur_aggr[1];
@@ -261,10 +272,12 @@ function AvgAggregator() {
 }
 
 
-function VarianceAggregator() {
-    this.stats = new Map();
+class VarianceAggregator {
+    constructor() {
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
@@ -277,7 +290,7 @@ function VarianceAggregator() {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         var cur_aggr = this.stats.get(key);
         var cur_sum = cur_aggr[0];
         var cur_sum_sq = cur_aggr[1];
@@ -289,10 +302,12 @@ function VarianceAggregator() {
 }
 
 
-function MedianAggregator() {
-    this.stats = new Map();
+class MedianAggregator {
+    constructor() {
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         val = parse_number(val);
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
@@ -302,7 +317,7 @@ function MedianAggregator() {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         var cur_aggr = this.stats.get(key);
         cur_aggr.sort(function(a, b) { return a - b; });
         var m = Math.floor(cur_aggr.length / 2);
@@ -315,10 +330,12 @@ function MedianAggregator() {
 }
 
 
-function CountAggregator() {
-    this.stats = new Map();
+class CountAggregator {
+    constructor() {
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         var cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, 1);
@@ -327,17 +344,19 @@ function CountAggregator() {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         return this.stats.get(key);
     }
 }
 
 
-function ArrayAggAggregator(post_proc=null) {
-    this.post_proc = post_proc;
-    this.stats = new Map();
+class ArrayAggAggregator {
+    constructor(post_proc=null) {
+        this.post_proc = post_proc;
+        this.stats = new Map();
+    }
 
-    this.increment = function(key, val) {
+    increment(key, val) {
         let cur_aggr = this.stats.get(key);
         if (cur_aggr === undefined) {
             this.stats.set(key, [val]);
@@ -346,7 +365,7 @@ function ArrayAggAggregator(post_proc=null) {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         let cur_aggr = this.stats.get(key);
         if (this.post_proc === null)
             return cur_aggr;
@@ -355,11 +374,13 @@ function ArrayAggAggregator(post_proc=null) {
 }
 
 
-function ConstGroupVerifier(output_index) {
-    this.output_index = output_index;
-    this.const_values = new Map();
+class ConstGroupVerifier {
+    constructor(output_index) {
+        this.output_index = output_index;
+        this.const_values = new Map();
+    }
 
-    this.increment = function(key, value) {
+    increment(key, value) {
         var old_value = this.const_values.get(key);
         if (old_value === undefined) {
             this.const_values.set(key, value);
@@ -368,7 +389,7 @@ function ConstGroupVerifier(output_index) {
         }
     }
 
-    this.get_final = function(key) {
+    get_final(key) {
         return this.const_values.get(key);
     }
 }
