@@ -3,8 +3,8 @@
 const fs = require('fs');
 const readline = require('readline');
 
-var rbql = null;
-var rbql_csv = null;
+const rbql = require('./rbql.js');
+const rbql_csv = require('./rbql_csv.js');
 const csv_utils = require('./csv_utils.js');
 const cli_parser = require('./cli_parser.js');
 
@@ -319,13 +319,6 @@ Description of the available CSV split policies:
 
 
 async function do_main(args) {
-    if (args['auto-rebuild-engine']) {
-        let build_engine = require('./build_engine.js');
-        build_engine.build_engine();
-    }
-
-    rbql = require('./rbql.js');
-    rbql_csv = require('./rbql_csv.js');
 
     if (args['version']) {
         console.log(rbql.version);
@@ -373,7 +366,6 @@ function main() {
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format', 'metavar': 'POLICY'},
         '--error-format': {'default': 'hr', 'help': 'Errors and warnings format. [hr|json]', 'hidden': true},
         '--version': {'boolean': true, 'help': 'Print RBQL version and exit'},
-        '--auto-rebuild-engine': {'boolean': true, 'help': 'Auto rebuild engine', 'hidden': true},
         '--debug-mode': {'boolean': true, 'help': 'Run in debug mode', 'hidden': true},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };

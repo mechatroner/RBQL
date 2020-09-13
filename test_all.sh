@@ -125,7 +125,6 @@ if [ $run_unit_tests == "yes" ]; then
     PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
 
     if [ "$run_node_tests" == "yes" ]; then
-        node rbql-js/build_engine.js
         js_rbql_version=$( node rbql-js/cli_rbql.js --version )
         if [ "$py_rbql_version" != "$js_rbql_version" ]; then
             echo "Error: version missmatch between rbql.py ($py_rbql_version) and rbql.js ($js_rbql_version)"  1>&2
