@@ -464,12 +464,14 @@ function add_to_set(dst_set, value) {
 }
 
 
-function TopWriter(subwriter, top_count) {
-    this.subwriter = subwriter;
-    this.NW = 0;
-    this.top_count = top_count
+class TopWriter {
+    constructor(subwriter, top_count) {
+        this.subwriter = subwriter;
+        this.NW = 0;
+        this.top_count = top_count
+    }
 
-    this.write = function(record) {
+    write(record) {
         if (this.top_count !== null && this.NW >= this.top_count)
             return false;
         this.subwriter.write(record);
@@ -477,17 +479,19 @@ function TopWriter(subwriter, top_count) {
         return true;
     }
 
-    this.finish = async function() {
+    async finish() {
         await this.subwriter.finish();
     }
 }
 
 
-function UniqWriter(subwriter) {
-    this.subwriter = subwriter;
-    this.seen = new Set();
+class UniqWriter {
+    constructor(subwriter) {
+        this.subwriter = subwriter;
+        this.seen = new Set();
+    }
 
-    this.write = function(record) {
+    write(record) {
         if (!add_to_set(this.seen, JSON.stringify(record)))
             return true;
         if (!this.subwriter.write(record))
@@ -495,17 +499,19 @@ function UniqWriter(subwriter) {
         return true;
     }
 
-    this.finish = async function() {
+    async finish() {
         await this.subwriter.finish();
     }
 }
 
 
-function UniqCountWriter(subwriter) {
-    this.subwriter = subwriter;
-    this.records = new Map();
+class UniqCountWriter {
+    constructor(subwriter) {
+        this.subwriter = subwriter;
+        this.records = new Map();
+    }
 
-    this.write = function(record) {
+    write(record) {
         var key = JSON.stringify(record);
         var old_val = this.records.get(key);
         if (old_val) {
@@ -516,7 +522,7 @@ function UniqCountWriter(subwriter) {
         return true;
     }
 
-    this.finish = async function() {
+    async finish() {
         for (var [key, value] of this.records) {
             let [count, record] = value;
             record.unshift(count);
@@ -528,17 +534,19 @@ function UniqCountWriter(subwriter) {
 }
 
 
-function SortedWriter(subwriter, reverse_sort) {
-    this.subwriter = subwriter;
-    this.reverse_sort = reverse_sort;
-    this.unsorted_entries = [];
+class SortedWriter {
+    constructor(subwriter, reverse_sort) {
+        this.subwriter = subwriter;
+        this.reverse_sort = reverse_sort;
+        this.unsorted_entries = [];
+    }
 
-    this.write = function(stable_entry) {
+    write(stable_entry) {
         this.unsorted_entries.push(stable_entry);
         return true;
     }
 
-    this.finish = async function() {
+    async finish() {
         var unsorted_entries = this.unsorted_entries;
         unsorted_entries.sort(stable_compare);
         if (this.reverse_sort)
@@ -553,12 +561,14 @@ function SortedWriter(subwriter, reverse_sort) {
 }
 
 
-function AggregateWriter(subwriter) {
-    this.subwriter = subwriter;
-    this.aggregators = [];
-    this.aggregation_keys = new Set();
+class AggregateWriter {
+    constructor(subwriter) {
+        this.subwriter = subwriter;
+        this.aggregators = [];
+        this.aggregation_keys = new Set();
+    }
 
-    this.finish = async function() {
+    async finish() {
         var all_keys = Array.from(this.aggregation_keys);
         all_keys.sort();
         for (var i = 0; i < all_keys.length; i++) {
@@ -575,20 +585,24 @@ function AggregateWriter(subwriter) {
 }
 
 
-function InnerJoiner(join_map) {
-    this.join_map = join_map;
+class InnerJoiner {
+    constructor(join_map) {
+        this.join_map = join_map;
+    }
 
-    this.get_rhs = function(lhs_key) {
+    get_rhs(lhs_key) {
         return this.join_map.get_join_records(lhs_key);
     }
 }
 
 
-function LeftJoiner(join_map) {
-    this.join_map = join_map;
-    this.null_record = [[null, join_map.max_record_len, Array(join_map.max_record_len).fill(null)]];
+class LeftJoiner {
+    constructor(join_map) {
+        this.join_map = join_map;
+        this.null_record = [[null, join_map.max_record_len, Array(join_map.max_record_len).fill(null)]];
+    }
 
-    this.get_rhs = function(lhs_key) {
+    get_rhs(lhs_key) {
         let result = this.join_map.get_join_records(lhs_key);
         if (result.length == 0) {
             return this.null_record;
@@ -598,10 +612,12 @@ function LeftJoiner(join_map) {
 }
 
 
-function StrictLeftJoiner(join_map) {
-    this.join_map = join_map;
+class StrictLeftJoiner {
+    constructor(join_map) {
+        this.join_map = join_map;
+    }
 
-    this.get_rhs = function(lhs_key) {
+    get_rhs(lhs_key) {
         let result = this.join_map.get_join_records(lhs_key);
         if (result.length != 1) {
             throw new RbqlRuntimeError('In "STRICT LEFT JOIN" each key in A must have exactly one match in B. Bad A key: "' + lhs_key + '"');
