@@ -1,10 +1,13 @@
+(function(exports){
+// The magic line above is to make the module both browser and Node compatible, see https://stackoverflow.com/questions/3225251/how-can-i-share-code-between-node-js-and-the-browser
+
 // This module works with records only. It is CSV-agnostic.
 // Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
 // TODO get rid of functions with "_js" suffix
 
 // FIXME replace prototypes with classes: this improves readability
-// FIXME make browser-compliant
+
 
 class RbqlParsingError extends Error {}
 class RbqlRuntimeError extends Error {}
@@ -1602,32 +1605,31 @@ function exception_to_error_info(e) {
 }
 
 
-module.exports.query = query;
-module.exports.query_table = query_table;
+exports.query = query;
+exports.query_table = query_table;
 
-module.exports.version = RBQL_VERSION;
-module.exports.TableIterator = TableIterator;
-module.exports.TableWriter = TableWriter;
-module.exports.SingleTableRegistry = SingleTableRegistry;
-module.exports.exception_to_error_info = exception_to_error_info;
+exports.version = RBQL_VERSION;
+exports.TableIterator = TableIterator;
+exports.TableWriter = TableWriter;
+exports.SingleTableRegistry = SingleTableRegistry;
+exports.exception_to_error_info = exception_to_error_info;
 
 
 // TODO add ut_ prefixes to the exported functions below to indicate that they should be used for unit tests only
-module.exports.parse_basic_variables = parse_basic_variables;
-module.exports.parse_array_variables = parse_array_variables;
-module.exports.parse_dictionary_variables = parse_dictionary_variables;
-module.exports.parse_attribute_variables = parse_attribute_variables;
-module.exports.get_all_matches = get_all_matches;
-module.exports.strip_comments = strip_comments;
-module.exports.separate_actions = separate_actions;
-module.exports.separate_string_literals_js = separate_string_literals_js;
-module.exports.combine_string_literals = combine_string_literals;
-module.exports.translate_except_expression = translate_except_expression;
-module.exports.parse_join_expression = parse_join_expression;
-module.exports.resolve_join_variables = resolve_join_variables;
-module.exports.translate_update_expression = translate_update_expression;
-module.exports.translate_select_expression_js = translate_select_expression_js;
-module.exports.like_to_regex = like_to_regex;
+exports.parse_basic_variables = parse_basic_variables;
+exports.parse_array_variables = parse_array_variables;
+exports.parse_dictionary_variables = parse_dictionary_variables;
+exports.parse_attribute_variables = parse_attribute_variables;
+exports.get_all_matches = get_all_matches;
+exports.strip_comments = strip_comments;
+exports.separate_actions = separate_actions;
+exports.separate_string_literals_js = separate_string_literals_js;
+exports.combine_string_literals = combine_string_literals;
+exports.translate_except_expression = translate_except_expression;
+exports.parse_join_expression = parse_join_expression;
+exports.resolve_join_variables = resolve_join_variables;
+exports.translate_update_expression = translate_update_expression;
+exports.translate_select_expression_js = translate_select_expression_js;
+exports.like_to_regex = like_to_regex;
 
-
-
+}(typeof exports === 'undefined' ? this.rbql = {} : exports));
