@@ -4,13 +4,20 @@
 // TODO get rid of functions with "_js" suffix
 
 // FIXME replace prototypes with classes: this improves readability
-
+// FIXME make browser-compliant
 
 class RbqlParsingError extends Error {}
 class RbqlRuntimeError extends Error {}
 class AssertionError extends Error {}
-
 class RbqlIOHandlingError extends Error {}
+
+
+class InternalBadFieldError extends Error {
+    constructor(bad_idx, ...params) {
+        super(...params);
+        this.bad_idx = bad_idx;
+    }
+}
 
 
 function assert(condition, message=null) {
@@ -25,14 +32,6 @@ function assert(condition, message=null) {
 
 function replace_all(src, search, replacement) {
     return src.split(search).join(replacement);
-}
-
-
-class InternalBadFieldError extends Error {
-    constructor(bad_idx, ...params) {
-        super(...params);
-        this.bad_idx = bad_idx;
-    }
 }
 
 
@@ -69,9 +68,6 @@ class RBQLContext {
 }
 
 var query_context = null; // Needs to be global for MIN(), MAX(), etc functions
-
-
-///////////////////////////////////////////////////
 
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';

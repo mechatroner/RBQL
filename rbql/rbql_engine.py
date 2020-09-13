@@ -8,17 +8,15 @@ import random
 import time
 from collections import OrderedDict, defaultdict, namedtuple
 
+import datetime # For date operations inside user queries
+import os # For system operations inside user queries
+import math # For math operations inside user queries
+
 from ._version import __version__
 
-##########################################################################
-#
-# RBQL: RainBow Query Language
-# Authors: Dmitry Ignatovich, ...
-#
-#
-##########################################################################
 
 # This module must be both python2 and python3 compatible
+
 
 # This module works with records only. It is CSV-agnostic.
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
@@ -78,11 +76,17 @@ class RbqlIOHandlingError(Exception):
     pass
 
 
+class InternalBadFieldError(Exception):
+    def __init__(self, bad_idx):
+        self.bad_idx = bad_idx
+
+
+class InternalBadKeyError(Exception):
+    def __init__(self, bad_key):
+        self.bad_key = bad_key
+
+
 VariableInfo = namedtuple('VariableInfo', ['initialize', 'index'])
-
-
-
-query_context = None # Needs to be global for MIN(), MAX(), etc functions
 
 
 class RBQLContext:
@@ -115,13 +119,7 @@ class RBQLContext:
         self.variables_init_code = None
 
 
-
-######################################
-
-
-import datetime # For date operations
-import os # For system operations
-import math # For math operations
+query_context = None # Needs to be global for MIN(), MAX(), etc functions
 
 
 RBQL_VERSION = __version__
@@ -138,16 +136,6 @@ def iteritems6(x):
     if PY3:
         return x.items()
     return x.iteritems()
-
-
-class InternalBadFieldError(Exception):
-    def __init__(self, bad_idx):
-        self.bad_idx = bad_idx
-
-
-class InternalBadKeyError(Exception):
-    def __init__(self, bad_key):
-        self.bad_key = bad_key
 
 
 class RBQLRecord:
@@ -867,10 +855,6 @@ def compile_and_run():
     main_loop_body = generate_main_loop_code()
     compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
     exec(compiled_main_loop)
-
-
-
-############################################################
 
 
 
