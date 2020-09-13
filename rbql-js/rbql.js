@@ -138,7 +138,7 @@ function like(text, pattern) {
     }
     return matcher.test(text);
 }
-LIKE = like;
+const LIKE = like;
 
 
 class RBQLAggregationToken {
@@ -466,7 +466,7 @@ class TopWriter {
     constructor(subwriter, top_count) {
         this.subwriter = subwriter;
         this.NW = 0;
-        this.top_count = top_count
+        this.top_count = top_count;
     }
 
     write(record) {
@@ -679,7 +679,7 @@ function select_aggregated(key, transparent_values) {
             query_context.writer.aggregators[i].increment(key, trans_value);
         }
     }
-    query_context.writer.aggregation_keys.add(key)
+    query_context.writer.aggregation_keys.add(key);
 }
 
 
@@ -847,7 +847,7 @@ function generate_main_loop_code(query_context) {
         js_code = embed_code(js_code, '__RBQLMP__update_expressions', query_context.update_expressions);
         js_code = embed_expression(js_code, '__RBQLMP__where_expression', where_expression);
     }
-    return "(async () => {" + js_code + "})()"
+    return "(async () => {" + js_code + "})()";
 }
 
 
@@ -1601,7 +1601,7 @@ async function parse_input_query(query_text, input_iterator, join_tables_registr
 
     if (rb_actions.hasOwnProperty(ORDER_BY)) {
         query_context.sort_key_expression = combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals);
-        reverse_sort = rb_actions[ORDER_BY]['reverse'];
+        let reverse_sort = rb_actions[ORDER_BY]['reverse'];
         query_context.writer = new SortedWriter(query_context.writer, reverse_sort);
     }
 }
