@@ -4,8 +4,6 @@
 // This module works with records only. It is CSV-agnostic.
 // Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
-// TODO get rid of functions with "_js" suffix
-
 // FIXME replace prototypes with classes: this improves readability
 
 
@@ -1494,7 +1492,7 @@ function SingleTableRegistry(table, column_names=null, normalize_column_names=tr
 }
 
 
-async function parse_to_js(query_text, input_iterator, join_tables_registry, query_context) {
+async function parse_input_query(query_text, input_iterator, join_tables_registry, query_context) {
     query_text = cleanup_query(query_text);
     var [format_expression, string_literals] = separate_string_literals(query_text);
     format_expression = remove_redundant_table_name(format_expression);
@@ -1569,7 +1567,7 @@ async function parse_to_js(query_text, input_iterator, join_tables_registry, que
 
 async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='') {
     query_context = new RBQLContext(query_text, input_iterator, output_writer, user_init_code);
-    await parse_to_js(query_text, input_iterator, join_tables_registry, query_context);
+    await parse_input_query(query_text, input_iterator, join_tables_registry, query_context);
     await compile_and_run(query_context);
     await query_context.writer.finish();
     output_warnings.push(...input_iterator.get_warnings());

@@ -1308,7 +1308,7 @@ def remove_redundant_input_table_name(query_text):
     return query_text
 
 
-def parse_to_py(query_text, input_iterator, join_tables_registry, query_context):
+def parse_input_query(query_text, input_iterator, join_tables_registry, query_context):
     query_text = cleanup_query(query_text)
     format_expression, string_literals = separate_string_literals(query_text)
     format_expression = remove_redundant_input_table_name(format_expression)
@@ -1389,7 +1389,7 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
     global query_context
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
-    parse_to_py(query_text, input_iterator, join_tables_registry, query_context)
+    parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
     compile_and_run()
     query_context.writer.finish()
     output_warnings.extend(input_iterator.get_warnings())
