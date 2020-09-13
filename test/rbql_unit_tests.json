@@ -1351,7 +1351,7 @@
             ["20", "alpha", ""]
         ],
         "expected_output_table": [
-            ["0.16.1"]
+            ["0.17.0"]
         ],
         "query_python": "select top 1 RBQL_VERSION",
         "query_js": "select top 1 RBQL_VERSION"
