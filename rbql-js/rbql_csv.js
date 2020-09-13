@@ -11,7 +11,6 @@ const utf_decoding_error = 'Unable to decode input table as UTF-8. Use binary (l
 
 
 class RbqlIOHandlingError extends Error {}
-class RbqlParsingError extends Error {}
 class AssertionError extends Error {}
 
 
@@ -183,7 +182,7 @@ class CSVRecordIterator {
 
             // Technically we can implement our own custom streaming text decoder, using the 3 following technologies:
             // 1. decode-encode validation method from https://stackoverflow.com/a/32279283/2898283
-            // 2. Scanning buffer chunks for non-continuation utf-8 bytes from the end of the buffer: 
+            // 2. Scanning buffer chunks for non-continuation utf-8 bytes from the end of the buffer:
             //    src_buffer -> (buffer_before, buffer_after) where buffer_after is very small(a couple of bytes) and buffer_before is large and ends with a non-continuation bytes
             // 3. Internal buffer to store small tail part from the previous buffer
             this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
