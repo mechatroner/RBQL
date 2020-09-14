@@ -1620,8 +1620,24 @@
             ["50", "alpha", "delta"],
             ["20", "alpha", ""]
         ],
-        "expected_error": "RBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ...",
+        "expected_error": "RBQL doesn't support \"LIKE\" operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ...",
         "query_python": "select * where a1 LIKE '%ta'",
         "query_js": "select * where a1 LIKE '%ta'"
+    },
+    {
+        "test_name": "invalid having",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_error": "RBQL doesn't support \"HAVING\" keyword",
+        "query_python": "select a1, a3, MIN(int(a2) * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 HAVING COUNT(*) > 1",
+        "query_js": "select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 HAVING COUNT(*) > 1"
     }
 ]

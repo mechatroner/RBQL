@@ -858,8 +858,12 @@ async function compile_and_run(query_context) {
         await main_loop_promise;
     } catch (e) {
         if (e instanceof SyntaxError) {
+            // SyntaxError's from eval() function do not contain detailed explanation of what has caused the syntax error, so to guess what was wrong we can only use the original query
+            // v8 issue to fix eval: https://bugs.chromium.org/p/v8/issues/detail?id=2589
+            if (query_context.query_text.toLowerCase().indexOf(' having ') != -1)
+                throw new SyntaxError(e.message + "\nRBQL doesn't support \"HAVING\" keyword");
             if (query_context.query_text.toLowerCase().indexOf(' like ') != -1)
-                throw new SyntaxError(e.message + "\nRBQL doesn't support LIKE operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "); // UT JSON
+                throw new SyntaxError(e.message + "\nRBQL doesn't support \"LIKE\" operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "); // UT JSON
             if (query_context.query_text.toLowerCase().indexOf(' from ') != -1)
                 throw new SyntaxError(e.message + "\nRBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM"); // UT JSON
         }
