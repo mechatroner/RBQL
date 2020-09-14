@@ -1538,7 +1538,7 @@ class SingleTableRegistry {
 }
 
 
-async function parse_input_query(query_text, input_iterator, join_tables_registry, query_context) {
+async function shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context) {
     query_text = cleanup_query(query_text);
     var [format_expression, string_literals] = separate_string_literals(query_text);
     format_expression = remove_redundant_table_name(format_expression);
@@ -1613,7 +1613,7 @@ async function parse_input_query(query_text, input_iterator, join_tables_registr
 
 async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='') {
     query_context = new RBQLContext(query_text, input_iterator, output_writer, user_init_code);
-    await parse_input_query(query_text, input_iterator, join_tables_registry, query_context);
+    await shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context);
     await compile_and_run(query_context);
     await query_context.writer.finish();
     output_warnings.push(...input_iterator.get_warnings());
