@@ -145,7 +145,7 @@ You can define custom functions and/or import libraries in two special files:
 
 
 ### RBQL design principles and architecture
-RBQL core idea is based on dynamic code generation and execution with [exec](https://docs.python.org/3/library/functions.html#exec) and (eval)[https://www.w3schools.com/jsref/jsref_eval.asp] functions.
+RBQL core idea is based on dynamic code generation and execution with [exec](https://docs.python.org/3/library/functions.html#exec) and [eval](https://www.w3schools.com/jsref/jsref_eval.asp) functions.
 Here are the main steps that RBQL engine performs when processing a query:
 1. Shallow parsing: split the query into logical expressions such as "SELECT", "WHERE", "ORDER BY", etc.
 2. Embed the expression segments into the main loop template code
