@@ -144,61 +144,26 @@ You can define custom functions and/or import libraries in two special files:
 * `select ...a1.split(':')` - Using JS "destructuring assignment" syntax to split one column into many. Do not try this with other SQL engines!
 
 
-### FAQ
+### RBQL design principles and architecture
+RBQL core idea is based on dynamic code generation and execution with [exec](https://docs.python.org/3/library/functions.html#exec) and (eval)[https://www.w3schools.com/jsref/jsref_eval.asp] functions.
+Here are the main steps that RBQL engine performs when processing a query:
+1. Shallow parsing: split the query into logical expressions such as "SELECT", "WHERE", "ORDER BY", etc.
+2. Embed the expression segments into the main loop template code
+3. Execute the hydrated loop code
 
+Here you can find a very basic working script (only 15 lines of Python code) which implements this idea: [mini_rbql.py](https://github.com/mechatroner/mini-rbql/blob/master/mini_rbql.py)
+
+The diagram below gives an overview of the main RBQL components and data flow:
+![RBQL Diagram](https://i.imgur.com/KDQHoVM.png)
+
+
+### FAQ
 #### How do I skip header record in CSV files?
 
 You can use the following trick: add `... where NR > 1 ...` to your query  
 
 And if you are doing math operation you can modify your query like this, example:  
 `select int(a3) * 1000, a2` -> `select int(a3) * 1000 if NR > 1 else a3, a2`  
-
-
-#### How does RBQL work?
-
-RBQL parses SQL-like user query, generates new Python or JavaScript code and executes it.  
-
-Explanation of simplified Python version of RBQL algorithm by example.
-1. User enters the following query, which is stored as a string _Q_:
-```
-    SELECT a3, int(a4) + 100, len(a2) WHERE a1 != 'SELL'
-```
-2. RBQL replaces all `a{i}` substrings in the query string _Q_ with `a[{i - 1}]` substrings. The result is the following string:
-```
-    Q = "SELECT a[2], int(a[3]) + 100, len(a[1]) WHERE a[0] != 'SELL'"
-```
-
-3. RBQL searches for "SELECT" and "WHERE" keywords in the query string _Q_, throws the keywords away, and puts everything after these keywords into two variables _S_ - select part and _W_ - where part, so we will get:
-```
-    S = "a[2], int(a[3]) + 100, len(a[1])"
-    W = "a[0] != 'SELL'"
-```
-
-4. RBQL has static template script which looks like this:
-```
-    for line in sys.stdin:
-        a = line.rstrip('\n').split(',')
-        if %%%W_Expression%%%:
-            out_fields = [%%%S_Expression%%%]
-            print ','.join([str(v) for v in out_fields])
-```
-
-5. RBQL replaces `%%%W_Expression%%%` with _W_ and `%%%S_Expression%%%` with _S_ so we get the following script:
-```
-    for line in sys.stdin:
-        a = line.rstrip('\n').split(',')
-        if a[0] != 'SELL':
-            out_fields = [a[2], int(a[3]) + 100, len(a[1])]
-            print ','.join([str(v) for v in out_fields])
-```
-
-6. RBQL runs the patched script against user's data file (real RBQL implementation calls "exec" in Python or "eval" in JS): 
-```
-    ./tmp_script.py < data.tsv > result.tsv
-```
-Result set of the original query (`SELECT a3, int(a4) + 100, len(a2) WHERE a1 != 'SELL'`) is in the "result.tsv" file.  
-Adding support of TOP/LIMIT keywords is trivial and to support "ORDER BY" we can introduce an intermediate array.  
-
 
 
 ### References
