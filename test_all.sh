@@ -346,31 +346,26 @@ fi
 
 
 # Testing performance
+
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
     PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv > /dev/null
     end_tm=$(date +%s.%N)
     elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python reference split test took $elapsed seconds"
-fi
 
-if [ "$run_python_tests" == "yes" ]; then
+    start_tm=$(date +%s.%N)
+    python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 3' > /dev/null
+    end_tm=$(date +%s.%N)
+    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    echo "Python empty result select query took $elapsed seconds. Reference value: 2.6 seconds"
+
     start_tm=$(date +%s.%N)
     python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 0' > /dev/null
     end_tm=$(date +%s.%N)
     elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python simple select query took $elapsed seconds. Reference value: 3 seconds"
-fi
 
-if [ "$run_node_tests" == "yes" ]; then
-    start_tm=$(date +%s.%N)
-    node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where parseInt(a1) % 2 == 0' > /dev/null
-    end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
-    echo "JS simple select query took $elapsed seconds. Reference value: 2.3 seconds"
-fi
-
-if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
     python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select max(a1), count(*), a2 where int(a1) > 15 group by a2' > /dev/null
     end_tm=$(date +%s.%N)
@@ -379,6 +374,18 @@ if [ "$run_python_tests" == "yes" ]; then
 fi
 
 if [ "$run_node_tests" == "yes" ]; then
+    start_tm=$(date +%s.%N)
+    node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where parseInt(a1) % 2 == 3' > /dev/null
+    end_tm=$(date +%s.%N)
+    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    echo "JS empty result select query took $elapsed seconds. Reference value: 1.1 seconds"
+
+    start_tm=$(date +%s.%N)
+    node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where parseInt(a1) % 2 == 0' > /dev/null
+    end_tm=$(date +%s.%N)
+    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    echo "JS simple select query took $elapsed seconds. Reference value: 2.3 seconds"
+
     start_tm=$(date +%s.%N)
     node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select max(a1), count(*), a2 where parseInt(a1) > 15 group by a2' > /dev/null
     end_tm=$(date +%s.%N)
