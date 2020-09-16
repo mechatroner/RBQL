@@ -406,14 +406,12 @@ def init_aggregator(generator_name, val, post_proc=None):
 def MIN(val):
     return init_aggregator(MinAggregator, val) if query_context.aggregation_stage < 2 else val
 
-# min = MIN - see the mad max copypaste below
 Min = MIN
 
 
 def MAX(val):
     return init_aggregator(MaxAggregator, val) if query_context.aggregation_stage < 2 else val
 
-# max = MAX - see the mad max copypaste below
 Max = MAX
 
 
@@ -427,7 +425,6 @@ Count = COUNT
 def SUM(val):
     return init_aggregator(SumAggregator, val) if query_context.aggregation_stage < 2 else val
 
-# sum = SUM - see the mad max copypaste below
 Sum = SUM
 
 
@@ -459,9 +456,7 @@ def ARRAY_AGG(val, post_proc=None):
 array_agg = ARRAY_AGG
 
 
-
-
-# Redefining builtin max, min and sum. See test_max_max.py unit test for explanation
+# Redefining builtin max, min and sum
 builtin_max = max
 builtin_min = min
 builtin_sum = sum
