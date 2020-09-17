@@ -114,18 +114,6 @@ def remove_utf8_bom(line, assumed_source_encoding):
     return line
 
 
-def str_py2(obj):
-    return obj if isinstance(obj, basestring) else str(obj)
-
-
-def str_py3(obj):
-    return obj if isinstance(obj, str) else str(obj)
-
-
-polymorphic_str = str_py3 if PY3 else str_py2
-
-
-
 def try_read_index(index_path):
     lines = []
     try:
@@ -292,14 +280,18 @@ class CSVWriter:
 
     def normalize_fields(self, fields):
         for i in polymorphic_xrange(len(fields)):
-            if fields[i] is None:
+            if PY3 and isinstance(fields[i], str):
+                continue
+            elif not PY3 and isinstance(fields[i], basestring):
+                continue
+            elif fields[i] is None:
                 fields[i] = ''
                 self.none_in_output = True
             elif isinstance(fields[i], list):
                 self.normalize_fields(fields[i])
                 fields[i] = self.sub_array_delim.join(fields[i])
             else:
-                fields[i] = polymorphic_str(fields[i])
+                fields[i] = str(fields[i])
 
 
     def _write_all(self, table):
