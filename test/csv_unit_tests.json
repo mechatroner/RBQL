@@ -321,6 +321,16 @@
         "query_js": "select a.world_rank, a.university_name where a.country == 'France' && parseInt(a.world_rank) < 50"
     },
     {
+        "test_name": "named fields with comments",
+        "input_table_path": "csv_files/university_ranking_with_comments.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result7.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "query_python": "select a.world_rank, a.university_name order by a.university_name",
+        "query_js": "select a.world_rank, a.university_name order by a.university_name"
+    },
+    {
         "test_name": "except named fields",
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_output_table_path": "csv_files/university_ranking_result2.csv",
