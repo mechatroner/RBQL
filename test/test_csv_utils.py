@@ -816,6 +816,7 @@ class TestRBQLWithCSV(unittest.TestCase):
         delim = test_case['csv_separator']
         policy = test_case['csv_policy']
         encoding = test_case['csv_encoding']
+        comment_prefix = test_case.get('comment_prefix', None)
         output_format = test_case.get('output_format', 'input')
 
         out_delim, out_policy = (delim, policy) if output_format == 'input' else rbql_csv.interpret_named_csv_format(output_format)
@@ -824,7 +825,7 @@ class TestRBQLWithCSV(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding, warnings, skip_headers)
+            rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding, warnings, skip_headers, comment_prefix)
         except Exception as e:
             if debug_mode:
                 raise

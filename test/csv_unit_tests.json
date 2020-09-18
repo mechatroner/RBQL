@@ -327,6 +327,7 @@
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
+        "comment_prefix": "#",
         "query_python": "select a.world_rank, a.university_name order by a.university_name",
         "query_js": "select a.world_rank, a.university_name order by a.university_name"
     },

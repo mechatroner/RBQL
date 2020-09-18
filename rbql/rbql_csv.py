@@ -515,7 +515,7 @@ class FileSystemCSVRegistry:
         if self.table_path is None:
             raise RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
         self.input_stream = open(self.table_path, 'rb')
-        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.skip_headers, table_name=table_id, variable_prefix='b', comment_prefix=this.comment_prefix)
+        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.skip_headers, table_name=table_id, variable_prefix='b', comment_prefix=self.comment_prefix)
         return self.record_iterator
 
     def finish(self, output_warnings):
