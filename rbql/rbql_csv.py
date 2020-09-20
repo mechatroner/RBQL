@@ -345,8 +345,8 @@ class CSVRecordIterator:
         self.buffer = ''
         self.detected_line_separator = '\n'
         self.exhausted = False
-        self.NR = 0
-        self.first_line = True
+        self.NR = 0 # Record number
+        self.NL = 0 # Line number (NL != NR when the CSV file has comments or multiline fields)
         self.chunk_size = chunk_size
         self.fields_info = dict()
         self.comment_prefix = comment_prefix
@@ -404,17 +404,21 @@ class CSVRecordIterator:
     def get_row_simple(self):
         try:
             row = self._get_row_from_buffer()
-            if row is not None:
-                return row
-            self._read_until_found()
-            row = self._get_row_from_buffer()
             if row is None:
-                assert self.exhausted
-                if self.buffer:
-                    tmp = self.buffer
+                self._read_until_found()
+                row = self._get_row_from_buffer()
+                if row is None:
+                    assert self.exhausted
+                    if not len(self.buffer):
+                        return None
+                    row = self.buffer
                     self.buffer = ''
-                    return tmp
-                return None
+            self.NL += 1
+            if self.NL == 1:
+                clean_line = remove_utf8_bom(row, self.encoding)
+                if clean_line != row:
+                    row = clean_line
+                    self.utf8_bom_removed = True
             return row
         except UnicodeDecodeError:
             raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
@@ -446,12 +450,6 @@ class CSVRecordIterator:
             line = self.polymorphic_get_row()
             if line is None:
                 return None
-            if self.first_line:
-                self.first_line = False
-                clean_line = remove_utf8_bom(line, self.encoding)
-                if clean_line != line:
-                    line = clean_line
-                    self.utf8_bom_removed = True
             if self.comment_prefix is None or not line.startswith(self.comment_prefix):
                 break
         self.NR += 1
@@ -460,8 +458,7 @@ class CSVRecordIterator:
             if self.first_defective_line is None:
                 self.first_defective_line = self.NR
                 if self.policy == 'quoted_rfc':
-                    # TODO add line number when NL is supported
-                    raise RbqlIOHandlingError('Inconsistent double quote escaping in {} table at record {}'.format(self.table_name, self.NR))
+                    raise RbqlIOHandlingError('Inconsistent double quote escaping in {} table at record {}, line {}'.format(self.table_name, self.NR, self.NL))
         num_fields = len(record)
         if num_fields not in self.fields_info:
             self.fields_info[num_fields] = self.NR

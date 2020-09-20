@@ -293,7 +293,8 @@
     {
         "test_name": "RFC-4180 dialect: corrupted file, bad double quote placement",
         "input_table_path": "csv_files/synthetic_rfc_newline_data_corrupted_middle.csv",
-        "expected_error": "Inconsistent double quote escaping in input table at record 3",
+        "expected_error": "Inconsistent double quote escaping in input table at record 3, line 8",
+        "expected_error_exact": true,
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "latin-1",
@@ -303,7 +304,8 @@
     {
         "test_name": "RFC-4180 dialect: corrupted file, unbalanced double quote at the end",
         "input_table_path": "csv_files/synthetic_rfc_newline_data_corrupted.csv",
-        "expected_error": "Inconsistent double quote escaping in input table at record 11",
+        "expected_error": "Inconsistent double quote escaping in input table at record 11, line 21",
+        "expected_error_exact": true,
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "latin-1",

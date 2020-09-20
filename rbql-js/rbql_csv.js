@@ -195,8 +195,8 @@ class CSVRecordIterator {
         this.first_defective_line = null;
 
         this.fields_info = new Object();
-        this.NR = 0; // Record num
-        this.NL = 0; // Line num (can be different from record num for rfc dialect)
+        this.NR = 0; // Record number
+        this.NL = 0; // Line number (NL != NR when the CSV file has comments or multiline fields)
 
         this.rfc_line_buffer = [];
 
@@ -304,7 +304,7 @@ class CSVRecordIterator {
             if (this.first_defective_line === null) {
                 this.first_defective_line = this.NR;
                 if (this.policy == 'quoted_rfc')
-                    this.handle_exception(new RbqlIOHandlingError(`Inconsistent double quote escaping in ${this.table_name} table at record ${this.NR}`));
+                    this.handle_exception(new RbqlIOHandlingError(`Inconsistent double quote escaping in ${this.table_name} table at record ${this.NR}, line ${this.NL}`));
             }
         }
         let num_fields = record.length;
@@ -334,14 +334,14 @@ class CSVRecordIterator {
 
 
     process_line(line) {
-        if (this.NL === 0) {
+        this.NL += 1;
+        if (this.NL === 1) {
             var clean_line = remove_utf8_bom(line, this.encoding);
             if (clean_line != line) {
                 line = clean_line;
                 this.utf8_bom_removed = true;
             }
         }
-        this.NL += 1;
         this.process_line_polymorphic(line);
     };
 
