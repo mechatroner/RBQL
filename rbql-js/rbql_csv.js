@@ -160,7 +160,7 @@ class RecordQueue {
 
 
 class CSVRecordIterator {
-    // CSVRecordIterator implements typical async producer-consumer model with an internal buffer:
+    // CSVRecordIterator implements a typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
     // stream.on('data') - producer
     constructor(stream, csv_path, encoding, delim, policy, skip_headers=false, table_name='input', variable_prefix='a') {

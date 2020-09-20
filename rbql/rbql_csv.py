@@ -424,6 +424,8 @@ class CSVRecordIterator:
         first_row = self.get_row_simple()
         if first_row is None:
             return None
+        if self.comment_prefix is not None and first_row.startswith(self.comment_prefix):
+            return first_row
         if first_row.count('"') % 2 == 0:
             return first_row
         rows_buffer = [first_row]

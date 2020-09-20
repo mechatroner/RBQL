@@ -516,6 +516,57 @@ class TestRecordIterator(unittest.TestCase):
         self.assertEqual(table, parsed_table)
 
 
+    def test_multiline_fields_with_comments(self):
+        data_lines = []
+        data_lines.append('foo, bar,aaa')
+        data_lines.append('test,"hello, bar", "aaa ')
+        data_lines.append('test","hello, bar", "bbb ')
+        data_lines.append('foo, bar,aaa')
+        data_lines.append('foo, ""bar"",aaa')
+        data_lines.append('foo, test","hello, bar", "bbb "')
+        data_lines.append('foo, bar,aaa')
+        data_lines.append('#foo, bar,"aaa')
+        data_lines.append('foo,"bar,aaa')
+        data_lines.append('foo, bar",aaa')
+        csv_data = '\n'.join(data_lines)
+        stream, encoding = string_to_randomly_encoded_stream(csv_data)
+        table = [['foo', ' bar', 'aaa'], ['test', 'hello, bar', 'aaa \ntest', 'hello, bar', 'bbb \nfoo, bar,aaa\nfoo, "bar",aaa\nfoo, test', "hello, bar", 'bbb '], ['foo', ' bar', 'aaa'], ['foo', 'bar,aaa\nfoo, bar', 'aaa']]
+        delim = ','
+        policy = 'quoted_rfc'
+
+        record_iterator = rbql_csv.CSVRecordIterator(stream, encoding, delim=delim, policy=policy, comment_prefix='#')
+        parsed_table = record_iterator.get_all_records()
+        stream.close()
+        self.assertEqual(table, parsed_table)
+        parsed_table = write_and_parse_back(table, encoding, delim, policy)
+        self.assertEqual(table, parsed_table)
+
+
+    def test_multiline_fields_with_comments_2(self):
+        data_lines = []
+        data_lines.append('foo, bar,aaa')
+        data_lines.append('>> foo, bar,aaa')
+        data_lines.append('test,"hello, bar", "aaa ')
+        data_lines.append('>> test","hello, bar", "bbb ')
+        data_lines.append('>>foo, bar,aaa')
+        data_lines.append('foo, ""bar"",aaa')
+        data_lines.append('foo, test","hello, bar", "bbb "')
+        data_lines.append('>> foo, bar,aaa')
+        data_lines.append('foo, bar,aaa')
+        csv_data = '\n'.join(data_lines)
+        stream, encoding = string_to_randomly_encoded_stream(csv_data)
+        table = [['foo', ' bar', 'aaa'], ['test', 'hello, bar', 'aaa \n>> test', 'hello, bar', 'bbb \n>>foo, bar,aaa\nfoo, "bar",aaa\nfoo, test', "hello, bar", 'bbb '], ['foo', ' bar', 'aaa']]
+        delim = ','
+        policy = 'quoted_rfc'
+
+        record_iterator = rbql_csv.CSVRecordIterator(stream, encoding, delim=delim, policy=policy, comment_prefix='>>')
+        parsed_table = record_iterator.get_all_records()
+        stream.close()
+        self.assertEqual(table, parsed_table)
+        parsed_table = write_and_parse_back(table, encoding, delim, policy)
+        self.assertEqual(table, parsed_table)
+
+
     def test_multicharacter_separator_parsing(self):
         data_lines = []
         data_lines.append('aaa:=)bbb:=)ccc')
