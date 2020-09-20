@@ -302,7 +302,7 @@ class CSVRecordIterator {
         var [record, warning] = csv_utils.smart_split(line, this.delim, this.policy, false);
         if (warning) {
             if (this.first_defective_line === null) {
-                this.first_defective_line = this.NR;
+                this.first_defective_line = this.NL;
                 if (this.policy == 'quoted_rfc')
                     this.handle_exception(new RbqlIOHandlingError(`Inconsistent double quote escaping in ${this.table_name} table at record ${this.NR}, line ${this.NL}`));
             }

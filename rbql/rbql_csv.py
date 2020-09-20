@@ -352,7 +352,7 @@ class CSVRecordIterator:
         self.comment_prefix = comment_prefix
 
         self.utf8_bom_removed = False
-        self.first_defective_line = None # TODO use line # instead of record # when "\n" in fields parsing is implemented
+        self.first_defective_line = None
         self.polymorphic_get_row = self.get_row_rfc if policy == 'quoted_rfc' else self.get_row_simple
 
         if not line_mode:
@@ -456,7 +456,7 @@ class CSVRecordIterator:
         record, warning = csv_utils.smart_split(line, self.delim, self.policy, preserve_quotes_and_whitespaces=False)
         if warning:
             if self.first_defective_line is None:
-                self.first_defective_line = self.NR
+                self.first_defective_line = self.NL
                 if self.policy == 'quoted_rfc':
                     raise RbqlIOHandlingError('Inconsistent double quote escaping in {} table at record {}, line {}'.format(self.table_name, self.NR, self.NL))
         num_fields = len(record)
