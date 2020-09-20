@@ -333,7 +333,7 @@ class CSVWriter:
 
 
 class CSVRecordIterator:
-    def __init__(self, stream, encoding, delim, policy, skip_headers=False, table_name='input', variable_prefix='a', comment_prefix=None, chunk_size=1024, line_mode=False):
+    def __init__(self, stream, encoding, delim, policy, skip_headers=False, comment_prefix=None, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = encode_input_stream(stream, encoding)
@@ -341,6 +341,7 @@ class CSVRecordIterator:
         self.policy = policy
         self.table_name = table_name
         self.variable_prefix = variable_prefix
+        self.comment_prefix = comment_prefix
 
         self.buffer = ''
         self.detected_line_separator = '\n'
@@ -349,7 +350,6 @@ class CSVRecordIterator:
         self.NL = 0 # Line number (NL != NR when the CSV file has comments or multiline fields)
         self.chunk_size = chunk_size
         self.fields_info = dict()
-        self.comment_prefix = comment_prefix
 
         self.utf8_bom_removed = False
         self.first_defective_line = None
@@ -514,7 +514,7 @@ class FileSystemCSVRegistry:
         if self.table_path is None:
             raise RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
         self.input_stream = open(self.table_path, 'rb')
-        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.skip_headers, table_name=table_id, variable_prefix='b', comment_prefix=self.comment_prefix)
+        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.skip_headers, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix='b')
         return self.record_iterator
 
     def finish(self, output_warnings):
