@@ -267,7 +267,7 @@ def main():
     parser.add_argument('--out-format', help='output format', default='input', choices=out_format_names)
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
-    parser.add_argument('--comment-prefix', metavar='PREFIX', help='skip comment lines in input and join tables that start with the prefix, e.g. "#" or ">>"')
+    parser.add_argument('--comment-prefix', metavar='PREFIX', help='ignore lines in input and join tables that start with the comment PREFIX, e.g. "#" or ">>"')
     parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
     parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
