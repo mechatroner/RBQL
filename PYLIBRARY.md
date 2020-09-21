@@ -70,7 +70,7 @@ Run user query against input_path CSV file and save it as output_path CSV file.
 
 #### Signature:  
   
-`rbql.query_csv(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings)`  
+`rbql.query_csv(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers, comment_prefix)`  
   
 #### Parameters:
 * _user_query_: **string**  
@@ -93,7 +93,10 @@ Run user query against input_path CSV file and save it as output_path CSV file.
   encoding of input, output and join tables (join table can be defined inside the user query)  
 * _output_warnings_: **list**  
   warnings will be stored here after the query completion. If no warnings - the list would be empty
-
+* _skip_headers_: **boolean**  
+  skip the header line in input and join tables. Roughly equivalent of ... WHERE NR > 1 ... in user query
+* _comment_prefix_: **string**  
+  ignore lines in input and join tables that start with the comment prefix, e.g. "#" or ">>"
 
 #### Usage example
 
