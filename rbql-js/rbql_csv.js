@@ -163,7 +163,7 @@ class CSVRecordIterator {
     // CSVRecordIterator implements a typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
     // stream.on('data') - producer
-    constructor(stream, csv_path, encoding, delim, policy, skip_headers=false, table_name='input', variable_prefix='a') {
+    constructor(stream, csv_path, encoding, delim, policy, skip_headers=false, comment_prefix=null, table_name='input', variable_prefix='a') {
         this.stream = stream;
         this.csv_path = csv_path;
         assert((this.stream === null) != (this.csv_path === null));
@@ -173,6 +173,7 @@ class CSVRecordIterator {
         this.skip_headers = skip_headers;
         this.table_name = table_name;
         this.variable_prefix = variable_prefix;
+        this.comment_prefix = comment_prefix;
 
         this.decoder = null;
         if (encoding == 'utf-8' && this.csv_path === null) {
@@ -298,6 +299,8 @@ class CSVRecordIterator {
 
 
     process_record_line(line) {
+        if (this.comment_prefix !== null && line.startsWith(this.comment_prefix))
+            return; // Just skip the line
         this.NR += 1;
         var [record, warning] = csv_utils.smart_split(line, this.delim, this.policy, false);
         if (warning) {
@@ -316,6 +319,8 @@ class CSVRecordIterator {
 
 
     process_partial_rfc_record_line(line) {
+        if (this.comment_prefix !== null && this.rfc_line_buffer.length == 0 && line.startsWith(this.comment_prefix))
+            return; // Just skip the line
         let match_list = line.match(/"/g);
         let has_unbalanced_double_quote = match_list && match_list.length % 2 == 1;
         if (this.rfc_line_buffer.length == 0 && !has_unbalanced_double_quote) {
@@ -571,11 +576,12 @@ class CSVWriter {
 
 
 class FileSystemCSVRegistry {
-    constructor(delim, policy, encoding, skip_headers=false, options=null) {
+    constructor(delim, policy, encoding, skip_headers=false, comment_prefix=null, options=null) {
         this.delim = delim;
         this.policy = policy;
         this.encoding = encoding;
         this.skip_headers = skip_headers;
+        this.comment_prefix = comment_prefix;
         this.stream = null;
         this.record_iterator = null;
 
@@ -594,7 +600,7 @@ class FileSystemCSVRegistry {
         } else {
             this.stream = fs.createReadStream(this.table_path);
         }
-        this.record_iterator = new CSVRecordIterator(this.stream, this.bulk_input_path, this.encoding, this.delim, this.policy, this.skip_headers, table_id, 'b');
+        this.record_iterator = new CSVRecordIterator(this.stream, this.bulk_input_path, this.encoding, this.delim, this.policy, this.skip_headers, this.comment_prefix, table_id, 'b');
         return this.record_iterator;
     };
 
@@ -606,7 +612,7 @@ class FileSystemCSVRegistry {
 }
 
 
-async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=false, user_init_code='', options=null) {
+async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=false, comment_prefix=null, user_init_code='', options=null) {
     let input_stream = null;
     let bulk_input_path = null;
     if (options && options['bulk_read'] && input_path) {
@@ -629,8 +635,8 @@ async function query_csv(query_text, input_path, input_delim, input_policy, outp
         user_init_code = read_user_init_code(default_init_source_path);
     }
 
-    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, skip_headers, options);
-    let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy, skip_headers);
+    let join_tables_registry = new FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, skip_headers, comment_prefix, options);
+    let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy, skip_headers, comment_prefix);
     let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);

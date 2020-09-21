@@ -418,6 +418,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let delim = test_case['csv_separator'];
     let policy = test_case['csv_policy'];
     let encoding = test_case['csv_encoding'];
+    let comment_prefix = test_common.get_default(test_case, 'comment_prefix', null);
     let output_format = test_common.get_default(test_case, 'output_format', 'input');
     let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
     let actual_output_table_path = null;
@@ -436,7 +437,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let warnings = [];
     try {
-        await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, warnings, skip_headers, '', options);
+        await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, warnings, skip_headers, comment_prefix, '', options);
     } catch (e) {
         if (local_debug_mode)
             throw(e);
