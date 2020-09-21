@@ -291,6 +291,17 @@
         "query_js": "select a3, a2, a2 + ' adjusted', a1"
     },
     {
+        "test_name": "RFC-4180 dialect: newlines in fields with comments",
+        "input_table_path": "csv_files/synthetic_rfc_newline_data_with_comments.csv",
+        "expected_output_table_path": "csv_files/synthetic_rfc_newline_data_result.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "latin-1",
+        "comment_prefix": ">>",
+        "query_python": "select a3, a2, a2 + ' adjusted', a1",
+        "query_js": "select a3, a2, a2 + ' adjusted', a1"
+    },
+    {
         "test_name": "RFC-4180 dialect: corrupted file, bad double quote placement",
         "input_table_path": "csv_files/synthetic_rfc_newline_data_corrupted_middle.csv",
         "expected_error": "Inconsistent double quote escaping in input table at record 3, line 8",
