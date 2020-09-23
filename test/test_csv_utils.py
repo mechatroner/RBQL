@@ -327,6 +327,13 @@ def randomly_replace_columns_dictionary_style(query):
     return adjusted_query
 
 
+def table_has_records_with_comment_prefix(table, comment_prefix):
+    for r in table:
+        if r[0].startswith(comment_prefix):
+            return True
+    return False
+
+
 class TestHeaderParsing(unittest.TestCase):
     def test_dictionary_variables_parsing(self):
         query = 'select a["foo bar"], a["foo"], max(a["foo"], a["lambda-beta{\'gamma\'}"]), a1, a2, a.epsilon'
@@ -532,14 +539,8 @@ class TestRecordIterator(unittest.TestCase):
         for _test_num in xrange6(200):
             table = generate_random_decoded_binary_table(10, 10, None)
             comment_prefix = random.choice(['#', '>>'])
-            is_good = True
-            for r in table:
-                if r[0].startswith(comment_prefix):
-                    # Instead of complicating the generation procedure just skip the tables which were generated "incorrectly"
-                    is_good = False
-                    break
-            if not is_good:
-                continue
+            if table_has_records_with_comment_prefix(table, comment_prefix):
+                continue # Instead of complicating the generation procedure just skip the tables which were generated "incorrectly"
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
             policy = 'quoted_rfc'
