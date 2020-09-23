@@ -149,9 +149,40 @@ def find_in_table(table, token):
     return False
 
 
-def table_to_csv_string_random(table, delim, policy):
+def make_random_comment_lines(num_lines, comment_lines_prefix, delim_to_test):
+    lines = []
+    str_pool = ['""', '"', delim_to_test, comment_lines_prefix, 'aaa', 'b', '#', ',', '\t', '\\']
+    for l in range(num_lines):
+        line_len = natural_random(0, 10)
+        line = []
+        while len(line) < line_len:
+            line.append(random.choice(str_pool))
+        lines.append(comment_lines_prefix + ''.join(line))
+    return lines
+
+
+def table_to_csv_string_random(table, delim, policy, comment_lines_prefix=None):
+    lines = [random_smart_join(row, delim, policy) for row in table]
     line_separator = random.choice(line_separators)
-    result = line_separator.join([random_smart_join(row, delim, policy) for row in table])
+    if comment_lines_prefix is not None:
+        num_comment_lines = random.randint(0, len(table) * 2)
+        comment_lines = make_random_comment_lines(num_comment_lines, comment_lines_prefix, delim)
+        merged = list()
+        l = 0
+        c = 0
+        while l + c < len(lines) + len(comment_lines):
+            lleft = len(lines) - l
+            cleft = len(comment_lines) - c
+            v = random.randint(0, lleft + cleft - 1)
+            if v < lleft:
+                merged.append(lines[l])
+                l += 1
+            else:
+                merged.append(comment_lines[c])
+                c += 1
+        assert len(merged) == len(lines) + len(comment_lines)
+        lines = merged
+    result = line_separator.join(lines)
     if random.choice([True, False]):
         result += line_separator
     return result
@@ -202,7 +233,7 @@ def make_random_decoded_binary_csv_entry(min_len, max_len, restricted_chars):
 def generate_random_decoded_binary_table(max_num_rows, max_num_cols, restricted_chars):
     num_rows = natural_random(1, max_num_rows)
     num_cols = natural_random(1, max_num_cols)
-    good_keys = ['Hello', 'Avada Kedavra ', ' ??????', '128', '3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
+    good_keys = ['Hello', 'Avada Kedavra ', '>> ??????', '128', '#3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
     result = list()
     good_column = random.randint(0, num_cols - 1)
     for r in xrange6(num_rows):
@@ -485,6 +516,34 @@ class TestRecordIterator(unittest.TestCase):
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
             record_iterator = rbql_csv.CSVRecordIterator(stream, encoding, delim=delim, policy=policy)
+            parsed_table = record_iterator.get_all_records()
+            stream.close()
+            self.assertEqual(table, parsed_table)
+
+            parsed_table = write_and_parse_back(table, encoding, delim, policy)
+            self.assertEqual(table, parsed_table)
+
+
+    def test_iterator_rfc_comments(self):
+        for _test_num in xrange6(200):
+            table = generate_random_decoded_binary_table(10, 10, None)
+            comment_prefix = random.choice(['#', '>>'])
+            is_good = True
+            for r in table:
+                if r[0].startswith(comment_prefix):
+                    # Instead of complicating the generation procedure just skip the tables which were generated "incorrectly"
+                    is_good = False
+                    break
+            if not is_good:
+                continue
+            delims = ['\t', ',', ';', '|']
+            delim = random.choice(delims)
+            policy = 'quoted_rfc'
+            csv_data = table_to_csv_string_random(table, delim, policy, comment_lines_prefix=comment_prefix)
+            normalize_newlines_in_fields(table) # XXX normalizing '\r' -> '\n' because record iterator doesn't preserve original separators
+            stream, encoding = string_to_randomly_encoded_stream(csv_data)
+
+            record_iterator = rbql_csv.CSVRecordIterator(stream, encoding, delim=delim, policy=policy, comment_prefix=comment_prefix)
             parsed_table = record_iterator.get_all_records()
             stream.close()
             self.assertEqual(table, parsed_table)
