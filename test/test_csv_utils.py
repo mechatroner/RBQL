@@ -161,27 +161,31 @@ def make_random_comment_lines(num_lines, comment_lines_prefix, delim_to_test):
     return lines
 
 
+def random_merge_lines(llines, rlines):
+    merged = list()
+    l = 0
+    r = 0
+    while l + r < len(llines) + len(rlines):
+        lleft = len(llines) - l
+        rleft = len(rlines) - r
+        v = random.randint(0, lleft + rleft - 1)
+        if v < lleft:
+            merged.append(llines[l])
+            l += 1
+        else:
+            merged.append(rlines[r])
+            r += 1
+    assert len(merged) == len(llines) + len(rlines)
+    return merged
+
+
 def table_to_csv_string_random(table, delim, policy, comment_lines_prefix=None):
     lines = [random_smart_join(row, delim, policy) for row in table]
     line_separator = random.choice(line_separators)
     if comment_lines_prefix is not None:
         num_comment_lines = random.randint(0, len(table) * 2)
         comment_lines = make_random_comment_lines(num_comment_lines, comment_lines_prefix, delim)
-        merged = list()
-        l = 0
-        c = 0
-        while l + c < len(lines) + len(comment_lines):
-            lleft = len(lines) - l
-            cleft = len(comment_lines) - c
-            v = random.randint(0, lleft + cleft - 1)
-            if v < lleft:
-                merged.append(lines[l])
-                l += 1
-            else:
-                merged.append(comment_lines[c])
-                c += 1
-        assert len(merged) == len(lines) + len(comment_lines)
-        lines = merged
+        lines = random_merge_lines(lines, comment_lines)
     result = line_separator.join(lines)
     if random.choice([True, False]):
         result += line_separator
