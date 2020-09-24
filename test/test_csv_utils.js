@@ -45,6 +45,7 @@ function random_choice(values) {
 
 
 function random_int(min_val, max_val) {
+    // Return value in [min_val, max_val] inclusive
     min_val = Math.ceil(min_val);
     max_val = Math.floor(max_val + 1);
     return Math.floor(Math.random() * (max_val - min_val)) + min_val;
@@ -134,7 +135,7 @@ function make_random_decoded_binary_csv_entry(min_len, max_len, restricted_chars
 function generate_random_decoded_binary_table(max_num_rows, max_num_cols, restricted_chars) {
     let num_rows = natural_random(1, max_num_rows);
     let num_cols = natural_random(1, max_num_cols);
-    let good_keys = ['Hello', 'Avada Kedavra ', ' ??????', '128', '3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2'];
+    let good_keys = ['Hello', 'Avada Kedavra ', '>> ??????', '128', '#3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2'];
     let result = [];
     let good_column = random_int(0, num_cols - 1);
     for (let r = 0; r < num_rows; r++) {
@@ -205,13 +206,54 @@ function random_smart_join(fields, delim, policy) {
 }
 
 
-function table_to_csv_string_random(table, delim, policy) {
-    let line_separator = random_choice(line_separators);
-    let result = [];
-    for (let record of table) {
-        result.push(random_smart_join(record, delim, policy));
+function make_random_comment_lines(num_lines, comment_prefix, delim_to_test) {
+    let lines = [];
+    let str_pool = ['""', '"', delim_to_test, comment_prefix, 'aaa', 'b', '#', ',', '\t', '\\'];
+    for (let i = 0; i < num_lines; i++) {
+        let num_sampled = natural_random(0, 10);
+        let line = [];
+        while (line.length < num_sampled) {
+            line.push(random_choice(str_pool));
+        }
+        lines.push(comment_prefix + line.join(''));
     }
-    result = result.join(line_separator);
+    return lines;
+}
+
+
+function random_merge_lines(llines, rlines) {
+    let merged = [];
+    let l = 0;
+    let r = 0;
+    while (l + r < llines.length + rlines.length) {
+        let lleft = llines.length - l;
+        let rleft = rlines.length - r;
+        let v = random_int(0, lleft + rleft - 1);
+        if (v < lleft) {
+            merged.push(llines[l]);
+            l += 1;
+        } else {
+            merged.push(rlines[r]);
+            r += 1;
+        }
+    }
+    assert(merged.length == llines.length + rlines.length);
+    return merged;
+}
+
+
+function table_to_csv_string_random(table, delim, policy, comment_prefix=null) {
+    let lines = [];
+    for (let record of table) {
+        lines.push(random_smart_join(record, delim, policy));
+    }
+    if (comment_prefix !== null) {
+        let num_comment_lines = random_int(0, table.length * 2);
+        let comment_lines = make_random_comment_lines(num_comment_lines, comment_prefix, delim);
+        lines = random_merge_lines(lines, comment_lines);
+    }
+    let line_separator = random_choice(line_separators);
+    let result = lines.join(line_separator);
     if (random_int(0, 1) == 1) {
         result += line_separator;
     }
@@ -493,12 +535,12 @@ function normalize_newlines_in_fields(table) {
 }
 
 
-async function do_test_record_iterator(table, delim, policy) {
-    let csv_data = table_to_csv_string_random(table, delim, policy);
+async function do_test_record_iterator(table, delim, policy, comment_prefix=null) {
+    let csv_data = table_to_csv_string_random(table, delim, policy, comment_prefix);
     if (policy == 'quoted_rfc')
         normalize_newlines_in_fields(table);
     let [stream, encoding] = string_to_randomly_encoded_stream(csv_data);
-    let record_iterator = new rbql_csv.CSVRecordIterator(stream, null, encoding, delim, policy);
+    let record_iterator = new rbql_csv.CSVRecordIterator(stream, null, encoding, delim, policy, false, comment_prefix);
     let parsed_table = await record_iterator.get_all_records();
     test_common.assert_arrays_are_equal(table, parsed_table);
     await write_and_parse_back(table, encoding, delim, policy);
@@ -540,6 +582,29 @@ async function test_iterator_rfc() {
         let delim = random_choice(delims);
         let policy = 'quoted_rfc';
         await do_test_record_iterator(table, delim, policy);
+    }
+}
+
+
+function table_has_records_with_comment_prefix(table, comment_prefix) {
+    for (let r of table) {
+        if (r[0].startsWith(comment_prefix))
+            return true;
+    }
+    return false;
+}
+
+
+async function test_iterator_rfc_comments() {
+    for (let itest = 0; itest < 200; itest++) {
+        let table = generate_random_decoded_binary_table(10, 10, null);
+        let comment_prefix = random_choice(['#', '>>']);
+        if (table_has_records_with_comment_prefix(table, comment_prefix))
+            continue;
+        let delims = ['\t', ',', ';', '|'];
+        let delim = random_choice(delims);
+        let policy = 'quoted_rfc';
+        await do_test_record_iterator(table, delim, policy, comment_prefix);
     }
 }
 
@@ -646,6 +711,7 @@ async function test_everything() {
     await test_monocolumn_separated_parsing();
     await test_multicharacter_separator_parsing();
     await test_iterator_rfc();
+    await test_iterator_rfc_comments();
     await test_json_scenarios();
 }
 
