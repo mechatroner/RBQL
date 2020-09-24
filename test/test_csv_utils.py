@@ -149,15 +149,15 @@ def find_in_table(table, token):
     return False
 
 
-def make_random_comment_lines(num_lines, comment_lines_prefix, delim_to_test):
+def make_random_comment_lines(num_lines, comment_prefix, delim_to_test):
     lines = []
-    str_pool = ['""', '"', delim_to_test, comment_lines_prefix, 'aaa', 'b', '#', ',', '\t', '\\']
+    str_pool = ['""', '"', delim_to_test, comment_prefix, 'aaa', 'b', '#', ',', '\t', '\\']
     for l in range(num_lines):
-        line_len = natural_random(0, 10)
+        num_sampled = natural_random(0, 10)
         line = []
-        while len(line) < line_len:
+        while len(line) < num_sampled:
             line.append(random.choice(str_pool))
-        lines.append(comment_lines_prefix + ''.join(line))
+        lines.append(comment_prefix + ''.join(line))
     return lines
 
 
@@ -179,13 +179,13 @@ def random_merge_lines(llines, rlines):
     return merged
 
 
-def table_to_csv_string_random(table, delim, policy, comment_lines_prefix=None):
+def table_to_csv_string_random(table, delim, policy, comment_prefix=None):
     lines = [random_smart_join(row, delim, policy) for row in table]
-    line_separator = random.choice(line_separators)
-    if comment_lines_prefix is not None:
+    if comment_prefix is not None:
         num_comment_lines = random.randint(0, len(table) * 2)
-        comment_lines = make_random_comment_lines(num_comment_lines, comment_lines_prefix, delim)
+        comment_lines = make_random_comment_lines(num_comment_lines, comment_prefix, delim)
         lines = random_merge_lines(lines, comment_lines)
+    line_separator = random.choice(line_separators)
     result = line_separator.join(lines)
     if random.choice([True, False]):
         result += line_separator
@@ -544,7 +544,7 @@ class TestRecordIterator(unittest.TestCase):
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
             policy = 'quoted_rfc'
-            csv_data = table_to_csv_string_random(table, delim, policy, comment_lines_prefix=comment_prefix)
+            csv_data = table_to_csv_string_random(table, delim, policy, comment_prefix=comment_prefix)
             normalize_newlines_in_fields(table) # XXX normalizing '\r' -> '\n' because record iterator doesn't preserve original separators
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
