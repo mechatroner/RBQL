@@ -173,7 +173,7 @@ class CSVRecordIterator {
         this.skip_headers = skip_headers;
         this.table_name = table_name;
         this.variable_prefix = variable_prefix;
-        this.comment_prefix = comment_prefix;
+        this.comment_prefix = (comment_prefix !== null && comment_prefix.length) ? comment_prefix : null;
 
         this.decoder = null;
         if (encoding == 'utf-8' && this.csv_path === null) {

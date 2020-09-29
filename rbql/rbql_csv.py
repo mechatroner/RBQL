@@ -341,7 +341,7 @@ class CSVRecordIterator:
         self.policy = policy
         self.table_name = table_name
         self.variable_prefix = variable_prefix
-        self.comment_prefix = comment_prefix
+        self.comment_prefix = comment_prefix if (comment_prefix is not None and len(comment_prefix)) else None
 
         self.buffer = ''
         self.detected_line_separator = '\n'
