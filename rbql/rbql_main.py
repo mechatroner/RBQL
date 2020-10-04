@@ -8,6 +8,7 @@ import argparse
 
 from . import csv_utils
 from . import rbql_csv
+from . import rbql_sqlite
 from . import rbql_engine
 from . import _version
 
@@ -203,6 +204,26 @@ def run_interactive_loop(args):
             break
 
 
+def sample_records_sqlite(db_path, table_name):
+    record_iterator = rbql_sqlite.SqliteRecordIterator(db_path, table_name)
+    records = []
+    records.append(record_iterator.get_column_names())
+    records += record_iterator.get_all_records(num_rows=10)
+    return records
+
+
+def start_preview_mode_sqlite(args):
+    db_path = args.sqlite_db
+    table_name = args.input
+    assert table_name # FIXME - in interactive mode we can just show the list of available tables so the user can choose the one they need. Or if there is only one table - use it without questions
+    records = sample_records_sqlite(db_path, table_name)
+    print('Input table preview:')
+    print('====================================')
+    output_delim = '|' if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)[0]
+    print_colorized(records, output_delim, args.encoding, show_column_names=True, skip_header=False)
+    print('====================================\n')
+
+
 def start_preview_mode(args):
     input_path = args.input
     if not input_path:
@@ -269,6 +290,7 @@ def main():
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
     parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
+    parser.add_argument('--sqlite-db', metavar='FILE', help='Use sqlite db table as the input source instead of a CSV file. use --input param to provide table name')
     parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
@@ -309,7 +331,10 @@ def main():
         if os.name == 'nt':
             show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False)
             sys.exit(1)
-        start_preview_mode(args)
+        if args.sqlite_db is None:
+            start_preview_mode(args)
+        else:
+            start_preview_mode_sqlite(args)
 
 
 
