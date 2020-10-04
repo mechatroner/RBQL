@@ -38,14 +38,17 @@ from ._version import __version__
 
 # TODO support custom (virtual) headers for CSV version
 
-# TODO support RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records
+# TODO support RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records. Should be only defined for CSV-based impl
 
 # TODO support option to skip comment lines (lines starting with the specified prefix)
 
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
+# TODO refactor this module in sync with the JS version. There wasn't any cleanup after the last redesign
 
-# FIXME refactor this module in sync with the JS version. There wasn't any cleanup after the last redesign
+
+# FIXME use proper interface base classes, see: https://stackoverflow.com/questions/44315961/when-to-use-raise-notimplementederror
+
 
 
 GROUP_BY = 'GROUP BY'
