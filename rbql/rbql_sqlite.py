@@ -7,9 +7,14 @@ from __future__ import print_function
 
 # FIXME test table with NULL values
 # FIXME test db with a single table
-# FIXME fix `Select *` query
 
+
+import re
 from . import rbql_engine
+
+
+class RbqlIOHandlingError(Exception):
+    pass
 
 
 class SqliteRecordIterator:
@@ -18,7 +23,9 @@ class SqliteRecordIterator:
         self.table_name = table_name
         self.variable_prefix = variable_prefix
         self.cursor = self.db_connection.cursor()
-        self.cursor.execute('SELECT * FROM {}'.format(table_name)) #FIXME sanitize table_name
+        if re.match('^[a-zA-Z0-9_]*$', table_name) is None:
+            raise RbqlIOHandlingError('Unable to use "{}": input table name can contain only alphanumeric characters and underscore'.format(table_name))
+        self.cursor.execute('SELECT * FROM {}'.format(table_name))
 
     def get_column_names(self):
         column_names = [description[0] for description in self.cursor.description]
@@ -32,7 +39,11 @@ class SqliteRecordIterator:
         return variable_map
 
     def get_record(self):
-        return self.cursor.fetchone()
+        record_tuple = self.cursor.fetchone()
+        if record_tuple is None:
+            return None
+        # We need to convert tuple to list here because otherwise we won't be able to concatinate lists in expressions with star `*` operator
+        return list(record_tuple)
 
     def get_all_records(self, num_rows=None):
         # TODO consider to use TOP in the sqlite query when num_rows is not None

@@ -42,9 +42,6 @@ except NameError: # Python 2
 class RbqlIOHandlingError(Exception):
     pass
 
-class RbqlParsingError(Exception):
-    pass
-
 
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
