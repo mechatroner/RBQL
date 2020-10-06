@@ -12,10 +12,13 @@ from . import rbql_sqlite
 from . import rbql_engine
 from . import _version
 
+# TODO support sqlite input join on both sqlite and csv tables - pass 2 join registries
+# TODO add demo gif to python package README.md for pypi website
+
+# FIXME add sqlite usage example commands, both interactive and non-interactive modes
 
 PY3 = sys.version_info[0] == 3
 
-# TODO add demo gif to python package README.md for pypi website
 
 
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
@@ -60,7 +63,7 @@ def show_warning(msg, is_interactive):
         eprint('Warning: ' + msg)
 
 
-def run_with_python(args, is_interactive):
+def run_with_python_csv(args, is_interactive):
     if args.debug_mode:
         rbql_csv.set_debug_mode()
     delim = rbql_csv.normalize_delim(args.delim)
@@ -69,14 +72,11 @@ def run_with_python(args, is_interactive):
     skip_header = args.skip_header
     input_path = args.input
     output_path = args.output
-    init_source_file = args.init_source_file
     csv_encoding = args.encoding
     args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
-    user_init_code = ''
-    if init_source_file is not None:
-        user_init_code = rbql_csv.read_user_init_code(init_source_file)
+    user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
 
     warnings = []
     error_type, error_msg = None, None
@@ -98,6 +98,68 @@ def run_with_python(args, is_interactive):
     return success
 
 
+def query_sqlite_to_csv(query_text, db_connection, input_table_name, output_path, output_delim, output_policy, output_csv_encoding, output_warnings, user_init_code, colorize_output):
+    output_stream, close_output_on_finish = (None, False)
+    join_tables_registry = None
+    try:
+        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
+
+        if not rbql_csv.is_ascii(query_text) and output_csv_encoding == 'latin-1':
+            raise RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+
+        if not rbql_csv.is_ascii(output_delim) and output_csv_encoding == 'latin-1':
+            raise RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
+
+        default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
+        if user_init_code == '' and os.path.exists(default_init_source_path):
+            user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
+
+        join_tables_registry = rbql_sqlite.SqliteDbRegistry(db_connection)
+        input_iterator = rbql_sqlite.SqliteRecordIterator(db_connection, input_table_name)
+        output_writer = rbql_csv.CSVWriter(output_stream, close_output_on_finish, output_csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
+        rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
+    finally:
+        if close_output_on_finish:
+            output_stream.close()
+        if join_tables_registry:
+            join_tables_registry.finish(output_warnings)
+
+
+def run_with_python_sqlite(args, is_interactive):
+    import sqlite3
+    user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
+
+    warnings = []
+    error_type, error_msg = None, None
+    try:
+        db_connection = sqlite3.connect(args.sqlite_db)
+        if args.debug_mode:
+            rbql_engine.set_debug_mode()
+        query_sqlite_to_csv(args.query, db_connection, args.input, args.output, args.output_delim, args.output_policy, args.encoding, warnings, user_init_code, args.color)
+    except Exception as e:
+        if args.debug_mode:
+            raise
+        error_type, error_msg = rbql_engine.exception_to_error_info(e)
+    finally:
+        db_connection.close()
+
+    if error_type is None:
+        success = True
+        for warning in warnings:
+            show_warning(warning, is_interactive)
+    else:
+        success = False
+        show_error(error_type, error_msg, is_interactive)
+
+    return success
+
+
+def run_with_python(args, is_interactive):
+    if args.sqlite_db is None:
+        return run_with_python_csv(args, is_interactive)
+    else:
+        return run_with_python_sqlite(args, is_interactive)
+
 
 def is_delimited_table(sampled_lines, delim, policy):
     if len(sampled_lines) < 2:
@@ -115,7 +177,7 @@ def is_delimited_table(sampled_lines, delim, policy):
 
 
 def sample_lines(src_path, encoding, delim, policy, comment_prefix=None):
-    # FIXME this should be an independent function, remove sample line functionality from record iterator
+    # TODO this should be a dependency-free function, remove sample line functionality from CSVRecordIterator
     result = []
     with open(src_path, 'rb') as source:
         line_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, line_mode=True, comment_prefix=comment_prefix)
@@ -205,10 +267,13 @@ def run_interactive_loop(args):
 
 
 def sample_records_sqlite(db_path, table_name):
-    record_iterator = rbql_sqlite.SqliteRecordIterator(db_path, table_name)
+    import sqlite3
+    db_connection = sqlite3.connect(db_path)
+    record_iterator = rbql_sqlite.SqliteRecordIterator(db_connection, table_name)
     records = []
     records.append(record_iterator.get_column_names())
     records += record_iterator.get_all_records(num_rows=10)
+    db_connection.close()
     return records
 
 
@@ -219,9 +284,15 @@ def start_preview_mode_sqlite(args):
     records = sample_records_sqlite(db_path, table_name)
     print('Input table preview:')
     print('====================================')
-    output_delim = '|' if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)[0]
-    print_colorized(records, output_delim, args.encoding, show_column_names=True, skip_header=False)
+    print_colorized(records, '|', args.encoding, show_column_names=True, skip_header=False)
     print('====================================\n')
+    if args.output is None:
+        args.output = get_default_output_path('rbql_sqlite_rs', args.output_delim)
+        show_warning('Output path was not provided. Result set will be saved as: ' + args.output, is_interactive=True)
+    try:
+        run_interactive_loop(args)
+    except KeyboardInterrupt:
+        print()
 
 
 def start_preview_mode(args):
@@ -317,11 +388,17 @@ def main():
         if args.query is not None:
             args.query = args.query.decode(args.encoding)
 
+    if args.sqlite_db is not None:
+        args.output_delim, args.output_policy = (',', 'quoted_rfc') if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)
+
     if args.query:
         if args.delim is None:
             show_error('generic', 'Separator must be provided with "--delim" option in non-interactive mode', is_interactive=False)
             sys.exit(1)
-        success = run_with_python(args, is_interactive=False)
+        if args.sqlite_db is None:
+            success = run_with_python_csv(args, is_interactive=False)
+        else:
+            success = run_with_python_sqlite(args, is_interactive=False)
         if not success:
             sys.exit(1)
     else:

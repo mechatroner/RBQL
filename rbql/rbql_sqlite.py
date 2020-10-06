@@ -5,24 +5,24 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 
+# FIXME test table with NULL values
+# FIXME test db with a single table
+# FIXME fix `Select *` query
 
 from . import rbql_engine
 
 
 class SqliteRecordIterator:
-    def __init__(self, db_path, table_name, variable_prefix='a'): # FIXME consider adding support for multiple variable_prefixes i.e. "a" and <table_name>
-        self.db_path = db_path
+    def __init__(self, db_connection, table_name, variable_prefix='a'): # FIXME consider adding support for multiple variable_prefixes i.e. "a" and <table_name>
+        self.db_connection = db_connection
         self.table_name = table_name
-        import sqlite3
-        self.connection = sqlite3.connect(db_path)
-        self.cursor = self.connection.cursor()
+        self.variable_prefix = variable_prefix
+        self.cursor = self.db_connection.cursor()
         self.cursor.execute('SELECT * FROM {}'.format(table_name)) #FIXME sanitize table_name
-
 
     def get_column_names(self):
         column_names = [description[0] for description in self.cursor.description]
         return column_names
-
 
     def get_variables_map(self, query_text):
         variable_map = dict()
@@ -31,10 +31,8 @@ class SqliteRecordIterator:
         rbql_engine.map_variables_directly(query_text, self.get_column_names(), variable_map) # FIXME add flag to avoid throwing an exception when one of the variable_map entries can't be used as a variable. Just make sure it is not in the query and skip it.
         return variable_map
 
-
     def get_record(self):
         return self.cursor.fetchone()
-
 
     def get_all_records(self, num_rows=None):
         # TODO consider to use TOP in the sqlite query when num_rows is not None
@@ -48,6 +46,19 @@ class SqliteRecordIterator:
             result.append(row)
         return result
 
-
     def get_warnings(self):
         return []
+
+
+class SqliteDbRegistry:
+    def __init__(self, db_connection):
+        self.db_connection = db_connection
+
+    def get_iterator_by_table_id(self, table_id):
+        self.record_iterator = SqliteRecordIterator(db_connection, table_id, 'b')
+        return self.record_iterator
+
+    def finish(self, output_warnings):
+        pass
+
+

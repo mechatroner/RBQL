@@ -47,6 +47,10 @@ from ._version import __version__
 # TODO refactor this module in sync with the JS version. There wasn't any cleanup after the last redesign
 
 
+# TODO add RBQL iterators for json-by-line and xml-by-line files
+# TODO add RBQL file-system iterator to be able to query files like fselect does
+
+
 # FIXME use proper interface base classes, see: https://stackoverflow.com/questions/44315961/when-to-use-raise-notimplementederror
 
 
