@@ -16,7 +16,6 @@ from . import _version
 # TODO add demo gif to python package README.md for pypi website
 
 # FIXME add sqlite usage example commands, both interactive and non-interactive modes
-# FIXME add special mode switch in CLI
 
 PY3 = sys.version_info[0] == 3
 
@@ -133,7 +132,7 @@ def run_with_python_sqlite(args, is_interactive):
     warnings = []
     error_type, error_msg = None, None
     try:
-        db_connection = sqlite3.connect(args.sqlite_db)
+        db_connection = sqlite3.connect(args.database)
         if args.debug_mode:
             rbql_engine.set_debug_mode()
         query_sqlite_to_csv(args.query, db_connection, args.input, args.output, args.output_delim, args.output_policy, args.encoding, warnings, user_init_code, args.color)
@@ -153,13 +152,6 @@ def run_with_python_sqlite(args, is_interactive):
         show_error(error_type, error_msg, is_interactive)
 
     return success
-
-
-def run_with_python(args, is_interactive):
-    if args.sqlite_db is None:
-        return run_with_python_csv(args, is_interactive)
-    else:
-        return run_with_python_sqlite(args, is_interactive)
 
 
 def is_delimited_table(sampled_lines, delim, policy):
@@ -240,7 +232,8 @@ def get_default_output_path(input_path, delim):
     return input_path + '.txt'
 
 
-def run_interactive_loop(args):
+def run_interactive_loop(mode, args):
+    assert mode in ['csv', 'sqlite']
     import readline
     if os.path.exists(history_path):
         readline.read_history_file(history_path)
@@ -256,7 +249,10 @@ def run_interactive_loop(args):
             break
         readline.write_history_file(history_path)
         args.query = query
-        success = run_with_python(args, is_interactive=True)
+        if mode == 'csv':
+            success = run_with_python_csv(args, is_interactive=True)
+        else:
+            success = run_with_python_sqlite(args, is_interactive=True)
         if success:
             print('\nOutput table preview:')
             print('====================================')
@@ -279,7 +275,7 @@ def sample_records_sqlite(db_path, table_name):
 
 
 def start_preview_mode_sqlite(args):
-    db_path = args.sqlite_db
+    db_path = args.database
     table_name = args.input
     assert table_name # FIXME - in interactive mode we can just show the list of available tables so the user can choose the one they need. Or if there is only one table - use it without questions
     records = sample_records_sqlite(db_path, table_name)
@@ -291,12 +287,12 @@ def start_preview_mode_sqlite(args):
         args.output = get_default_output_path('rbql_sqlite_rs', args.output_delim)
         show_warning('Output path was not provided. Result set will be saved as: ' + args.output, is_interactive=True)
     try:
-        run_interactive_loop(args)
+        run_interactive_loop('sqlite', args)
     except KeyboardInterrupt:
         print()
 
 
-def start_preview_mode(args):
+def start_preview_mode_csv(args):
     input_path = args.input
     if not input_path:
         show_error('generic', 'Input file must be provided in interactive mode. You can use stdin input only in non-interactive mode', is_interactive=True)
@@ -325,7 +321,7 @@ def start_preview_mode(args):
         args.output = get_default_output_path(input_path, delim)
         show_warning('Output path was not provided. Result set will be saved as: ' + args.output, is_interactive=True)
     try:
-        run_interactive_loop(args)
+        run_interactive_loop('csv', args)
     except KeyboardInterrupt:
         print()
 
@@ -368,7 +364,6 @@ def csv_main():
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
     parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
-    parser.add_argument('--sqlite-db', metavar='FILE', help='Use sqlite db table as the input source instead of a CSV file. use --input param to provide table name') # FIXME no longer need this
     parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
@@ -378,15 +373,15 @@ def csv_main():
         print(_version.__version__)
         return
 
+    if args.output is not None and args.color:
+        show_error('generic', '"--output" is not compatible with "--color" option', is_interactive=False)
+        sys.exit(1)
+
     if args.policy == 'monocolumn':
         args.delim = ''
 
     if args.delim is None and args.policy is not None:
         show_error('generic', 'Using "--policy" without "--delim" is not allowed', is_interactive=False)
-        sys.exit(1)
-
-    if args.output is not None and args.color:
-        show_error('generic', '"--output" is not compatible with "--color" option', is_interactive=False)
         sys.exit(1)
 
     if args.encoding != 'latin-1' and not PY3:
@@ -395,30 +390,20 @@ def csv_main():
         if args.query is not None:
             args.query = args.query.decode(args.encoding)
 
-    if args.sqlite_db is not None:
-        args.output_delim, args.output_policy = (',', 'quoted_rfc') if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)
-
     if args.query:
         if args.delim is None:
             show_error('generic', 'Separator must be provided with "--delim" option in non-interactive mode', is_interactive=False)
             sys.exit(1)
-        if args.sqlite_db is None:
-            success = run_with_python_csv(args, is_interactive=False)
-        else:
-            success = run_with_python_sqlite(args, is_interactive=False)
-        if not success:
+        if not run_with_python_csv(args, is_interactive=False):
             sys.exit(1)
     else:
         if args.color:
             show_error('generic', '"--color" option is not compatible with interactive mode. Output and Input files preview would be colorized anyway', is_interactive=False)
             sys.exit(1)
         if os.name == 'nt':
-            show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False)
+            show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False) # TODO: explain why it is not available. Maybe it would work with an advanced terminal emulator?
             sys.exit(1)
-        if args.sqlite_db is None:
-            start_preview_mode(args)
-        else:
-            start_preview_mode_sqlite(args)
+        start_preview_mode_csv(args)
 
 
 sqlite_tool_description = '''
@@ -432,11 +417,10 @@ Interactive mode shows source table preview which makes query editing much easie
 
 def sqlite_main():
     parser = argparse.ArgumentParser(prog='rbql sqlite', formatter_class=argparse.RawDescriptionHelpFormatter, description=sqlite_tool_description)
-    parser.add_argument('sqlite-db', metavar='PATH', help='PATH to sqlite db')
-    parser.add_argument('--input', help='name of the table in sqlite database')
+    parser.add_argument('database', metavar='PATH', help='PATH to sqlite db')
+    parser.add_argument('--input', metavar='NAME', help='NAME of the table in sqlite database')
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--out-format', help='output format', default='csv', choices=['csv', 'tsv'])
-    parser.add_argument('--encoding', help='manually set output csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
     parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
     parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
@@ -444,6 +428,28 @@ def sqlite_main():
     parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
     args = parser.parse_args()
 
+    if args.version:
+        print(_version.__version__)
+        return
+
+    if args.output is not None and args.color:
+        show_error('generic', '"--output" is not compatible with "--color" option', is_interactive=False)
+        sys.exit(1)
+
+    args.encoding = 'utf-8'
+    args.output_delim, args.output_policy = (',', 'quoted_rfc') if args.out_format == 'csv' else rbql_csv.interpret_named_csv_format(args.out_format)
+
+    if args.query:
+        if not run_with_python_sqlite(args, is_interactive=False):
+            sys.exit(1)
+    else:
+        if args.color:
+            show_error('generic', '"--color" option is not compatible with interactive mode. Output and Input files preview would be colorized anyway', is_interactive=False)
+            sys.exit(1)
+        if os.name == 'nt':
+            show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False)
+            sys.exit(1)
+        start_preview_mode_sqlite(args)
 
 
 def main():
@@ -459,6 +465,7 @@ def main():
             csv_main()
     else:
         csv_main()
+
 
 if __name__ == '__main__':
     main()
