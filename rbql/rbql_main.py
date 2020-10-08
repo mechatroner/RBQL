@@ -16,6 +16,7 @@ from . import _version
 # TODO add demo gif to python package README.md for pypi website
 
 # FIXME add sqlite usage example commands, both interactive and non-interactive modes
+# FIXME add special mode switch in CLI
 
 PY3 = sys.version_info[0] == 3
 
@@ -329,17 +330,23 @@ def start_preview_mode(args):
         print()
 
 
-tool_description = '''
-Run RBQL queries against CSV files and data streams
+csv_tool_description = '''
+Run RBQL queries against CSV files, sqlite databases
 
-rbql-py supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
+rbql supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
 Interactive mode shows source table preview which makes query editing much easier. Usage example:
-  $ rbql-py --input input.csv
-Non-interactive mode supports reading input tables from stdin. Usage example:
-  $ rbql-py --query "select a1, a2 order by a1" --delim , < input.csv
+  $ rbql --input input.csv
+Non-interactive mode supports reading input tables from stdin and writing output to stdout. Usage example:
+  $ rbql --query "select a1, a2 order by a1" --delim , < input.csv
+
+By default rbql works with CSV input files.
+To learn how to use rbql to query an sqlite database, run this command:
+
+  $ rbql sqlite --help
+
 '''
 
-epilog = '''
+csv_epilog = '''
 Description of the available CSV split policies:
   * "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
   * "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
@@ -349,8 +356,8 @@ Description of the available CSV split policies:
 '''
 
 
-def main():
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description=tool_description, epilog=epilog)
+def csv_main():
+    parser = argparse.ArgumentParser(prog='rbql [csv]', formatter_class=argparse.RawDescriptionHelpFormatter, description=csv_tool_description, epilog=csv_epilog)
     parser.add_argument('--input', metavar='FILE', help='read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--delim', help='delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode')
     parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
@@ -361,7 +368,7 @@ def main():
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
     parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
-    parser.add_argument('--sqlite-db', metavar='FILE', help='Use sqlite db table as the input source instead of a CSV file. use --input param to provide table name')
+    parser.add_argument('--sqlite-db', metavar='FILE', help='Use sqlite db table as the input source instead of a CSV file. use --input param to provide table name') # FIXME no longer need this
     parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
@@ -414,6 +421,44 @@ def main():
             start_preview_mode_sqlite(args)
 
 
+sqlite_tool_description = '''
+Run RBQL queries against sqlite databases
+
+rbql supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
+Interactive mode shows source table preview which makes query editing much easier.
+
+'''
+
+
+def sqlite_main():
+    parser = argparse.ArgumentParser(prog='rbql sqlite', formatter_class=argparse.RawDescriptionHelpFormatter, description=sqlite_tool_description)
+    parser.add_argument('sqlite-db', metavar='PATH', help='PATH to sqlite db')
+    parser.add_argument('--input', help='name of the table in sqlite database')
+    parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
+    parser.add_argument('--out-format', help='output format', default='csv', choices=['csv', 'tsv'])
+    parser.add_argument('--encoding', help='manually set output csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
+    parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
+    parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
+    parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
+    parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
+    parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
+    args = parser.parse_args()
+
+
+
+def main():
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'sqlite':
+            del sys.argv[1]
+            sqlite_main()
+        elif sys.argv[1] == 'csv':
+            del sys.argv[1]
+            csv_main()
+        else:
+            # TODO Consider showing "uknown mode" error if the first argument doesn't start with '--'
+            csv_main()
+    else:
+        csv_main()
 
 if __name__ == '__main__':
     main()

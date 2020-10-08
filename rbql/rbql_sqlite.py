@@ -8,6 +8,8 @@ from __future__ import print_function
 # FIXME test table with NULL values
 # FIXME test db with a single table
 
+# TODO consider to support table names in "FROM" section of the query, making table_name param of SqliteRecordIterator optional
+# TODO consider adding support for multiple variable_prefixes i.e. "a" and <table_name> or "b" and <join_table_name> to alias input and join tables
 
 import re
 from . import rbql_engine
@@ -18,7 +20,7 @@ class RbqlIOHandlingError(Exception):
 
 
 class SqliteRecordIterator:
-    def __init__(self, db_connection, table_name, variable_prefix='a'): # FIXME consider adding support for multiple variable_prefixes i.e. "a" and <table_name>
+    def __init__(self, db_connection, table_name, variable_prefix='a'):
         self.db_connection = db_connection
         self.table_name = table_name
         self.variable_prefix = variable_prefix
@@ -35,7 +37,8 @@ class SqliteRecordIterator:
         variable_map = dict()
         rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
         rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
-        rbql_engine.map_variables_directly(query_text, self.get_column_names(), variable_map) # FIXME add flag to avoid throwing an exception when one of the variable_map entries can't be used as a variable. Just make sure it is not in the query and skip it.
+        rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.get_column_names(), variable_map)
+        rbql_engine.parse_attribute_variables(query_text, self.variable_prefix, self.get_column_names(), 'table column names', variable_map)
         return variable_map
 
     def get_record(self):
