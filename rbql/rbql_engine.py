@@ -47,7 +47,7 @@ from ._version import __version__
 # TODO refactor this module in sync with the JS version. There wasn't any cleanup after the last redesign
 
 
-# TODO add RBQL iterators for json-by-line and xml-by-line files
+# TODO add RBQL iterators for json lines ( https://jsonlines.org/ ) and xml-by-line files
 # TODO add RBQL file-system iterator to be able to query files like fselect does
 
 

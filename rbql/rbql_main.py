@@ -132,6 +132,7 @@ def run_with_python_sqlite(args, is_interactive):
     warnings = []
     error_type, error_msg = None, None
     try:
+        # TODO open in readonly mode
         db_connection = sqlite3.connect(args.database)
         if args.debug_mode:
             rbql_engine.set_debug_mode()
@@ -263,29 +264,49 @@ def run_interactive_loop(mode, args):
             break
 
 
-def sample_records_sqlite(db_path, table_name):
+def sample_records_sqlite(db_connection, table_name):
     import sqlite3
-    db_connection = sqlite3.connect(db_path)
     record_iterator = rbql_sqlite.SqliteRecordIterator(db_connection, table_name)
     records = []
     records.append(record_iterator.get_column_names())
     records += record_iterator.get_all_records(num_rows=10)
-    db_connection.close()
     return records
 
 
+def select_table_name_by_user_choice(db_connection):
+    cursor = db_connection.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    table_names = [r[0] for r in cursor.fetchall()]
+    max_to_show = 20
+    if len(table_names) > max_to_show:
+        print('Database has {} tables, showing top {}:'.format(len(table_names), max_to_show))
+    else:
+        print('Showing database tables:')
+    print(', '.join(table_names[:max_to_show]))
+    table_name = polymorphic_input('No input table was provided as a CLI argument, please type in the table name to use:\n> ')
+    table_name = table_name.strip()
+    while table_name not in table_names:
+        table_name = polymorphic_input('"{}" is not a valid table name. Please enter a valid table name:\n> '.format(table_name))
+        table_name = table_name.strip()
+    return table_name
+
+
 def start_preview_mode_sqlite(args):
+    import sqlite3
     db_path = args.database
-    table_name = args.input
-    assert table_name # FIXME - in interactive mode we can just show the list of available tables so the user can choose the one they need. Or if there is only one table - use it without questions
+    db_connection = sqlite3.connect(db_path)
+    if not args.input:
+        args.input = select_table_name_by_user_choice(db_connection)
     try:
-        records = sample_records_sqlite(db_path, table_name)
+        records = sample_records_sqlite(db_connection, table_name=args.input)
     except Exception as e:
         if args.debug_mode:
             raise
         error_type, error_msg = rbql_engine.exception_to_error_info(e)
         show_error(error_type, 'Unable to sample preview records: {}'.format(error_msg), is_interactive=True)
         sys.exit(1)
+    db_connection.close()
+
     print('Input table preview:')
     print('====================================')
     print_colorized(records, '|', args.encoding, show_column_names=True, skip_header=False)
@@ -438,6 +459,10 @@ def sqlite_main():
     if args.version:
         print(_version.__version__)
         return
+
+    if not os.path.isfile(args.database):
+        show_error('generic', 'The database does not exist: {}'.format(args.database), is_interactive=False)
+        sys.exit(1)
 
     if args.output is not None and args.color:
         show_error('generic', '"--output" is not compatible with "--color" option', is_interactive=False)
