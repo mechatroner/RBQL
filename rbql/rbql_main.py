@@ -278,7 +278,14 @@ def start_preview_mode_sqlite(args):
     db_path = args.database
     table_name = args.input
     assert table_name # FIXME - in interactive mode we can just show the list of available tables so the user can choose the one they need. Or if there is only one table - use it without questions
-    records = sample_records_sqlite(db_path, table_name)
+    try:
+        records = sample_records_sqlite(db_path, table_name)
+    except Exception as e:
+        if args.debug_mode:
+            raise
+        error_type, error_msg = rbql_engine.exception_to_error_info(e)
+        show_error(error_type, 'Unable to sample preview records: {}'.format(error_msg), is_interactive=True)
+        sys.exit(1)
     print('Input table preview:')
     print('====================================')
     print_colorized(records, '|', args.encoding, show_column_names=True, skip_header=False)

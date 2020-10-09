@@ -25,9 +25,15 @@ class SqliteRecordIterator:
         self.table_name = table_name
         self.variable_prefix = variable_prefix
         self.cursor = self.db_connection.cursor()
+        import sqlite3
         if re.match('^[a-zA-Z0-9_]*$', table_name) is None:
             raise RbqlIOHandlingError('Unable to use "{}": input table name can contain only alphanumeric characters and underscore'.format(table_name))
-        self.cursor.execute('SELECT * FROM {}'.format(table_name))
+        try:
+            self.cursor.execute('SELECT * FROM {}'.format(table_name))
+        except sqlite3.OperationalError as e:
+            if str(e).find('no such table') != -1:
+                raise RbqlIOHandlingError('no such table "{}"'.format(table_name))
+            raise
 
     def get_column_names(self):
         column_names = [description[0] for description in self.cursor.description]
