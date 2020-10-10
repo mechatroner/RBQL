@@ -17,8 +17,12 @@ from . import _version
 
 # FIXME add sqlite usage example commands, both interactive and non-interactive modes
 
-PY3 = sys.version_info[0] == 3
 
+# TODO add --output_header param 
+# TODO add option to write to other sqlite dbs
+
+
+PY3 = sys.version_info[0] == 3
 
 
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
@@ -236,8 +240,11 @@ def get_default_output_path(input_path, delim):
 def run_interactive_loop(mode, args):
     assert mode in ['csv', 'sqlite']
     import readline
-    if os.path.exists(history_path):
-        readline.read_history_file(history_path)
+    try:
+        if os.path.exists(history_path):
+            readline.read_history_file(history_path)
+    except Exception:
+        pass
     readline.set_history_length(100)
     while True:
         try:
@@ -248,7 +255,10 @@ def run_interactive_loop(mode, args):
             break # Ctrl-D
         if not len(query):
             break
-        readline.write_history_file(history_path)
+        try:
+            readline.write_history_file(history_path)
+        except Exception:
+            pass
         args.query = query
         if mode == 'csv':
             success = run_with_python_csv(args, is_interactive=True)
@@ -273,10 +283,15 @@ def sample_records_sqlite(db_connection, table_name):
     return records
 
 
-def select_table_name_by_user_choice(db_connection):
+def read_table_names(db_connection):
     cursor = db_connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     table_names = [r[0] for r in cursor.fetchall()]
+    return table_names
+
+
+def select_table_name_by_user_choice(db_connection):
+    table_names = read_table_names(db_connection)
     max_to_show = 20
     if len(table_names) > max_to_show:
         print('Database has {} tables, showing top {}:'.format(len(table_names), max_to_show))
@@ -463,6 +478,18 @@ def sqlite_main():
     if not os.path.isfile(args.database):
         show_error('generic', 'The database does not exist: {}'.format(args.database), is_interactive=False)
         sys.exit(1)
+
+    import sqlite3
+    if not args.input:
+        db_connection = sqlite3.connect(args.database)
+        table_names = read_table_names(db_connection)
+        db_connection.close()
+        if len(table_names) == 1:
+            args.input = table_names[0]
+            # TODO Consider showing a warning here
+        else:
+            show_error('generic', 'Please provide input table name with --input parameter: source database has more than one table', is_interactive=False)
+            sys.exit(1)
 
     if args.output is not None and args.color:
         show_error('generic', '"--output" is not compatible with "--color" option', is_interactive=False)
