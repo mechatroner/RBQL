@@ -6,6 +6,17 @@ RBQL core module is very generic and can process all kinds of objects and record
 
 [Official Site](https://rbql.org/)
 
+#### Supported formats
+Below is the matrix of input data formats that RBQL supports out of the box.  
+If you want to use RBQL as a library you can add suppport for additional custom formats.  
+
+|Input Format          | Python | JS |
+|----------------------|--------|----|
+|CSV, TSV, etc         | +      | +  |
+|Sqlite databases      | +      | -  |
+|Native 2D array/lists | +      | +  |
+
+
 ### Main Features
 
 * Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
