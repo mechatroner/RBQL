@@ -10,6 +10,7 @@ RBQL core module is very generic and can process all kinds of objects and record
 
 * Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
 * Result set of any query immediately becomes a first-class table on its own
+* No need to provide FROM statement in the query - input table is defined by the current context
 * Supports input tables with an inconsistent number of fields per record
 * Output records appear in the same order as in input unless _ORDER BY_ is provided
 * Each record has a unique NR (record number) identifier
@@ -144,7 +145,7 @@ You can define custom functions and/or import libraries in two special files:
 * `select ...a1.split(':')` - Using JS "destructuring assignment" syntax to split one column into many. Do not try this with other SQL engines!
 
 
-### RBQL design principles and architecture
+## RBQL design principles and architecture
 RBQL core idea is based on dynamic code generation and execution with [exec](https://docs.python.org/3/library/functions.html#exec) and [eval](https://www.w3schools.com/jsref/jsref_eval.asp) functions.
 Here are the main steps that RBQL engine performs when processing a query:
 1. Shallow parsing: split the query into logical expressions such as "SELECT", "WHERE", "ORDER BY", etc.
@@ -155,6 +156,23 @@ Here you can find a very basic working script (only 15 lines of Python code) whi
 
 The diagram below gives an overview of the main RBQL components and data flow:
 ![RBQL Diagram](https://i.imgur.com/KDQHoVM.png)
+
+
+### Advantages of RBQL over traditional SQL engines
+* Provides power and flexibility of general purpose Python and JS languages in relational expressions (including regexp, math, file system, json, xml, random and many other libraries that these languages provide)
+* Can work with different data sources including CSV files, sqlite tables, native 2D arrays/lists (traditional SQL engines are usually tightly coupled with their databases)
+* Supports both TOP and LIMIT keywords
+* Provides additional NR (record number) variable which is especially useful for input sources where record order is well defined (such as CSV files)
+* Supports tables with variable number of values in records
+* Allows to generate result sets with variable number of values in records e.g. by using split() function and unpack operator (Python) / destructuring assignment (JS)
+* UPDATE is a special case of SELECT query - this prevents accidental data loss
+* Almost nonexistent entry barrier both for SQL users and JS/Python users
+* No need to use FROM statement - the table name is defined by the context. This improves query typing speed and allows immediate autocomplete for variables inside SELECT statement (in traditional SQL engines autocomplete will not work until you write FROM statement, which goes after SELECT statement)
+* SELECT, WHERE, ORDER BY, and other statements can be rearranged in any way you like
+* Supports EXCEPT statement
+* Provides a fully-functional client-side browser demo application
+* Integration with popular text editors (VSCode, Vim, Sublime Text, Atom)
+* Small, maintainable, dependency-free, eco-friendly and hackable code base: RBQL engine fits into a single file with less than 2000 LOC
 
 
 ### FAQ
