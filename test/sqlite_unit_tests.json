@@ -1,0 +1,13 @@
+[
+    {
+        "test_name": "test_1",
+        "input_db_path": "sqlite_files/mental_health_single_table.sqlite",
+        "input_table_name": "Question",
+        "debug_mode": true,
+        "expected_output_table_path": "sqlite_files/canonic_result_1.csv",
+        "expected_warnings": [
+            "null values in output were replaced"
+        ],
+        "query_python": "select top 100 *, a2 * 10, len(a.questiontext) if a.questiontext else 0 WHERE a1 is None or a1.find(\"your\") != -1"
+    }
+]

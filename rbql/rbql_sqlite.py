@@ -11,11 +11,10 @@ from __future__ import print_function
 
 
 import re
+import os
+
 from . import rbql_engine
-
-
-class RbqlIOHandlingError(Exception):
-    pass
+from . import rbql_csv
 
 
 class SqliteRecordIterator:
@@ -26,12 +25,12 @@ class SqliteRecordIterator:
         self.cursor = self.db_connection.cursor()
         import sqlite3
         if re.match('^[a-zA-Z0-9_]*$', table_name) is None:
-            raise RbqlIOHandlingError('Unable to use "{}": input table name can contain only alphanumeric characters and underscore'.format(table_name))
+            raise rbql_engine.RbqlIOHandlingError('Unable to use "{}": input table name can contain only alphanumeric characters and underscore'.format(table_name))
         try:
             self.cursor.execute('SELECT * FROM {};'.format(table_name))
         except sqlite3.OperationalError as e:
             if str(e).find('no such table') != -1:
-                raise RbqlIOHandlingError('no such table "{}"'.format(table_name))
+                raise rbql_engine.RbqlIOHandlingError('no such table "{}"'.format(table_name))
             raise
 
     def get_column_names(self):
@@ -79,5 +78,32 @@ class SqliteDbRegistry:
 
     def finish(self, output_warnings):
         pass
+
+
+def query_sqlite_to_csv(query_text, db_connection, input_table_name, output_path, output_delim, output_policy, output_csv_encoding, output_warnings, user_init_code='', colorize_output=False):
+    output_stream, close_output_on_finish = (None, False)
+    join_tables_registry = None
+    try:
+        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
+
+        if not rbql_csv.is_ascii(query_text) and output_csv_encoding == 'latin-1':
+            raise rbql_engine.RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+
+        if not rbql_csv.is_ascii(output_delim) and output_csv_encoding == 'latin-1':
+            raise rbql_engine.RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
+
+        default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
+        if user_init_code == '' and os.path.exists(default_init_source_path):
+            user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
+
+        join_tables_registry = SqliteDbRegistry(db_connection)
+        input_iterator = SqliteRecordIterator(db_connection, input_table_name)
+        output_writer = rbql_csv.CSVWriter(output_stream, close_output_on_finish, output_csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
+        rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
+    finally:
+        if close_output_on_finish:
+            output_stream.close()
+        if join_tables_registry:
+            join_tables_registry.finish(output_warnings)
 
 

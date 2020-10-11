@@ -100,33 +100,6 @@ def run_with_python_csv(args, is_interactive):
     return success
 
 
-def query_sqlite_to_csv(query_text, db_connection, input_table_name, output_path, output_delim, output_policy, output_csv_encoding, output_warnings, user_init_code, colorize_output):
-    output_stream, close_output_on_finish = (None, False)
-    join_tables_registry = None
-    try:
-        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
-
-        if not rbql_csv.is_ascii(query_text) and output_csv_encoding == 'latin-1':
-            raise RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
-
-        if not rbql_csv.is_ascii(output_delim) and output_csv_encoding == 'latin-1':
-            raise RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
-
-        default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
-        if user_init_code == '' and os.path.exists(default_init_source_path):
-            user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
-
-        join_tables_registry = rbql_sqlite.SqliteDbRegistry(db_connection)
-        input_iterator = rbql_sqlite.SqliteRecordIterator(db_connection, input_table_name)
-        output_writer = rbql_csv.CSVWriter(output_stream, close_output_on_finish, output_csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
-        rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
-    finally:
-        if close_output_on_finish:
-            output_stream.close()
-        if join_tables_registry:
-            join_tables_registry.finish(output_warnings)
-
-
 def run_with_python_sqlite(args, is_interactive):
     import sqlite3
     user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
@@ -138,7 +111,7 @@ def run_with_python_sqlite(args, is_interactive):
         db_connection = sqlite3.connect(args.database)
         if args.debug_mode:
             rbql_engine.set_debug_mode()
-        query_sqlite_to_csv(args.query, db_connection, args.input, args.output, args.output_delim, args.output_policy, args.encoding, warnings, user_init_code, args.color)
+        rbql_sqlite.query_sqlite_to_csv(args.query, db_connection, args.input, args.output, args.output_delim, args.output_policy, args.encoding, warnings, user_init_code, args.color)
     except Exception as e:
         if args.debug_mode:
             raise

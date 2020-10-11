@@ -39,10 +39,6 @@ except NameError: # Python 2
     broken_pipe_exception = IOError
 
 
-class RbqlIOHandlingError(Exception):
-    pass
-
-
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
@@ -272,7 +268,7 @@ class CSVWriter:
 
     def ensure_single_field(self, fields):
         if len(fields) > 1:
-            raise RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
+            raise rbql_engine.RbqlIOHandlingError('Unable to use "Monocolumn" output format: some records have more than one field')
 
 
     def normalize_fields(self, fields):
@@ -418,7 +414,7 @@ class CSVRecordIterator:
                     self.utf8_bom_removed = True
             return row
         except UnicodeDecodeError:
-            raise RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
+            raise rbql_engine.RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
 
     
     def get_row_rfc(self):
@@ -455,7 +451,7 @@ class CSVRecordIterator:
             if self.first_defective_line is None:
                 self.first_defective_line = self.NL
                 if self.policy == 'quoted_rfc':
-                    raise RbqlIOHandlingError('Inconsistent double quote escaping in {} table at record {}, line {}'.format(self.table_name, self.NR, self.NL))
+                    raise rbql_engine.RbqlIOHandlingError('Inconsistent double quote escaping in {} table at record {}, line {}'.format(self.table_name, self.NR, self.NL))
         num_fields = len(record)
         if num_fields not in self.fields_info:
             self.fields_info[num_fields] = self.NR
@@ -509,7 +505,7 @@ class FileSystemCSVRegistry:
     def get_iterator_by_table_id(self, table_id):
         self.table_path = find_table_path(table_id)
         if self.table_path is None:
-            raise RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
+            raise rbql_engine.RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
         self.input_stream = open(self.table_path, 'rb')
         self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.skip_headers, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix='b')
         return self.record_iterator
@@ -530,15 +526,15 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
 
         if input_delim == '"' and input_policy == 'quoted':
-            raise RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy')
+            raise rbql_engine.RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy')
         if input_delim != ' ' and input_policy == 'whitespace':
-            raise RbqlIOHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
+            raise rbql_engine.RbqlIOHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
 
         if not is_ascii(query_text) and csv_encoding == 'latin-1':
-            raise RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
+            raise rbql_engine.RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
 
         if (not is_ascii(input_delim) or not is_ascii(output_delim)) and csv_encoding == 'latin-1':
-            raise RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
+            raise rbql_engine.RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):
