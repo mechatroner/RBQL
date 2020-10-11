@@ -1,7 +1,8 @@
 # RBQL: Rainbow Query Language
 
 RBQL is a technology for (not only) CSV file processing. It provides SQL-like language that supports SELECT queries with Python or JavaScript expressions.  
-RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries and can work in web browsers.  
+RBQL is best suited for data transformation, data cleaning, and analytical queries.  
+RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries.  
 RBQL core module is very generic and can process all kinds of objects and record formats, but the most popular RBQL implementation works with CSV files.  
 
 [Official Site](https://rbql.org/)
@@ -22,15 +23,11 @@ If you want to use RBQL as a library you can implement reading of additional cus
 * Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
 * Result set of any query immediately becomes a first-class table on its own
 * No need to provide FROM statement in the query - input table is defined by the current context
-* Supports input tables with an inconsistent number of fields per record
-* Output records appear in the same order as in input unless _ORDER BY_ is provided
-* Each record has a unique NR (record number) identifier
 * Supports all main SQL keywords
 * Supports aggregate functions and GROUP BY queries
-* Provides some new useful query modes which traditional SQL engines do not have
-* Supports both _TOP_ and _LIMIT_ keywords
 * Supports user-defined functions (UDF)
-* Works out of the box, no external dependencies
+* Provides some new useful query modes which traditional SQL engines do not have
+* Lightweight, dependency-free, works out of the box
 
 #### Limitations:
 
@@ -174,8 +171,8 @@ The diagram below gives an overview of the main RBQL components and data flow:
 * Can work with different data sources including CSV files, sqlite tables, native 2D arrays/lists (traditional SQL engines are usually tightly coupled with their databases)
 * Supports both TOP and LIMIT keywords
 * Provides additional NR (record number) variable which is especially useful for input sources where record order is well defined (such as CSV files)
-* Supports tables with variable number of values in records
-* Allows to generate result sets with variable number of values in records e.g. by using split() function and unpack operator (Python) / destructuring assignment (JS)
+* Supports input tables with inconsistent number of fields per record
+* Allows to generate result sets with variable number of fields per records e.g. by using split() function and unpack operator (Python) / destructuring assignment (JS)
 * UPDATE is a special case of SELECT query - this prevents accidental data loss
 * Almost nonexistent entry barrier both for SQL users and JS/Python users
 * No need to use FROM statement - the table name is defined by the context. This improves query typing speed and allows immediate autocomplete for variables inside SELECT statement (in traditional SQL engines autocomplete will not work until you write FROM statement, which goes after SELECT statement)
