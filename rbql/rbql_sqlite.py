@@ -12,6 +12,7 @@ from __future__ import print_function
 
 import re
 import os
+import sys
 
 from . import rbql_engine
 from . import rbql_csv
