@@ -5,11 +5,10 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 
-# FIXME test table with NULL values
-# FIXME test db with a single table
 
 # TODO consider to support table names in "FROM" section of the query, making table_name param of SqliteRecordIterator optional
 # TODO consider adding support for multiple variable_prefixes i.e. "a" and <table_name> or "b" and <join_table_name> to alias input and join tables
+
 
 import re
 from . import rbql_engine

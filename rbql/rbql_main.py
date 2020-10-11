@@ -457,7 +457,7 @@ Result set will be written to a csv file. This is also true for UPDATE queries b
 rbql sqlite supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
 
 Interactive mode shows source table preview which makes query editing much easier.
-  $ rbql sqlite path/to/database.sqlite --input Employee
+  $ rbql sqlite path/to/database.sqlite
 
 Non-interactive mode supports reading input tables from stdin and writing output to stdout. Usage example:
   $ rbql sqlite path/to/database.sqlite --input Employee --query "select top 20 a1, random.random(), a.salary // 1000 order by a.emp_id"

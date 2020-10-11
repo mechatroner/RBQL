@@ -21,6 +21,7 @@ If you want to use RBQL as a library you can implement reading of additional cus
 ### Main Features
 
 * Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
+* Supports multiple input formats
 * Result set of any query immediately becomes a first-class table on its own
 * No need to provide FROM statement in the query - input table is defined by the current context
 * Supports all main SQL keywords
