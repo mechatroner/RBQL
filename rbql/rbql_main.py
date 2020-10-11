@@ -15,8 +15,6 @@ from . import _version
 # TODO support sqlite input join on both sqlite and csv tables - pass 2 join registries
 # TODO add demo gif to python package README.md for pypi website
 
-# FIXME add sqlite usage example commands, both interactive and non-interactive modes
-
 
 # TODO add --output_header param 
 # TODO add option to write to other sqlite dbs
@@ -373,8 +371,10 @@ csv_tool_description = '''
 Run RBQL queries against CSV files, sqlite databases
 
 rbql supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
+
 Interactive mode shows source table preview which makes query editing much easier. Usage example:
   $ rbql --input input.csv
+
 Non-interactive mode supports reading input tables from stdin and writing output to stdout. Usage example:
   $ rbql --query "select a1, a2 order by a1" --delim , < input.csv
 
@@ -451,9 +451,16 @@ def csv_main():
 
 sqlite_tool_description = '''
 Run RBQL queries against sqlite databases
+Although sqlite database can serve as an input data source, the query engine which will be used is RBQL (not sqlite).
+Result set will be written to a csv file. This is also true for UPDATE queries because in RBQL UPDATE is just a special case of SELECT.
 
-rbql supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
+rbql sqlite supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
+
 Interactive mode shows source table preview which makes query editing much easier.
+  $ rbql sqlite path/to/database.sqlite --input Employee
+
+Non-interactive mode supports reading input tables from stdin and writing output to stdout. Usage example:
+  $ rbql sqlite path/to/database.sqlite --input Employee --query "select top 20 a1, random.random(), a.salary // 1000 order by a.emp_id"
 
 '''
 

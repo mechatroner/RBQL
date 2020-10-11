@@ -1,0 +1,65 @@
+What is your age?,1,10,17
+What is your gender?,2,20,20
+How many employees does your company or organization have?,8,80,58
+Is your employer primarily a tech company/organization?,9,90,55
+Does your employer provide mental health benefits as part of healthcare coverage?,10,100,81
+Is your anonymity protected if you choose to take advantage of mental health or substance abuse treatment resources provided by your employer?,11,110,142
+Is your primary role within your company related to tech/IT?,13,130,60
+Do you know the options for mental health care available under your employer-provided health coverage?,14,140,102
+"Has your employer ever formally discussed mental health (for example, as part of a wellness campaign or other official communication)?",15,150,134
+Does your employer offer resources to learn more about mental health disorders and options for seeking help?,16,160,108
+Would you feel comfortable discussing a mental health issue with your coworkers?,18,180,80
+Would you feel comfortable discussing a mental health issue with your direct supervisor(s)?,19,190,91
+Have your previous employers provided mental health benefits?,23,230,61
+Were you aware of the options for mental health care provided by your previous employers?,24,240,89
+Did your previous employers ever formally discuss mental health (as part of a wellness campaign or other official communication)?,25,250,129
+Did your previous employers provide resources to learn more about mental health disorders and how to seek help?,26,260,111
+Was your anonymity protected if you chose to take advantage of mental health or substance abuse treatment resources with previous employers?,27,270,140
+Would you have been willing to discuss your mental health with your direct supervisor(s)?,28,280,89
+Have your observations of how another individual who discussed a mental health disorder made you less likely to reveal a mental health issue yourself in your current workplace?,31,310,176
+"If you have a mental health disorder, how often do you feel that it interferes with your work when being treated effectively?",48,480,125
+"If you have a mental health disorder, how often do you feel that it interferes with your work when not being treated effectively (i.e., when you are experiencing symptoms)?",49,490,172
+Do you believe your productivity is ever affected by a mental health issue?,54,540,75
+"If yes, what percentage of your work time (time performing primary or secondary job functions) is affected by a mental health issue?",55,550,132
+Have you observed or experienced an unsupportive or badly handled response to a mental health issue in your current or previous workplace?,56,560,138
+Would you feel more comfortable talking to your coworkers about your physical health or your mental health?,57,570,107
+Have you ever discussed your mental health with your employer?,58,580,62
+"Describe the conversation you had with your employer about your mental health, including their reactions and what actions were taken to address your mental health issue/questions.",59,590,179
+Have you ever discussed your mental health with coworkers?,60,600,58
+Describe the conversation with coworkers you had about your mental health including their reactions.,61,610,100
+Describe the conversation your coworker had with you about their mental health (please do not use names).,63,630,105
+"Overall, how much importance does your employer place on physical health?",64,640,73
+"Overall, how much importance does your employer place on mental health?",65,650,71
+Was your employer primarily a tech company/organization?,68,680,56
+Would you have felt more comfortable talking to your previous employer about your physical health or your mental health?,69,690,120
+Did you ever discuss your mental health with your previous employer?,70,700,68
+"Describe the conversation you had with your previous employer about your mental health, including their reactions and actions taken to address your mental health issue/questions.",71,710,178
+Did you ever discuss your mental health with a previous coworker(s)?,72,720,68
+Describe the conversation you had with your previous coworkers about your mental health including their reactions.,73,730,114
+Describe the conversation your coworker had with you about their mental health (please do not use names)..1,75,750,107
+"Overall, how much importance did your previous employer place on physical health?",76,760,81
+"Overall, how much importance did your previous employer place on mental health?",77,770,79
+Has being identified as a person with a mental health issue affected your career?,79,790,81
+How has it affected your career?,80,800,32
+"If they knew you suffered from a mental health disorder, how do you think that your team members/co-workers would react?",81,810,120
+Have you observed or experienced supportive or well handled response to a mental health issue in your current or previous workplace?,83,830,132
+Would you be willing to talk to one of us more extensively about your experiences with mental health issues in the tech industry? (Note that all interview responses would be used _anonymously_ and only with your permission.),88,880,224
+What is your race?,89,890,18
+Do you think that discussing a physical health issue with your employer would have negative consequences?,90,900,105
+Do you feel that your employer takes mental health as seriously as physical health?,91,910,83
+"If you have a mental health condition, do you feel that it interferes with your work?",92,920,85
+Do you know the options for mental health care your employer provides?,94,940,70
+Has your employer ever discussed mental health as part of an employee wellness program?,95,950,87
+Does your employer provide resources to learn more about mental health issues and how to seek help?,96,960,99
+Do you think that discussing a mental health issue with your employer would have negative consequences?,98,980,103
+Would you be willing to discuss a mental health issue with your coworkers?,99,990,74
+Would you be willing to discuss a mental health issue with your direct supervisor(s)?,100,1000,85
+Have you heard of or observed negative consequences for coworkers with mental health conditions in your workplace?,102,1020,114
+Do you think that discussing a mental health disorder with your employer would have negative consequences?,104,1040,106
+Have you heard of or observed negative consequences for co-workers who have been open about mental health issues in your workplace?,105,1050,131
+Would you have been willing to discuss a mental health issue with your previous co-workers?,110,1100,91
+Did you feel that your previous employers took mental health as seriously as physical health?,111,1110,93
+Did you hear of or observe negative consequences for co-workers with mental health issues in your previous workplaces?,112,1120,118
+Do you feel that being identified as a person with a mental health issue would hurt your career?,113,1130,96
+Which of the following best describes your work position?,117,1170,57
+,119,1190,0

@@ -19,6 +19,7 @@ die_if_error() {
 
 cleanup_tmp_files() {
     rm tmp_out.csv 2> /dev/null
+    rm tmp_err 2> /dev/null
     rm random_tmp_table.txt 2> /dev/null
     rm speed_test.csv 2> /dev/null
     rm rbql_warning.out 2> /dev/null
@@ -430,6 +431,27 @@ if [ "$run_node_tests" == "yes" ]; then
         exit 1
     fi
 fi
+
+
+# Testing sqlite CLI
+if [ "$run_python_tests" == "yes" ]; then
+    md5sum_canonic=($( md5sum test/sqlite_files/canonic_result_1.csv ))
+    canonic_warning="Warning: None values in output were replaced by empty strings"
+    $random_python_interpreter -m rbql sqlite test/sqlite_files/mental_health_single_table.sqlite --input Question --query 'select top 100 *, a2 * 10, len(a.questiontext) if a.questiontext else 0 WHERE a1 is None or a1.find("your") != -1' > tmp_out.csv 2> tmp_err.txt
+    md5sum_test=($( md5sum tmp_out.csv ))
+    test_warning=$( cat tmp_err.txt )
+    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+        echo "rbql sqlite cli test fail!"  1>&2
+        exit 1
+    fi
+    if [ "$canonic_warning" != "$test_warning" ]; then
+        echo "rbql sqlite cli test fail: wrong warning!"  1>&2
+        exit 1
+    fi
+fi
+
+
+
 
 cleanup_tmp_files
 
