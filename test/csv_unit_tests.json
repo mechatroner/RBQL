@@ -4,6 +4,7 @@
         "input_table_path": "csv_files/movies.tsv",
         "expected_output_table_path": "csv_files/expected_result_1.tsv",
         "csv_separator": "\t",
+        "debug_mode": true,
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
         "query_python": "select a1, a2, a4, a8 where int(a8) == 142 order by int(a4) desc",

@@ -18,7 +18,7 @@ from . import rbql_engine
 from . import rbql_csv
 
 
-class SqliteRecordIterator:
+class SqliteRecordIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, db_connection, table_name, variable_prefix='a'):
         self.db_connection = db_connection
         self.table_name = table_name
@@ -69,16 +69,13 @@ class SqliteRecordIterator:
         return []
 
 
-class SqliteDbRegistry:
+class SqliteDbRegistry(rbql_engine.RBQLTableRegistry):
     def __init__(self, db_connection):
         self.db_connection = db_connection
 
     def get_iterator_by_table_id(self, table_id):
         self.record_iterator = SqliteRecordIterator(self.db_connection, table_id, 'b')
         return self.record_iterator
-
-    def finish(self, output_warnings):
-        pass
 
 
 def query_sqlite_to_csv(query_text, db_connection, input_table_name, output_path, output_delim, output_policy, output_csv_encoding, output_warnings, user_init_code='', colorize_output=False):
@@ -104,7 +101,5 @@ def query_sqlite_to_csv(query_text, db_connection, input_table_name, output_path
     finally:
         if close_output_on_finish:
             output_stream.close()
-        if join_tables_registry:
-            join_tables_registry.finish(output_warnings)
 
 

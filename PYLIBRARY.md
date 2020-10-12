@@ -123,15 +123,12 @@ You will have to implement special wrapper classes for your custom data structur
   query that user of your app manually enters in some kind of input field.  
 * _input_iterator_:  **RBQLInputIterator**  
   special object which iterates over input records. E.g. over remote table  
-  Examples of classes which support **RBQLInputIterator** interface: **TableIterator**, **CSVRecordIterator** (these classes can be found in RBQL source code)
 * _output_writer_:  **RBQLOutputWriter**  
   special object which stores output records somewhere. E.g. to a python list  
-  Examples of classes which support **RBQLOutputWriter** interface: **TableWriter**, **CSVWriter** (these classes can be found in RBQL source code)
 * _output_warnings_: **list**  
   warnings will be stored here after the query completion. If no warnings - the list would be empty
-* _join_tables_registry_: **RBQLJoinTablesRegistry**  
+* _join_tables_registry_: **RBQLTableRegistry**  
   special object which provides **RBQLInputIterator** iterators for join tables (e.g. table "B") which users can refer to in their queries.  
-  Examples of classes which support **RBQLJoinTablesRegistry** interface: **SingleTableRegistry**, **FileSystemCSVRegistry** (these classes can be found in RBQL source code)
 
 
 #### Usage example

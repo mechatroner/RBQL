@@ -168,7 +168,7 @@ def init_ansi_terminal_colors():
 
 
 
-class CSVWriter:
+class CSVWriter(rbql_engine.RBQLOutputWriter):
     def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n', colorize_output=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = encode_output_stream(stream, encoding)
@@ -325,7 +325,7 @@ class CSVWriter:
         return result
 
 
-class CSVRecordIterator:
+class CSVRecordIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, encoding, delim, policy, skip_headers=False, comment_prefix=None, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
@@ -491,7 +491,7 @@ class CSVRecordIterator:
         return result
 
 
-class FileSystemCSVRegistry:
+class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
     def __init__(self, delim, policy, encoding, skip_headers, comment_prefix):
         self.delim = delim
         self.policy = policy
@@ -510,11 +510,15 @@ class FileSystemCSVRegistry:
         self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.skip_headers, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix='b')
         return self.record_iterator
 
-    def finish(self, output_warnings):
+    def finish(self):
         if self.input_stream is not None:
             self.input_stream.close()
-            if self.skip_headers:
-                output_warnings.append('The first (header) record was also skipped in the JOIN file: {}'.format(os.path.basename(self.table_path))) # UT JSON CSV
+
+    def get_warnings(self):
+        result = []
+        if self.record_iterator is not None and self.skip_headers:
+            result.append('The first (header) record was also skipped in the JOIN file: {}'.format(os.path.basename(self.table_path))) # UT JSON CSV
+        return result
 
 
 def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers=False, comment_prefix=None, user_init_code='', colorize_output=False):
@@ -552,7 +556,8 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         if close_output_on_finish:
             output_stream.close()
         if join_tables_registry:
-            join_tables_registry.finish(output_warnings)
+            join_tables_registry.finish()
+            output_warnings += join_tables_registry.get_warnings()
 
 
 def set_debug_mode():
