@@ -70,7 +70,7 @@ var query_context = null; // Needs to be global for MIN(), MAX(), etc functions
 
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
-const RBQL_VERSION = '0.18.0';
+const RBQL_VERSION = '0.19.0';
 
 
 function stable_compare(a, b) {
