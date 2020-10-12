@@ -94,7 +94,6 @@ class TestSqliteJsonScenarios(unittest.TestCase):
 
         db_connection = None
         try:
-            print(''.join([ "input_db_path:", str(input_db_path)])) #FOR_DEBUG
             db_connection = sqlite3.connect(input_db_path)
             rbql_sqlite.query_sqlite_to_csv(query, db_connection, input_table_name, actual_output_table_path, out_delim, out_policy, output_encoding, warnings)
         except Exception as e:
