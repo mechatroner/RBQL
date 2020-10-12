@@ -1448,8 +1448,56 @@ function make_inconsistent_num_fields_warning(table_name, inconsistent_records_i
 }
 
 
-class TableIterator {
+class RBQLInputIterator {
+    constructor(){}
+    stop() {
+        throw new Error("Unable to call the interface method");
+    }
+    async get_variables_map(query_text) {
+        throw new Error("Unable to call the interface method");
+    }
+    async get_record() {
+        throw new Error("Unable to call the interface method");
+    }
+    get_warnings() {
+        return []; // Reimplement if your class can produce warnings
+    }
+}
+
+
+class RBQLOutputWriter {
+    constructor(){}
+
+    write(fields) {
+        throw new Error("Unable to call the interface method");
+    }
+
+    async finish() {
+        // Reimplement if your class needs to do something on finish e.g. cleanup
+    };
+
+    get_warnings() {
+        return []; // Reimplement if your class can produce warnings
+    };
+}
+
+
+class RBQLTableRegistry {
+    constructor(){}
+
+    get_iterator_by_table_id(table_id) {
+        throw new Error("Unable to call the interface method");
+    }
+
+    get_warnings() {
+        return []; // Reimplement if your class can produce warnings
+    };
+}
+
+
+class TableIterator extends RBQLInputIterator {
     constructor(table, column_names=null, normalize_column_names=true, variable_prefix='a') {
+        super();
         this.table = table;
         this.column_names = column_names;
         this.normalize_column_names = normalize_column_names;
@@ -1504,8 +1552,9 @@ class TableIterator {
 }
 
 
-class TableWriter {
+class TableWriter extends RBQLOutputWriter {
     constructor(external_table) {
+        super();
         this.table = external_table;
     }
 
@@ -1513,17 +1562,12 @@ class TableWriter {
         this.table.push(fields);
         return true;
     };
-
-    get_warnings() {
-        return [];
-    };
-
-    async finish() {};
 }
 
 
-class SingleTableRegistry {
+class SingleTableRegistry extends RBQLTableRegistry {
     constructor(table, column_names=null, normalize_column_names=true, table_id='b') {
+        super();
         this.table = table;
         this.table_id = table_id;
         this.column_names = column_names;
@@ -1651,6 +1695,9 @@ function exception_to_error_info(e) {
 
 exports.query = query;
 exports.query_table = query_table;
+exports.RBQLInputIterator = RBQLInputIterator;
+exports.RBQLOutputWriter = RBQLOutputWriter;
+exports.RBQLTableRegistry = RBQLTableRegistry;
 
 exports.version = RBQL_VERSION;
 exports.TableIterator = TableIterator;

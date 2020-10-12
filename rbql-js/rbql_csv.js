@@ -159,11 +159,12 @@ class RecordQueue {
 }
 
 
-class CSVRecordIterator {
+class CSVRecordIterator extends rbql.RBQLInputIterator {
     // CSVRecordIterator implements a typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
     // stream.on('data') - producer
     constructor(stream, csv_path, encoding, delim, policy, skip_headers=false, comment_prefix=null, table_name='input', variable_prefix='a') {
+        super();
         this.stream = stream;
         this.csv_path = csv_path;
         assert((this.stream === null) != (this.csv_path === null));
@@ -457,8 +458,9 @@ class CSVRecordIterator {
 }
 
 
-class CSVWriter {
+class CSVWriter extends rbql.RBQLOutputWriter {
     constructor(stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n') {
+        super();
         this.stream = stream;
         this.encoding = encoding;
         if (encoding)
@@ -575,8 +577,9 @@ class CSVWriter {
 }
 
 
-class FileSystemCSVRegistry {
+class FileSystemCSVRegistry extends rbql.RBQLTableRegistry {
     constructor(delim, policy, encoding, skip_headers=false, comment_prefix=null, options=null) {
+        super();
         this.delim = delim;
         this.policy = policy;
         this.encoding = encoding;
