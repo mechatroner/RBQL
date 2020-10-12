@@ -154,22 +154,22 @@ fi
 
 
 # Testing unicode separators
-md5sum_canonic="bdb725416a7b17e64034e0a128c6bb96"
+md5sum_expected="bdb725416a7b17e64034e0a128c6bb96"
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($(python3 -m rbql --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "python3 unicode separator test FAIL!"  1>&2
         exit 1
     fi
     md5sum_test=($(python2 -m rbql --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "python2 unicode separator test FAIL!"  1>&2
         exit 1
     fi
 fi
 if [ "$run_node_tests" == "yes" ]; then
     md5sum_test=($( node ./rbql-js/cli_rbql.js --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "node unicode separator test FAIL!"  1>&2
         exit 1
     fi
@@ -177,22 +177,22 @@ fi
 
 
 # Testing unicode queries
-md5sum_canonic="e1fe4bd13b25b2696e3df2623cd0f134"
+md5sum_expected="e1fe4bd13b25b2696e3df2623cd0f134"
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($(python3 -m rbql --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "python3 unicode query test FAIL!"  1>&2
         exit 1
     fi
     md5sum_test=($(python2 -m rbql --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "python3 unicode query test FAIL!"  1>&2
         exit 1
     fi
 fi
 if [ "$run_node_tests" == "yes" ]; then
     md5sum_test=($(node ./rbql-js/cli_rbql.js --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "node unicode query test FAIL!"  1>&2
         exit 1
     fi
@@ -200,12 +200,12 @@ fi
 
 
 # Testing broken pipe
-md5sum_canonic="c5693303e0cc70fcd068df626f49bf75"
+md5sum_expected="c5693303e0cc70fcd068df626f49bf75"
 if [ "$run_python_tests" == "yes" ]; then
     rm rbql_warning.out 2> /dev/null
     md5sum_test=($(python3 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
     warning_test=$( cat rbql_warning.out )
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python3 broken pipe test fail!"  1>&2
         exit 1
     fi
@@ -217,7 +217,7 @@ if [ "$run_python_tests" == "yes" ]; then
     rm rbql_warning.out 2> /dev/null
     md5sum_test=($(python2 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
     warning_test=$( cat rbql_warning.out )
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python2 broken pipe test fail!"  1>&2
         exit 1
     fi
@@ -229,27 +229,27 @@ fi
 
 
 # Testing colored output
-md5sum_canonic="4798e34af6a68d76119048ed2cf0a0c2"
+md5sum_expected="4798e34af6a68d76119048ed2cf0a0c2"
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB --color 2> /dev/null | head -n 10 | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python colored output test fail!"  1>&2
         exit 1
     fi
 fi
-md5sum_canonic="27a29bfe96e6dceacdc9b6ed197a9158"
+md5sum_expected="27a29bfe96e6dceacdc9b6ed197a9158"
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/universities.monocolumn --query 'select str(NR) + " " + a1 where a1.find(" of ") != -1' --policy monocolumn --color | head -n 20 | md5sum))
     # Monocolumn policy should disregard --color parameter
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python monocolumn non-colored output test fail: monocolumn policy should disregard --column argument!"  1>&2
         exit 1
     fi
 fi
-md5sum_canonic="b259b60f8ac1f51a1a1b9d6db416c5f9"
+md5sum_expected="b259b60f8ac1f51a1a1b9d6db416c5f9"
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/rfc_newlines_in_header.csv --delim , --policy quoted_rfc --query 'select NR, a3 + a1, a2, NF' --color | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python colored output rfc test fail!"  1>&2
         exit 1
     fi
@@ -298,10 +298,10 @@ fi
 
 
 # Testing skip-header / named columns in CLI
-md5sum_canonic=($( md5sum test/csv_files/canonic_result_14.csv ))
+md5sum_expected=($( md5sum test/csv_files/expected_result_14.csv ))
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by int(a['GDP per capita']) desc" --delim , --skip-header | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "CLI Python skip-header test FAIL!"  1>&2
         exit 1
     fi
@@ -311,7 +311,7 @@ fi
 if [ "$run_node_tests" == "yes" ]; then
     # Using `NaN || 1000 * 1000` trick below to return 1M on NaN and make sure that --skip-header works. Otherwise the header line would be the max
     md5sum_test=($( node ./rbql-js/cli_rbql.js --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by parseInt(a['GDP per capita']) || 1000 * 1000 desc" --delim , --skip-header | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "CLI JS skip-header test FAIL!"  1>&2
         exit 1
     fi
@@ -402,11 +402,11 @@ fi
 
 
 # Testing generic CLI
-md5sum_canonic=($( md5sum test/csv_files/canonic_result_4.tsv ))
+md5sum_expected=($( md5sum test/csv_files/expected_result_4.tsv ))
 
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($($random_python_interpreter -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test/csv_files/movies.tsv | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "CLI Python test FAIL!"  1>&2
         exit 1
     fi
@@ -414,7 +414,7 @@ if [ "$run_python_tests" == "yes" ]; then
     # XXX theorethically this test can randomly fail because sleep timeout is not long enough
     (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010") | $random_python_interpreter -m rbql --delim '\t' --input test/csv_files/movies.tsv --output tmp_out.csv > /dev/null
     md5sum_test=($(cat tmp_out.csv | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Interactive CLI Python test FAIL!"  1>&2
         exit 1
     fi
@@ -423,7 +423,7 @@ fi
 
 if [ "$run_node_tests" == "yes" ]; then
     md5sum_test=($( node ./rbql-js/cli_rbql.js --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010" < test/csv_files/movies.tsv | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "CLI JS test FAIL!"  1>&2
         exit 1
     fi
@@ -431,7 +431,7 @@ if [ "$run_node_tests" == "yes" ]; then
     # XXX theorethically this test can randomly fail because sleep timeout is not long enough
     (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where a7.split('|').includes('Sci-Fi') && b2!='US' && a4 > 2010") | node ./rbql-js/cli_rbql.js --input test/csv_files/movies.tsv --output tmp_out.csv --delim '\t' > /dev/null
     md5sum_test=($(cat tmp_out.csv | md5sum))
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Interactive CLI JS test FAIL!"  1>&2
         exit 1
     fi
@@ -440,16 +440,16 @@ fi
 
 # Testing sqlite CLI
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_canonic=($( md5sum test/sqlite_files/canonic_result_1.csv ))
-    canonic_warning="Warning: None values in output were replaced by empty strings"
+    md5sum_expected=($( md5sum test/sqlite_files/expected_result_1.csv ))
+    expected_warning="Warning: None values in output were replaced by empty strings"
     $random_python_interpreter -m rbql sqlite test/sqlite_files/mental_health_single_table.sqlite --input Question --query 'select top 100 *, a2 * 10, len(a.questiontext) if a.questiontext else 0 WHERE a1 is None or a1.find("your") != -1' > tmp_out.csv 2> tmp_err.txt
     md5sum_test=($( md5sum tmp_out.csv ))
     test_warning=$( cat tmp_err.txt )
-    if [ "$md5sum_canonic" != "$md5sum_test" ]; then
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "rbql sqlite cli test fail!"  1>&2
         exit 1
     fi
-    if [ "$canonic_warning" != "$test_warning" ]; then
+    if [ "$expected_warning" != "$test_warning" ]; then
         echo "rbql sqlite cli test fail: wrong warning!"  1>&2
         exit 1
     fi

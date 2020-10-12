@@ -95,12 +95,12 @@ function replace_all(src, search, replacement) {
 }
 
 
-function compare_splits(src, test_dst, canonic_dst, test_warning, canonic_warning) {
-    if (test_warning != canonic_warning || !test_common.assert_arrays_are_equal(test_dst, canonic_dst, false, true)) {
+function compare_splits(src, test_dst, expected_dst, test_warning, expected_warning) {
+    if (test_warning != expected_warning || !test_common.assert_arrays_are_equal(test_dst, expected_dst, false, true)) {
         console.error('Error in csv split logic. Source line: ' + src);
         console.error('Test result: ' + test_dst.join(';'));
-        console.error('Canonic result: ' + canonic_dst.join(';'));
-        console.error('Canonic warning: ' + canonic_warning + ', Test warning: ' + test_warning);
+        console.error('Expected result: ' + expected_dst.join(';'));
+        console.error('Expected warning: ' + expected_warning + ', Test warning: ' + test_warning);
         process.exit(1);
     }
 }
@@ -344,7 +344,7 @@ function test_split() {
     test_cases.push([' aaa ,bbb ,ccc , ddd ', [' aaa ', 'bbb ', 'ccc ', ' ddd '], false]);
 
     for (let i = 0; i < test_cases.length; i++) {
-        let [src, canonic_dst, canonic_warning] = test_cases[i];
+        let [src, expected_dst, expected_warning] = test_cases[i];
         let split_result = csv_utils.split_quoted_str(src, ',');
         let test_dst = split_result[0];
         let test_warning = split_result[1];
@@ -352,11 +352,11 @@ function test_split() {
         let split_result_preserved = csv_utils.split_quoted_str(src, ',', true);
         assert(test_warning === split_result_preserved[1], 'warnings do not match');
         assert(split_result_preserved[0].join(',') === src, 'preserved restore do not match');
-        if (!canonic_warning) {
+        if (!expected_warning) {
             test_common.assert_arrays_are_equal(test_dst, csv_utils.unquote_fields(split_result_preserved[0]));
         }
-        if (!canonic_warning) {
-            compare_splits(src, test_dst, canonic_dst, test_warning, canonic_warning);
+        if (!expected_warning) {
+            compare_splits(src, test_dst, expected_dst, test_warning, expected_warning);
         }
     }
 }
@@ -379,9 +379,9 @@ function test_split_whitespaces() {
     test_cases.push(['   a   b  c d ', ['   a  ', 'b ', 'c', 'd '], true]);
 
     for (let i = 0; i < test_cases.length; i++) {
-        let [src, canonic_dst, preserve_whitespaces] = test_cases[i];
+        let [src, expected_dst, preserve_whitespaces] = test_cases[i];
         let test_dst = csv_utils.split_whitespace_separated_str(src, preserve_whitespaces);
-        test_common.assert_arrays_are_equal(canonic_dst, test_dst);
+        test_common.assert_arrays_are_equal(expected_dst, test_dst);
     }
 }
 
@@ -391,8 +391,8 @@ function test_unquote() {
     test_cases.push(['  "hello, ""world"" aa""  " ', 'hello, "world" aa"  ']);
     for (let i = 0; i < test_cases.length; i++) {
         let unquoted = csv_utils.unquote_field(test_cases[i][0]);
-        let canonic = test_cases[i][1];
-        assert(canonic == unquoted);
+        let expected = test_cases[i][1];
+        assert(expected == unquoted);
     }
 
 }
@@ -720,10 +720,10 @@ function process_random_test_line(line) {
     var records = line.split('\t');
     assert(records.length == 3);
     var escaped_entry = records[0];
-    var canonic_warning = parseInt(records[1]);
-    assert(canonic_warning == 0 || canonic_warning == 1);
-    canonic_warning = Boolean(canonic_warning);
-    var canonic_dst = records[2].split(';');
+    var expected_warning = parseInt(records[1]);
+    assert(expected_warning == 0 || expected_warning == 1);
+    expected_warning = Boolean(expected_warning);
+    var expected_dst = records[2].split(';');
     var split_result = csv_utils.split_quoted_str(escaped_entry, ',');
     var test_dst = split_result[0];
     var test_warning = split_result[1];
@@ -731,11 +731,11 @@ function process_random_test_line(line) {
     var split_result_preserved = csv_utils.split_quoted_str(escaped_entry, ',', true);
     assert(test_warning === split_result_preserved[1]);
     assert(split_result_preserved[0].join(',') === escaped_entry);
-    if (!canonic_warning) {
+    if (!expected_warning) {
         test_common.assert_arrays_are_equal(csv_utils.unquote_fields(split_result_preserved[0]), test_dst);
     }
-    if (!canonic_warning) {
-        compare_splits(escaped_entry, test_dst, canonic_dst, test_warning, canonic_warning);
+    if (!expected_warning) {
+        compare_splits(escaped_entry, test_dst, expected_dst, test_warning, expected_warning);
     }
 }
 

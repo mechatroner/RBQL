@@ -2,7 +2,7 @@
     {
         "test_name": "test_1",
         "input_table_path": "csv_files/movies.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_1.tsv",
+        "expected_output_table_path": "csv_files/expected_result_1.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -33,7 +33,7 @@
     {
         "test_name": "test_2",
         "input_table_path": "csv_files/movies.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_2.tsv",
+        "expected_output_table_path": "csv_files/expected_result_2.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -43,7 +43,7 @@
     {
         "test_name": "test_3",
         "input_table_path": "csv_files/movies.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_3.tsv",
+        "expected_output_table_path": "csv_files/expected_result_3.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "utf-8",
@@ -53,7 +53,7 @@
     {
         "test_name": "test_4",
         "input_table_path": "csv_files/movies.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_4.tsv",
+        "expected_output_table_path": "csv_files/expected_result_4.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -63,7 +63,7 @@
     {
         "test_name": "latin-1 with bom",
         "input_table_path": "csv_files/movies_1_bom.csv",
-        "expected_output_table_path": "csv_files/canonic_result_5.csv",
+        "expected_output_table_path": "csv_files/expected_result_5.csv",
         "expected_warnings": [
             "inconsistent input records",
             "inconsistent double quote escaping",
@@ -80,7 +80,7 @@
     {
         "test_name": "utf-8 with bom js only",
         "input_table_path": "csv_files/movies_1_bom.csv",
-        "expected_output_table_path": "csv_files/canonic_result_5.csv",
+        "expected_output_table_path": "csv_files/expected_result_5.csv",
         "bulk_read": true,
         "expected_warnings": [
             "inconsistent input records",
@@ -97,7 +97,7 @@
     {
         "test_name": "test_6",
         "input_table_path": "csv_files/planes.txt",
-        "expected_output_table_path": "csv_files/canonic_result_6.txt",
+        "expected_output_table_path": "csv_files/expected_result_6.txt",
         "csv_separator": ";",
         "csv_policy": "quoted",
         "csv_encoding": "latin-1",
@@ -108,7 +108,7 @@
     {
         "test_name": "test_7",
         "input_table_path": "csv_files/movies.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_7.tsv",
+        "expected_output_table_path": "csv_files/expected_result_7.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -118,7 +118,7 @@
     {
         "test_name": "test_8",
         "input_table_path": "csv_files/planes.win",
-        "expected_output_table_path": "csv_files/canonic_result_8.tsv",
+        "expected_output_table_path": "csv_files/expected_result_8.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -128,7 +128,7 @@
     {
         "test_name": "test_9",
         "input_table_path": "csv_files/movies_variable_width.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_9.tsv",
+        "expected_output_table_path": "csv_files/expected_result_9.tsv",
         "expected_warnings": [
             "inconsistent input records"
         ],
@@ -161,7 +161,7 @@
     {
         "test_name": "test_12",
         "input_table_path": "csv_files/names.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_bin_order.tsv",
+        "expected_output_table_path": "csv_files/expected_result_bin_order.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -171,7 +171,7 @@
     {
         "test_name": "test_13",
         "input_table_path": "csv_files/names.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_unicode_order.tsv",
+        "expected_output_table_path": "csv_files/expected_result_unicode_order.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "utf-8",
@@ -181,7 +181,7 @@
     {
         "test_name": "test_14",
         "input_table_path": "csv_files/countries.tsv",
-        "expected_output_table_path": "csv_files/canonic_result_10.tsv",
+        "expected_output_table_path": "csv_files/expected_result_10.tsv",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -191,7 +191,7 @@
     {
         "test_name": "test_15",
         "input_table_path": "csv_files/random_1.bin",
-        "expected_output_table_path": "csv_files/canonic_result_11.bin",
+        "expected_output_table_path": "csv_files/expected_result_11.bin",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -201,7 +201,7 @@
     {
         "test_name": "test_16",
         "input_table_path": "csv_files/random_1.bin",
-        "expected_output_table_path": "csv_files/canonic_result_12.bin",
+        "expected_output_table_path": "csv_files/expected_result_12.bin",
         "csv_separator": "\t",
         "csv_policy": "simple",
         "csv_encoding": "latin-1",
@@ -211,7 +211,7 @@
     {
         "test_name": "test_17",
         "input_table_path": "csv_files/movies_2.csv",
-        "expected_output_table_path": "csv_files/canonic_result_13.tsv",
+        "expected_output_table_path": "csv_files/expected_result_13.tsv",
         "csv_separator": ",",
         "csv_policy": "quoted",
         "csv_encoding": "latin-1",

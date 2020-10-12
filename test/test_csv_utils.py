@@ -933,10 +933,10 @@ def main():
         random_records = make_random_csv_records_naive()
         with open(dst_path, 'w') as dst:
             for rec in random_records:
-                canonic_fields = rec[0]
+                expected_fields = rec[0]
                 escaped_entry = rec[1]
-                canonic_warning = rec[2]
-                dst.write('{}\t{}\t{}\n'.format(escaped_entry, canonic_warning, ';'.join(canonic_fields)))
+                expected_warning = rec[2]
+                dst.write('{}\t{}\t{}\n'.format(escaped_entry, expected_warning, ';'.join(expected_fields)))
         return
 
     if args.dummy_csv_speedtest is not None:
