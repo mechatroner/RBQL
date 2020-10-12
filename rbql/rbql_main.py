@@ -406,13 +406,8 @@ def csv_main():
         if args.query is not None:
             args.query = args.query.decode(args.encoding)
 
-    if args.query:
-        if args.delim is None:
-            show_error('generic', 'Separator must be provided with "--delim" option in non-interactive mode', is_interactive=False)
-            sys.exit(1)
-        if not run_with_python_csv(args, is_interactive=False):
-            sys.exit(1)
-    else:
+    is_interactive_mode = args.query is None
+    if is_interactive_mode:
         if args.color:
             show_error('generic', '"--color" option is not compatible with interactive mode. Output and Input files preview would be colorized anyway', is_interactive=False)
             sys.exit(1)
@@ -420,6 +415,12 @@ def csv_main():
             show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False) # TODO: explain why it is not available. Maybe it would work with an advanced terminal emulator?
             sys.exit(1)
         start_preview_mode_csv(args)
+    else:
+        if args.delim is None:
+            show_error('generic', 'Separator must be provided with "--delim" option in non-interactive mode', is_interactive=False)
+            sys.exit(1)
+        if not run_with_python_csv(args, is_interactive=False):
+            sys.exit(1)
 
 
 sqlite_tool_description = '''
@@ -459,6 +460,8 @@ def sqlite_main():
         show_error('generic', 'The database does not exist: {}'.format(args.database), is_interactive=False)
         sys.exit(1)
 
+    is_interactive_mode = args.query is None
+
     import sqlite3
     if not args.input:
         db_connection = sqlite3.connect(args.database)
@@ -467,7 +470,7 @@ def sqlite_main():
         if len(table_names) == 1:
             args.input = table_names[0]
             # TODO Consider showing a warning here
-        else:
+        elif not is_interactive_mode:
             show_error('generic', 'Please provide input table name with --input parameter: source database has more than one table', is_interactive=False)
             sys.exit(1)
 
@@ -478,10 +481,7 @@ def sqlite_main():
     args.encoding = 'utf-8'
     args.output_delim, args.output_policy = (',', 'quoted_rfc') if args.out_format == 'csv' else rbql_csv.interpret_named_csv_format(args.out_format)
 
-    if args.query:
-        if not run_with_python_sqlite(args, is_interactive=False):
-            sys.exit(1)
-    else:
+    if is_interactive_mode:
         if args.color:
             show_error('generic', '"--color" option is not compatible with interactive mode. Output and Input files preview would be colorized anyway', is_interactive=False)
             sys.exit(1)
@@ -489,6 +489,9 @@ def sqlite_main():
             show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False)
             sys.exit(1)
         start_preview_mode_sqlite(args)
+    else:
+        if not run_with_python_sqlite(args, is_interactive=False):
+            sys.exit(1)
 
 
 def main():

@@ -38,9 +38,7 @@ from ._version import __version__
 
 # TODO support custom (virtual) headers for CSV version
 
-# TODO support RBQL variable "NL" - line number. when header is skipped it would be "2" for the first record. Also it is not equal to NR for multiline records. Should be only defined for CSV-based impl
-
-# TODO support option to skip comment lines (lines starting with the specified prefix)
+# TODO allow to use NL in RBQL queries for CSV version
 
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
@@ -50,6 +48,7 @@ from ._version import __version__
 # TODO add RBQL iterators for json lines ( https://jsonlines.org/ ) and xml-by-line files
 # TODO add RBQL file-system iterator to be able to query files like fselect does
 
+# TODO rename "canonic" -> "expected"
 
 # FIXME use proper interface base classes, see: https://stackoverflow.com/questions/44315961/when-to-use-raise-notimplementederror
 

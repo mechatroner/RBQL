@@ -170,6 +170,7 @@ The diagram below gives an overview of the main RBQL components and data flow:
 ### Advantages of RBQL over traditional SQL engines
 * Provides power and flexibility of general purpose Python and JS languages in relational expressions (including regexp, math, file system, json, xml, random and many other libraries that these languages provide)
 * Can work with different data sources including CSV files, sqlite tables, native 2D arrays/lists (traditional SQL engines are usually tightly coupled with their databases)
+* Result set of any query immediately becomes a first-class table on its own
 * Supports both TOP and LIMIT keywords
 * Provides additional NR (record number) variable which is especially useful for input sources where record order is well defined (such as CSV files)
 * Supports input tables with inconsistent number of fields per record
@@ -182,6 +183,12 @@ The diagram below gives an overview of the main RBQL components and data flow:
 * Provides a fully-functional client-side browser demo application
 * Integration with popular text editors (VSCode, Vim, Sublime Text, Atom)
 * Small, maintainable, dependency-free, eco-friendly and hackable code base: RBQL engine fits into a single file with less than 2000 LOC
+
+### Disadvantages of RBQL compared to traditional SQL engines
+* Not suitable for transactional workload
+* RBQL doesn't support nested queries, but they can be emulated with consecutive queries
+* Number of tables in all JOIN queries is always 2 (input table and join table), use consecutive queries to join 3 or more tables
+* Does not support HAVING statement
 
 
 ### FAQ

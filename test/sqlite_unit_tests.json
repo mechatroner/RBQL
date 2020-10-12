@@ -9,5 +9,12 @@
             "null values in output were replaced"
         ],
         "query_python": "select top 100 *, a2 * 10, len(a.questiontext) if a.questiontext else 0 WHERE a1 is None or a1.find(\"your\") != -1"
+    },
+    {
+        "test_name": "test_1",
+        "input_db_path": "sqlite_files/mental_health.sqlite",
+        "input_table_name": "Answer",
+        "expected_output_table_path": "sqlite_files/canonic_result_2.csv",
+        "query_python": "select a3, b1, a1 join Question on a.QuestionID = b.questionid where b1.lower().find('your age') != -1 order by int(a1), a3"
     }
 ]

@@ -1,0 +1,1 @@
+Mental health sqlite dataset was taken from here: https://www.kaggle.com/anth7310/mental-health-in-the-tech-industry
