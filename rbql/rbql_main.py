@@ -15,16 +15,16 @@ from . import _version
 # TODO support sqlite input join on both sqlite and csv tables - pass 2 join registries
 # TODO add demo gif to python package README.md for pypi website
 
-
 # TODO add --output_header param 
 # TODO add option to write to other sqlite dbs
+
+# TODO add an option to align columns for content preview. This would be especially useful for Windows which doesn't support terminal colors
 
 
 PY3 = sys.version_info[0] == 3
 
 
 history_path = os.path.join(os.path.expanduser("~"), ".rbql_py_query_history")
-
 
 polymorphic_input = input if PY3 else raw_input
 
@@ -51,16 +51,20 @@ def get_default_policy(delim):
 
 def show_error(error_type, error_msg, is_interactive):
     if is_interactive:
-        full_msg = '{}Error [{}]:{} {}'.format('\u001b[31;1m', error_type, '\u001b[0m', error_msg)
-        print(full_msg)
+        if os.name == 'nt': # Windows does not support terminal colors
+            print('Error [{}]: {}'.format(error_type, error_msg))
+        else:
+            print('{}Error [{}]:{} {}'.format('\u001b[31;1m', error_type, '\u001b[0m', error_msg))
     else:
         eprint('Error [{}]: {}'.format(error_type, error_msg))
 
 
 def show_warning(msg, is_interactive):
     if is_interactive:
-        full_msg = '{}Warning:{} {}'.format('\u001b[33;1m', '\u001b[0m', msg)
-        print(full_msg)
+        if os.name == 'nt': # Windows does not support terminal colors
+            print('Warning: ' + msg)
+        else:
+            print('{}Warning:{} {}'.format('\u001b[33;1m', '\u001b[0m', msg))
     else:
         eprint('Warning: ' + msg)
 
@@ -181,8 +185,12 @@ def sample_records(input_path, delim, policy, encoding, comment_prefix=None):
 
 def print_colorized(records, delim, encoding, show_column_names, skip_header):
     # TODO consider colorizing a1,a2,... in different default color
-    reset_color_code = '\u001b[0m'
-    color_codes = ['\u001b[0m', '\u001b[31m', '\u001b[32m', '\u001b[33m', '\u001b[34m', '\u001b[35m', '\u001b[36m', '\u001b[31;1m', '\u001b[32;1m', '\u001b[33;1m']
+    if os.name == 'nt': # Windows does not support terminal colors
+        reset_color_code = ''
+        color_codes = ['']
+    else:
+        reset_color_code = '\u001b[0m'
+        color_codes = ['\u001b[0m', '\u001b[31m', '\u001b[32m', '\u001b[33m', '\u001b[34m', '\u001b[35m', '\u001b[36m', '\u001b[31;1m', '\u001b[32;1m', '\u001b[33;1m']
     for rnum, record in enumerate(records):
         out_fields = []
         for i, field in enumerate(record):
@@ -210,13 +218,13 @@ def get_default_output_path(input_path, delim):
 
 def run_interactive_loop(mode, args):
     assert mode in ['csv', 'sqlite']
-    import readline
     try:
+        import readline # Module readline is not available on Windows
         if os.path.exists(history_path):
             readline.read_history_file(history_path)
+        readline.set_history_length(100)
     except Exception:
         pass
-    readline.set_history_length(100)
     while True:
         try:
             query = polymorphic_input('Input SQL-like RBQL query and press Enter:\n> ')
@@ -227,7 +235,7 @@ def run_interactive_loop(mode, args):
         if not len(query):
             break
         try:
-            readline.write_history_file(history_path)
+            readline.write_history_file(history_path) # This can fail sometimes for no valid reason
         except Exception:
             pass
         args.query = query
@@ -379,7 +387,7 @@ def csv_main():
     parser.add_argument('--out-format', help='output format', default='input', choices=out_format_names)
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
-    parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode. Do NOT use if redirecting output to a file')
+    parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode')
     parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
@@ -388,6 +396,10 @@ def csv_main():
     if args.version:
         print(_version.__version__)
         return
+
+    if args.color and os.name == 'nt':
+        show_error('generic', '--color option is not supported for Windows terminals', is_interactive=False)
+        sys.exit(1)
 
     if args.output is not None and args.color:
         show_error('generic', '"--output" is not compatible with "--color" option', is_interactive=False)
@@ -410,9 +422,6 @@ def csv_main():
     if is_interactive_mode:
         if args.color:
             show_error('generic', '"--color" option is not compatible with interactive mode. Output and Input files preview would be colorized anyway', is_interactive=False)
-            sys.exit(1)
-        if os.name == 'nt':
-            show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False) # TODO: explain why it is not available. Maybe it would work with an advanced terminal emulator?
             sys.exit(1)
         start_preview_mode_csv(args)
     else:
@@ -484,9 +493,6 @@ def sqlite_main():
     if is_interactive_mode:
         if args.color:
             show_error('generic', '"--color" option is not compatible with interactive mode. Output and Input files preview would be colorized anyway', is_interactive=False)
-            sys.exit(1)
-        if os.name == 'nt':
-            show_error('generic', 'Interactive mode is not available on Windows', is_interactive=False)
             sys.exit(1)
         start_preview_mode_sqlite(args)
     else:
