@@ -23,5 +23,13 @@
         "input_table_name": "Survey",
         "expected_output_table_path": "sqlite_files/expected_result_3.csv",
         "query_python": "UPDATE a2 = \"Year {} survey\".format(a1)"
+    },
+    {
+        "test_name": "Non existent table",
+        "input_db_path": "sqlite_files/mental_health.sqlite",
+        "input_table_name": "Nonexistent",
+        "expected_error": "no such table \"Nonexistent\"",
+        "expected_error_exact": true,
+        "query_python": "select *"
     }
 ]
