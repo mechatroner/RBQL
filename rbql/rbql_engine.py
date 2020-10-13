@@ -16,8 +16,6 @@ from ._version import __version__
 
 
 # This module must be both python2 and python3 compatible
-
-
 # This module works with records only. It is CSV-agnostic.
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
 
@@ -26,30 +24,17 @@ from ._version import __version__
 # UT JSON CSV - means json csv Unit Test exists for this case
 
 
-# TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
+# TODO Consider catching exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
+# TODO Consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in rbql_engine.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
+# TODO Consider adding RBQL file-system iterator to be able to query files like fselect does
 
-# TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in rbql_engine.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
-
-# TODO optimize performance: optional compilation depending on python2/python3
-
+# TODO optimize performance, especially python2/python3 runtime checks
 # TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
-
 # TODO show warning when csv fields contain trailing spaces, at least in join mode
-
 # TODO support custom (virtual) headers for CSV version
-
 # TODO allow to use NL in RBQL queries for CSV version
-
 # TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
-
-# TODO refactor this module in sync with the JS version. There wasn't any cleanup after the last redesign
-
-
 # TODO add RBQL iterators for json lines ( https://jsonlines.org/ ) and xml-by-line files
-# TODO add RBQL file-system iterator to be able to query files like fselect does
-
-
-# FIXME use proper interface base classes, see: https://stackoverflow.com/questions/44315961/when-to-use-raise-notimplementederror
 
 
 GROUP_BY = 'GROUP BY'

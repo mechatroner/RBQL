@@ -10,11 +10,11 @@ RBQL is distributed with CLI apps, text editor plugins, Python and JS libraries.
 
 Matrix of data formats that RBQL supports out of the box. R=Read, W=Write  
 
-|Data Format            | Python   | JS      |
-|-----------------------|----------|---------|
-|CSV, TSV, etc          | **RW**   | **RW**  |
-|Sqlite databases       | **R**    |         |
-|Native 2D arrays/lists | **RW**   | **RW**  |
+|Data Format              | Python   | JS      |
+|-------------------------|----------|---------|
+|CSV, TSV, Log files, etc | **RW**   | **RW**  |
+|Sqlite databases         | **R**    |         |
+|Native 2D arrays/lists   | **RW**   | **RW**  |
 
 If you use RBQL as a library you can write implementation for a couple of classes to support additional formats.  
 
