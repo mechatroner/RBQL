@@ -30,6 +30,21 @@
         "query_js": "select NR, a1, a3.length where a1 > 5"
     },
     {
+        "test_name": "greater equal OK",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5],
+            [4, "20", 0]
+        ],
+        "query_python": "select NR, a1, len(a3) where int(a1) >= 6",
+        "query_js": "select NR, a1, a3.length where a1 >= 6"
+    },
+    {
         "test_name": "Invalid FROM",
         "input_table": [
             ["5", "alpha", "beta"],
