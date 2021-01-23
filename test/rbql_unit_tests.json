@@ -1640,6 +1640,42 @@
         "query_js": "select * where a1 LIKE '%ta'"
     },
     {
+        "test_name": "Invalid JS 'and'",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error": "Unexpected identifier\nDid you use 'and' keyword in your query?\nJavaScript backend doesn't support 'and' keyword, use '&&' operator instead!",
+        "expected_error_exact": true,
+        "query_js": "select * where a1 > 0 and a1 < 40"
+    },
+    {
+        "test_name": "Invalid JS 'or'",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error": "Unexpected identifier\nDid you use 'or' keyword in your query?\nJavaScript backend doesn't support 'or' keyword, use '||' operator instead!",
+        "expected_error_exact": true,
+        "query_js": "select * where a1 < 0 or a1 > 40"
+    },
+    {
+        "test_name": "JS: unexpected identifier",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_error": "Unexpected identifier",
+        "expected_error_exact": true,
+        "query_js": "select * where a1 < 0 andor a1 > 40"
+    },
+    {
         "test_name": "invalid having",
         "input_table": [
             ["car", "1", "100", "1"],
