@@ -229,7 +229,7 @@ async function run_with_js(args) {
         // * binary/latin-1 do not require the decoder anyway
         // * This is CLI so no way we are in the Electron environment which can't use the TextDecoder
         // * Streaming mode works a little faster (since we don't need to do the manual validation)
-        // TODO check if the current node installation doesn't have ICU enabled and report a user-friendly error with an option to use latin-1 encoding or switch the interpreter
+        // TODO check if the current node installation doesn't have ICU enabled (which is typicaly provided by Node.js by default, see https://nodejs.org/api/intl.html) and report a user-friendly error with an option to use latin-1 encoding or switch the interpreter
         await rbql_csv.query_csv(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, warnings, skip_header, comment_prefix, user_init_code/*, {'bulk_read': true}*/);
         await handle_query_success(warnings, output_path, csv_encoding, output_delim, output_policy);
         return true;
