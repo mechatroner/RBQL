@@ -104,12 +104,6 @@ RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an err
 Limitation: _JOIN_ statements can't contain Python/JS expressions and must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON a... == b... [AND a... == b... [AND ... ]]_
 
 
-### SELECT EXCEPT statement
-
-SELECT EXCEPT can be used to select everything except specific columns. E.g. to select everything but columns 2 and 4, run: `SELECT * EXCEPT a2, a4`  
-Traditional SQL engines do not support this query mode.
-
-
 ### UNNEST() operator
 UNNEST(list) takes a list/array as an argument and repeats the output record multiple times - one time for each value from the list argument.  
 Example: `SELECT a1, UNNEST(a2.split(';'))`  
@@ -178,7 +172,6 @@ The diagram below gives an overview of the main RBQL components and data flow:
 * UPDATE is a special case of SELECT query - this prevents accidental data loss
 * No need to use FROM statement - the table name is defined by the context. This improves query typing speed and allows immediate autocomplete for variables inside SELECT statement (in traditional SQL engines autocomplete will not work until you write FROM statement, which goes after SELECT statement)
 * SELECT, WHERE, ORDER BY, and other statements can be rearranged in any way you like
-* Supports EXCEPT statement
 * Provides a fully-functional client-side browser demo application
 * Almost nonexistent entry barrier both for SQL users and JS/Python users
 * Integration with popular text editors (VSCode, Vim, Sublime Text, Atom)

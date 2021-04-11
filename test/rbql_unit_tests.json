@@ -1124,35 +1124,6 @@
         "query_js": "select array_agg(a1)"
     },
     {
-        "test_name": "except_1",
-        "input_table": [
-            ["car", "1", "100", "1"],
-            ["car", "2", "100", "1"],
-            ["dog", "3", "100", "2"],
-            ["mouse", "2", "50", "1"]
-        ],
-        "expected_output_table": [
-            ["mouse", "50"],
-            ["dog", "100"],
-            ["car", "100"]
-        ],
-        "query_python": "select top 3 * except a2, a4 order by a1 desc",
-        "query_js": "select top 3 * except a2, a4 order by a1 desc"
-    },
-    {
-        "test_name": "except unknown field",
-        "input_table": [
-            ["car", "1", "100", "1"],
-            ["car", "2", "100", "1"],
-            ["dog", "3", "100", "2"],
-            ["mouse", "2", "50", "1"]
-        ],
-        "expected_error_exact": true,
-        "expected_error": "Unknown field in EXCEPT expression: \"a.mysterious_field\"",
-        "query_python": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc",
-        "query_js": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc"
-    },
-    {
         "test_name": "missing key field in join table",
         "input_table": [
             ["5", "car", "lada"],

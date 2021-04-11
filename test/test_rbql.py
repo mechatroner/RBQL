@@ -71,17 +71,6 @@ class TestRBQLQueryParsing(unittest.TestCase):
         assert test_res == expected_res
 
 
-    def test_except_parsing(self):
-        except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8'
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql_engine.translate_except_expression(except_part, {'a1': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a[6]': vinf(True, 5), 'a7': vinf(True, 6), 'a8': vinf(True, 7)}, []))
-
-        except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  '
-        self.assertEqual('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql_engine.translate_except_expression(except_part, {'a[1]': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a6': vinf(True, 5), 'a[7]': vinf(True, 6), 'a8': vinf(True, 7)}, []))
-
-        except_part = 'a1'
-        self.assertEqual('select_except(record_a, [0])', rbql_engine.translate_except_expression(except_part, {'a1': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a[6]': vinf(True, 5), 'a7': vinf(True, 6), 'a8': vinf(True, 7)}, []))
-
-
     def test_join_parsing(self):
         join_part = '/path/to/the/file.tsv on a1 == b3'
         self.assertEqual(('/path/to/the/file.tsv', [('a1', 'b3')]), rbql_engine.parse_join_expression(join_part))
