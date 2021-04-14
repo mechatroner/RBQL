@@ -360,9 +360,16 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
 
         if not line_mode:
             self.first_record = None
-            self.first_record_consumed = has_header
             self.first_record = self.get_record()
+            self.first_record_should_be_emitted = not has_header
 
+
+    def handle_query_modifier(self, modifier):
+        # For `... WITH (header) ...` syntax
+        if modifier in ['header', 'headers']:
+            self.has_header = True
+            self.first_record_should_be_emitted = False
+        
 
     def get_variables_map(self, query_text):
         variable_map = dict()
@@ -448,8 +455,8 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
 
 
     def get_record(self):
-        if not self.first_record_consumed and self.first_record is not None:
-            self.first_record_consumed = True
+        if self.first_record_should_be_emitted and self.first_record is not None:
+            self.first_record_should_be_emitted = False
             return self.first_record
         while True:
             line = self.polymorphic_get_row()

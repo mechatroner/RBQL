@@ -48,6 +48,9 @@ from ._version import __version__
 
 # TODO use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
 
+# TODO support 'AS' keyword
+
+# TODO consider restoring EXCEPT operator - big query supports it too!
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -60,6 +63,7 @@ STRICT_LEFT_JOIN = 'STRICT LEFT JOIN'
 ORDER_BY = 'ORDER BY'
 WHERE = 'WHERE'
 LIMIT = 'LIMIT'
+WITH = 'WITH'
 
 ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join tables'
 invalid_keyword_in_aggregate_query_error_msg = '"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries'
@@ -962,7 +966,7 @@ def strip_comments(cline):
 
 def combine_string_literals(backend_expression, string_literals):
     for i in range(len(string_literals)):
-        backend_expression = backend_expression.replace('###RBQL_STRING_LITERAL{}###'.format(i), string_literals[i])
+        backend_expression = backend_expression.replace('___RBQL_STRING_LITERAL{}___'.format(i), string_literals[i])
     return backend_expression
 
 
@@ -1202,7 +1206,7 @@ def separate_string_literals(rbql_expression):
         literal_id = len(string_literals)
         string_literals.append(m.group(0))
         format_parts.append(rbql_expression[idx_before:m.start()])
-        format_parts.append('###RBQL_STRING_LITERAL{}###'.format(literal_id))
+        format_parts.append('___RBQL_STRING_LITERAL{}___'.format(literal_id))
         idx_before = m.end()
     format_parts.append(rbql_expression[idx_before:])
     format_expression = ''.join(format_parts)
@@ -1289,7 +1293,17 @@ def separate_actions(rbql_expression):
         result[statement] = statement_params
     if SELECT not in result and UPDATE not in result:
         raise RbqlParsingError('Query must contain either SELECT or UPDATE statement') # UT JSON
-    assert (SELECT in result) != (UPDATE in result)
+    if (SELECT in result) and (UPDATE in result)
+        raise RbqlParsingError('Query can not contain both SELECT and UPDATE statements')
+
+    # For now support no more than one query modifier per query
+    query_type = SELECT if SELECT in result else UPDATE
+    main_part = result[query_type]
+    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh]  *\(([a-z]{4,20})\) *$', main_part)
+    if mobj is not None:
+        result[query_type] = mobj.group(1)
+        result[WITH] = mobj.group(2)
+
     return result
 
 
@@ -1397,8 +1411,8 @@ def shallow_parse_input_query(query_text, input_iterator, join_tables_registry, 
     format_expression = remove_redundant_input_table_name(format_expression)
     input_variables_map = input_iterator.get_variables_map(query_text)
     rb_actions = separate_actions(format_expression)
-    # FIXME we need a way to set "use_headers" flag from the query itself
-    # TODO refactoring: consider immediately combining rb_actions with string literals, maybe even inside separate actions
+    if WITH in rb_actions:
+        input_iterator.handle_query_modifier(rb_actions[WITH])
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
         raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries') # UT JSON
@@ -1418,6 +1432,8 @@ def shallow_parse_input_query(query_text, input_iterator, join_tables_registry, 
         join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
+        if WITH in rb_actions:
+            join_record_iterator.handle_query_modifier(rb_actions[WITH])
         join_variables_map = join_record_iterator.get_variables_map(query_text)
         join_header = join_record_iterator.get_header()
 
@@ -1495,6 +1511,10 @@ class RBQLInputIterator:
     def get_record(self):
         raise NotImplementedError('Unable to call the interface method')
 
+    def handle_query_modifier(self, modifier_name):
+        # Reimplement if you need to handle a boolean query modifier that can be used like this: `SELECT * WITH (modifiername)`
+        pass
+
     def get_warnings(self):
         return [] # Reimplement if your class can produce warnings
 
@@ -1535,7 +1555,6 @@ class TableIterator(RBQLInputIterator):
         self.variable_prefix = variable_prefix
         self.NR = 0
         self.fields_info = dict()
-        self.has_header = False
 
     def get_variables_map(self, query_text):
         variable_map = dict()
@@ -1565,8 +1584,6 @@ class TableIterator(RBQLInputIterator):
         if len(self.fields_info) > 1:
             return [make_inconsistent_num_fields_warning('input', self.fields_info)]
         return []
-
-    # FIXME add function to set has_header to True. Or maybe we don't need to do this? Just return header if asked
 
 
 class TableWriter(RBQLOutputWriter):
