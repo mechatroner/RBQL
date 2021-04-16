@@ -166,37 +166,37 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_select_translation(self):
         rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * '
-        test_dst = rbql_engine.translate_select_expression(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)[0]
         expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * '
-        test_dst = rbql_engine.translate_select_expression(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)[0]
         expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *, a1,  a2,a1,*,a.* ,b.* , a.*  , *,*,b1, * ,   * '
-        test_dst = rbql_engine.translate_select_expression(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)[0]
         expected_dst = '[] + star_fields + [ a1,  a2,a1] + star_fields + [] + record_a + [] + record_b + [] + record_a + [] + star_fields + [] + star_fields + [b1] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' * '
-        test_dst = rbql_engine.translate_select_expression(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)[0]
         expected_dst = '[] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,* '
-        test_dst = rbql_engine.translate_select_expression(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)[0]
         expected_dst = '[] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,*, * '
-        test_dst = rbql_engine.translate_select_expression(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)[0]
         expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
         rbql_src = ' *,*, * , *'
-        test_dst = rbql_engine.translate_select_expression(rbql_src)
+        test_dst = rbql_engine.translate_select_expression(rbql_src)[0]
         expected_dst = '[] + star_fields + [] + star_fields + [] + star_fields + [] + star_fields + []'
         self.assertEqual(expected_dst, test_dst)
 
@@ -331,5 +331,8 @@ class TestJsonTables(unittest.TestCase):
         tests_file = os.path.join(script_dir, 'rbql_unit_tests.json')
         with open(tests_file) as f:
             tests = json.loads(f.read())
+            filtered_tests = [t for t in tests if t.get('skip_others', False)]
+            if len(filtered_tests):
+                tests = filtered_tests
             for test in tests:
                 self.process_test_case(test)

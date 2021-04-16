@@ -1,6 +1,7 @@
 [
     {
         "test_name": "valid FROM",
+        "skip_others": false,
         "input_table": [
             ["5", "alpha", "beta"],
             ["-20", "alpha", "gamma"],
@@ -134,6 +135,7 @@
     },
     {
         "test_name": "variable records length",
+        "skip_others": false,
         "input_table": [
             ["5", "alpha", "beta"],
             ["-20", "alpha", "gamma"],
@@ -1507,8 +1509,8 @@
         ],
         "randomly_replace_var_names": false,
         "expected_error_exact": true,
-        "expected_error_py": "\n    out_fields = [a1{, a2]\n                    ^\nSyntaxError: invalid syntax",
-        "query_python": "select a1{, a2"
+        "expected_error_py": "\n    a1{, 'a string', a2\n      ^\nSyntaxError: invalid syntax",
+        "query_python": "select a1{, 'a string', a2"
     },
     {
         "test_name": "like function",

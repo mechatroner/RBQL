@@ -52,6 +52,8 @@ from ._version import __version__
 
 # TODO consider restoring EXCEPT operator - big query supports it too!
 
+# FIXME add extensive unit tests for ast parsing
+
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
@@ -213,8 +215,11 @@ def ast_parse_select_expression_to_column_infos(select_expression):
     children = list(ast.iter_child_nodes(root))
     assert(len(children) == 1)
     root = children[0]
-    column_expression_trees = root.elts
-    column_infos = [column_info_from_node(ct) for ct in column_expression_trees]
+    if isinstance(root, ast.Tuple):
+        column_expression_trees = root.elts
+        column_infos = [column_info_from_node(ct) for ct in column_expression_trees]
+    else:
+        column_infos = [column_info_from_node(root)]
     return column_infos
 
 
@@ -1144,23 +1149,33 @@ def replace_star_count(aggregate_expression):
 
 
 def replace_star_vars(rbql_expression):
-    star_matches = list(re.finditer(r'(^|,) *(\*|a\.\*|b\.\*) *(?=$|,)', rbql_expression))
+    star_matches = list(re.finditer(r'(?:^|,) *(\*|a\.\*|b\.\*) *(?=$|,)', rbql_expression))
     last_pos = 0
     result = ''
-    result_for_ast = ''
     for match in star_matches:
-        star_expression = match.group(2)
+        star_expression = match.group(1)
         replacement_expression = '] + ' + {'*': 'star_fields', 'a.*': 'record_a', 'b.*': 'record_b'}[star_expression] + ' + ['
-        replacement_expression_for_ast = {'*': '__RBQL_INTERNAL_STAR', 'a.*': 'a.__RBQL_INTERNAL_STAR', 'b.*': 'b.__RBQL_INTERNAL_STAR'}[star_expression]
         if last_pos < match.start():
             result += rbql_expression[last_pos:match.start()]
-            result_for_ast += rbql_expression[last_pos:match.start()]
         result += replacement_expression
-        result_for_ast += match.group(1) + replacement_expression_for_ast
         last_pos = match.end() + 1 # Adding one to skip the lookahead comma
     result += rbql_expression[last_pos:]
-    result_for_ast += rbql_expression[last_pos:]
-    return (result, result_for_ast)
+    return result
+
+
+def replace_star_vars_for_ast(rbql_expression):
+    star_matches = list(re.finditer(r'(?:(?<=^)|(?<=,)) *(\*|a\.\*|b\.\*) *(?=$|,)', rbql_expression))
+    last_pos = 0
+    result = ''
+    for match in star_matches:
+        star_expression = match.group(1)
+        replacement_expression = {'*': '__RBQL_INTERNAL_STAR', 'a.*': 'a.__RBQL_INTERNAL_STAR', 'b.*': 'b.__RBQL_INTERNAL_STAR'}[star_expression]
+        if last_pos < match.start():
+            result += rbql_expression[last_pos:match.start()]
+        result += replacement_expression
+        last_pos = match.end()
+    result += rbql_expression[last_pos:]
+    return result
 
 
 def translate_update_expression(update_expression, input_variables_map, string_literals):
@@ -1187,9 +1202,9 @@ def translate_update_expression(update_expression, input_variables_map, string_l
 
 
 def translate_select_expression(select_expression):
-    translated = replace_star_count(select_expression)
-    translated, translated_for_ast = replace_star_vars(translated)
-    translated = translated.strip()
+    expression_without_stars = replace_star_count(select_expression)
+    translated = replace_star_vars(expression_without_stars).strip()
+    translated_for_ast = replace_star_vars_for_ast(expression_without_stars).strip()
     if not len(translated):
         raise RbqlParsingError('"SELECT" expression is empty') # UT JSON
     return ('[{}]'.format(translated), translated_for_ast)
@@ -1293,15 +1308,14 @@ def separate_actions(rbql_expression):
         result[statement] = statement_params
     if SELECT not in result and UPDATE not in result:
         raise RbqlParsingError('Query must contain either SELECT or UPDATE statement') # UT JSON
-    if (SELECT in result) and (UPDATE in result)
+    if SELECT in result and UPDATE in result:
         raise RbqlParsingError('Query can not contain both SELECT and UPDATE statements')
 
     # For now support no more than one query modifier per query
-    query_type = SELECT if SELECT in result else UPDATE
-    main_part = result[query_type]
-    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh]  *\(([a-z]{4,20})\) *$', main_part)
+    main_part = result[SELECT] if SELECT in result else result[UPDATE]
+    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh]  *\(([a-z]{4,20})\) *$', main_part['text'])
     if mobj is not None:
-        result[query_type] = mobj.group(1)
+        main_part['text'] = mobj.group(1)
         result[WITH] = mobj.group(2)
 
     return result
@@ -1382,13 +1396,19 @@ def remove_redundant_input_table_name(query_text):
 
 
 def select_output_header(input_header, join_header, query_column_infos):
+    if input_header is None and join_header is None:
+        return None
     if input_header is None:
         input_header = []
     if join_header is None:
         join_header = []
     output_header = []
+    unnamed_column_counter = 1
     for qci in query_column_infos:
-        if qci.is_star:
+        if qci is None:
+            output_header.append('Nameless{}'.format(unnamed_column_counter))
+            unnamed_column_counter += 1
+        elif qci.is_star:
             if qci.table_name is None:
                 output_header += input_header + join_header
             elif qci.table_name == 'a':
@@ -1465,8 +1485,9 @@ def shallow_parse_input_query(query_text, input_iterator, join_tables_registry, 
         select_expression, select_expression_for_ast = translate_select_expression(rb_actions[SELECT]['text'])
         query_context.select_expression = combine_string_literals(select_expression, string_literals)
 
-        #if input_iterator.get_header() is not None or join_header is not None: # FIXME Consider adding this check to execute the next 3 liens
-        column_infos = ast_parse_select_expression_to_column_infos(select_expression_for_ast)
+        # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
+        combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
+        column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
         output_header = select_output_header(input_iterator.get_header(), join_header, column_infos)
         query_context.writer.set_header(output_header)
 
