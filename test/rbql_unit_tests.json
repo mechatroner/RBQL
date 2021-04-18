@@ -246,15 +246,18 @@
             ["rocket", "some stuff"]
         ],
         "expected_output_table": [
-            [5, "10", "boat", "yacht ", "====", "boat", "wind"],
-            [4, "20", "boat", "destroyer", "====", "boat", "wind"],
-            [2, "-20", "car", "Ferrari", "====", "car", "gas "],
-            [1, "5", "car", "lada", "====", "car", "gas "],
-            [3, "50", "plane", "tu-134", "====", "plane", "wings  "],
-            [6, "200", "plane", "boeing 737", "====", "plane", "wings  "]
+            [5, 4, "10", "boat", "yacht ", "====", "boat", "wind"],
+            [4, 4, "20", "boat", "destroyer", "====", "boat", "wind"],
+            [2, 2, "-20", "car", "Ferrari", "====", "car", "gas "],
+            [1, 2, "5", "car", "lada", "====", "car", "gas "],
+            [3, 3, "50", "plane", "tu-134", "====", "plane", "wings  "],
+            [6, 3, "200", "plane", "boeing 737", "====", "plane", "wings  "]
         ],
-        "query_python": "select NR, a.*, '====', b.* inner join b on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
-        "query_js": "select NR, a.*, '====', b.* inner join b on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+        "input_column_names": ["speed", "vehicle", "brand"],
+        "join_column_names": ["vehicle", "propulsion"],
+        "expected_output_header": ["aNR", "bNR", "speed", "vehicle", "brand", "col6", "vehicle", "propulsion"],
+        "query_python": "select aNR, bNR, a.*, '====', b.* inner join b on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
+        "query_js": "select aNR, bNR, a.*, '====', b.* inner join b on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
     {
         "test_name": "join with emptiness error",
@@ -1377,6 +1380,7 @@
         ],
         "input_column_names": ["value", "letter left", "letter right"],
         "normalize_column_names": true,
+        "expected_output_header": ["NR", "value", "col3"],
         "debug_mode": false,
         "query_python": "select NR, a.value, len(a['letter right']) where int(a.value) > 5",
         "query_js": "select NR, a.value, a['letter right'].length where a.value > 5"
@@ -1425,6 +1429,7 @@
         ],
         "input_column_names": ["speed", "vehicle", "brand"],
         "join_column_names": ["vehicle", "propulsion"],
+        "expected_output_header": ["NR", "speed", "vehicle", "brand", "vehicle", "propulsion"],
         "normalize_column_names": true,
         "query_python": "select NR, * inner join B on a.vehicle == b.vehicle where b['propulsion'] != \"alpha\" and int(a.speed) > -100 and len(b.propulsion) > 1 order by a['vehicle'], int(a1)",
         "query_js": "select NR, * inner join B on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
@@ -1452,6 +1457,7 @@
         ],
         "input_column_names": ["speed", "vehicle", "foobar"],
         "join_column_names": ["vehicle_name", "foobar"],
+        "expected_output_header": ["NR", "speed", "vehicle", "foobar", "vehicle_name", "foobar"],
         "normalize_column_names": false,
         "query_python": "select NR, * inner join B on vehicle == vehicle_name where int(speed) > 50",
         "query_js": "select NR, * inner join B on vehicle == vehicle_name where parseInt(speed) > 50"
