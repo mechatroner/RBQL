@@ -162,11 +162,11 @@ def column_info_from_node(root):
             return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=True)
         good_column_name_rgx = '^([ab])([0-9][0-9]*)$'
         match_obj = re.match(good_column_name_rgx, var_name)
-        if match_obj is None:
-            return None
-        table_name = match_obj.group(1)
-        column_index = int(match_obj.group(2)) - 1
-        return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False)
+        if match_obj is not None:
+            table_name = match_obj.group(1)
+            column_index = int(match_obj.group(2)) - 1
+            return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False)
+        return QueryColumnInfo(table_name=None, column_index=None, column_name=var_name, is_star=False)
     if isinstance(root, ast.Attribute):
         column_name = get_field(root, 'attr')
         if not column_name:
@@ -181,7 +181,8 @@ def column_info_from_node(root):
             return None
         if column_name == rbql_star_marker:
             return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True)
-        return QueryColumnInfo(table_name=table_name, column_index=None, column_name=column_name, is_star=False)
+        # FIXME add tests for a.NR and b.NR they should be automatically handled, because we don't check variable presense
+        return QueryColumnInfo(table_name=None, column_index=None, column_name=column_name, is_star=False)
     if isinstance(root, ast.Subscript):
         var_root = get_field(root, 'value')
         if not isinstance(var_root, ast.Name):
@@ -197,6 +198,7 @@ def column_info_from_node(root):
         column_name = None
         if isinstance(slice_val_root, ast.Str):
             column_name = get_field(slice_val_root, 's')
+            table_name = None # We don't need table name for named fields
         elif isinstance(slice_val_root, ast.Num):
             column_index = get_field(slice_val_root, 'n')
         else:
@@ -1403,11 +1405,9 @@ def select_output_header(input_header, join_header, query_column_infos):
     if join_header is None:
         join_header = []
     output_header = []
-    unnamed_column_counter = 1
     for qci in query_column_infos:
         if qci is None:
-            output_header.append('Nameless{}'.format(unnamed_column_counter))
-            unnamed_column_counter += 1
+            output_header.append('col{}'.format(len(output_header) + 1))
         elif qci.is_star:
             if qci.table_name is None:
                 output_header += input_header + join_header
@@ -1416,7 +1416,7 @@ def select_output_header(input_header, join_header, query_column_infos):
             elif qci.table_name == 'b':
                 output_header += join_header
         elif qci.column_name is not None:
-            output_header.append(column_name)
+            output_header.append(qci.column_name)
         elif qci.column_index is not None:
             if qci.table_name == 'a' and qci.column_index < len(input_header):
                 output_header.append(input_header[qci.column_index])
@@ -1606,14 +1606,21 @@ class TableIterator(RBQLInputIterator):
             return [make_inconsistent_num_fields_warning('input', self.fields_info)]
         return []
 
+    def get_header(self):
+        return self.column_names
+
 
 class TableWriter(RBQLOutputWriter):
     def __init__(self, external_table):
         self.table = external_table
+        self.header = None
 
     def write(self, fields):
         self.table.append(fields)
         return True
+
+    def set_header(self, header):
+        self.header = header
 
 
 class SingleTableRegistry(RBQLTableRegistry):
@@ -1629,13 +1636,18 @@ class SingleTableRegistry(RBQLTableRegistry):
         return TableIterator(self.table, self.column_names, self.normalize_column_names, 'b')
 
 
-def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, normalize_column_names=True, user_init_code=''):
+def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True, user_init_code=''):
     if not normalize_column_names and input_column_names is not None and join_column_names is not None:
         ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names)
     input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else SingleTableRegistry(join_table, join_column_names, normalize_column_names)
     query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
+    if output_column_names is not None:
+        assert len(output_column_names) == 0, '`output_column_names` param must be an empty list or None'
+        if output_writer.header is not None:
+            for column_name in output_writer.header:
+                output_column_names.append(column_name)
 
 
 def set_debug_mode():

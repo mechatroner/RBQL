@@ -1358,7 +1358,8 @@
         ],
         "input_column_names": ["value", "letter_left", "letter_right"],
         "normalize_column_names": false,
-        "debug_mode": false,
+        "expected_output_header": ["NR", "value", "col3"],
+        "debug_mode": true,
         "query_python": "select NR, value, len(letter_right) where int(value) > 5",
         "query_js": "select NR, value, letter_right.length where value > 5"
     },

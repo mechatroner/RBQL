@@ -284,6 +284,7 @@ class TestJsonTables(unittest.TestCase):
         join_column_names = test_case.get('join_column_names', None)
         normalize_column_names = test_case.get('normalize_column_names', True)
         user_init_code = test_case.get('python_init_code', '')
+        expected_output_header = test_case.get('expected_output_header', None)
         expected_output_table = test_case.get('expected_output_table', None)
         expected_error_type = test_case.get('expected_error_type', None)
         expected_error = test_case.get('expected_error', None)
@@ -301,13 +302,17 @@ class TestJsonTables(unittest.TestCase):
         if debug_mode:
             rbql_engine.set_debug_mode()
         warnings = []
+        output_column_names = []
         error_type, error_msg = None, None
         try:
-            rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, normalize_column_names, user_init_code)
+            rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, normalize_column_names, user_init_code)
         except Exception as e:
             if debug_mode:
                 raise
             error_type, error_msg = rbql.exception_to_error_info(e)
+
+        if expected_output_header is not None:
+            self.assertEqual(expected_output_header, output_column_names, 'Inside json test: {}'.format(test_name))
 
         self.assertTrue((expected_error is not None) == (error_type is not None), 'Inside json test: "{}". Expected error: {}, error_type: {}, error_msg: {}'.format(test_name, expected_error, error_type, error_msg))
         if expected_error_type is not None:
