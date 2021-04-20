@@ -297,22 +297,22 @@ if [ "$run_node_tests" == "yes" ]; then
 fi
 
 
-# Testing skip-header / named columns in CLI
+# Testing with-headers / named columns in CLI
 md5sum_expected=($( md5sum test/csv_files/expected_result_14.csv ))
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by int(a['GDP per capita']) desc" --delim , --skip-header | md5sum))
+    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by int(a['GDP per capita']) desc" --delim , --with-headers | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
-        echo "CLI Python skip-header test FAIL!"  1>&2
+        echo "CLI Python with-headers test FAIL!"  1>&2
         exit 1
     fi
 fi
 
 
 if [ "$run_node_tests" == "yes" ]; then
-    # Using `NaN || 1000 * 1000` trick below to return 1M on NaN and make sure that --skip-header works. Otherwise the header line would be the max
-    md5sum_test=($( node ./rbql-js/cli_rbql.js --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by parseInt(a['GDP per capita']) || 1000 * 1000 desc" --delim , --skip-header | md5sum))
+    # Using `NaN || 1000 * 1000` trick below to return 1M on NaN and make sure that we skip the header. Otherwise the header line would be the max
+    md5sum_test=($( node ./rbql-js/cli_rbql.js --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by parseInt(a['GDP per capita']) || 1000 * 1000 desc" --delim , --with-headers | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
-        echo "CLI JS skip-header test FAIL!"  1>&2
+        echo "CLI JS with-headers test FAIL!"  1>&2
         exit 1
     fi
 fi

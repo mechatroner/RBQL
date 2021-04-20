@@ -357,6 +357,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.first_defective_line = None
         self.polymorphic_get_row = self.get_row_rfc if policy == 'quoted_rfc' else self.get_row_simple
         self.has_header = has_header
+        self.first_record_should_be_emitted = False
 
         if not line_mode:
             self.first_record = None
@@ -540,7 +541,7 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         return result
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, has_header=False, comment_prefix=None, user_init_code='', colorize_output=False):
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -563,8 +564,8 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = read_user_init_code(default_init_source_path)
 
-        join_tables_registry = FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, has_header, comment_prefix)
-        input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, has_header, comment_prefix=comment_prefix)
+        join_tables_registry = FileSystemCSVRegistry(input_delim, input_policy, csv_encoding, with_headers, comment_prefix)
+        input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, with_headers, comment_prefix=comment_prefix)
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
         if debug_mode:
             rbql_engine.set_debug_mode()

@@ -181,7 +181,6 @@ def column_info_from_node(root):
             return None
         if column_name == rbql_star_marker:
             return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True)
-        # FIXME add tests for a.NR and b.NR they should be automatically handled, because we don't check variable presense
         return QueryColumnInfo(table_name=None, column_index=None, column_name=column_name, is_star=False)
     if isinstance(root, ast.Subscript):
         var_root = get_field(root, 'value')
