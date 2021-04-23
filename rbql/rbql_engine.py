@@ -209,7 +209,6 @@ def column_info_from_node(root):
 def ast_parse_select_expression_to_column_infos(select_expression):
     root = ast.parse(select_expression)
     children = list(ast.iter_child_nodes(root))
-    # FIXME try to trigger one of the exceptions with something like `def foobar():`
     if 'body' not in root._fields:
         raise RbqlParsingError('Unable to parse SELECT expression (error code #117)') # Should never happen
     if len(children) != 1:
@@ -217,7 +216,7 @@ def ast_parse_select_expression_to_column_infos(select_expression):
     root = children[0]
     children = list(ast.iter_child_nodes(root))
     if len(children) != 1:
-        raise RbqlParsingError('Unable to parse SELECT expression (error code #119)') # Should never happen
+        raise RbqlParsingError('Unable to parse SELECT expression (error code #119): "{}"'.format(select_expression)) # This can be triggered with `SELECT a = 100`
     root = children[0]
     if isinstance(root, ast.Tuple):
         column_expression_trees = root.elts
