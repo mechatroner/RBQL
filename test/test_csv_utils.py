@@ -860,8 +860,7 @@ class TestRBQLWithCSV(unittest.TestCase):
             return
         debug_mode = test_case.get('debug_mode', False)
         randomly_replace_var_names = test_case.get('randomly_replace_var_names', True)
-        # FIXME use with_headers instead
-        skip_headers = test_case.get('skip_headers', False)
+        with_headers = test_case.get('with_headers', False)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
         if randomly_replace_var_names:
@@ -890,7 +889,7 @@ class TestRBQLWithCSV(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding, warnings, skip_headers, comment_prefix)
+            rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, out_delim, out_policy, encoding, warnings, with_headers, comment_prefix)
         except Exception as e:
             if debug_mode:
                 raise
@@ -901,11 +900,11 @@ class TestRBQLWithCSV(unittest.TestCase):
             self.assertTrue(error_msg.find(expected_error) != -1, 'Inside json test: "{}", Expected error: "{}", Actual error: "{}"'.format(test_name, expected_error, error_msg))
         else:
             actual_md5 = calc_file_md5(actual_output_table_path)
-            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch. Expected table: {}, Actual table: {}'.format(expected_output_table_path, actual_output_table_path))
+            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch in test "{}". Expected table: {}, Actual table: {}'.format(test_name, expected_output_table_path, actual_output_table_path))
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
-        self.assertEqual(expected_warnings, warnings, 'Inside json test: "{}"'.format(test_name))
+        self.assertEqual(expected_warnings, warnings, 'Inside json test: "{}". Expected warnings: {}, Actual warnings: {}'.format(test_name, expected_warnings, warnings))
 
 
 

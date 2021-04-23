@@ -474,13 +474,13 @@
         "query_js": "select NR, a3 + '|' + a1, a2, NF"
     },
     {
-        "test_name": "select named fields skip header",
+        "test_name": "select named fields with header",
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_output_table_path": "csv_files/university_ranking_result6.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "skip_headers": true,
+        "with_headers": true,
         "query_python": "select top 5 NR, *",
         "query_js": "select top 5 NR, *"
     },
@@ -495,16 +495,16 @@
         "query_js": "select top 20 a2, b['country name'], b.Population join ###UT_TESTS_DIR###/csv_files/countries2.csv on a.country == b['country name'] order by a.university_name"
     },
     {
-        "test_name": "join named fields skip header",
+        "test_name": "join named fields with header",
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_output_table_path": "csv_files/university_ranking_result5.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "skip_headers": true,
+        "with_headers": true,
         "debug_mode": true,
         "expected_warnings": [
-            "The first (header) record was also skipped in the JOIN file: countries.csv"
+            "The first record in JOIN file countries.csv was also treated as header (and skipped)"
         ],
         "query_python": "select top 20 NR, a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc",
         "query_js": "select top 20 NR, a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name desc"
