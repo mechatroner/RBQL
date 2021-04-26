@@ -166,6 +166,7 @@ def column_info_from_node(root):
             table_name = match_obj.group(1)
             column_index = int(match_obj.group(2)) - 1
             return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False)
+        # Some examples for this branch: NR, NF
         return QueryColumnInfo(table_name=None, column_index=None, column_name=var_name, is_star=False)
     if isinstance(root, ast.Attribute):
         column_name = get_field(root, 'attr')
@@ -199,6 +200,8 @@ def column_info_from_node(root):
             column_name = get_field(slice_val_root, 's')
             table_name = None # We don't need table name for named fields
         elif isinstance(slice_val_root, ast.Num):
+            # FIXME do we need to substract one?
+            # FIXME add unit tests!
             column_index = get_field(slice_val_root, 'n')
         else:
             return None
