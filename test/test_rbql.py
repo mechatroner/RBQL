@@ -48,6 +48,31 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(r'^.*hello.world\.foo\.\*bar.*$', b)
 
 
+    def test_column_name_parsing(self):
+        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*'
+        select_expression, string_literals = rbql_engine.separate_string_literals(select_part)
+        select_expression = rbql_engine.replace_star_count(select_expression)
+        select_expression = rbql_engine.replace_star_vars_for_ast(select_expression)
+        combined_select_expression_for_ast = rbql_engine.combine_string_literals(select_expression, string_literals)
+        column_infos = rbql_engine.ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+        expected = [rbql_engine.QueryColumnInfo('a', 0, None, False), # a1
+                    rbql_engine.QueryColumnInfo('a', 1, None, False), # a[2]
+                    rbql_engine.QueryColumnInfo(None, None, 'hello', False), # a.hello
+                    rbql_engine.QueryColumnInfo(None, None, 'world', False), # a["world"]
+                    rbql_engine.QueryColumnInfo(None, None, 'NR', False), # NR
+                    rbql_engine.QueryColumnInfo(None, None, 'NF', False), # NF
+                    rbql_engine.QueryColumnInfo(None, None, 'something', False), # something 
+                    None, # foo(something, 'bar')
+                    None, # "test"
+                    None, # 3
+                    None, # 3 + 3
+                    rbql_engine.QueryColumnInfo(None, None, None, True), # *
+                    rbql_engine.QueryColumnInfo('a', None, None, True), # a.*
+                    rbql_engine.QueryColumnInfo('b', None, None, True) # b.*
+                   ]
+        self.assertEqual(expected, column_infos) 
+
+
     def test_string_literals_separation(self):
         #TODO generate some random examples: Generate some strings randomly and then parse them
         test_cases = list()

@@ -85,11 +85,11 @@ function parse_root_bracket_level_text_spans(select_expression) {
     let bracket_stack = [];
     for (let i = 0; i < select_expression.length; i++) {
         let cur_char = select_expression[i];
-        if (cur_char = ',' && bracket_stack.length == 0) {
-            text_spans.append(select_expression.substring(last_pos, i));
+        if (cur_char == ',' && bracket_stack.length == 0) {
+            text_spans.push(select_expression.substring(last_pos, i));
             last_pos = i + 1;
         } else if (['[', '{', '('].indexOf(cur_char) != -1) {
-            bracket_stack.append(cur_char);
+            bracket_stack.push(cur_char);
         } else if ([']', '}', ')'].indexOf(cur_char) != -1) {
             if (bracket_stack.length && check_if_brackets_match(bracket_stack[bracket_stack.length - 1], cur_char)) {
                 bracket_stack.pop();
@@ -103,7 +103,7 @@ function parse_root_bracket_level_text_spans(select_expression) {
         // FIXME unit test this
         throw new RbqlParsingError(`Unable to parse column headers in SELECT expression: No matching closing bracket for opening "${bracket_stack[0]}"`);
     }
-    text_spans.append(select_expression.substring(last_pos, select_expression.length));
+    text_spans.push(select_expression.substring(last_pos, select_expression.length));
     text_spans = text_spans.map(span => span.trim());
     return text_spans;
 }
@@ -134,9 +134,11 @@ function column_info_from_text_span(text_span, string_literals) {
     if (simple_var_match !== null) {
         if (text_span == rbql_star_marker)
             return {table_name: null, column_index: null, column_name: null, is_star: true};
+        if (text_span.startsWith('___RBQL_STRING_LITERAL'))
+            return null;
         let match = /^([ab])([0-9]+)$/.exec(text_span);
         if (match !== null) {
-            return {table_name: match[1], column_index: parseInt(match[2]), column_name: null, is_star: false};
+            return {table_name: match[1], column_index: parseInt(match[2]) - 1, column_name: null, is_star: false};
         }
         // Some examples for this branch: NR, NF
         return {table_name: null, column_index: null, column_name: text_span, is_star: false};
@@ -149,19 +151,16 @@ function column_info_from_text_span(text_span, string_literals) {
         return {table_name: null, column_index: null, column_name: column_name, is_star: false};
     } else if (subscript_int_match != null) {
         let table_name = subscript_int_match[1];
-        // FIXME add unit tests for this!
-        // FIXME do we need to substract one?
-        let column_index = parseInt(subscript_int_match[2]);
+        let column_index = parseInt(subscript_int_match[2]) - 1;
         return {table_name: table_name, column_index: column_index, column_name: null, is_star: false};
     } else if (subscript_str_match != null) {
-        let table_name = subscript_int_match[1];
-        // FIXME unit test this
+        let table_name = subscript_str_match[1];
         let replaced_string_literal_id = subscript_str_match[2];
         if (replaced_string_literal_id < string_literals.length) {
             let quoted_column_name = string_literals[replaced_string_literal_id];
             let unquoted_column_name = unquote_string(quoted_column_name);
             if (unquoted_column_name) {
-                return {table_name: null, column_index: null, column_name: unquoted_column_name, is_svar_nametar: false};
+                return {table_name: null, column_index: null, column_name: unquoted_column_name, is_star: false};
             }
         }
     }
@@ -178,7 +177,7 @@ function adhoc_parse_select_expression_to_column_infos(select_expression, string
     // 1. The number of column_infos is correct and will match the number of fields in each record in the output - otherwise the exception should be thrown
     // 2. If column_info at pos j is not null, it is guaranteed to correctly represent that column name in the output
     let text_spans = parse_root_bracket_level_text_spans(select_expression);
-    let column_infos = text_spans.map(ts => column_info_from_text_span(ts));
+    let column_infos = text_spans.map(ts => column_info_from_text_span(ts, string_literals));
     return column_infos;
 }
 
@@ -1271,6 +1270,24 @@ function replace_star_vars(rbql_expression) {
 }
 
 
+function replace_star_vars_for_header_parsing(rbql_expression) {
+    let star_rgx = /(?:(?<=^)|(?<=,)) *(\*|a\.\*|b\.\*) *(?=$|,)/g;
+    let matches = get_all_matches(star_rgx, rbql_expression);
+    let last_pos = 0;
+    let result = '';
+    for (let match of matches) {
+        let star_expression = match[1];
+        let replacement_expression = {'*': '__RBQL_INTERNAL_STAR', 'a.*': 'a.__RBQL_INTERNAL_STAR', 'b.*': 'b.__RBQL_INTERNAL_STAR'}[star_expression];
+        if (last_pos < match.index)
+            result += rbql_expression.substring(last_pos, match.index);
+        result += replacement_expression;
+        last_pos = match.index + match[0].length;
+    }
+    result += rbql_expression.substring(last_pos);
+    return result;
+}
+
+
 function translate_update_expression(update_expression, input_variables_map, string_literals, indent) {
     let first_assignment = str_strip(update_expression.split('=')[0]);
     let first_assignment_error = `Unable to parse "UPDATE" expression: the expression must start with assignment, but "${first_assignment}" does not look like an assignable field name`;
@@ -1303,6 +1320,7 @@ function translate_update_expression(update_expression, input_variables_map, str
 
 function translate_select_expression(select_expression) {
     var translated = replace_star_count(select_expression);
+    // FIXME we need a different replacement for header parsing
     translated = replace_star_vars(translated);
     translated = str_strip(translated);
     if (!translated.length)
@@ -1803,11 +1821,13 @@ exports.strip_comments = strip_comments;
 exports.separate_actions = separate_actions;
 exports.separate_string_literals = separate_string_literals;
 exports.combine_string_literals = combine_string_literals;
-exports.translate_except_expression = translate_except_expression;
 exports.parse_join_expression = parse_join_expression;
 exports.resolve_join_variables = resolve_join_variables;
 exports.translate_update_expression = translate_update_expression;
 exports.translate_select_expression = translate_select_expression;
 exports.like_to_regex = like_to_regex;
+exports.adhoc_parse_select_expression_to_column_infos = adhoc_parse_select_expression_to_column_infos;
+exports.replace_star_count = replace_star_count;
+exports.replace_star_vars_for_header_parsing = replace_star_vars_for_header_parsing;
 
 }(typeof exports === 'undefined' ? this.rbql = {} : exports));

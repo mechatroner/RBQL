@@ -66,9 +66,9 @@ function assert_objects_are_equal(a, b, exit_at_error=true, silent=false, curren
     if (a === b)
         return true;
     if (a == null)
-        return fail(`a is null for path: ${current_path}`, exit_at_error, silent);
+        return fail(`a is null for path: ${current_path}, while b is ${JSON.stringify(b)}`, exit_at_error, silent);
     if (b == null)
-        return fail(`b is null for path: ${current_path}`, exit_at_error, silent);
+        return fail(`b is null for path: ${current_path}, while a is ${JSON.stringify(a)}`, exit_at_error, silent);
     if (typeof a != 'object' && typeof b != 'object')
         return fail(`a = ${a} and b = ${b} have different values for path: ${current_path}`, exit_at_error, silent);
     if (typeof a != 'object')

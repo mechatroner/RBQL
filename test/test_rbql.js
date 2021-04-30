@@ -71,20 +71,6 @@ function test_separate_actions() {
 }
 
 
-function test_except_parsing() {
-    let except_part = null;
-
-    except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8';
-    test_common.assert_equal('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a[6]': vinf(true, 5), 'a7': vinf(true, 6), 'a8': vinf(true, 7)}, []));
-
-    except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  ';
-    test_common.assert_equal('select_except(record_a, [0,1,2,3,4,5,6,7])', rbql.translate_except_expression(except_part, {'a[1]': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a6': vinf(true, 5), 'a[7]': vinf(true, 6), 'a8': vinf(true, 7)}, []));
-
-    except_part = 'a1';
-    test_common.assert_equal('select_except(record_a, [0])', rbql.translate_except_expression(except_part, {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a[6]': vinf(true, 5), 'a7': vinf(true, 6), 'a8': vinf(true, 7)}, []));
-}
-
-
 function test_join_parsing() {
     let join_part = '/path/to/the/file.tsv on a1 == b3';
     test_common.assert_arrays_are_equal(['/path/to/the/file.tsv', [['a1', 'b3']]], rbql.parse_join_expression(join_part));
@@ -308,16 +294,42 @@ async function test_direct_table_queries() {
 }
 
 
+function test_column_name_parsing() {
+    let select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*';
+    let [select_expression, string_literals] = rbql.separate_string_literals(select_part);
+    select_expression = rbql.replace_star_count(select_expression);
+    select_expression = rbql.replace_star_vars_for_header_parsing(select_expression);
+    let column_infos = rbql.adhoc_parse_select_expression_to_column_infos(select_expression, string_literals);
+    let expected = [
+        {"table_name":"a","column_index":0,"column_name":null,"is_star":false},
+        {"table_name":"a","column_index":1,"column_name":null,"is_star":false},
+        {"table_name":null,"column_index":null,"column_name":"hello","is_star":false},
+        {"table_name":null,"column_index":null,"column_name":"world","is_star":false},
+        {"table_name":null,"column_index":null,"column_name":"NR","is_star":false},
+        {"table_name":null,"column_index":null,"column_name":"NF","is_star":false},
+        {"table_name":null,"column_index":null,"column_name":"something","is_star":false},
+        null,
+        null,
+        null,
+        null,
+        {"table_name":null,"column_index":null,"column_name":null,"is_star":true},
+        {"table_name":"a","column_index":null,"column_name":null,"is_star":true},
+        {"table_name":"b","column_index":null,"column_name":null,"is_star":true},
+    ];
+    test_common.assert_objects_are_equal(expected, column_infos);
+}
+
+
 async function test_everything() {
     test_test_common();
     test_comment_strip();
     test_like_to_regex_conversion();
     test_string_literals_separation();
     test_separate_actions();
-    test_except_parsing();
     test_join_parsing();
     test_update_translation();
     test_select_translation();
+    test_column_name_parsing();
     await test_direct_table_queries();
     await test_json_tables();
 }

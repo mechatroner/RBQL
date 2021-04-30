@@ -27,6 +27,8 @@ from ._version import __version__
 # UT JSON CSV - means json csv Unit Test exists for this case
 
 
+# TODO we can do good-enough header autodetection in CSV files to show warnings when we have a high degree of confidence that the file has header but user didn't skip it and vise versa
+
 # TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
 
 # TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in rbql_engine.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
@@ -200,9 +202,8 @@ def column_info_from_node(root):
             column_name = get_field(slice_val_root, 's')
             table_name = None # We don't need table name for named fields
         elif isinstance(slice_val_root, ast.Num):
-            # FIXME do we need to substract one?
             # FIXME add unit tests!
-            column_index = get_field(slice_val_root, 'n')
+            column_index = get_field(slice_val_root, 'n') - 1
         else:
             return None
         return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=column_name, is_star=False)
