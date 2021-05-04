@@ -1266,8 +1266,14 @@ def separate_actions(rbql_expression):
     # TODO add more checks:
     # make sure all rbql_expression was separated and SELECT or UPDATE is at the beginning
     rbql_expression = rbql_expression.strip(' ')
-    ordered_statements = locate_statements(rbql_expression)
     result = dict()
+    # For now support no more than one query modifier per query
+    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z]{4,20})\) *$', rbql_expression)
+    if mobj is not None:
+        # FIXME unit test this
+        rbql_expression = mobj.group(1)
+        result[WITH] = mobj.group(2)
+    ordered_statements = locate_statements(rbql_expression)
     for i in range(len(ordered_statements)):
         statement_start = ordered_statements[i][0]
         span_start = ordered_statements[i][1]
@@ -1317,14 +1323,6 @@ def separate_actions(rbql_expression):
         raise RbqlParsingError('Query must contain either SELECT or UPDATE statement') # UT JSON
     if SELECT in result and UPDATE in result:
         raise RbqlParsingError('Query can not contain both SELECT and UPDATE statements')
-
-    # For now support no more than one query modifier per query
-    main_part = result[SELECT] if SELECT in result else result[UPDATE]
-    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh]  *\(([a-z]{4,20})\) *$', main_part['text'])
-    if mobj is not None:
-        main_part['text'] = mobj.group(1)
-        result[WITH] = mobj.group(2)
-
     return result
 
 
@@ -1427,6 +1425,11 @@ def select_output_header(input_header, join_header, query_column_infos):
                 output_header.append(input_header[qci.column_index])
             elif qci.table_name == 'b' and qci.column_index < len(join_header):
                 output_header.append(join_header[qci.column_index])
+            else:
+                # FIXME unit test this
+                output_header.append('col{}'.format(len(output_header) + 1))
+        else: # Should never happen
+            output_header.append('col{}'.format(len(output_header) + 1))
     return output_header
 
 

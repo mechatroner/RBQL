@@ -232,6 +232,7 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
 
     def write(self, fields):
         if self.header_len is not None and len(fields) != self.header_len:
+            # FIXME unit test this
             raise rbql_engine.RbqlIOHandlingError('Inconsistent number of columns in output header and the current record: {} != {}'.format(self.header_len, len(fields)))
         self.normalize_fields(fields)
 
@@ -370,6 +371,9 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         if modifier in ['header', 'headers']:
             self.has_header = True
             self.first_record_should_be_emitted = False
+        if modifier in ['noheader', 'noheaders']:
+            self.has_header = False
+            self.first_record_should_be_emitted = True
         
 
     def get_variables_map(self, query_text):
@@ -456,7 +460,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
 
 
     def get_record(self):
-        if self.first_record_should_be_emitted and self.first_record is not None:
+        if self.first_record_should_be_emitted:
             self.first_record_should_be_emitted = False
             return self.first_record
         while True:

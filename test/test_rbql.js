@@ -166,38 +166,38 @@ function test_select_translation() {
     let expected_dst = null;
 
     rbql_src = ' *, a1,  a2,a1,*,*,b1, * ,   * ';
-    test_dst = rbql.translate_select_expression(rbql_src);
+    test_dst = rbql.translate_select_expression(rbql_src)[0];
     expected_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     test_common.assert(expected_dst === test_dst, 'translation 1');
 
     rbql_src = ' *, a1,  a2,a1,*,*,*,b1, * ,   * ';
-    test_dst = rbql.translate_select_expression(rbql_src);
+    test_dst = rbql.translate_select_expression(rbql_src)[0];
     expected_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     test_common.assert(expected_dst === test_dst, 'translation 2');
 
 
     rbql_src = ' *, a1,  a2,a1,*,a.* ,b.* , a.*  , *,*,b1, * ,   * ';
-    test_dst = rbql.translate_select_expression(rbql_src);
+    test_dst = rbql.translate_select_expression(rbql_src)[0];
     expected_dst = '[].concat([]).concat(star_fields).concat([ a1,  a2,a1]).concat(star_fields).concat([]).concat(record_a).concat([]).concat(record_b).concat([]).concat(record_a).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([b1]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     test_common.assert_equal(expected_dst, test_dst);
 
     rbql_src = ' * ';
-    test_dst = rbql.translate_select_expression(rbql_src);
+    test_dst = rbql.translate_select_expression(rbql_src)[0];
     expected_dst = '[].concat([]).concat(star_fields).concat([])';
     test_common.assert(expected_dst === test_dst);
 
     rbql_src = ' *,* ';
-    test_dst = rbql.translate_select_expression(rbql_src);
+    test_dst = rbql.translate_select_expression(rbql_src)[0];
     expected_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     test_common.assert(expected_dst === test_dst);
 
     rbql_src = ' *,*, * ';
-    test_dst = rbql.translate_select_expression(rbql_src);
+    test_dst = rbql.translate_select_expression(rbql_src)[0];
     expected_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     test_common.assert(expected_dst === test_dst);
 
     rbql_src = ' *,*, * , *';
-    test_dst = rbql.translate_select_expression(rbql_src);
+    test_dst = rbql.translate_select_expression(rbql_src)[0];
     expected_dst = '[].concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([]).concat(star_fields).concat([])';
     test_common.assert(expected_dst === test_dst);
 }

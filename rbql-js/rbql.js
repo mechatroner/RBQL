@@ -991,6 +991,7 @@ const STRICT_LEFT_JOIN = 'STRICT LEFT JOIN';
 const ORDER_BY = 'ORDER BY';
 const WHERE = 'WHERE';
 const LIMIT = 'LIMIT';
+const WITH = 'WITH';
 
 
 function get_ambiguous_error_msg(variable_name) {
@@ -1319,13 +1320,13 @@ function translate_update_expression(update_expression, input_variables_map, str
 
 
 function translate_select_expression(select_expression) {
-    var translated = replace_star_count(select_expression);
+    let expression_without_stars = replace_star_count(select_expression);
     // FIXME we need a different replacement for header parsing
-    translated = replace_star_vars(translated);
-    translated = str_strip(translated);
+    let translated = str_strip(replace_star_vars(expression_without_stars));
+    let translated_for_header = str_strip(replace_star_vars_for_header_parsing(expression_without_stars));
     if (!translated.length)
         throw new RbqlParsingError('"SELECT" expression is empty');
-    return `[].concat([${translated}])`;
+    return [`[].concat([${translated}])`, translated_for_header];
 }
 
 
@@ -1385,8 +1386,13 @@ function locate_statements(rbql_expression) {
 
 function separate_actions(rbql_expression) {
     rbql_expression = str_strip(rbql_expression);
-    var ordered_statements = locate_statements(rbql_expression);
     var result = {};
+    let with_match = /^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z]{4,20})\) *$/.exec(rbql_expression);
+    if (with_match !== null) {
+        rbql_expression = with_match[1];
+        result[WITH] = with_match[2];
+    }
+    var ordered_statements = locate_statements(rbql_expression);
     for (var i = 0; i < ordered_statements.length; i++) {
         var statement_start = ordered_statements[i][0];
         var span_start = ordered_statements[i][1];
@@ -1421,7 +1427,7 @@ function separate_actions(rbql_expression) {
         if (statement == SELECT) {
             if (statement_start != 0)
                 throw new RbqlParsingError('SELECT keyword must be at the beginning of the query');
-            var match = /^ *TOP *([0-9]+) /i.exec(span);
+            let match = /^ *TOP *([0-9]+) /i.exec(span);
             if (match !== null) {
                 statement_params['top'] = parseInt(match[1]);
                 span = span.substr(match.index + match[0].length);
@@ -1539,6 +1545,45 @@ function remove_redundant_table_name(query_text) {
 }
 
 
+function select_output_header(input_header, join_header, query_column_infos) {
+    if (input_header === null && join_header === null)
+        return null;
+    if (input_header === null)
+        input_header = [];
+    if (join_header === null)
+        join_header = [];
+    let output_header = [];
+    for (let qci of query_column_infos) {
+        // TODO refactor this and python version: extract this code into a function instead to always return something
+        if (qci === null) {
+            output_header.push('col' + (output_header.length + 1));
+        } else if (qci.is_star) {
+            if (qci.table_name === null) {
+                output_header = output_header.concat(input_header).concat(join_header);
+            } else if (qci.table_name === 'a') {
+                output_header = output_header.concat(input_header);
+            } else if (qci.table_name === 'b') {
+                output_header = output_header.concat(join_header);
+            }
+        } else if (qci.column_name !== null) {
+            output_header.push(qci.column_name);
+        } else if (qci.column_index !== null) {
+            if (qci.table_name == 'a' && qci.column_index < input_header.length) {
+                output_header.push(input_header[qci.column_index]);
+            } else if (qci.table_name == 'b' && qci.column_index < join_header.length) {
+                output_header.push(join_header[qci.column_index]);
+            } else {
+                // FIXME unit test this e.g. when we have a.100 and only 10 header columns
+                output_header.push('col{}'.format(len(output_header) + 1))
+            }
+        } else { // Should never happen
+            output_header.push('col' + (output_header.length + 1));
+        }
+    }
+    return output_header;
+}
+
+
 function make_inconsistent_num_fields_warning(table_name, inconsistent_records_info) {
     let keys = Object.keys(inconsistent_records_info);
     let entries = [];
@@ -1567,9 +1612,15 @@ class RBQLInputIterator {
     }
     async get_record() {
         throw new Error("Unable to call the interface method");
-    }
+    } 
+    handle_query_modifier() {
+        return; // Reimplement if you need to handle a boolean query modifier that can be used like this: `SELECT * WITH (modifiername)`
+    } 
     get_warnings() {
         return []; // Reimplement if your class can produce warnings
+    }
+    async get_header() {
+        return null; // Reimplement if your class can provide input header
     }
 }
 
@@ -1588,6 +1639,10 @@ class RBQLOutputWriter {
     get_warnings() {
         return []; // Reimplement if your class can produce warnings
     };
+
+    set_header() {
+        return; // Reimplement if your class can handle output headers in a meaningful way
+    }
 }
 
 
@@ -1658,6 +1713,10 @@ class TableIterator extends RBQLInputIterator {
             return [make_inconsistent_num_fields_warning('input', this.fields_info)];
         return [];
     };
+
+    async get_header() {
+        return column_names;
+    }
 }
 
 
@@ -1665,12 +1724,17 @@ class TableWriter extends RBQLOutputWriter {
     constructor(external_table) {
         super();
         this.table = external_table;
+        this.header = null;
     }
 
     write(fields) {
         this.table.push(fields);
         return true;
     };
+
+    set_header(header) {
+        this.header = header;
+    }
 }
 
 
@@ -1698,6 +1762,9 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     var input_variables_map = await input_iterator.get_variables_map(query_text);
 
     var rb_actions = separate_actions(format_expression);
+    if (rb_actions.hasOwnProperty(WITH)) {
+        input_iterator.handle_query_modifier(rb_actions[WITH]);
+    }
 
     if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');
@@ -1709,6 +1776,7 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     }
 
     let join_variables_map = null;
+    let join_header = null;
     if (rb_actions.hasOwnProperty(JOIN)) {
         var [rhs_table_id, variable_pairs] = parse_join_expression(rb_actions[JOIN]['text']);
         if (join_tables_registry === null)
@@ -1716,7 +1784,11 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
+        if (rb_actions.hasOwnProperty(WITH)) {
+            join_record_iterator.handle_query_modifier(rb_actions[WITH]);
+        }
         join_variables_map = await join_record_iterator.get_variables_map(query_text);
+        join_header = await join_record_iterator.get_header(); // FIXME does the method have to be async?
         let [lhs_variables, rhs_indices] = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals);
         let sql_join_type = {'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'LEFT OUTER JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']];
         query_context.lhs_join_var_expression = lhs_variables.length == 1 ? lhs_variables[0] : 'JSON.stringify([' + lhs_variables.join(',') + '])';
@@ -1737,6 +1809,8 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     if (rb_actions.hasOwnProperty(UPDATE)) {
         var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals, ' '.repeat(8));
         query_context.update_expressions = combine_string_literals(update_expression, string_literals);
+        let input_header = await input_iterator.get_header();
+        query_context.writer.set_header(input_header);
     }
 
     if (rb_actions.hasOwnProperty(SELECT)) {
@@ -1748,8 +1822,12 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         } else if (rb_actions[SELECT].hasOwnProperty('distinct')) {
             query_context.writer = new UniqWriter(query_context.writer);
         }
-        let select_expression = translate_select_expression(rb_actions[SELECT]['text']);
+        let [select_expression, select_expression_for_ast] = translate_select_expression(rb_actions[SELECT]['text']);
         query_context.select_expression = combine_string_literals(select_expression, string_literals);
+        let column_infos = adhoc_parse_select_expression_to_column_infos(select_expression, string_literals);
+        let input_header = await input_iterator.get_header(); // FIXME does the method have to be async?
+        let output_header = select_output_header(input_header, join_header, column_infos);
+        query_context.writer.set_header(output_header);
     }
 
     if (rb_actions.hasOwnProperty(ORDER_BY)) {
