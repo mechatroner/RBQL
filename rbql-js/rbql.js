@@ -1715,7 +1715,7 @@ class TableIterator extends RBQLInputIterator {
     };
 
     async get_header() {
-        return column_names;
+        return this.column_names;
     }
 }
 
@@ -1788,7 +1788,7 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
             join_record_iterator.handle_query_modifier(rb_actions[WITH]);
         }
         join_variables_map = await join_record_iterator.get_variables_map(query_text);
-        join_header = await join_record_iterator.get_header(); // FIXME does the method have to be async?
+        join_header = await join_record_iterator.get_header();
         let [lhs_variables, rhs_indices] = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals);
         let sql_join_type = {'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'LEFT OUTER JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']];
         query_context.lhs_join_var_expression = lhs_variables.length == 1 ? lhs_variables[0] : 'JSON.stringify([' + lhs_variables.join(',') + '])';
@@ -1815,19 +1815,18 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         query_context.top_count = find_top(rb_actions);
+        let [select_expression, select_expression_for_ast] = translate_select_expression(rb_actions[SELECT]['text']);
+        query_context.select_expression = combine_string_literals(select_expression, string_literals);
+        let column_infos = adhoc_parse_select_expression_to_column_infos(select_expression, string_literals);
+        let input_header = await input_iterator.get_header();
+        let output_header = select_output_header(input_header, join_header, column_infos);
+        query_context.writer.set_header(output_header);
         query_context.writer = new TopWriter(query_context.writer, query_context.top_count);
-
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
             query_context.writer = new UniqCountWriter(query_context.writer);
         } else if (rb_actions[SELECT].hasOwnProperty('distinct')) {
             query_context.writer = new UniqWriter(query_context.writer);
         }
-        let [select_expression, select_expression_for_ast] = translate_select_expression(rb_actions[SELECT]['text']);
-        query_context.select_expression = combine_string_literals(select_expression, string_literals);
-        let column_infos = adhoc_parse_select_expression_to_column_infos(select_expression, string_literals);
-        let input_header = await input_iterator.get_header(); // FIXME does the method have to be async?
-        let output_header = select_output_header(input_header, join_header, column_infos);
-        query_context.writer.set_header(output_header);
     }
 
     if (rb_actions.hasOwnProperty(ORDER_BY)) {
@@ -1850,13 +1849,21 @@ async function query(query_text, input_iterator, output_writer, output_warnings,
 }
 
 
-async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, normalize_column_names=true, user_init_code='') {
+async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, output_column_names=null, normalize_column_names=true, user_init_code='') {
     if (!normalize_column_names && input_column_names !== null && join_column_names !== null)
         ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names);
     let input_iterator = new TableIterator(input_table, input_column_names, normalize_column_names);
     let output_writer = new TableWriter(output_table);
     let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table, join_column_names, normalize_column_names);
     await query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
+    if (output_column_names !== null) {
+        assert(output_column_names.length == 0, '`output_column_names` param must be an empty list or null');
+        if (output_writer.header !== null) {
+            for (let column_name of output_writer.header) {
+                output_column_names.push(column_name);
+            }
+        }
+    }
 }
 
 

@@ -242,6 +242,7 @@ async function test_json_tables() {
         let join_column_names = test_common.get_default(test_case, 'join_column_names', null)
         let normalize_column_names = test_common.get_default(test_case, 'normalize_column_names', true)
         let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
+        let expected_output_header = test_common.get_default(test_case, 'expected_output_header', null);
         let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
         let expected_error = test_common.get_default(test_case, 'expected_error', null);
         let expected_error_type = test_common.get_default(test_case, 'expected_error_type', null);
@@ -252,9 +253,10 @@ async function test_json_tables() {
         let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []);
         let output_table = [];
         let warnings = [];
+        let output_column_names = [];
         let error_type = null;
         try {
-            await rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, normalize_column_names, user_init_code);
+            await rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, normalize_column_names, user_init_code);
         } catch (e) {
             if (local_debug_mode)
                 throw(e);
@@ -279,6 +281,8 @@ async function test_json_tables() {
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);
         test_common.assert_arrays_are_equal(expected_output_table, output_table);
+        if (expected_output_header !== null)
+            test_common.assert_arrays_are_equal(expected_output_header, output_column_names);
     }
 }
 
