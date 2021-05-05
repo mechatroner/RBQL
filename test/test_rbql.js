@@ -226,6 +226,11 @@ function randomly_replace_column_variable_style(query) {
 async function test_json_tables() {
     let tests_file_path = 'rbql_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
+    let filtered_tests = tests.filter(t => test_common.get_default(t, 'skip_others', false));
+    if (filtered_tests.length) {
+        console.log('Using filtered tests');
+        tests = filtered_tests;
+    }
     for (let test_case of tests) {
         let test_name = test_case['test_name'];
         console.log('Running rbql test: ' + test_name);
