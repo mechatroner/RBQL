@@ -93,7 +93,6 @@ function parse_root_bracket_level_text_spans(select_expression) {
             if (bracket_stack.length && check_if_brackets_match(bracket_stack[bracket_stack.length - 1], cur_char)) {
                 bracket_stack.pop();
             } else {
-                // FIXME unit test this
                 throw new RbqlParsingError(`Unable to parse column headers in SELECT expression: No matching opening bracket for closing "${cur_char}"`);
             }
         }

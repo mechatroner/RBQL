@@ -71,6 +71,18 @@ function test_separate_actions() {
 }
 
 
+function expect_throws(f, expected_exception_substring) {
+    let catched = false;
+    try {
+        f();
+    } catch (e) {
+        catched = true;
+        test_common.assert(e.toString().indexOf(expected_exception_substring) != -1, `Catched exception "${e.toString()}" doesn't contain expected substring "${expected_exception_substring}"`);
+    }
+    test_common.assert(catched, `Expected exception "${expected_exception_substring}" was not thrown`);
+}
+
+
 function test_join_parsing() {
     let join_part = '/path/to/the/file.tsv on a1 == b3';
     test_common.assert_arrays_are_equal(['/path/to/the/file.tsv', [['a1', 'b3']]], rbql.parse_join_expression(join_part));
@@ -303,12 +315,18 @@ async function test_direct_table_queries() {
 }
 
 
-function test_column_name_parsing() {
-    let select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*';
+function prepare_and_parse_select_expression_to_column_infos(select_part) {
     let [select_expression, string_literals] = rbql.separate_string_literals(select_part);
     select_expression = rbql.replace_star_count(select_expression);
     select_expression = rbql.replace_star_vars_for_header_parsing(select_expression);
     let column_infos = rbql.adhoc_parse_select_expression_to_column_infos(select_expression, string_literals);
+    return column_infos;
+}
+
+
+function test_column_name_parsing() {
+    let select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*';
+    let column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
     let expected = [
         {"table_name":"a","column_index":0,"column_name":null,"is_star":false},
         {"table_name":"a","column_index":1,"column_name":null,"is_star":false},
@@ -326,6 +344,9 @@ function test_column_name_parsing() {
         {"table_name":"b","column_index":null,"column_name":null,"is_star":true},
     ];
     test_common.assert_objects_are_equal(expected, column_infos);
+
+    select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\')), "test", 3, 3 + 3, *, a.*, b.*';
+    expect_throws(() => {prepare_and_parse_select_expression_to_column_infos(select_part);}, 'Unable to parse column headers in SELECT expression: No matching opening bracket for closing ")"');
 }
 
 
