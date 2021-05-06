@@ -98,7 +98,6 @@ function parse_root_bracket_level_text_spans(select_expression) {
         }
     }
     if (bracket_stack.length) {
-        // FIXME unit test this
         throw new RbqlParsingError(`Unable to parse column headers in SELECT expression: No matching closing bracket for opening "${bracket_stack[0]}"`);
     }
     text_spans.push(select_expression.substring(last_pos, select_expression.length));
@@ -1319,7 +1318,6 @@ function translate_update_expression(update_expression, input_variables_map, str
 
 function translate_select_expression(select_expression) {
     let expression_without_stars = replace_star_count(select_expression);
-    // FIXME we need a different replacement for header parsing
     let translated = str_strip(replace_star_vars(expression_without_stars));
     let translated_for_header = str_strip(replace_star_vars_for_header_parsing(expression_without_stars));
     if (!translated.length)

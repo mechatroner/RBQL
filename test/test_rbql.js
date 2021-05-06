@@ -300,6 +300,9 @@ function test_column_name_parsing() {
 
     select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\')), "test", 3, 3 + 3, *, a.*, b.*';
     expect_throws(() => {prepare_and_parse_select_expression_to_column_infos(select_part);}, 'Unable to parse column headers in SELECT expression: No matching opening bracket for closing ")"');
+
+    select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", {3, 3 + 3, *, a.*, b.*';
+    expect_throws(() => {prepare_and_parse_select_expression_to_column_infos(select_part);}, 'Unable to parse column headers in SELECT expression: No matching closing bracket for opening "{"');
 }
 
 
