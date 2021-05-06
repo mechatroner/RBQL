@@ -94,66 +94,19 @@ function test_join_parsing() {
     test_common.assert_arrays_are_equal(['file.tsv', [['b[20]', 'a.name'], ['a1', 'b3']]], rbql.parse_join_expression(join_part));
 
     join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 and ';
-    let catched = false;
-    try {
-        rbql.parse_join_expression(join_part);
-    } catch (e) {
-        catched = true;
-        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
-    }
-    test_common.assert(catched);
+    expect_throws(() => {rbql.parse_join_expression(join_part);}, 'Invalid join syntax');
 
     join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 + "foo" ';
-    catched = false;
-    try {
-        rbql.parse_join_expression(join_part);
-    } catch (e) {
-        catched = true;
-        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
-    }
-    test_common.assert(catched);
+    expect_throws(() => {rbql.parse_join_expression(join_part);}, 'Invalid join syntax');
 
     join_part = ' Bon b1 == a.age ';
-    catched = false;
-    try {
-        rbql.parse_join_expression(join_part);
-    } catch (e) {
-        catched = true;
-        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
-    }
-    test_common.assert(catched);
+    expect_throws(() => {rbql.parse_join_expression(join_part);}, 'Invalid join syntax');
 
     test_common.assert_arrays_are_equal([['safe_join_get(record_a, 0)'], [1]], rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, [['a1', 'b2']], []));
 
-    catched = false;
-    try {
-        rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, [['a1', 'a2']], []);
-    } catch (e) {
-        catched = true;
-        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
-    }
-    test_common.assert(catched);
-
-    catched = false;
-    try {
-        rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, [['a1', 'b10']], []);
-    } catch (e) {
-        catched = true;
-        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
-    }
-    test_common.assert(catched);
-
-    catched = false;
-    try {
-        rbql.parse_join_expression(join_part);
-        rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, [['b1', 'b2']], []);
-    } catch (e) {
-        catched = true;
-        test_common.assert(e.toString().indexOf('Invalid join syntax') != -1);
-    }
-    test_common.assert(catched);
+    expect_throws(() => {rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, [['a1', 'a2']], []);}, 'Unable to parse JOIN expression');
+    expect_throws(() => {rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, [['a1', 'b10']], []);}, 'Unable to parse JOIN expression');
+    expect_throws(() => {rbql.resolve_join_variables({'a1': vinf(true, 0), 'a2': vinf(true, 1)}, {'b1': vinf(true, 0), 'b2': vinf(true, 1)}, [['b1', 'b2']], []);}, 'Unable to parse JOIN expression');
 }
 
 
