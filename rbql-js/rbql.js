@@ -79,7 +79,6 @@ function check_if_brackets_match(opening_bracket, closing_bracket) {
 
 
 function parse_root_bracket_level_text_spans(select_expression) {
-    // FIXME unit test this function
     let text_spans = []; // parts of text separated by commas at the root parenthesis level
     let last_pos = 0;
     let bracket_stack = [];
@@ -1817,7 +1816,7 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         query_context.top_count = find_top(rb_actions);
         let [select_expression, select_expression_for_ast] = translate_select_expression(rb_actions[SELECT]['text']);
         query_context.select_expression = combine_string_literals(select_expression, string_literals);
-        let column_infos = adhoc_parse_select_expression_to_column_infos(select_expression, string_literals);
+        let column_infos = adhoc_parse_select_expression_to_column_infos(select_expression_for_ast, string_literals);
         let input_header = await input_iterator.get_header();
         let output_header = select_output_header(input_header, join_header, column_infos);
         query_context.writer.set_header(output_header);
