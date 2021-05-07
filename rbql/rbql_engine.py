@@ -56,6 +56,8 @@ from ._version import __version__
 
 # FIXME add extensive unit tests for ast parsing
 
+# FIXME check with linter for python and js
+
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'
@@ -1426,7 +1428,7 @@ def select_output_header(input_header, join_header, query_column_infos):
             elif qci.table_name == 'b' and qci.column_index < len(join_header):
                 output_header.append(join_header[qci.column_index])
             else:
-                # FIXME unit test this
+                # FIXME unit test this as in JS
                 output_header.append('col{}'.format(len(output_header) + 1))
         else: # Should never happen
             output_header.append('col{}'.format(len(output_header) + 1))

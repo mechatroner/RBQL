@@ -1569,8 +1569,7 @@ function select_output_header(input_header, join_header, query_column_infos) {
             } else if (qci.table_name == 'b' && qci.column_index < join_header.length) {
                 output_header.push(join_header[qci.column_index]);
             } else {
-                // FIXME unit test this e.g. when we have a.100 and only 10 header columns
-                output_header.push('col{}'.format(len(output_header) + 1))
+                output_header.push('col' + (output_header.length + 1))
             }
         } else { // Should never happen
             output_header.push('col' + (output_header.length + 1));
@@ -1893,6 +1892,7 @@ exports.exception_to_error_info = exception_to_error_info;
 
 
 // The functions below are exported just for unit tests, they are not part of the rbql API
+// TODO exports through the special unit_test proxy e.g. exports.unit_test.parse_basic_variables = parse_basic_variables;
 exports.parse_basic_variables = parse_basic_variables;
 exports.parse_array_variables = parse_array_variables;
 exports.parse_dictionary_variables = parse_dictionary_variables;
@@ -1910,5 +1910,6 @@ exports.like_to_regex = like_to_regex;
 exports.adhoc_parse_select_expression_to_column_infos = adhoc_parse_select_expression_to_column_infos;
 exports.replace_star_count = replace_star_count;
 exports.replace_star_vars_for_header_parsing = replace_star_vars_for_header_parsing;
+exports.select_output_header = select_output_header;
 
 }(typeof exports === 'undefined' ? this.rbql = {} : exports));

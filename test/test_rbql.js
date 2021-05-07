@@ -278,7 +278,7 @@ function prepare_and_parse_select_expression_to_column_infos(select_part) {
 
 
 function test_column_name_parsing() {
-    let select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*';
+    let select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*, b2';
     let column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
     let expected = [
         {"table_name":"a","column_index":0,"column_name":null,"is_star":false},
@@ -295,8 +295,12 @@ function test_column_name_parsing() {
         {"table_name":null,"column_index":null,"column_name":null,"is_star":true},
         {"table_name":"a","column_index":null,"column_name":null,"is_star":true},
         {"table_name":"b","column_index":null,"column_name":null,"is_star":true},
+        {"table_name":"b","column_index":1,"column_name":null,"is_star":false},
     ];
     test_common.assert_objects_are_equal(expected, column_infos);
+    let output_header = rbql.select_output_header(['a_foo_1', 'a_foo_2'], ['b_foo_1'], expected);
+    let expected_header = ['a_foo_1', 'a_foo_2', 'hello', 'world', 'NR', 'NF', 'something', 'col8', 'col9', 'col10', 'col11', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'col18'];
+    test_common.assert_arrays_are_equal(expected_header, output_header);
 
     select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\')), "test", 3, 3 + 3, *, a.*, b.*';
     expect_throws(() => {prepare_and_parse_select_expression_to_column_infos(select_part);}, 'Unable to parse column headers in SELECT expression: No matching opening bracket for closing ")"');
