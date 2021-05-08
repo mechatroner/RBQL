@@ -204,7 +204,6 @@ def column_info_from_node(root):
             column_name = get_field(slice_val_root, 's')
             table_name = None # We don't need table name for named fields
         elif isinstance(slice_val_root, ast.Num):
-            # FIXME add unit tests!
             column_index = get_field(slice_val_root, 'n') - 1
         else:
             return None
@@ -1272,7 +1271,6 @@ def separate_actions(rbql_expression):
     # For now support no more than one query modifier per query
     mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z]{4,20})\) *$', rbql_expression)
     if mobj is not None:
-        # FIXME unit test this
         rbql_expression = mobj.group(1)
         result[WITH] = mobj.group(2)
     ordered_statements = locate_statements(rbql_expression)
@@ -1428,7 +1426,6 @@ def select_output_header(input_header, join_header, query_column_infos):
             elif qci.table_name == 'b' and qci.column_index < len(join_header):
                 output_header.append(join_header[qci.column_index])
             else:
-                # FIXME unit test this as in JS
                 output_header.append('col{}'.format(len(output_header) + 1))
         else: # Should never happen
             output_header.append('col{}'.format(len(output_header) + 1))

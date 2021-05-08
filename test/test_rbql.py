@@ -33,6 +33,14 @@ def normalize_warnings(warnings):
     return result
 
 
+def prepare_and_parse_select_expression_to_column_infos(select_part):
+    select_expression, string_literals = rbql_engine.separate_string_literals(select_part)
+    select_expression = rbql_engine.replace_star_count(select_expression)
+    select_expression = rbql_engine.replace_star_vars_for_ast(select_expression)
+    combined_select_expression_for_ast = rbql_engine.combine_string_literals(select_expression, string_literals)
+    column_infos = rbql_engine.ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+    return column_infos
+
 
 class TestRBQLQueryParsing(unittest.TestCase):
 
@@ -49,12 +57,8 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
 
     def test_column_name_parsing(self):
-        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*'
-        select_expression, string_literals = rbql_engine.separate_string_literals(select_part)
-        select_expression = rbql_engine.replace_star_count(select_expression)
-        select_expression = rbql_engine.replace_star_vars_for_ast(select_expression)
-        combined_select_expression_for_ast = rbql_engine.combine_string_literals(select_expression, string_literals)
-        column_infos = rbql_engine.ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*, b2'
+        column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
         expected = [rbql_engine.QueryColumnInfo('a', 0, None, False), # a1
                     rbql_engine.QueryColumnInfo('a', 1, None, False), # a[2]
                     rbql_engine.QueryColumnInfo(None, None, 'hello', False), # a.hello
@@ -68,9 +72,22 @@ class TestRBQLQueryParsing(unittest.TestCase):
                     None, # 3 + 3
                     rbql_engine.QueryColumnInfo(None, None, None, True), # *
                     rbql_engine.QueryColumnInfo('a', None, None, True), # a.*
-                    rbql_engine.QueryColumnInfo('b', None, None, True) # b.*
+                    rbql_engine.QueryColumnInfo('b', None, None, True), # b.*
+                    rbql_engine.QueryColumnInfo('b', 1, None, False) # b2
                    ]
         self.assertEqual(expected, column_infos) 
+
+        output_header = rbql_engine.select_output_header(['a_foo_1', 'a_foo_2'], ['b_foo_1'], expected);
+        expected_header = ['a_foo_1', 'a_foo_2', 'hello', 'world', 'NR', 'NF', 'something', 'col8', 'col9', 'col10', 'col11', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'col18'];
+        self.assertEqual(expected_header, output_header);
+
+        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\')), "test", 3, 3 + 3, *, a.*, b.*, b2'
+        with self.assertRaises(SyntaxError) as cm:
+            prepare_and_parse_select_expression_to_column_infos(select_part)
+
+        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", {3, 3 + 3, *, a.*, b.*, b2'
+        with self.assertRaises(SyntaxError) as cm:
+            prepare_and_parse_select_expression_to_column_infos(select_part)
 
 
     def test_string_literals_separation(self):
