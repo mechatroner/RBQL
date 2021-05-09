@@ -279,7 +279,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
             return;
 
         let record = null;
-        if (this.first_record_should_be_emitted) {
+        if (this.first_record_should_be_emitted && this.header_preread_complete) {
             this.first_record_should_be_emitted = false;
             record = this.first_record;
         } else {
