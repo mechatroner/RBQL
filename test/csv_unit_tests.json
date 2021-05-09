@@ -485,6 +485,17 @@
         "query_js": "select top 5 NR, *"
     },
     {
+        "test_name": "inconsistent header length",
+        "input_table_path": "csv_files/movies_variable_width_header.tsv",
+        "expected_error": "Inconsistent number of columns in output header and the current record: 9 != 7",
+        "expected_error_exact": true,
+        "csv_separator": "\t",
+        "csv_policy": "simple",
+        "csv_encoding": "utf-8",
+        "query_python": "select top 5 NR, * with(header)",
+        "query_js": "select top 5 NR, * with(header)"
+    },
+    {
         "test_name": "join with whitespace in join var",
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_output_table_path": "csv_files/university_ranking_result4.csv",

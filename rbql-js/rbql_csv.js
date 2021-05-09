@@ -16,6 +16,7 @@ class AssertionError extends Error {}
 
 // TODO performance improvement: replace smart_split() with polymorphic_split()
 
+// FIXME fix csv js with header unit tests
 
 function assert(condition, message=null) {
     if (!condition) {

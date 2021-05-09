@@ -232,7 +232,6 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
 
     def write(self, fields):
         if self.header_len is not None and len(fields) != self.header_len:
-            # FIXME unit test this
             raise rbql_engine.RbqlIOHandlingError('Inconsistent number of columns in output header and the current record: {} != {}'.format(self.header_len, len(fields)))
         self.normalize_fields(fields)
 
