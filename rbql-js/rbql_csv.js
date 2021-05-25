@@ -244,8 +244,8 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
     async preread_first_record() {
         if (this.header_preread_complete)
             return;
-        this.header_preread_complete = true;
         let first_record = await this.get_record();
+        this.header_preread_complete = true; // We must set header_preread_complete to true after calling get_record(), because get_record() uses it internally.
         if (first_record === null) {
             return;
         }
