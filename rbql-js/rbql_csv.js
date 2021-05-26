@@ -16,7 +16,24 @@ class AssertionError extends Error {}
 
 // TODO performance improvement: replace smart_split() with polymorphic_split()
 
-// FIXME fix csv js with header unit tests
+// FIXME looks like "test_16" fails ocasionally with this error
+// List of failing records so far 558, 708, 790, 592, 109, 708, 548, 101, 708, 308, 101
+// List of double fail lines: 708, 101
+// List of triple fail lines: 708
+// FIXME see if bulk_read option can play a part here
+/*
+JS tests failed:{}
+Error: No "a4" field at record 558
+    at eval (eval at compile_and_run (/mnt/c/wsl_share/RBQL/rbql-js/rbql.js:953:33), <anonymous>:54:19)
+    at processTicksAndRejections (internal/process/task_queues.js:97:5)
+    at async compile_and_run (/mnt/c/wsl_share/RBQL/rbql-js/rbql.js:954:9)
+    at async Object.query (/mnt/c/wsl_share/RBQL/rbql-js/rbql.js:1838:5)
+    at async Object.query_csv (/mnt/c/wsl_share/RBQL/rbql-js/rbql_csv.js:687:5)
+    at async process_test_case (/mnt/c/wsl_share/RBQL/test/test_csv_utils.js:482:9)
+    at async test_json_scenarios (/mnt/c/wsl_share/RBQL/test/test_csv_utils.js:515:9)
+    at async test_everything (/mnt/c/wsl_share/RBQL/test/test_csv_utils.js:720:5)
+*/
+
 
 function assert(condition, message=null) {
     if (!condition) {
@@ -244,14 +261,14 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
     async preread_first_record() {
         if (this.header_preread_complete)
             return;
-        let first_record = await this.get_record();
+        this.first_record = await this.get_record();
         this.header_preread_complete = true; // We must set header_preread_complete to true after calling get_record(), because get_record() uses it internally.
-        if (first_record === null) {
+        if (this.first_record === null) {
             return;
         }
         if (this.stream)
             this.stream.pause();
-        this.first_record = first_record.slice();
+        this.first_record = this.first_record.slice();
     };
 
 

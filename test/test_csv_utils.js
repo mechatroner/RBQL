@@ -455,12 +455,12 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
     let expected_error = test_common.get_default(test_case, 'expected_error', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
-    let skip_headers = test_common.get_default(test_case, 'skip_headers', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
     let delim = test_case['csv_separator'];
     let policy = test_case['csv_policy'];
     let encoding = test_case['csv_encoding'];
     let comment_prefix = test_common.get_default(test_case, 'comment_prefix', null);
+    let with_headers = test_common.get_default(test_case, 'with_headers', false);
     let output_format = test_common.get_default(test_case, 'output_format', 'input');
     let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
     let actual_output_table_path = null;
@@ -479,7 +479,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let warnings = [];
     try {
-        await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, warnings, skip_headers, comment_prefix, '', options);
+        await rbql_csv.query_csv(query, input_table_path, delim, policy, actual_output_table_path, output_delim, output_policy, encoding, warnings, with_headers, comment_prefix, '', options);
     } catch (e) {
         if (local_debug_mode)
             throw(e);
@@ -503,11 +503,19 @@ async function process_test_case(tmp_tests_dir, test_case) {
 async function test_json_scenarios() {
     let tests_file_path = 'csv_unit_tests.json';
     let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
+    let filtered_tests = tests.filter(t => test_common.get_default(t, 'skip_others', false));
+    if (filtered_tests.length) {
+        console.log('Using filtered tests');
+        tests = filtered_tests;
+    }
     let tmp_tests_dir = 'rbql_csv_unit_tests_dir_js_' + String(Math.random()).replace('.', '_');
     tmp_tests_dir = path.join(os.tmpdir(), tmp_tests_dir);
     fs.mkdirSync(tmp_tests_dir);
     for (let test_case of tests) {
-        await process_test_case(tmp_tests_dir, test_case);
+        let flaky_repeat_count = test_common.get_default(test_case, 'flaky_repeat_count', 1);
+        for (let i = 0; i < flaky_repeat_count; i++) {
+            await process_test_case(tmp_tests_dir, test_case);
+        }
     }
     rmtree(tmp_tests_dir);
 }

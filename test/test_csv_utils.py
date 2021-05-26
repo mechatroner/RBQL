@@ -916,6 +916,9 @@ class TestRBQLWithCSV(unittest.TestCase):
         os.mkdir(tmp_tests_dir)
         with open(tests_file) as f:
             tests = json.loads(f.read())
+            filtered_tests = [t for t in tests if t.get('skip_others', False)]
+            if len(filtered_tests):
+                tests = filtered_tests
             for test in tests:
                 self.process_test_case(tmp_tests_dir, test)
         shutil.rmtree(tmp_tests_dir)
