@@ -203,6 +203,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         this.rfc_line_buffer = [];
 
         this.partially_decoded_line = '';
+        this.partially_decoded_line_ends_with_cr = false;
 
         this.resolve_current_record = null;
         this.reject_current_record = null;
@@ -368,10 +369,14 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         } else {
             decoded_string = data_chunk.toString(this.encoding);
         }
+        let line_starts_with_lf = decoded_string.length && decoded_string[0] == '\n';
+        let first_line_index = line_starts_with_lf && this.partially_decoded_line_ends_with_cr ? 1 : 0;
+        this.partially_decoded_line_ends_with_cr = decoded_string.length && decoded_string[decoded_string.length - 1] == '\r';
         let lines = csv_utils.split_lines(decoded_string);
         lines[0] = this.partially_decoded_line + lines[0];
+        assert(first_line_index == 0 || lines[0].length == 0);
         this.partially_decoded_line = lines.pop();
-        for (let i = 0; i < lines.length; i++) {
+        for (let i = first_line_index; i < lines.length; i++) {
             this.process_line(lines[i]);
         }
     };
