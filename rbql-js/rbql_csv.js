@@ -16,24 +16,6 @@ class AssertionError extends Error {}
 
 // TODO performance improvement: replace smart_split() with polymorphic_split()
 
-// FIXME looks like "test_16" fails ocasionally with this error
-// List of failing records so far 558, 708, 790, 592, 109, 708, 548, 101, 708, 308, 101
-// List of double fail lines: 708, 101
-// List of triple fail lines: 708
-// FIXME see if bulk_read option can play a part here
-/*
-JS tests failed:{}
-Error: No "a4" field at record 558
-    at eval (eval at compile_and_run (/mnt/c/wsl_share/RBQL/rbql-js/rbql.js:953:33), <anonymous>:54:19)
-    at processTicksAndRejections (internal/process/task_queues.js:97:5)
-    at async compile_and_run (/mnt/c/wsl_share/RBQL/rbql-js/rbql.js:954:9)
-    at async Object.query (/mnt/c/wsl_share/RBQL/rbql-js/rbql.js:1838:5)
-    at async Object.query_csv (/mnt/c/wsl_share/RBQL/rbql-js/rbql_csv.js:687:5)
-    at async process_test_case (/mnt/c/wsl_share/RBQL/test/test_csv_utils.js:482:9)
-    at async test_json_scenarios (/mnt/c/wsl_share/RBQL/test/test_csv_utils.js:515:9)
-    at async test_everything (/mnt/c/wsl_share/RBQL/test/test_csv_utils.js:720:5)
-*/
-
 
 function assert(condition, message=null) {
     if (!condition) {
@@ -222,6 +204,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         this.rfc_line_buffer = [];
 
         this.partially_decoded_line = '';
+        this.partially_decoded_line_ends_with_cr = false;
 
         this.resolve_current_record = null;
         this.reject_current_record = null;
@@ -416,10 +399,14 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         } else {
             decoded_string = data_chunk.toString(this.encoding);
         }
+        let line_starts_with_lf = decoded_string.length && decoded_string[0] == '\n';
+        let first_line_index = line_starts_with_lf && this.partially_decoded_line_ends_with_cr ? 1 : 0;
+        this.partially_decoded_line_ends_with_cr = decoded_string.length && decoded_string[decoded_string.length - 1] == '\r';
         let lines = csv_utils.split_lines(decoded_string);
         lines[0] = this.partially_decoded_line + lines[0];
+        assert(first_line_index == 0 || lines[0].length == 0);
         this.partially_decoded_line = lines.pop();
-        for (let i = 0; i < lines.length; i++) {
+        for (let i = first_line_index; i < lines.length; i++) {
             this.process_line(lines[i]);
         }
     };
