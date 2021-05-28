@@ -429,7 +429,7 @@ function randomly_replace_columns_dictionary_style(query) {
             if (random_int(0, 1))
                 continue;
             let column_name = match[1];
-            let quote_style = ['"', "'", "`"][random_int(0, 2)];
+            let quote_style = ['"', "'"][random_int(0, 1)];
             adjusted_query = replace_all(adjusted_query, `${prefix}.${column_name}`, `${prefix}[${quote_style}${column_name}${quote_style}]`);
         }
     }
