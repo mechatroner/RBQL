@@ -56,8 +56,6 @@ from ._version import __version__
 
 # FIXME add extensive unit tests for ast parsing
 
-# FIXME check with linter for python and js
-
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
 SELECT = 'SELECT'

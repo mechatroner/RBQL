@@ -6,7 +6,6 @@ import sys
 import os
 import codecs
 import io
-import re
 from errno import EPIPE
 
 from . import rbql_engine

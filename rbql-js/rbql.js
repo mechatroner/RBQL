@@ -166,7 +166,7 @@ function column_info_from_text_span(text_span, string_literals) {
 
 
 function adhoc_parse_select_expression_to_column_infos(select_expression, string_literals) {
-    // It is acceptable for the algorithm to provide null column name when it could be theorethically possible to deduce the name. 
+    // It is acceptable for the algorithm to provide null column name when it could be theorethically possible to deduce the name.
     // I.e. this algorithm guarantees precision but doesn't guarantee completeness in all theorethically possible queries.
     // Although the algorithm should be complete in all practical scenarios, i.e. it should be hard to come up with the query that doesn't produce complete set of column names.
     // The null column name just means that the output column will be named as col{i}, so the failure to detect the proper column name can be tolerated.
@@ -1569,7 +1569,7 @@ function select_output_header(input_header, join_header, query_column_infos) {
             } else if (qci.table_name == 'b' && qci.column_index < join_header.length) {
                 output_header.push(join_header[qci.column_index]);
             } else {
-                output_header.push('col' + (output_header.length + 1))
+                output_header.push('col' + (output_header.length + 1));
             }
         } else { // Should never happen
             output_header.push('col' + (output_header.length + 1));
@@ -1607,10 +1607,10 @@ class RBQLInputIterator {
     }
     async get_record() {
         throw new Error("Unable to call the interface method");
-    } 
+    }
     handle_query_modifier() {
         return; // Reimplement if you need to handle a boolean query modifier that can be used like this: `SELECT * WITH (modifiername)`
-    } 
+    }
     get_warnings() {
         return []; // Reimplement if your class can produce warnings
     }
