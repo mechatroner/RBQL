@@ -56,6 +56,16 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(r'^.*hello.world\.foo\.\*bar.*$', b)
 
 
+    def test_column_name_parsing_from_file(self):
+        tests_file = os.path.join(script_dir, 'other_test_files', 'select_parts.txt')
+        with open(tests_file) as f:
+            for line in f:
+                expected_num_columns, select_part = line.rstrip().split('\t')
+                expected_num_columns = int(expected_num_columns)
+                column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
+                self.assertEqual(expected_num_columns, len(column_infos))
+
+
     def test_column_name_parsing(self):
         select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*, b2'
         column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
