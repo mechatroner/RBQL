@@ -3,6 +3,7 @@ const cli_parser = require('../rbql-js/cli_parser.js');
 const test_common = require('./test_common.js');
 var rbql = null;
 
+let num_json_tests_executed = 0;
 
 function test_test_common() {
     test_common.assert(test_common.assert_arrays_are_equal([100, '20'], [100, '20'], false, true) == true);
@@ -198,7 +199,7 @@ async function test_json_tables() {
     }
     for (let test_case of tests) {
         let test_name = test_case['test_name'];
-        console.log('Running rbql test: ' + test_name);
+        num_json_tests_executed++;
         let query = test_common.get_default(test_case, 'query_js', null);
         if (query == null)
             continue;
@@ -254,6 +255,7 @@ async function test_json_tables() {
         if (expected_output_header !== null)
             test_common.assert_arrays_are_equal(expected_output_header, output_column_names);
     }
+    console.log(`Number of pure rbql json tests executed: ${num_json_tests_executed}`)
 }
 
 

@@ -23,6 +23,8 @@ var debug_mode = false;
 
 const line_separators = ['\n', '\r\n', '\r'];
 
+let num_csv_tests_executed = 0;
+
 
 function rmtree(root_path) {
     if (fs.existsSync(root_path)) {
@@ -442,7 +444,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let query = test_case['query_js'];
     if (!query)
         return;
-    console.log('Running rbql test: ' + test_name);
+    num_csv_tests_executed++;
 
     let input_table_path = test_case['input_table_path'];
     let local_debug_mode = test_common.get_default(test_case, 'debug_mode', false);
@@ -517,6 +519,7 @@ async function test_json_scenarios() {
             await process_test_case(tmp_tests_dir, test_case);
         }
     }
+    console.log(`Number of json csv tests executed: ${num_csv_tests_executed}`)
     rmtree(tmp_tests_dir);
 }
 
