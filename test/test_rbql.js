@@ -316,12 +316,16 @@ function test_column_name_parsing_from_file() {
     let tests_file_path = 'other_test_files/select_parts.txt';
     let data = fs.readFileSync(tests_file_path, 'utf-8');
     let lines  = data.trim().split('\n');
+    let output_lines = [];
     for (let line of lines) {
         let [expected_num_columns, select_part] = line.split('\t');
         expected_num_columns = parseInt(expected_num_columns);
         let column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
         test_common.assert_equal(expected_num_columns, column_infos.length);
+        output_lines.push(JSON.stringify(column_infos));
     }
+    let output_path_to_compare_with_python = 'js_column_infos.txt';
+    fs.writeFileSync(output_path_to_compare_with_python, output_lines.join('\n') + '\n');
 }
 
 

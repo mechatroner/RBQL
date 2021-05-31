@@ -54,7 +54,9 @@ from ._version import __version__
 
 # TODO consider restoring EXCEPT operator - big query supports it too!
 
-# FIXME add extensive unit tests for ast parsing
+# FIXME restore EXCEPT keyword
+
+# FIXME add "with noheader" mode
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'

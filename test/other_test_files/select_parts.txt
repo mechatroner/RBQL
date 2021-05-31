@@ -6,7 +6,7 @@
 3	cur_sum + val, cur_sum_of_squares + val ** 2, cur_cnt + 1
 1	'Invalid aggregate expression: non-constant values in output column {}. E.g. "{}" and "{}"'.format(self.output_index + 1, old_value, value)
 1	isinstance(args[0], int) or isinstance(args[0], float)
-3	None, join_map.max_record_len, [None] * join_map.max_record_len
+3	NONE, join_map.max_record_len, [None] * join_map.max_record_len
 3	embed_code(python_code, '__CODE__', PROCESS_SELECT_SIMPLE), '__CODE__', PROCESS_SELECT_COMMON
 1	"\nRBQL doesn't support \"LIKE\" operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "
 1	re.findall('[-a-zA-Z0-9_:;+=!.,()%^#@&* ]+', column_name)

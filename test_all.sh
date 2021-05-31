@@ -23,6 +23,8 @@ cleanup_tmp_files() {
     rm random_tmp_table.txt 2> /dev/null
     rm speed_test.csv 2> /dev/null
     rm rbql_warning.out 2> /dev/null
+    rm test/js_column_infos.txt 2> /dev/null
+    rm test/python_column_infos.txt 2> /dev/null
 }
 
 
@@ -31,6 +33,7 @@ run_python_tests="yes"
 run_node_tests="yes"
 has_python2="yes"
 has_python3="yes"
+cleanup_mode="no"
 
 
 py2_version=$( python2 --version 2>&1 )
@@ -78,6 +81,9 @@ while [[ $# -gt 0 ]]; do
         --skip_python_tests)
         run_python_tests="no"
         ;;
+        --cleanup)
+        cleanup_mode="yes"
+        ;;
         *)
         echo "Unknown option '$key'"
         exit 1
@@ -88,6 +94,10 @@ done
 
 
 cleanup_tmp_files
+
+if [ "$cleanup_mode" == "yes" ]; then
+    exit 0
+fi
 
 py_rbql_version=$( python -m rbql --version )
 
@@ -151,6 +161,12 @@ if [ $run_unit_tests == "yes" ]; then
     fi
 fi
 
+if [ $run_unit_tests == "yes" ] && [ "$run_python_tests" == "yes" ] && [ "$run_node_tests" == "yes" ]; then
+    if ! cmp -s "test/js_column_infos.txt" "test/python_column_infos.txt"; then
+        echo "Test Failed: column name parsing differs between python and js version." 1>&2
+        echo "Compare: diff test/js_column_infos.txt test/python_column_infos.txt" 1>&2
+    fi
+fi
 
 
 # Testing unicode separators

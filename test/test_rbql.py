@@ -58,12 +58,16 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_column_name_parsing_from_file(self):
         tests_file = os.path.join(script_dir, 'other_test_files', 'select_parts.txt')
-        with open(tests_file) as f:
-            for line in f:
+        output_path_to_compare_with_js = os.path.join(script_dir, 'python_column_infos.txt')
+        with open(tests_file) as src, open(output_path_to_compare_with_js, 'w') as dst:
+            for line in src:
                 expected_num_columns, select_part = line.rstrip().split('\t')
                 expected_num_columns = int(expected_num_columns)
                 column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
                 self.assertEqual(expected_num_columns, len(column_infos))
+                # Using `separators` param here to get rid of extra spaces and make serialization look just like js version, so we can compare file md5s
+                column_infos_str = json.dumps([v._asdict() if v is not None else None for v in column_infos], separators=(',', ':'))
+                dst.write(column_infos_str + '\n')
 
 
     def test_column_name_parsing(self):
