@@ -489,6 +489,17 @@
         "query_js": "select top 5 NR, *"
     },
     {
+        "test_name": "select named fields with `noheader` in query",
+        "input_table_path": "csv_files/university_ranking.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result8.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "with_headers": true,
+        "query_python": "select top 5 NR, * with (noheader)",
+        "query_js": "select top 5 NR, * with (noheader)"
+    },
+    {
         "test_name": "inconsistent header length",
         "input_table_path": "csv_files/movies_variable_width_header.tsv",
         "expected_error": "Inconsistent number of columns in output header and the current record: 9 != 7",
