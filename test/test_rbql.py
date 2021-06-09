@@ -127,6 +127,31 @@ class TestRBQLQueryParsing(unittest.TestCase):
         assert test_res == expected_res
 
 
+    def test_except_parsing(self):
+        except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8'
+        column_infos = {'a1': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a[6]': vinf(True, 5), 'a7': vinf(True, 6), 'a8': vinf(True, 7)}
+        input_header = None
+        self.assertEqual((None, 'select_except(record_a, [0,1,2,3,4,5,6,7])'), rbql_engine.translate_except_expression(except_part, column_infos, [], input_header))
+
+        except_part = '  a1,a2,a3, a4,a5, a[6]'
+        input_header = ['nm1', 'nm2', 'nm3', 'nm4', 'nm5', 'nm6', 'nm7', 'nm8']
+        self.assertEqual((['nm7', 'nm8'], 'select_except(record_a, [0,1,2,3,4,5])'), rbql_engine.translate_except_expression(except_part, column_infos, [], input_header))
+
+        except_part = '  a1,a2,a3, a4,a5, a[6]'
+        input_header = None
+        self.assertEqual((None, 'select_except(record_a, [0,1,2,3,4,5])'), rbql_engine.translate_except_expression(except_part, column_infos, [], input_header))
+
+        except_part = 'a1'
+        input_header = ['nm1', 'nm2', 'nm3', 'nm4', 'nm5', 'nm6', 'nm7', 'nm8']
+        expected_output_header = ['nm2', 'nm3', 'nm4', 'nm5', 'nm6', 'nm7', 'nm8']
+        self.assertEqual((expected_output_header, 'select_except(record_a, [0])'), rbql_engine.translate_except_expression(except_part, column_infos, [], input_header))
+
+        except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  '
+        column_infos = {'a[1]': vinf(True, 0), 'a2': vinf(True, 1), 'a3': vinf(True, 2), 'a4': vinf(True, 3), 'a5': vinf(True, 4), 'a6': vinf(True, 5), 'a[7]': vinf(True, 6), 'a8': vinf(True, 7)}
+        input_header = None
+        self.assertEqual((None, 'select_except(record_a, [0,1,2,3,4,5,6,7])'), rbql_engine.translate_except_expression(except_part, column_infos, [], input_header))
+
+
     def test_join_parsing(self):
         join_part = '/path/to/the/file.tsv on a1 == b3'
         self.assertEqual(('/path/to/the/file.tsv', [('a1', 'b3')]), rbql_engine.parse_join_expression(join_part))
@@ -305,7 +330,6 @@ class TestTableRun(unittest.TestCase):
         query = 'select a2 // 10, b2, "name " + a1 order by a2 JOIN B on a3 == b1'
         expected_output_table = [[-56, 1386, 'name Confucius'], [176, 67, 'name Napoleon'], [185, 327, 'name Roosevelt']]
         output_table = []
-        #rbql.set_debug_mode()
         warnings = []
         rbql.query_table(query, input_table, output_table, warnings, join_table)
         self.assertEqual(warnings, [])
@@ -355,8 +379,7 @@ class TestJsonTables(unittest.TestCase):
         expected_warnings = test_case.get('expected_warnings', [])
         output_table = []
 
-        if debug_mode:
-            rbql_engine.set_debug_mode()
+        rbql_engine.set_debug_mode(debug_mode)
         warnings = []
         output_column_names = []
         error_type, error_msg = None, None

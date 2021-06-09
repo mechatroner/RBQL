@@ -52,9 +52,7 @@ from ._version import __version__
 
 # TODO support 'AS' keyword
 
-# TODO consider restoring EXCEPT operator - big query supports it too!
-
-# FIXME restore EXCEPT keyword
+# FIXME make sure we properly handle "with_header" in interactive CLI mode
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -67,6 +65,7 @@ STRICT_LEFT_JOIN = 'STRICT LEFT JOIN'
 ORDER_BY = 'ORDER BY'
 WHERE = 'WHERE'
 LIMIT = 'LIMIT'
+EXCEPT = 'EXCEPT'
 WITH = 'WITH'
 
 ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join tables'
@@ -730,6 +729,14 @@ class StrictLeftJoiner(object):
         return result
 
 
+def select_except(src, except_fields):
+    result = list()
+    for i, v in enumerate(src):
+        if i not in except_fields:
+            result.append(v)
+    return result
+
+
 def select_simple(sort_key, out_fields):
     if query_context.sort_key_expression is not None:
         if not query_context.writer.write(sort_key, out_fields):
@@ -1244,6 +1251,7 @@ def locate_statements(rbql_expression):
     statement_groups.append([UPDATE])
     statement_groups.append([GROUP_BY])
     statement_groups.append([LIMIT])
+    statement_groups.append([EXCEPT])
 
     result = list()
     for st_group in statement_groups:
@@ -1331,6 +1339,22 @@ def find_top(rb_actions):
         except ValueError:
             raise RbqlParsingError('LIMIT keyword must be followed by an integer') # UT JSON
     return rb_actions[SELECT].get('top', None)
+
+
+def translate_except_expression(except_expression, input_variables_map, string_literals, input_header):
+    skip_vars = except_expression.split(',')
+    skip_vars = [v.strip() for v in skip_vars]
+    skip_indices = list()
+    for var_name in skip_vars:
+        var_name = combine_string_literals(var_name, string_literals)
+        var_info = input_variables_map.get(var_name)
+        if var_info is None:
+            raise RbqlParsingError('Unknown field in EXCEPT expression: "{}"'.format(var_name)) # UT JSON
+        skip_indices.append(var_info.index)
+    skip_indices = sorted(skip_indices)
+    output_header = None if input_header is None else select_except(input_header, skip_indices)
+    skip_indices = [str(v) for v in skip_indices]
+    return (output_header, 'select_except(record_a, [{}])'.format(','.join(skip_indices)))
 
 
 class HashJoinMap:
@@ -1487,13 +1511,17 @@ def shallow_parse_input_query(query_text, input_iterator, join_tables_registry, 
 
     if SELECT in rb_actions:
         query_context.top_count = find_top(rb_actions)
-        select_expression, select_expression_for_ast = translate_select_expression(rb_actions[SELECT]['text'])
-        query_context.select_expression = combine_string_literals(select_expression, string_literals)
 
-        # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
-        combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
-        column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
-        output_header = select_output_header(input_iterator.get_header(), join_header, column_infos)
+        if EXCEPT in rb_actions:
+            output_header, select_expression = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals, input_iterator.get_header())
+        else:
+            select_expression, select_expression_for_ast = translate_select_expression(rb_actions[SELECT]['text'])
+            select_expression = combine_string_literals(select_expression, string_literals)
+            # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
+            combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
+            column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+            output_header = select_output_header(input_iterator.get_header(), join_header, column_infos)
+        query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)
 
         query_context.writer = TopWriter(query_context.writer)
@@ -1655,7 +1683,7 @@ def query_table(query_text, input_table, output_table, output_warnings, join_tab
                 output_column_names.append(column_name)
 
 
-def set_debug_mode():
+def set_debug_mode(new_value=True):
     global debug_mode
-    debug_mode = True
+    debug_mode = new_value
 

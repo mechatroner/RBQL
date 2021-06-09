@@ -72,6 +72,36 @@ function test_separate_actions() {
 }
 
 
+function test_except_parsing() {
+    let except_part = null;
+    let input_header = null;
+
+    let column_infos = {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a[6]': vinf(true, 5), 'a7': vinf(true, 6), 'a8': vinf(true, 7)};
+
+    except_part = '  a1,a2,a3, a4,a5, a[6] ,   a7  ,a8';
+    input_header = null;
+    test_common.assert_arrays_are_equal([null, 'select_except(record_a, [0,1,2,3,4,5,6,7])'], rbql.translate_except_expression(except_part, column_infos, [], input_header));
+
+    except_part = '  a1,a2,a3, a4,a5, a[6] ';
+    input_header = ['nm1', 'nm2', 'nm3', 'nm4', 'nm5', 'nm6', 'nm7', 'nm8'];
+    test_common.assert_arrays_are_equal([['nm7', 'nm8'], 'select_except(record_a, [0,1,2,3,4,5])'], rbql.translate_except_expression(except_part, column_infos, [], input_header));
+
+    except_part = '  a1,a2,a3, a4,a5, a[6] ';
+    input_header = null;
+    test_common.assert_arrays_are_equal([null, 'select_except(record_a, [0,1,2,3,4,5])'], rbql.translate_except_expression(except_part, column_infos, [], input_header));
+    
+    except_part = 'a1';
+    input_header = ['nm1', 'nm2', 'nm3', 'nm4', 'nm5', 'nm6', 'nm7', 'nm8'];
+    let expected_output_header = ['nm2', 'nm3', 'nm4', 'nm5', 'nm6', 'nm7', 'nm8'];
+    test_common.assert_arrays_are_equal([expected_output_header, 'select_except(record_a, [0])'], rbql.translate_except_expression(except_part, column_infos, [], input_header));
+
+    except_part = 'a[1] ,  a2,a3, a4,a5, a6 ,   a[7]  , a8  ';
+    input_header = null;
+    column_infos = {'a[1]': vinf(true, 0), 'a2': vinf(true, 1), 'a3': vinf(true, 2), 'a4': vinf(true, 3), 'a5': vinf(true, 4), 'a6': vinf(true, 5), 'a[7]': vinf(true, 6), 'a8': vinf(true, 7)};
+    test_common.assert_arrays_are_equal([null, 'select_except(record_a, [0,1,2,3,4,5,6,7])'], rbql.translate_except_expression(except_part, column_infos, [], input_header));
+}
+
+
 function expect_throws(f, expected_exception_substring) {
     let catched = false;
     try {
@@ -337,6 +367,7 @@ async function test_everything() {
     test_separate_actions();
     test_join_parsing();
     test_update_translation();
+    test_except_parsing();
     test_select_translation();
     test_column_name_parsing();
     test_column_name_parsing_from_file();

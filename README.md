@@ -104,6 +104,12 @@ RBQL supports _STRICT LEFT JOIN_ which is like _LEFT JOIN_, but generates an err
 Limitation: _JOIN_ statements can't contain Python/JS expressions and must have the following form: _<JOIN\_KEYWORD> (/path/to/table.tsv | table_name ) ON a... == b... [AND a... == b... [AND ... ]]_
 
 
+### SELECT EXCEPT statement
+
+SELECT EXCEPT can be used to select everything except specific columns. E.g. to select everything but columns 2 and 4, run: `SELECT * EXCEPT a2, a4`  
+Traditional SQL engines do not support this query mode.
+
+
 ### UNNEST() operator
 UNNEST(list) takes a list/array as an argument and repeats the output record multiple times - one time for each value from the list argument.  
 Example: `SELECT a1, UNNEST(a2.split(';'))`  

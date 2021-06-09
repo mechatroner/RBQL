@@ -260,6 +260,55 @@
         "query_js": "select aNR, bNR, a.*, '====', b.* inner join b on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
     {
+        "test_name": "except_1",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["mouse", "2", "50", "1"]
+        ],
+        "expected_output_table": [
+            ["mouse", "50"],
+            ["dog", "100"],
+            ["car", "100"]
+        ],
+        "skip_others": false,
+        "debug_mode": false,
+        "query_python": "select top 3 * except a2, a4 order by a1 desc",
+        "query_js": "select top 3 * except a2, a4 order by a1 desc"
+    },
+    {
+        "test_name": "except_with_header",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["mouse", "2", "50", "1"]
+        ],
+        "expected_output_table": [
+            ["mouse", "50"],
+            ["dog", "100"],
+            ["car", "100"]
+        ],
+        "input_column_names": ["entity", "owner_id", "speed", "country_id"],
+        "expected_output_header": ["entity", "speed"],
+        "query_python": "select top 3 * except a2, a.country_id order by a1 desc",
+        "query_js": "select top 3 * except a2, a.country_id order by a1 desc"
+    },
+    {
+        "test_name": "except unknown field",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["mouse", "2", "50", "1"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "Unknown field in EXCEPT expression: \"a.mysterious_field\"",
+        "query_python": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc",
+        "query_js": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc"
+    },
+    {
         "test_name": "join with emptiness error",
         "input_table": [
             ["5", "car", "lada"],

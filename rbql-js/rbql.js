@@ -731,6 +731,16 @@ class StrictLeftJoiner {
 }
 
 
+function select_except(src, except_fields) {
+    let result = [];
+    for (let i = 0; i < src.length; i++) {
+        if (except_fields.indexOf(i) == -1)
+            result.push(src[i]);
+    }
+    return result;
+}
+
+
 function select_simple(sort_key, NR, out_fields) {
     if (query_context.sort_key_expression !== null) {
         var sort_entry = sort_key.concat([NR, out_fields]);
@@ -988,6 +998,7 @@ const STRICT_LEFT_JOIN = 'STRICT LEFT JOIN';
 const ORDER_BY = 'ORDER BY';
 const WHERE = 'WHERE';
 const LIMIT = 'LIMIT';
+const EXCEPT = 'EXCEPT';
 const WITH = 'WITH';
 
 
@@ -1358,6 +1369,7 @@ function locate_statements(rbql_expression) {
     statement_groups.push([UPDATE]);
     statement_groups.push([GROUP_BY]);
     statement_groups.push([LIMIT]);
+    statement_groups.push([EXCEPT]);
     var result = [];
     for (var ig = 0; ig < statement_groups.length; ig++) {
         for (var is = 0; is < statement_groups[ig].length; is++) {
@@ -1462,6 +1474,23 @@ function find_top(rb_actions) {
         return select_action['top'];
     }
     return null;
+}
+
+
+function translate_except_expression(except_expression, input_variables_map, string_literals, input_header) {
+    let skip_vars = except_expression.split(',');
+    skip_vars = skip_vars.map(str_strip);
+    let skip_indices = [];
+    for (let var_name of skip_vars) {
+        var_name = combine_string_literals(var_name, string_literals);
+        if (!input_variables_map.hasOwnProperty(var_name))
+            throw new RbqlParsingError(`Unknown field in EXCEPT expression: "${var_name}"`);
+        skip_indices.push(input_variables_map[var_name].index);
+    }
+    skip_indices = skip_indices.sort((a, b) => a - b);
+    let output_header = input_header === null ? null : select_except(input_header, skip_indices);
+    let indices_str = skip_indices.join(',');
+    return [output_header, `select_except(record_a, [${indices_str}])`];
 }
 
 
@@ -1801,21 +1830,27 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         query_context.where_expression = combine_string_literals(where_expression, string_literals);
     }
 
+    let input_header = await input_iterator.get_header();
     if (rb_actions.hasOwnProperty(UPDATE)) {
         var update_expression = translate_update_expression(rb_actions[UPDATE]['text'], input_variables_map, string_literals, ' '.repeat(8));
         query_context.update_expressions = combine_string_literals(update_expression, string_literals);
-        let input_header = await input_iterator.get_header();
         query_context.writer.set_header(input_header);
     }
 
     if (rb_actions.hasOwnProperty(SELECT)) {
         query_context.top_count = find_top(rb_actions);
-        let [select_expression, select_expression_for_ast] = translate_select_expression(rb_actions[SELECT]['text']);
-        query_context.select_expression = combine_string_literals(select_expression, string_literals);
-        let column_infos = adhoc_parse_select_expression_to_column_infos(select_expression_for_ast, string_literals);
-        let input_header = await input_iterator.get_header();
-        let output_header = select_output_header(input_header, join_header, column_infos);
-        query_context.writer.set_header(output_header);
+        if (rb_actions.hasOwnProperty(EXCEPT)) {
+            let [output_header, select_expression] = translate_except_expression(rb_actions[EXCEPT]['text'], input_variables_map, string_literals, input_header);
+            query_context.select_expression = select_expression;
+            query_context.writer.set_header(output_header);
+        } else {
+            let [select_expression, select_expression_for_ast] = translate_select_expression(rb_actions[SELECT]['text']);
+            query_context.select_expression = combine_string_literals(select_expression, string_literals);
+            let column_infos = adhoc_parse_select_expression_to_column_infos(select_expression_for_ast, string_literals);
+            let output_header = select_output_header(input_header, join_header, column_infos);
+            query_context.writer.set_header(output_header);
+        }
+
         query_context.writer = new TopWriter(query_context.writer, query_context.top_count);
         if (rb_actions[SELECT].hasOwnProperty('distinct_count')) {
             query_context.writer = new UniqCountWriter(query_context.writer);
@@ -1906,6 +1941,7 @@ exports.parse_join_expression = parse_join_expression;
 exports.resolve_join_variables = resolve_join_variables;
 exports.translate_update_expression = translate_update_expression;
 exports.translate_select_expression = translate_select_expression;
+exports.translate_except_expression = translate_except_expression;
 exports.like_to_regex = like_to_regex;
 exports.adhoc_parse_select_expression_to_column_infos = adhoc_parse_select_expression_to_column_infos;
 exports.replace_star_count = replace_star_count;
