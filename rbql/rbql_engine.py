@@ -52,6 +52,8 @@ from ._version import __version__
 
 # TODO support 'AS' keyword
 
+# FIXME consider disallowing to use values in the first row when header is not enabled (only a1, a2, ... should be allowed) and vice versa - Don't allow a1, a2 etc when header is enabled. This is to make sure that the user knows what query mode they are in.
+
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
