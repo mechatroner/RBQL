@@ -52,7 +52,6 @@ from ._version import __version__
 
 # TODO support 'AS' keyword
 
-# FIXME make sure we properly handle "with_header" in interactive CLI mode
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
