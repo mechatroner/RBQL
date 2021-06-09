@@ -178,6 +178,7 @@ The diagram below gives an overview of the main RBQL components and data flow:
 * UPDATE is a special case of SELECT query - this prevents accidental data loss
 * No need to use FROM statement - the table name is defined by the context. This improves query typing speed and allows immediate autocomplete for variables inside SELECT statement (in traditional SQL engines autocomplete will not work until you write FROM statement, which goes after SELECT statement)
 * SELECT, WHERE, ORDER BY, and other statements can be rearranged in any way you like
+* Supports EXCEPT statement
 * Provides a fully-functional client-side browser demo application
 * Almost nonexistent entry barrier both for SQL users and JS/Python users
 * Integration with popular text editors (VSCode, Vim, Sublime Text, Atom)
