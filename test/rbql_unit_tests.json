@@ -1416,6 +1416,26 @@
         "query_js": "select NR, value, letter_right.length where value > 5"
     },
     {
+        "test_name": "update with headers",
+        "input_table": [
+            ["5", "alpha   zeta", "beta"],
+            ["50", "alpha  zeta", "delta"],
+            ["20", "alpha    zeta", ""],
+            ["-20", "alpha   zeta", "gamma"]
+        ],
+        "expected_output_table": [
+            ["5", "alpha   zeta", "beta"],
+            [100, "alpha  zeta beta", "delta"],
+            [100, "alpha    zeta beta", ""],
+            ["-20", "alpha   zeta", "gamma"]
+        ],
+        "debug_mode": false,
+        "input_column_names": ["aa", "bb", "foo bar"],
+        "expected_output_header": ["aa", "bb", "foo bar"],
+        "query_python": "update a2 = a2 + \" beta\", a1 = 100 where int(a1) > 10",
+        "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
+    },
+    {
         "test_name": "test column names normalized",
         "input_table": [
             ["5", "alpha", "beta"],
