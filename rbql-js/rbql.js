@@ -1783,12 +1783,12 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     query_text = cleanup_query(query_text);
     var [format_expression, string_literals] = separate_string_literals(query_text);
     format_expression = remove_redundant_table_name(format_expression);
-    var input_variables_map = await input_iterator.get_variables_map(query_text);
 
     var rb_actions = separate_actions(format_expression);
     if (rb_actions.hasOwnProperty(WITH)) {
         input_iterator.handle_query_modifier(rb_actions[WITH]);
     }
+    var input_variables_map = await input_iterator.get_variables_map(query_text);
 
     if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');

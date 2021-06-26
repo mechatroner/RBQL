@@ -743,6 +743,7 @@ class TestRBQLSimple(unittest.TestCase):
         input_table.append(['abc', '100'])
 
         expected_table = list()
+        expected_table.append(['name', 'col2'])
         expected_table.append(['abc', '12340'])
         expected_table.append(['abc', '12340'])
         expected_table.append(['abc', '1000'])
@@ -753,13 +754,13 @@ class TestRBQLSimple(unittest.TestCase):
         csv_data = table_to_csv_string_random(input_table, delim, policy)
         input_stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
-        input_iterator = rbql_csv.CSVRecordIterator(input_stream, encoding, delim=delim, policy=policy)
+        input_iterator = rbql_csv.CSVRecordIterator(input_stream, encoding, delim=delim, policy=policy, has_header=True)
 
         output_stream = io.BytesIO() if encoding is not None else io.StringIO()
         output_writer = rbql_csv.CSVWriter(output_stream, False, encoding, delim, policy)
 
         warnings = []
-        rbql.query('select a.name, int(a.value) * 10 where NR > 1 and a.name == "abc"', input_iterator, output_writer, warnings)
+        rbql.query('select a.name, int(a.value) * 10 where a.name == "abc"', input_iterator, output_writer, warnings)
         input_stream.close()
         self.assertEqual(warnings, [])
 
@@ -816,7 +817,7 @@ class TestRBQLSimple(unittest.TestCase):
                 expected_table.append(row[:])
         query_col_name_1 = make_column_variable(header_row[query_col_1])
         query_col_name_2 = make_column_variable(header_row[query_col_2])
-        query = 'select * where NR == 1 or ({}.endswith("good") and int({}) * 2 == 20)'.format(query_col_name_1, query_col_name_2)
+        query = 'select * where ({}.endswith("good") and int({}) * 2 == 20)'.format(query_col_name_1, query_col_name_2)
 
         delim = ','
         policy = 'quoted'
@@ -825,7 +826,7 @@ class TestRBQLSimple(unittest.TestCase):
         stream = io.BytesIO(csv_data.encode(encoding))
         input_stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
-        input_iterator = rbql_csv.CSVRecordIterator(input_stream, encoding, delim=delim, policy=policy)
+        input_iterator = rbql_csv.CSVRecordIterator(input_stream, encoding, delim=delim, policy=policy, has_header=True)
 
         output_stream = io.BytesIO() if encoding is not None else io.StringIO()
         output_writer = rbql_csv.CSVWriter(output_stream, False, encoding, delim, policy)

@@ -333,6 +333,7 @@
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_output_table_path": "csv_files/university_ranking_result1.csv",
         "csv_separator": ",",
+        "with_headers": true,
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "query_python": "select a.world_rank, a.university_name where a.country == 'France' and int(a.world_rank) < 50",
@@ -344,6 +345,7 @@
         "expected_output_table_path": "csv_files/university_ranking_result7.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "with_headers": true,
         "csv_encoding": "utf-8",
         "comment_prefix": "#",
         "query_python": "select a.world_rank, a.university_name order by a.university_name",
@@ -355,6 +357,7 @@
         "expected_output_table_path": "csv_files/university_ranking_result2.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "with_headers": true,
         "csv_encoding": "utf-8",
         "query_python": "select top 5 * except a.country, a.world_rank",
         "query_js": "select top 5 * except a.country, a.world_rank"
@@ -365,8 +368,9 @@
         "expected_output_table_path": "csv_files/university_ranking_result3.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "with_headers": true,
         "csv_encoding": "utf-8",
-        "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', '') where NR > 1",
+        "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', '')",
         "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, '') where NR > 1"
     },
     {
@@ -375,6 +379,10 @@
         "expected_output_table_path": "csv_files/university_ranking_result4.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "expected_warnings": [
+            "The first record in JOIN file countries.csv was also treated as header (and skipped)"
+        ],
+        "with_headers": true,
         "csv_encoding": "utf-8",
         "query_python": "select top 20 a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name",
         "query_js": "select top 20 a2, b.country, b.Population join ###UT_TESTS_DIR###/csv_files/countries.csv on a.country == b.country order by a.university_name"
@@ -385,18 +393,20 @@
         "expected_output_table_path": "csv_files/countries_result1.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "with_headers": true,
         "csv_encoding": "utf-8",
-        "query_python": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
+        "query_python": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
         "query_js": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 && parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "dict fields unicode",
         "input_table_path": "csv_files/countries_utf_header.csv",
-        "expected_output_table_path": "csv_files/countries_result1.csv",
+        "expected_output_table_path": "csv_files/countries_result1_unicode.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "with_headers": true,
         "csv_encoding": "utf-8",
-        "query_python": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where NR > 1 and int(a['Площадь - Квадратные мили']) > 1000000 order by int(a['ВВП на душу населения']) desc",
+        "query_python": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where int(a['Площадь - Квадратные мили']) > 1000000 order by int(a['ВВП на душу населения']) desc",
         "query_js": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where NR > 1 && parseInt(a['Площадь - Квадратные мили']) > 1000000 order by parseInt(a['ВВП на душу населения']) desc"
     },
     {
@@ -406,7 +416,8 @@
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "query_python": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) where NR > 1 GROUP BY a.Region",
+        "with_headers": true,
+        "query_python": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) GROUP BY a.Region",
         "query_js": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) where NR > 1 GROUP BY a.Region"
     },
     {
@@ -415,6 +426,7 @@
         "expected_error": "Unable to find column \"foobar\" in input CSV header line",
         "expected_error_exact": true,
         "csv_separator": ",",
+        "with_headers": true,
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "randomly_replace_var_names": false,
@@ -426,6 +438,7 @@
         "input_table_path": "csv_files/countries.csv",
         "expected_error": "No \"foobar\" field at record 1",
         "csv_separator": ",",
+        "with_headers": true,
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "randomly_replace_var_names": false,
@@ -434,6 +447,7 @@
     {
         "test_name": "JS: demonstration of failure to handle unknown field",
         "input_table_path": "csv_files/countries.csv",
+        "with_headers": true,
         "expected_output_table_path": "csv_files/countries_result4.csv",
         "expected_warnings": [
             "null values in output were replaced"
@@ -451,9 +465,10 @@
         "randomly_replace_var_names": false,
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "with_headers": true,
         "csv_encoding": "utf-8",
         "minimal_python_version": "3.7",
-        "query_python": "select top 10 a1, f\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.country}' stats\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
+        "query_python": "select top 10 a1, f\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.country}' stats\" where int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
         "query_js": "select top 10 a1, `area: ${a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '${a.country}' stats` where NR > 1 && parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
@@ -463,8 +478,9 @@
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
+        "with_headers": true,
         "minimal_python_version": "3.7",
-        "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a[\"GDP per capita\"]} - '{a.country}' stats\"\"\" where NR > 1 and int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
+        "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a[\"GDP per capita\"]} - '{a.country}' stats\"\"\" where int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
         "query_js": "select top 10 a1, `area: ${a[`Area square miles`] + ', GDP: ' + a['GDP per capita']} - '${a.country}' stats` where NR > 1 && parseInt(a[`Area square miles`]) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
@@ -472,9 +488,10 @@
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_error": "Unable to parse \"UPDATE\" expression: Unknown field name: \"a['foo-bar']\"",
         "csv_separator": ",",
+        "with_headers": true,
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
-        "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', ''), a['foo-bar'] = len(a.country) where NR > 1",
+        "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', ''), a['foo-bar'] = len(a.country)",
         "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, ''), a['foo-bar'] = a.country.length where NR > 1"
     },
     {
@@ -526,9 +543,13 @@
         "expected_output_table_path": "csv_files/university_ranking_result4.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "expected_warnings": [
+            "The first record in JOIN file countries2.csv was also treated as header (and skipped)"
+        ],
         "csv_encoding": "utf-8",
-        "query_python": "select top 20 a2, b['country name'], b.Population join ###UT_TESTS_DIR###/csv_files/countries2.csv on a.country == b['country name'] order by a.university_name",
-        "query_js": "select top 20 a2, b['country name'], b.Population join ###UT_TESTS_DIR###/csv_files/countries2.csv on a.country == b['country name'] order by a.university_name"
+        "with_headers": true,
+        "query_python": "select top 20 a2, a['country'], b.Population join ###UT_TESTS_DIR###/csv_files/countries2.csv on a.country == b['country name'] order by a.university_name",
+        "query_js": "select top 20 a2, a['country'], b.Population join ###UT_TESTS_DIR###/csv_files/countries2.csv on a.country == b['country name'] order by a.university_name"
     },
     {
         "test_name": "join named fields with header",
@@ -551,6 +572,7 @@
         "expected_output_table_path": "csv_files/countries_bad_header_result1.csv",
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
+        "with_headers": true,
         "csv_encoding": "utf-8",
         "query_python": "select top 100 a.Dup_header, a[''], * where NR < 20",
         "query_js": "select top 100 a.Dup_header, a[''], * where NR < 20"
