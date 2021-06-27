@@ -219,7 +219,7 @@ fi
 md5sum_expected="c5693303e0cc70fcd068df626f49bf75"
 if [ "$run_python_tests" == "yes" ]; then
     rm rbql_warning.out 2> /dev/null
-    md5sum_test=($(python3 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
+    md5sum_test=($(python3 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a1' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
     warning_test=$( cat rbql_warning.out )
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python3 broken pipe test fail!"  1>&2
@@ -231,7 +231,7 @@ if [ "$run_python_tests" == "yes" ]; then
     fi
 
     rm rbql_warning.out 2> /dev/null
-    md5sum_test=($(python2 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
+    md5sum_test=($(python2 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a1' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
     warning_test=$( cat rbql_warning.out )
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python2 broken pipe test fail!"  1>&2
@@ -247,7 +247,7 @@ fi
 # Testing colored output
 md5sum_expected="4798e34af6a68d76119048ed2cf0a0c2"
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a.Avatar' --delim TAB --color 2> /dev/null | head -n 10 | md5sum))
+    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a1' --delim TAB --color 2> /dev/null | head -n 10 | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python colored output test fail!"  1>&2
         exit 1
