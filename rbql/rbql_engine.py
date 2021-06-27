@@ -205,6 +205,8 @@ def column_info_from_node(root):
             column_index = get_field(slice_val_root, 'n') - 1
         else:
             return None
+        if not PY3 and isinstance(column_name, str):
+            column_name = column_name.decode('utf-8')
         return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=column_name, is_star=False)
     return None
 
