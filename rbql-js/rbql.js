@@ -156,7 +156,7 @@ function column_info_from_text_span(text_span, string_literals) {
         if (replaced_string_literal_id < string_literals.length) {
             let quoted_column_name = string_literals[replaced_string_literal_id];
             let unquoted_column_name = unquote_string(quoted_column_name);
-            if (unquoted_column_name) {
+            if (unquoted_column_name !== null && unquoted_column_name !== undefined) {
                 return {table_name: null, column_index: null, column_name: unquoted_column_name, is_star: false};
             }
         }

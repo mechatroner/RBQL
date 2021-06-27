@@ -371,7 +371,7 @@
         "with_headers": true,
         "csv_encoding": "utf-8",
         "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', '')",
-        "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, '') where NR > 1"
+        "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, '')"
     },
     {
         "test_name": "join named fields",
@@ -396,7 +396,7 @@
         "with_headers": true,
         "csv_encoding": "utf-8",
         "query_python": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
-        "query_js": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where NR > 1 && parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
+        "query_js": "select top 10 a1, a['Area square miles'], a[\"GDP per capita\"] where parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "dict fields unicode",
@@ -407,7 +407,7 @@
         "with_headers": true,
         "csv_encoding": "utf-8",
         "query_python": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where int(a['Площадь - Квадратные мили']) > 1000000 order by int(a['ВВП на душу населения']) desc",
-        "query_js": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where NR > 1 && parseInt(a['Площадь - Квадратные мили']) > 1000000 order by parseInt(a['ВВП на душу населения']) desc"
+        "query_js": "select top 10 a1, a['Площадь - Квадратные мили'], a[\"ВВП на душу населения\"] where parseInt(a['Площадь - Квадратные мили']) > 1000000 order by parseInt(a['ВВП на душу населения']) desc"
     },
     {
         "test_name": "aggregate dict fields",
@@ -418,7 +418,7 @@
         "csv_encoding": "utf-8",
         "with_headers": true,
         "query_python": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) GROUP BY a.Region",
-        "query_js": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) where NR > 1 GROUP BY a.Region"
+        "query_js": "select a.Region, max(a['Area square miles']), MIN(a['Area square miles']), MAX(a[\"GDP per capita\"]), min(a[\"GDP per capita\"]) GROUP BY a.Region"
     },
     {
         "test_name": "bad field name",
@@ -469,7 +469,7 @@
         "csv_encoding": "utf-8",
         "minimal_python_version": "3.7",
         "query_python": "select top 10 a1, f\"area: {a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '{a.country}' stats\" where int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
-        "query_js": "select top 10 a1, `area: ${a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '${a.country}' stats` where NR > 1 && parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
+        "query_js": "select top 10 a1, `area: ${a['Area square miles'] + ', GDP: ' + a['GDP per capita']} - '${a.country}' stats` where parseInt(a['Area square miles']) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "named fields in interpolated triple-quoted strings",
@@ -481,7 +481,7 @@
         "with_headers": true,
         "minimal_python_version": "3.7",
         "query_python": "select top 10 a1, f\"\"\"area: {a['Area square miles'] + ', GDP: ' + a[\"GDP per capita\"]} - '{a.country}' stats\"\"\" where int(a['Area square miles']) > 1000000 order by int(a['GDP per capita']) desc",
-        "query_js": "select top 10 a1, `area: ${a[`Area square miles`] + ', GDP: ' + a['GDP per capita']} - '${a.country}' stats` where NR > 1 && parseInt(a[`Area square miles`]) > 1000000 order by parseInt(a['GDP per capita']) desc"
+        "query_js": "select top 10 a1, `area: ${a[`Area square miles`] + ', GDP: ' + a['GDP per capita']} - '${a.country}' stats` where parseInt(a[`Area square miles`]) > 1000000 order by parseInt(a['GDP per capita']) desc"
     },
     {
         "test_name": "update named fields - unknown field error",
@@ -492,7 +492,7 @@
         "csv_policy": "quoted_rfc",
         "csv_encoding": "utf-8",
         "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', ''), a['foo-bar'] = len(a.country)",
-        "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, ''), a['foo-bar'] = a.country.length where NR > 1"
+        "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, ''), a['foo-bar'] = a.country.length"
     },
     {
         "test_name": "RFC-4180 dialect: newlines in fields",

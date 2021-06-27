@@ -950,7 +950,6 @@ def main():
             for line in src:
                 fields = line.rstrip().split(',')
                 num_fields += len(fields)
-                #print(len(fields))
         print(num_fields)
         return
 
