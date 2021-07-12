@@ -21,7 +21,7 @@ Run user query against a list of records and put the result set in the output li
 
 #### Signature:  
   
-`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, normalize_column_names=True)`
+`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True)`
 
 
 #### Parameters: 
@@ -39,6 +39,8 @@ Run user query against a list of records and put the result set in the output li
   Names of _input_table_ columns which users of the app can use in their queries
 * _join_column_names_: **list**  
   Names of _join_table_ columns which users of the app can use in their queries
+* _output_column_names_: **list**  
+  Empty list or None: Output column names will be stored in this list after the query completion.
 * _normalize_column_names_: **boolean**  
   If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
   If set to False - column names can be used in user queries "as is".  
@@ -70,7 +72,7 @@ Run user query against input_path CSV file and save it as output_path CSV file.
 
 #### Signature:  
   
-`rbql.query_csv(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, skip_headers, comment_prefix)`  
+`rbql.query_csv(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None)`  
   
 #### Parameters:
 * _user_query_: **string**  
@@ -93,8 +95,8 @@ Run user query against input_path CSV file and save it as output_path CSV file.
   encoding of input, output and join tables (join table can be defined inside the user query)  
 * _output_warnings_: **list**  
   warnings will be stored here after the query completion. If no warnings - the list would be empty
-* _skip_headers_: **boolean**  
-  skip the header line in input and join tables. Roughly equivalent of ... WHERE NR > 1 ... in user query
+* _with_headers_: **boolean**  
+  if set to `true` treat the first record in input (and join) file as header.
 * _comment_prefix_: **string**  
   ignore lines in input and join tables that start with the comment prefix, e.g. "#" or ">>"
 
