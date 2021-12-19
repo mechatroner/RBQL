@@ -32,7 +32,8 @@ class DataframeIterator(rbql_engine.RBQLInputIterator):
         except StopIteration:
             return None
         self.NR += 1
-        return record
+        # Convert to list because `record` has `Pandas` type.
+        return list(record)
 
     def get_warnings(self):
         return []
@@ -71,11 +72,11 @@ class SingleDataframeRegistry(rbql_engine.RBQLTableRegistry):
         return DataframeIterator(self.table, self.normalize_column_names, 'b')
 
 
-def query_dataframe(query_text, input_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, normalize_column_names=True, user_init_code=''):
+def query_dataframe(query_text, input_table, output_warnings, join_table=None, normalize_column_names=True, user_init_code=''):
     if not normalize_column_names:
         rbql_engine.ensure_no_ambiguous_variables(query_text, list(input_table.column), list(join_table.columns))
-    input_iterator = DataframeIterator(input_table, input_column_names, normalize_column_names)
+    input_iterator = DataframeIterator(input_table, normalize_column_names)
     output_writer = DataframeWriter()
-    join_tables_registry = None if join_table is None else SingleDataframeRegistry(join_table, join_column_names, normalize_column_names)
+    join_tables_registry = None if join_table is None else SingleDataframeRegistry(join_table, normalize_column_names)
     rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
     return output_writer.result
