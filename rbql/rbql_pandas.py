@@ -4,26 +4,30 @@ from __future__ import print_function
 
 from . import rbql_engine
 
+# FIXME test with python2
+
 
 class DataframeIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, table, normalize_column_names=True, variable_prefix='a'):
+        import pandas
         self.table = table
         self.normalize_column_names = normalize_column_names
         self.variable_prefix = variable_prefix
         self.NR = 0
         # TODO include `Index` into the list of addressable variable names.
-        self.column_names = list(table.columns)
+        self.column_names = None if isinstance(table.columns, pandas.RangeIndex) else [str(v) for v in list(table.columns)]
         self.table_itertuples = self.table.itertuples(index=False)
 
     def get_variables_map(self, query_text):
         variable_map = dict()
         rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
         rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
-        if self.normalize_column_names:
-            rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)
-            rbql_engine.parse_attribute_variables(query_text, self.variable_prefix, self.column_names, 'column names list', variable_map)
-        else:
-            rbql_engine.map_variables_directly(query_text, self.column_names, variable_map)
+        if self.column_names is not None:
+            if self.normalize_column_names:
+                rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)
+                rbql_engine.parse_attribute_variables(query_text, self.variable_prefix, self.column_names, 'column names list', variable_map)
+            else:
+                rbql_engine.map_variables_directly(query_text, self.column_names, variable_map)
         return variable_map
 
     def get_record(self):
