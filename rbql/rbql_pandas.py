@@ -6,16 +6,21 @@ from . import rbql_engine
 
 # FIXME test with python2
 
+def get_dataframe_column_names_for_rbql(dataframe):
+    import pandas
+    if isinstance(dataframe.columns, pandas.RangeIndex) or not len(dataframe.columns):
+        return None
+    return [str(v) for v in list(dataframe.columns)]
+
 
 class DataframeIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, table, normalize_column_names=True, variable_prefix='a'):
-        import pandas
         self.table = table
         self.normalize_column_names = normalize_column_names
         self.variable_prefix = variable_prefix
         self.NR = 0
         # TODO include `Index` into the list of addressable variable names.
-        self.column_names = None if isinstance(table.columns, pandas.RangeIndex) or not len(table.columns) else [str(v) for v in list(table.columns)]
+        self.column_names = get_dataframe_column_names_for_rbql(table)
         self.table_itertuples = self.table.itertuples(index=False)
 
     def get_variables_map(self, query_text):
@@ -77,8 +82,11 @@ class SingleDataframeRegistry(rbql_engine.RBQLTableRegistry):
 
 
 def query_dataframe(query_text, input_table, output_warnings, join_table=None, normalize_column_names=True, user_init_code=''):
-    if not normalize_column_names:
-        rbql_engine.ensure_no_ambiguous_variables(query_text, list(input_table.column), list(join_table.columns))
+    if not normalize_column_names and join_table is not None:
+        input_columns = get_dataframe_column_names_for_rbql(input_table)
+        join_columns = get_dataframe_column_names_for_rbql(join_table)
+        if input_columns is not None and join_columns is not None:
+            rbql_engine.ensure_no_ambiguous_variables(query_text, input_columns, join_columns)
     input_iterator = DataframeIterator(input_table, normalize_column_names)
     output_writer = DataframeWriter()
     join_tables_registry = None if join_table is None else SingleDataframeRegistry(join_table, normalize_column_names)

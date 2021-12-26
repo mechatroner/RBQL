@@ -119,7 +119,7 @@ class TestJsonTables(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            output_df = rbql_pandas.query_dataframe(query, input_df, warnings, join_table, normalize_column_names, user_init_code)
+            output_df = rbql_pandas.query_dataframe(query, input_df, warnings, join_df, normalize_column_names, user_init_code)
         except Exception as e:
             if debug_mode:
                 raise
@@ -141,6 +141,9 @@ class TestJsonTables(unittest.TestCase):
                 raise
 
             warnings = sorted(normalize_warnings(warnings))
+            if 'inconsistent input records' in expected_warnings:
+                # Since pandas dataframes are always squares we don't need this warning.
+                expected_warnings.remove('inconsistent input records')
             expected_warnings = sorted(expected_warnings)
             self.assertEqual(expected_warnings, warnings, 'Inside json test: {}. Expected warnings: {}; Actual warnings: {}'.format(test_name, ','.join(expected_warnings), ','.join(warnings)))
 
