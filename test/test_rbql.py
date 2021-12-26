@@ -364,7 +364,7 @@ class TestJsonTables(unittest.TestCase):
         join_column_names = test_case.get('join_column_names', None)
         normalize_column_names = test_case.get('normalize_column_names', True)
         user_init_code = test_case.get('python_init_code', '')
-        expected_output_header = test_case.get('expected_output_header', None)
+        expected_output_header = test_case.get('expected_output_header', list())
         expected_output_table = test_case.get('expected_output_table', None)
         expected_error_type = test_case.get('expected_error_type', None)
         expected_error = test_case.get('expected_error', None)
@@ -402,9 +402,7 @@ class TestJsonTables(unittest.TestCase):
             round_floats(expected_output_table)
             round_floats(output_table)
             self.assertEqual(expected_output_table, output_table, 'Inside json test: {}'.format(test_name))
-
-            if expected_output_header is not None:
-                self.assertEqual(expected_output_header, output_column_names, 'Inside json test: {}'.format(test_name))
+            self.assertEqual(expected_output_header, output_column_names, 'Inside json test: {}'.format(test_name))
 
             warnings = sorted(normalize_warnings(warnings))
             expected_warnings = sorted(expected_warnings)

@@ -15,7 +15,7 @@ class DataframeIterator(rbql_engine.RBQLInputIterator):
         self.variable_prefix = variable_prefix
         self.NR = 0
         # TODO include `Index` into the list of addressable variable names.
-        self.column_names = None if isinstance(table.columns, pandas.RangeIndex) else [str(v) for v in list(table.columns)]
+        self.column_names = None if isinstance(table.columns, pandas.RangeIndex) or not len(table.columns) else [str(v) for v in list(table.columns)]
         self.table_itertuples = self.table.itertuples(index=False)
 
     def get_variables_map(self, query_text):
