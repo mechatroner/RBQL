@@ -13,8 +13,9 @@ Matrix of data formats that RBQL supports out of the box. R=Read, W=Write
 |Data Format            | Python   | JS      |
 |-----------------------|----------|---------|
 |CSV, TSV, etc          | **RW**   | **RW**  |
-|Sqlite databases       | **R**    |         |
 |Native 2D arrays/lists | **RW**   | **RW**  |
+|Pandas dataframe       | **RW**   |         |
+|Sqlite databases       | **R**    |         |
 
 If you use RBQL as a library you can write implementation for a couple of classes to support additional formats.  
 

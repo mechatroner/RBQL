@@ -4,7 +4,6 @@ from __future__ import print_function
 
 from . import rbql_engine
 
-# FIXME test with python2
 
 def get_dataframe_column_names_for_rbql(dataframe):
     import pandas

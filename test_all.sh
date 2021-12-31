@@ -132,6 +132,11 @@ if [ $run_unit_tests == "yes" ]; then
         python3 -m unittest test.test_rbql_sqlite
         die_if_error $?
 
+        python2 -m unittest test.test_rbql_pandas
+        die_if_error $?
+        python3 -m unittest test.test_rbql_pandas
+        die_if_error $?
+
         python2 -m unittest test.test_mad_max
         die_if_error $?
         python3 -m unittest test.test_mad_max

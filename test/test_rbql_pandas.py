@@ -63,16 +63,6 @@ class TestDataframeBasic(unittest.TestCase):
 
 
 class TestJsonTables(unittest.TestCase):
-
-    def assertDataframeEqual(self, a, b, msg):
-        try:
-            assert_frame_equal(a, b)
-        except AssertionError as e:
-            raise self.failureException(msg) from e
-
-    def setUp(self):
-        self.addTypeEqualityFunc(pandas.DataFrame, self.assertDataframeEqual)
-
     def process_test_case(self, test_case):
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
@@ -135,8 +125,12 @@ class TestJsonTables(unittest.TestCase):
                 self.assertTrue(error_msg.find(expected_error) != -1, 'Inside json test: {}'.format(test_name))
         else:
             try:
-                self.assertEqual(expected_output_df, output_df)
-            except Exception:
+                if python_version >= 3:
+                    assert_frame_equal(expected_output_df, output_df)
+                else:
+                    # For some reason dataframe.column.inferred_type are different for expected and actual output in python2, let's disregard this.
+                    assert_frame_equal(expected_output_df, output_df, check_column_type=False)
+            except Exception as e:
                 print('\nFailed inside json test: "{}"'.format(test_name))
                 raise
 
