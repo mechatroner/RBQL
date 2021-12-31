@@ -12,7 +12,8 @@ rbql library provides 3 main functions that you can use:
 
 1. [rbql.query_table(...)](#rbqlquery_table)  
 2. [rbql.query_csv(...)](#rbqlquery_csv)  
-3. [rbql.query(...)](#rbqlquery)  
+3. [rbql.query_pandas_dataframe(...)](#rbqlquery_pandas_dataframe)  
+4. [rbql.query(...)](#rbqlquery)  
 
 
 ### rbql.query_table(...)
@@ -110,6 +111,45 @@ rbql.query_csv(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quote
 print(open('output.csv').read())
 ```
 
+
+### rbql.query_pandas_dataframe(...)
+
+Run user query against pandas dataframe and return a new dataframe with the result.  
+
+#### Signature:  
+  
+`rbql.query_pandas_dataframe(user_query, input_dataframe, output_warnings, join_dataframe=None, normalize_column_names=True)`  
+  
+#### Parameters:
+* _user_query_: **string**  
+  query that user of your application manually enters in some kind of input field.  
+* _input_dataframe_: **pandas.DataFrame**  
+  input dataframe
+* _output_warnings_: **list**  
+  warnings will be stored here after the query completion. If no warnings - the list would be empty
+* _join_dataframe_: **pandas.DataFrame**  
+  dataframe with join table
+* _normalize_column_names_: **boolean**  
+  If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
+  If set to False - column names can be used in user queries "as is".  
+
+#### Usage example
+
+```
+import pandas
+import rbql
+input_dataframe = pandas.DataFrame([
+    ['Roosevelt',1858,'USA'],
+    ['Napoleon',1769,'France'],
+    ['Dmitri Mendeleev',1834,'Russia'],
+    ['Jane Austen',1775,'England'],
+    ['Hayao Miyazaki',1941,'Japan'],
+], columns=['name', 'year', 'country'])
+user_query = 'SELECT a.name, a.year % 1000 WHERE a.country != "France" LIMIT 3'
+warnings = []
+result_dataframe = rbql.query_pandas_dataframe(user_query, input_dataframe, warnings)
+print(result_dataframe)
+```
 
 ### rbql.query(...)
 

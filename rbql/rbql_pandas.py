@@ -80,14 +80,14 @@ class SingleDataframeRegistry(rbql_engine.RBQLTableRegistry):
         return DataframeIterator(self.table, self.normalize_column_names, 'b')
 
 
-def query_dataframe(query_text, input_table, output_warnings, join_table=None, normalize_column_names=True, user_init_code=''):
-    if not normalize_column_names and join_table is not None:
-        input_columns = get_dataframe_column_names_for_rbql(input_table)
-        join_columns = get_dataframe_column_names_for_rbql(join_table)
+def query_dataframe(query_text, input_dataframe, output_warnings, join_dataframe=None, normalize_column_names=True, user_init_code=''):
+    if not normalize_column_names and join_dataframe is not None:
+        input_columns = get_dataframe_column_names_for_rbql(input_dataframe)
+        join_columns = get_dataframe_column_names_for_rbql(join_dataframe)
         if input_columns is not None and join_columns is not None:
             rbql_engine.ensure_no_ambiguous_variables(query_text, input_columns, join_columns)
-    input_iterator = DataframeIterator(input_table, normalize_column_names)
+    input_iterator = DataframeIterator(input_dataframe, normalize_column_names)
     output_writer = DataframeWriter()
-    join_tables_registry = None if join_table is None else SingleDataframeRegistry(join_table, normalize_column_names)
+    join_tables_registry = None if join_dataframe is None else SingleDataframeRegistry(join_dataframe, normalize_column_names)
     rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
     return output_writer.result

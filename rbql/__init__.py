@@ -17,3 +17,5 @@ from .rbql_csv import query_csv
 from .rbql_csv import CSVRecordIterator
 from .rbql_csv import CSVWriter
 from .rbql_csv import FileSystemCSVRegistry
+
+from .rbql_pandas import query_dataframe as query_pandas_dataframe
