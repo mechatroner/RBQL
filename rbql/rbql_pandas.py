@@ -80,7 +80,10 @@ class SingleDataframeRegistry(rbql_engine.RBQLTableRegistry):
         return DataframeIterator(self.table, self.normalize_column_names, 'b')
 
 
-def query_dataframe(query_text, input_dataframe, output_warnings, join_dataframe=None, normalize_column_names=True, user_init_code=''):
+def query_dataframe(query_text, input_dataframe, output_warnings=None, join_dataframe=None, normalize_column_names=True, user_init_code=''):
+    if output_warnings is None:
+        # Ignore output warnings if the output_warnings container hasn't been provided.
+        output_warnings = []
     if not normalize_column_names and join_dataframe is not None:
         input_columns = get_dataframe_column_names_for_rbql(input_dataframe)
         join_columns = get_dataframe_column_names_for_rbql(join_dataframe)

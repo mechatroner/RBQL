@@ -118,7 +118,7 @@ Run user query against pandas dataframe and return a new dataframe with the resu
 
 #### Signature:  
   
-`rbql.query_pandas_dataframe(user_query, input_dataframe, output_warnings, join_dataframe=None, normalize_column_names=True)`  
+`rbql.query_pandas_dataframe(user_query, input_dataframe, output_warnings=None, join_dataframe=None, normalize_column_names=True)`  
   
 #### Parameters:
 * _user_query_: **string**  
@@ -146,8 +146,7 @@ input_dataframe = pandas.DataFrame([
     ['Hayao Miyazaki',1941,'Japan'],
 ], columns=['name', 'year', 'country'])
 user_query = 'SELECT a.name, a.year % 1000 WHERE a.country != "France" LIMIT 3'
-warnings = []
-result_dataframe = rbql.query_pandas_dataframe(user_query, input_dataframe, warnings)
+result_dataframe = rbql.query_pandas_dataframe(user_query, input_dataframe)
 print(result_dataframe)
 ```
 

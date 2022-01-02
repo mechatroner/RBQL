@@ -54,10 +54,8 @@ def randomly_replace_column_variable_style(query):
 class TestDataframeBasic(unittest.TestCase):
     def test_basic(self):
         input_df = pandas.DataFrame([['foo', 2], ['bar', 7], ['zorb', 20]], columns=['kind', 'speed'])
-        output_warnings = []
-        output_df = rbql_pandas.query_dataframe('select * where a1.find("o") != -1 order by a.speed', input_df, output_warnings)
+        output_df = rbql_pandas.query_dataframe('select * where a1.find("o") != -1 order by a.speed', input_df)
         self.assertEqual(2, len(output_df))
-        self.assertEqual([], output_warnings, 2)
         expected_output_df = pandas.DataFrame([['foo', 2], ['zorb', 20]], columns=['kind', 'speed'])
         assert_frame_equal(expected_output_df, output_df)
 
