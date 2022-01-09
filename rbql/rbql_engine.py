@@ -1670,7 +1670,7 @@ class TableWriter(RBQLOutputWriter):
         self.header = header
 
 
-ListTableInfo = namedtuple('ListTableInfo', ['table_id', 'table', 'column_names'])
+ListTableInfo = namedtuple('ListTableInfo', ['table_id', 'table', 'column_names', 'table_prefix'])
 
 
 class ListTableRegistry(RBQLTableRegistry):
@@ -1682,7 +1682,7 @@ class ListTableRegistry(RBQLTableRegistry):
     def get_iterator_by_table_id(self, table_id):
         for table_info in self.table_infos: 
             if table_info.table_id == table_id:
-                return TableIterator(table_info.table, table_info.column_names, self.normalize_column_names, 'b')
+                return TableIterator(table_info.table, table_info.column_names, self.normalize_column_names, table_info.table_prefix)
         return None
 
 
@@ -1691,7 +1691,7 @@ def query_table(query_text, input_table, output_table, output_warnings, join_tab
         ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names)
     input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
-    join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names), ListTableInfo('B', join_table, join_column_names)], normalize_column_names)
+    join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names, 'b'), ListTableInfo('B', join_table, join_column_names, 'b')], normalize_column_names)
     query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
     if output_column_names is not None:
         assert len(output_column_names) == 0, '`output_column_names` param must be an empty list or None'
