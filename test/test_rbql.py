@@ -123,7 +123,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
     def test_separate_actions(self):
         query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and int(b3) == 100 order by int(a7) desc '
         expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': rbql_engine.INNER_JOIN}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and int(b3) == 100'}, 'ORDER BY': {'text': 'int(a7)', 'reverse': True}}
-        test_res = rbql_engine.separate_actions(query)
+        test_res = rbql_engine.separate_actions(rbql_engine.default_statement_groups, query)
         assert test_res == expected_res
 
 
@@ -310,6 +310,11 @@ def randomly_replace_column_variable_style(query):
         query = do_randomly_split_replace(query, 'a{}'.format(i), 'a[{}]'.format(i))
         query = do_randomly_split_replace(query, 'b{}'.format(i), 'b[{}]'.format(i))
     return query
+
+
+#class TestFromQueries(unittest.TestCase):
+#    #FIXME
+#    pass
 
 
 class TestTableRun(unittest.TestCase):

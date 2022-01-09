@@ -68,6 +68,9 @@ WHERE = 'WHERE'
 LIMIT = 'LIMIT'
 EXCEPT = 'EXCEPT'
 WITH = 'WITH'
+FROM = 'FROM'
+
+default_statement_groups = [[STRICT_LEFT_JOIN, LEFT_OUTER_JOIN, LEFT_JOIN, INNER_JOIN, JOIN], [SELECT], [ORDER_BY], [WHERE], [UPDATE], [GROUP_BY], [LIMIT], [EXCEPT], [FROM]]
 
 ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join tables'
 invalid_keyword_in_aggregate_query_error_msg = '"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries'
@@ -1245,17 +1248,7 @@ def separate_string_literals(rbql_expression):
     return (format_expression, string_literals)
 
 
-def locate_statements(rbql_expression):
-    statement_groups = list()
-    statement_groups.append([STRICT_LEFT_JOIN, LEFT_OUTER_JOIN, LEFT_JOIN, INNER_JOIN, JOIN])
-    statement_groups.append([SELECT])
-    statement_groups.append([ORDER_BY])
-    statement_groups.append([WHERE])
-    statement_groups.append([UPDATE])
-    statement_groups.append([GROUP_BY])
-    statement_groups.append([LIMIT])
-    statement_groups.append([EXCEPT])
-
+def locate_statements(statement_groups, rbql_expression):
     result = list()
     for st_group in statement_groups:
         for statement in st_group:
@@ -1272,7 +1265,7 @@ def locate_statements(rbql_expression):
     return sorted(result)
 
 
-def separate_actions(rbql_expression):
+def separate_actions(statement_groups, rbql_expression):
     # TODO add more checks:
     # make sure all rbql_expression was separated and SELECT or UPDATE is at the beginning
     rbql_expression = rbql_expression.strip(' ')
@@ -1282,7 +1275,7 @@ def separate_actions(rbql_expression):
     if mobj is not None:
         rbql_expression = mobj.group(1)
         result[WITH] = mobj.group(2)
-    ordered_statements = locate_statements(rbql_expression)
+    ordered_statements = locate_statements(statement_groups, rbql_expression)
     for i in range(len(ordered_statements)):
         statement_start = ordered_statements[i][0]
         span_start = ordered_statements[i][1]
@@ -1457,11 +1450,29 @@ def select_output_header(input_header, join_header, query_column_infos):
     return output_header
 
 
-def shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context):
+def shallow_parse_input_query(query_text, input_iterator, tables_registry, query_context):
     query_text = cleanup_query(query_text)
     format_expression, string_literals = separate_string_literals(query_text)
-    format_expression = remove_redundant_input_table_name(format_expression)
-    rb_actions = separate_actions(format_expression)
+    statement_groups = default_statement_groups[:]
+    if input_iterator is not None:
+        # In case if input_iterator i.e. input table is already fixed RBQL assumes that the only valid table name is "A" or "a".
+        format_expression = remove_redundant_input_table_name(format_expression)
+        statement_groups.remove([FROM])
+    else:
+        assert tables_registry is not None
+    rb_actions = separate_actions(statement_groups, format_expression)
+
+    if FROM in rb_actions:
+        assert input_iterator is None
+        input_table_id = rb_actions[FROM]
+        input_iterator = tables_registry.get_iterator_by_table_id(input_table_id) # FIXME add unit test
+        if input_iterator is None:
+            raise RbqlParsingError('Unable to find input table: "{}"'.format(input_table_id)) # FIXME add unit test
+        query_context.input_iterator = input_iterator
+
+    if input_iterator is None:
+        raise RbqlParsingError('Queries without implicit input table must contain "FROM" statement.') # FIXME add unit test
+
     if WITH in rb_actions:
         input_iterator.handle_query_modifier(rb_actions[WITH])
     input_variables_map = input_iterator.get_variables_map(query_text)
@@ -1479,9 +1490,9 @@ def shallow_parse_input_query(query_text, input_iterator, join_tables_registry, 
     join_header = None
     if JOIN in rb_actions:
         rhs_table_id, variable_pairs = parse_join_expression(rb_actions[JOIN]['text'])
-        if join_tables_registry is None:
+        if tables_registry is None:
             raise RbqlParsingError('JOIN operations are not supported by the application') # UT JSON
-        join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id)
+        join_record_iterator = tables_registry.get_iterator_by_table_id(rhs_table_id)
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
         if WITH in rb_actions:
@@ -1659,17 +1670,20 @@ class TableWriter(RBQLOutputWriter):
         self.header = header
 
 
-class SingleTableRegistry(RBQLTableRegistry):
-    def __init__(self, table, column_names=None, normalize_column_names=True, table_name='b'):
-        self.table = table
-        self.column_names = column_names
+ListTableInfo = namedtuple('ListTableInfo', ['table_id', 'table', 'column_names'])
+
+
+class ListTableRegistry(RBQLTableRegistry):
+    # Here table_infos is a list of ListTableInfo
+    def __init__(self, table_infos, normalize_column_names=True):
+        self.table_infos = table_infos
         self.normalize_column_names = normalize_column_names
-        self.table_name = table_name
 
     def get_iterator_by_table_id(self, table_id):
-        if table_id.lower() != self.table_name:
-            raise RbqlParsingError('Unable to find join table: "{}"'.format(table_id)) # UT JSON
-        return TableIterator(self.table, self.column_names, self.normalize_column_names, 'b')
+        for table_info in self.table_infos: 
+            if table_info.table_id == table_id:
+                return TableIterator(table_info.table, table_info.column_names, self.normalize_column_names, 'b')
+        return None
 
 
 def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True, user_init_code=''):
@@ -1677,7 +1691,7 @@ def query_table(query_text, input_table, output_table, output_warnings, join_tab
         ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names)
     input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
-    join_tables_registry = None if join_table is None else SingleTableRegistry(join_table, join_column_names, normalize_column_names)
+    join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names), ListTableInfo('B', join_table, join_column_names)], normalize_column_names)
     query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
     if output_column_names is not None:
         assert len(output_column_names) == 0, '`output_column_names` param must be an empty list or None'

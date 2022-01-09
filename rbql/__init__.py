@@ -4,7 +4,7 @@ from .rbql_engine import exception_to_error_info
 
 from .rbql_engine import TableIterator
 from .rbql_engine import TableWriter
-from .rbql_engine import SingleTableRegistry
+from .rbql_engine import ListTableRegistry
 
 
 
