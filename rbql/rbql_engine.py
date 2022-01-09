@@ -9,51 +9,19 @@ import time
 import ast
 from collections import OrderedDict, defaultdict, namedtuple
 
-import datetime # For date operations inside user queries
-import os # For system operations inside user queries
-import math # For math operations inside user queries
+import datetime # For date operations inside user queries.
+import os # For system operations inside user queries.
+import math # For math operations inside user queries.
 
 from ._version import __version__
 
-
-# This module must be both python2 and python3 compatible
-
-
+# This module must be both python2 and python3 compatible.
 # This module works with records only. It is CSV-agnostic.
-# Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc
+# Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc.
+# See DEV_README.md for additional info.
 
-
-# UT JSON - means json Unit Test exists for this case
-# UT JSON CSV - means json csv Unit Test exists for this case
-
-
-# TODO we can do good-enough header autodetection in CSV files to show warnings when we have a high degree of confidence that the file has header but user didn't skip it and vise versa
-
-# TODO catch exceptions in user expression to report the exact place where it occured: "SELECT" expression, "WHERE" expression, etc
-
-# TODO consider supporting explicit column names variables like "host" or "name" or "surname" - just parse all variable-looking sequences from the query and match them against available column names from the header, but skip all symbol defined in rbql_engine.py/rbql.js, user init code and python/js builtin keywords (show warning on intersection)
-
-# TODO optimize performance: optional compilation depending on python2/python3
-
-# TODO gracefuly handle unknown encoding: generate RbqlIOHandlingError
-
-# TODO show warning when csv fields contain trailing spaces, at least in join mode
-
-# TODO support custom (virtual) headers for CSV version
-
-# TODO allow to use NL in RBQL queries for CSV version
-
-# TODO add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
-
-# TODO add RBQL iterators for json lines ( https://jsonlines.org/ ) and xml-by-line files
-# TODO add RBQL file-system iterator to be able to query files like fselect does
-
-# TODO use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
-
-# TODO support 'AS' keyword
-
-# TODO Consider disabling a1, a2 etc variables when header is enabled. This is to make sure that the user knows what query mode they are in.
-
+# UT JSON - means json Unit Test exists for this case.
+# UT JSON CSV - means json csv Unit Test exists for this case.
 
 GROUP_BY = 'GROUP BY'
 UPDATE = 'UPDATE'
@@ -1464,7 +1432,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
 
     if FROM in rb_actions:
         assert input_iterator is None
-        input_table_id = rb_actions[FROM]
+        input_table_id = rb_actions[FROM]['text']
         input_iterator = tables_registry.get_iterator_by_table_id(input_table_id) # FIXME add unit test
         if input_iterator is None:
             raise RbqlParsingError('Unable to find input table: "{}"'.format(input_table_id)) # FIXME add unit test
@@ -1562,11 +1530,12 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
     global query_context
+    # TODO Make RBQLContext local variable by defining aggregation functions inside the compile_and_run function.
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
     shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
     compile_and_run()
     query_context.writer.finish()
-    output_warnings.extend(input_iterator.get_warnings())
+    output_warnings.extend(query_context.input_iterator.get_warnings())
     if query_context.join_map_impl is not None:
         output_warnings.extend(query_context.join_map_impl.get_warnings())
     output_warnings.extend(output_writer.get_warnings())
