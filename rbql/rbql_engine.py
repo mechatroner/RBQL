@@ -1433,13 +1433,13 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
     if FROM in rb_actions:
         assert input_iterator is None
         input_table_id = rb_actions[FROM]['text']
-        input_iterator = tables_registry.get_iterator_by_table_id(input_table_id) # FIXME add unit test
+        input_iterator = tables_registry.get_iterator_by_table_id(input_table_id)
         if input_iterator is None:
-            raise RbqlParsingError('Unable to find input table: "{}"'.format(input_table_id)) # FIXME add unit test
+            raise RbqlParsingError('Unable to find input table: "{}"'.format(input_table_id))
         query_context.input_iterator = input_iterator
 
     if input_iterator is None:
-        raise RbqlParsingError('Queries without implicit input table must contain "FROM" statement.') # FIXME add unit test
+        raise RbqlParsingError('Queries without context-based input table must contain "FROM" statement')
 
     if WITH in rb_actions:
         input_iterator.handle_query_modifier(rb_actions[WITH])

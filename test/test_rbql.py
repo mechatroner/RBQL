@@ -313,6 +313,7 @@ def randomly_replace_column_variable_style(query):
 
 
 class TestFromQueries(unittest.TestCase):
+    # Basic tests for queries with FROM statements.
     def test_table_run_simple(self):
         input_table = [('Roosevelt', 1858), ('Napoleon', 1769), ('Confucius', -551)]
         query_text = 'select a2 // 10, "name " + a1 from input_table order by a2'
@@ -322,7 +323,7 @@ class TestFromQueries(unittest.TestCase):
 
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None, 'a')], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None, 'a'), rbql_engine.ListTableInfo('unused_table', [], None, 'a')], normalize_column_names=True)
 
         rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         self.assertEqual(warnings, [])
@@ -342,7 +343,38 @@ class TestFromQueries(unittest.TestCase):
         with self.assertRaises(Exception) as cm:
             rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         e = cm.exception
-        self.assertEqual('Queries without implicit input table must contain "FROM" statement.', str(e))
+        self.assertEqual('Queries without context-based input table must contain "FROM" statement', str(e))
+
+    def test_table_run_wrong_from(self):
+        input_table = [('Roosevelt', 1858), ('Napoleon', 1769), ('Confucius', -551)]
+        query_text = 'select a2 // 10, "name " + a1 from input_table_nonexistent order by a2'
+        expected_output_table = [[-56, 'name Confucius'], [176, 'name Napoleon'], [185, 'name Roosevelt']]
+        output_table = []
+        warnings = []
+
+        input_iterator = None
+        output_writer = rbql_engine.TableWriter(output_table)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None, 'a')], normalize_column_names=True)
+        with self.assertRaises(Exception) as cm:
+            rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
+        e = cm.exception
+        self.assertEqual('Unable to find input table: "input_table_nonexistent"', str(e))
+
+    def test_table_run_simple_join(self):
+        input_table = [('Roosevelt', 1858, 'USA'), ('Napoleon', 1769, 'France'), ('Confucius', -551, 'China')]
+        join_table = [('China', 1386), ('France', 67), ('USA', 327), ('Russia', 140)]
+        query_text = 'select a2 // 10, b2, "name " + a1 FROM my_input_table order by a2 JOIN my_join_table on a3 == b1'
+        expected_output_table = [[-56, 1386, 'name Confucius'], [176, 67, 'name Napoleon'], [185, 327, 'name Roosevelt']]
+        output_table = []
+        warnings = []
+
+        input_iterator = None
+        output_writer = rbql_engine.TableWriter(output_table)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('my_input_table', input_table, None, 'a'), rbql_engine.ListTableInfo('my_join_table', join_table, None, 'b'), rbql_engine.ListTableInfo('unused_table', [], None, 'a')], normalize_column_names=True)
+
+        rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
+        self.assertEqual(warnings, [])
+        self.assertEqual(expected_output_table, output_table)
 
 
 class TestTableRun(unittest.TestCase):
