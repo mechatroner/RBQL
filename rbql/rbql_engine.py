@@ -98,9 +98,6 @@ class RBQLContext:
         self.variables_init_code = None
 
 
-query_context = None # Needs to be global for MIN(), MAX(), etc functions
-
-
 RBQL_VERSION = __version__
 
 
@@ -257,15 +254,6 @@ def like_to_regex(pattern):
     return '^' + converted + '$'
 
 
-def like(text, pattern):
-    matcher = query_context.like_regex_cache.get(pattern, None)
-    if matcher is None:
-        matcher = re.compile(like_to_regex(pattern))
-        query_context.like_regex_cache[pattern] = matcher
-    return matcher.match(text) is not None
-LIKE = like
-
-
 class RBQLAggregationToken(object):
     def __init__(self, marker_id, value):
         self.marker_id = marker_id
@@ -273,20 +261,6 @@ class RBQLAggregationToken(object):
 
     def __str__(self):
         raise TypeError('RBQLAggregationToken')
-
-
-class UNNEST:
-    def __init__(self, vals):
-        if query_context.unnest_list is not None:
-            # Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
-            raise RbqlParsingError('Only one UNNEST is allowed per query') # UT JSON
-        query_context.unnest_list = vals
-
-    def __str__(self):
-        raise TypeError('UNNEST')
-
-unnest = UNNEST
-Unnest = UNNEST
 
 
 class NumHandler:
@@ -324,7 +298,7 @@ class MinAggregator:
         if cur_aggr is None:
             self.stats[key] = val
         else:
-            self.stats[key] = builtin_min(cur_aggr, val)
+            self.stats[key] = min(cur_aggr, val)
 
     def get_final(self, key):
         return self.stats[key]
@@ -341,7 +315,7 @@ class MaxAggregator:
         if cur_aggr is None:
             self.stats[key] = val
         else:
-            self.stats[key] = builtin_max(cur_aggr, val)
+            self.stats[key] = max(cur_aggr, val)
 
     def get_final(self, key):
         return self.stats[key]
@@ -461,120 +435,6 @@ class ConstGroupVerifier:
         return self.const_values[key]
 
 
-def init_aggregator(generator_name, val, post_proc=None):
-    query_context.aggregation_stage = 1
-    res = RBQLAggregationToken(len(query_context.functional_aggregators), val)
-    if post_proc is not None:
-        query_context.functional_aggregators.append(generator_name(post_proc))
-    else:
-        query_context.functional_aggregators.append(generator_name())
-    return res
-
-
-def MIN(val):
-    return init_aggregator(MinAggregator, val) if query_context.aggregation_stage < 2 else val
-
-Min = MIN
-
-
-def MAX(val):
-    return init_aggregator(MaxAggregator, val) if query_context.aggregation_stage < 2 else val
-
-Max = MAX
-
-
-def COUNT(_val):
-    return init_aggregator(CountAggregator, 1) if query_context.aggregation_stage < 2 else 1
-
-count = COUNT
-Count = COUNT
-
-
-def SUM(val):
-    return init_aggregator(SumAggregator, val) if query_context.aggregation_stage < 2 else val
-
-Sum = SUM
-
-
-def AVG(val):
-    return init_aggregator(AvgAggregator, val) if query_context.aggregation_stage < 2 else val
-
-avg = AVG
-Avg = AVG
-
-
-def VARIANCE(val):
-    return init_aggregator(VarianceAggregator, val) if query_context.aggregation_stage < 2 else val
-
-variance = VARIANCE
-Variance = VARIANCE
-
-
-def MEDIAN(val):
-    return init_aggregator(MedianAggregator, val) if query_context.aggregation_stage < 2 else val
-
-median = MEDIAN
-Median = MEDIAN
-
-
-def ARRAY_AGG(val, post_proc=None):
-    # TODO consider passing array to output writer
-    return init_aggregator(ArrayAggAggregator, val, post_proc) if query_context.aggregation_stage < 2 else val
-
-array_agg = ARRAY_AGG
-
-
-# Redefining builtin max, min and sum
-builtin_max = max
-builtin_min = min
-builtin_sum = sum
-
-
-def max(*args, **kwargs):
-    single_arg = len(args) == 1 and not kwargs
-    if single_arg:
-        if PY3 and isinstance(args[0], str):
-            return MAX(args[0])
-        if not PY3 and isinstance(args[0], basestring):
-            return MAX(args[0])
-        if isinstance(args[0], int) or isinstance(args[0], float):
-            return MAX(args[0])
-    try:
-        return builtin_max(*args, **kwargs)
-    except TypeError:
-        if single_arg:
-            return MAX(args[0])
-        raise
-
-
-def min(*args, **kwargs):
-    single_arg = len(args) == 1 and not kwargs
-    if single_arg:
-        if PY3 and isinstance(args[0], str):
-            return MIN(args[0])
-        if not PY3 and isinstance(args[0], basestring):
-            return MIN(args[0])
-        if isinstance(args[0], int) or isinstance(args[0], float):
-            return MIN(args[0])
-    try:
-        return builtin_min(*args, **kwargs)
-    except TypeError:
-        if single_arg:
-            return MIN(args[0])
-        raise
-
-
-def sum(*args):
-    try:
-        return builtin_sum(*args)
-    except TypeError:
-        if len(args) == 1:
-            return SUM(args[0])
-        raise
-
-
-
-
 def add_to_set(dst_set, value):
     len_before = len(dst_set)
     dst_set.add(value)
@@ -582,12 +442,14 @@ def add_to_set(dst_set, value):
 
 
 class TopWriter(object):
-    def __init__(self, subwriter):
+    def __init__(self, subwriter, top_count):
         self.subwriter = subwriter
         self.NW = 0
+        self.top_count = top_count
 
     def write(self, record):
-        if query_context.top_count is not None and self.NW >= query_context.top_count:
+        # FIXME self.top_count should always be not None here
+        if self.top_count is not None and self.NW >= self.top_count:
             return False
         success = self.subwriter.write(record)
         if success:
@@ -711,7 +573,7 @@ def select_except(src, except_fields):
     return result
 
 
-def select_simple(sort_key, out_fields):
+def select_simple(query_context, sort_key, out_fields):
     if query_context.sort_key_expression is not None:
         if not query_context.writer.write(sort_key, out_fields):
             return False
@@ -721,7 +583,7 @@ def select_simple(sort_key, out_fields):
     return True
 
 
-def select_aggregated(key, transparent_values):
+def select_aggregated(query_context, key, transparent_values):
     if query_context.aggregation_stage == 1:
         if type(query_context.writer) is SortedWriter or type(query_context.writer) is UniqWriter or type(query_context.writer) is UniqCountWriter:
             raise RbqlParsingError(invalid_keyword_in_aggregate_query_error_msg) # UT JSON
@@ -744,35 +606,20 @@ def select_aggregated(key, transparent_values):
     query_context.writer.aggregation_keys.add(key)
 
 
-def select_unnested(sort_key, folded_fields):
-    unnest_pos = None
-    for i, trans_value in enumerate(folded_fields):
-        if isinstance(trans_value, UNNEST):
-            unnest_pos = i
-            break
-    assert unnest_pos is not None
-    for v in query_context.unnest_list:
-        out_fields = folded_fields[:]
-        out_fields[unnest_pos] = v
-        if not select_simple(sort_key, out_fields):
-            return False
-    return True
-
-
 PROCESS_SELECT_COMMON = '''
 __RBQLMP__variables_init_code
 if __RBQLMP__where_expression:
     out_fields = __RBQLMP__select_expression
     if query_context.aggregation_stage > 0:
         key = __RBQLMP__aggregation_key_expression
-        select_aggregated(key, out_fields)
+        select_aggregated(query_context, key, out_fields)
     else:
         sort_key = __RBQLMP__sort_key_expression
         if query_context.unnest_list is not None:
             if not select_unnested(sort_key, out_fields):
                 stop_flag = True
         else:
-            if not select_simple(sort_key, out_fields):
+            if not select_simple(query_context, sort_key, out_fields):
                 stop_flag = True
 '''
 
@@ -822,14 +669,35 @@ if not query_context.writer.write(up_fields):
     stop_flag = True
 '''
 
-# We need dummy_wrapper_for_exec function in MAIN_LOOP_BODY because otherwise "import" statements won't work as expected, see: https://github.com/mechatroner/sublime_rainbow_csv/issues/22
+# We need dummy_wrapper_for_exec function because otherwise "import" statements won't work as expected if used inside user-defined functions, see: https://github.com/mechatroner/sublime_rainbow_csv/issues/22
 MAIN_LOOP_BODY = '''
-def dummy_wrapper_for_exec():
+def dummy_wrapper_for_exec(query_context, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested):
+
     try:
         pass
         __USER_INIT_CODE__
     except Exception as e:
         raise RuntimeError('Exception while executing user-provided init code: {}'.format(e))
+
+    like = LIKE
+    unnest = UNNEST
+    Unnest = UNNEST
+    Min = MIN
+    Max = MAX
+    count = COUNT
+    Count = COUNT
+    Sum = SUM
+    avg = AVG
+    Avg = AVG
+    variance = VARIANCE
+    Variance = VARIANCE
+    median = MEDIAN
+    Median = MEDIAN
+    array_agg = ARRAY_AGG
+    max = mad_max
+    min = mad_min
+    sum = mad_sum
+
 
     NR = 0
     NU = 0
@@ -856,7 +724,8 @@ def dummy_wrapper_for_exec():
             if str(e).find('RBQLAggregationToken') != -1:
                 raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
             raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
-dummy_wrapper_for_exec()
+
+dummy_wrapper_for_exec(query_context, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested)
 '''
 
 
@@ -883,7 +752,7 @@ def embed_code(parent_code, child_placeholder, child_code):
     assert False
 
 
-def generate_main_loop_code():
+def generate_main_loop_code(query_context):
     is_select_query = query_context.select_expression is not None
     is_join_query = query_context.join_map is not None
     where_expression = 'True' if query_context.where_expression is None else query_context.where_expression
@@ -913,12 +782,129 @@ def generate_main_loop_code():
     return python_code
 
 
-def compile_and_run():
-    # TODO consider putting mad_max stuff here instead of keeping it in the global scope
-    main_loop_body = generate_main_loop_code()
-    compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
-    exec(compiled_main_loop)
+builtin_max = max
+builtin_min = min
+builtin_sum = sum
 
+
+def compile_and_run(query_context):
+    def LIKE(text, pattern):
+        matcher = query_context.like_regex_cache.get(pattern, None)
+        if matcher is None:
+            matcher = re.compile(like_to_regex(pattern))
+            query_context.like_regex_cache[pattern] = matcher
+        return matcher.match(text) is not None
+
+    class UNNEST:
+        def __init__(self, vals):
+            if query_context.unnest_list is not None:
+                # Technically we can support multiple UNNEST's but the implementation/algorithm is more complex and just doesn't worth it
+                raise RbqlParsingError('Only one UNNEST is allowed per query') # UT JSON
+            query_context.unnest_list = vals
+
+        def __str__(self):
+            raise TypeError('UNNEST')
+
+    def select_unnested(sort_key, folded_fields):
+        unnest_pos = None
+        for i, trans_value in enumerate(folded_fields):
+            if isinstance(trans_value, UNNEST):
+                unnest_pos = i
+                break
+        assert unnest_pos is not None
+        for v in query_context.unnest_list:
+            out_fields = folded_fields[:]
+            out_fields[unnest_pos] = v
+            if not select_simple(query_context, sort_key, out_fields):
+                return False
+        return True
+
+    def init_aggregator(generator_name, val, post_proc=None):
+        query_context.aggregation_stage = 1
+        res = RBQLAggregationToken(len(query_context.functional_aggregators), val)
+        if post_proc is not None:
+            query_context.functional_aggregators.append(generator_name(post_proc))
+        else:
+            query_context.functional_aggregators.append(generator_name())
+        return res
+
+
+    def MIN(val):
+        return init_aggregator(MinAggregator, val) if query_context.aggregation_stage < 2 else val
+
+
+
+    def MAX(val):
+        return init_aggregator(MaxAggregator, val) if query_context.aggregation_stage < 2 else val
+
+
+    def COUNT(_val):
+        return init_aggregator(CountAggregator, 1) if query_context.aggregation_stage < 2 else 1
+
+    def SUM(val):
+        return init_aggregator(SumAggregator, val) if query_context.aggregation_stage < 2 else val
+
+    def AVG(val):
+        return init_aggregator(AvgAggregator, val) if query_context.aggregation_stage < 2 else val
+
+    def VARIANCE(val):
+        return init_aggregator(VarianceAggregator, val) if query_context.aggregation_stage < 2 else val
+
+    def MEDIAN(val):
+        return init_aggregator(MedianAggregator, val) if query_context.aggregation_stage < 2 else val
+
+    def ARRAY_AGG(val, post_proc=None):
+        # TODO consider passing array to output writer
+        return init_aggregator(ArrayAggAggregator, val, post_proc) if query_context.aggregation_stage < 2 else val
+
+
+    # We use `mad_` prefix with the function names to avoid ovewriting global min/max/sum just yet - this might interfere with logic inside user-defined functions in the init code.
+    def mad_max(*args, **kwargs):
+        single_arg = len(args) == 1 and not kwargs
+        if single_arg:
+            if PY3 and isinstance(args[0], str):
+                return MAX(args[0])
+            if not PY3 and isinstance(args[0], basestring):
+                return MAX(args[0])
+            if isinstance(args[0], int) or isinstance(args[0], float):
+                return MAX(args[0])
+        try:
+            return max(*args, **kwargs)
+        except TypeError:
+            if single_arg:
+                return MAX(args[0])
+            raise
+
+
+    def mad_min(*args, **kwargs):
+        single_arg = len(args) == 1 and not kwargs
+        if single_arg:
+            if PY3 and isinstance(args[0], str):
+                return MIN(args[0])
+            if not PY3 and isinstance(args[0], basestring):
+                return MIN(args[0])
+            if isinstance(args[0], int) or isinstance(args[0], float):
+                return MIN(args[0])
+        try:
+            return min(*args, **kwargs)
+        except TypeError:
+            if single_arg:
+                return MIN(args[0])
+            raise
+
+
+    def mad_sum(*args):
+        try:
+            return sum(*args)
+        except TypeError:
+            if len(args) == 1:
+                return SUM(args[0])
+            raise
+
+
+    main_loop_body = generate_main_loop_code(query_context)
+    compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
+    exec(compiled_main_loop, globals(), locals())
 
 
 def exception_to_error_info(e):
@@ -1360,7 +1346,7 @@ class HashJoinMap:
                 break
             nr += 1
             nf = len(fields)
-            self.max_record_len = builtin_max(self.max_record_len, nf)
+            self.max_record_len = max(self.max_record_len, nf)
             key = self.polymorphic_get_key(nr, fields)
             self.hash_map[key].append((nr, nf, fields))
 
@@ -1506,7 +1492,8 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)
 
-        query_context.writer = TopWriter(query_context.writer)
+        # FIXME do not create TopWriter if not needed
+        query_context.writer = TopWriter(query_context.writer, query_context.top_count)
         if 'distinct_count' in rb_actions[SELECT]:
             query_context.writer = UniqCountWriter(query_context.writer)
         elif 'distinct' in rb_actions[SELECT]:
@@ -1529,11 +1516,9 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
 
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
-    global query_context
-    # TODO Make RBQLContext local variable by defining aggregation functions inside the compile_and_run function.
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
     shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
-    compile_and_run()
+    compile_and_run(query_context)
     query_context.writer.finish()
     output_warnings.extend(query_context.input_iterator.get_warnings())
     if query_context.join_map_impl is not None:

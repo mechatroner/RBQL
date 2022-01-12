@@ -28,3 +28,5 @@
 * Consider disabling a1, a2 etc variables when header is enabled. This is to make sure that the user knows what query mode they are in.
 
 * Make RBQLContext local variable by defining aggregation functions inside the compile_and_run function.
+
+* Do not create TopWriter without top_count, use the base writer directly instead.
