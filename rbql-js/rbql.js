@@ -66,7 +66,7 @@ class RBQLContext {
     }
 }
 
-var query_context = null; // Needs to be global for MIN(), MAX(), etc functions
+var query_context = null; // Needs to be global for MIN(), MAX(), etc functions. TODO find a way to make it local.
 
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';

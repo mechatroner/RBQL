@@ -448,8 +448,7 @@ class TopWriter(object):
         self.top_count = top_count
 
     def write(self, record):
-        # FIXME self.top_count should always be not None here
-        if self.top_count is not None and self.NW >= self.top_count:
+        if self.NW >= self.top_count:
             return False
         success = self.subwriter.write(record)
         if success:
@@ -1495,8 +1494,8 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)
 
-        # FIXME do not create TopWriter if not needed
-        query_context.writer = TopWriter(query_context.writer, query_context.top_count)
+        if query_context.top_count is not None:
+            query_context.writer = TopWriter(query_context.writer, query_context.top_count)
         if 'distinct_count' in rb_actions[SELECT]:
             query_context.writer = UniqCountWriter(query_context.writer)
         elif 'distinct' in rb_actions[SELECT]:

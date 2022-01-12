@@ -27,6 +27,8 @@
 
 * Consider disabling a1, a2 etc variables when header is enabled. This is to make sure that the user knows what query mode they are in.
 
-* Do not create TopWriter without top_count, use the base writer directly instead.
-
 * Make debug_mode local variable
+
+* Find a way to make query_context local in JavaScript version like it was done for Python.
+
+* Get rid of TopWriter for non-top/limit queries in JavaScript version like it was done for Python.
