@@ -787,7 +787,7 @@ builtin_min = min
 builtin_sum = sum
 
 
-def compile_and_run(query_context):
+def compile_and_run(query_context, unit_test_mode=False):
     def LIKE(text, pattern):
         matcher = query_context.like_regex_cache.get(pattern, None)
         if matcher is None:
@@ -901,6 +901,9 @@ def compile_and_run(query_context):
                 return SUM(args[0])
             raise
 
+    if unit_test_mode:
+        # Return these 3 functions to be able to unit test them from outside
+        return (mad_max, mad_min, mad_sum)
 
     main_loop_body = generate_main_loop_code(query_context)
     compiled_main_loop = compile(main_loop_body, '<main loop>', 'exec')
