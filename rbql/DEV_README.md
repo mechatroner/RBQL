@@ -32,3 +32,5 @@
 * Find a way to make query_context local in JavaScript version like it was done for Python.
 
 * Get rid of TopWriter for non-top/limit queries in JavaScript version like it was done for Python.
+
+* Check ambiguous column names internally inside rbql_engine after resolving input_iterator and join_iterator, get rid of external checks.

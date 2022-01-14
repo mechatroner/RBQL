@@ -1455,6 +1455,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             join_record_iterator.handle_query_modifier(rb_actions[WITH])
         join_variables_map = join_record_iterator.get_variables_map(query_text)
         join_header = join_record_iterator.get_header()
+        # TODO check ambiguous column names here instead of external check.
 
         lhs_variables, rhs_indices = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals)
         joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_OUTER_JOIN: LeftJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
