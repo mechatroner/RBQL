@@ -186,5 +186,6 @@ The rbql module also provide `%rbql` "magic" command which can be used to query 
 ```
 from vega_datasets import data
 my_cars = data.cars()
+%load_ext rbql
 %rbql SELECT a.Name, a.Weight_in_lbs / 1000, a.Horsepower FROM my_cars WHERE a.Horsepower > 100 ORDER BY a.Weight_in_lbs DESC LIMIT 15
 ```
