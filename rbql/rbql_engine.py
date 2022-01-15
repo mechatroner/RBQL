@@ -1365,7 +1365,7 @@ def cleanup_query(query_text):
     rbql_lines = query_text.split('\n')
     rbql_lines = [strip_comments(l) for l in rbql_lines]
     rbql_lines = [l for l in rbql_lines if len(l)]
-    return ' '.join(rbql_lines)
+    return ' '.join(rbql_lines).rstrip(';')
 
 
 def remove_redundant_input_table_name(query_text):

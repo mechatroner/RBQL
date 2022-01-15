@@ -1559,7 +1559,7 @@ class HashJoinMap {
 
 
 function cleanup_query(query_text) {
-    return query_text.split('\n').map(strip_comments).filter(line => line.length).join(' ');
+    return query_text.split('\n').map(strip_comments).filter(line => line.length).join(' ').replace(/;+$/g, '');
 }
 
 
