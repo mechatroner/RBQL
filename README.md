@@ -193,5 +193,6 @@ The diagram below gives an overview of the main RBQL components and data flow:
 
 * [RBQL: Official Site](https://rbql.org/)
 * RBQL is integrated with Rainbow CSV extensions in [Vim](https://github.com/mechatroner/rainbow_csv), [VSCode](https://marketplace.visualstudio.com/items?itemName=mechatroner.rainbow-csv), [Sublime Text](https://packagecontrol.io/packages/rainbow_csv) and [Atom](https://atom.io/packages/rainbow-csv) editors.
+* [Demo Google Colab notebook](https://colab.research.google.com/drive/1_cFPtnQUxILP0RE2_DBlqIfXaEzT-oZ6?usp=sharing)
 * [RBQL in npm](https://www.npmjs.com/package/rbql): `$ npm install -g rbql`
 * [RBQL in PyPI](https://pypi.org/project/rbql/): `$ pip install rbql` - the module also provides `%rbql` magic command for IPython/Jupyter.

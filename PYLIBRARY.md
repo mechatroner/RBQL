@@ -189,3 +189,4 @@ my_cars = data.cars()
 %load_ext rbql
 %rbql SELECT a.Name, a.Weight_in_lbs / 1000, a.Horsepower FROM my_cars WHERE a.Horsepower > 100 ORDER BY a.Weight_in_lbs DESC LIMIT 15
 ```
+You can run this and other queries iniside the [demo Google Colab notebook](https://colab.research.google.com/drive/1_cFPtnQUxILP0RE2_DBlqIfXaEzT-oZ6?usp=sharing)
