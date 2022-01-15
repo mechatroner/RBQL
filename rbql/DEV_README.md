@@ -14,11 +14,12 @@
 
 * Support custom (virtual) headers for CSV version
 
-* Allow to use NL in RBQL queries for CSV version
+* Allow to use NL variable in RBQL queries for CSV version
 
 * Add "inconsistent number of fields in output table" warning. Useful for queries like this: `*a1.split("|")` or `...a1.split("|")`, where num of fields in a1 is variable
 
 * Add RBQL iterators for json lines ( https://jsonlines.org/ ) and xml-by-line files
+
 * Add RBQL file-system iterator to be able to query files like fselect does
 
 * Use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
