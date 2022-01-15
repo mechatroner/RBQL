@@ -7,3 +7,5 @@ from ._version import __version__
 from .rbql_csv import query_csv
 
 from .rbql_pandas import query_dataframe as query_pandas_dataframe
+
+from .rbql_ipython import load_ipython_extension

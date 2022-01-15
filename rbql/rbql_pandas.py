@@ -69,15 +69,15 @@ class DataframeWriter(rbql_engine.RBQLOutputWriter):
 
 
 class SingleDataframeRegistry(rbql_engine.RBQLTableRegistry):
-    def __init__(self, table, normalize_column_names=True, table_name='b'):
+    def __init__(self, table, table_name, normalize_column_names=True):
         self.table = table
         self.normalize_column_names = normalize_column_names
         self.table_name = table_name
 
-    def get_iterator_by_table_id(self, table_id):
+    def get_iterator_by_table_id(self, table_id, single_char_alias):
         if table_id.lower() != self.table_name:
             raise rbql_engine.RbqlParsingError('Unable to find join table: "{}"'.format(table_id))
-        return DataframeIterator(self.table, self.normalize_column_names, 'b')
+        return DataframeIterator(self.table, self.normalize_column_names, single_char_alias)
 
 
 def query_dataframe(query_text, input_dataframe, output_warnings=None, join_dataframe=None, normalize_column_names=True, user_init_code=''):
@@ -91,6 +91,6 @@ def query_dataframe(query_text, input_dataframe, output_warnings=None, join_data
             rbql_engine.ensure_no_ambiguous_variables(query_text, input_columns, join_columns)
     input_iterator = DataframeIterator(input_dataframe, normalize_column_names)
     output_writer = DataframeWriter()
-    join_tables_registry = None if join_dataframe is None else SingleDataframeRegistry(join_dataframe, normalize_column_names)
+    join_tables_registry = None if join_dataframe is None else SingleDataframeRegistry(join_dataframe, 'b', normalize_column_names)
     rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
     return output_writer.result

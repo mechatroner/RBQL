@@ -530,12 +530,12 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         self.comment_prefix = comment_prefix
         self.table_path = None
 
-    def get_iterator_by_table_id(self, table_id):
+    def get_iterator_by_table_id(self, table_id, single_char_alias):
         self.table_path = find_table_path(self.input_file_dir, table_id)
         if self.table_path is None:
             raise rbql_engine.RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
         self.input_stream = open(self.table_path, 'rb')
-        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.has_header, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix='b')
+        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.has_header, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix=single_char_alias)
         return self.record_iterator
 
     def finish(self):

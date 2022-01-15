@@ -323,7 +323,7 @@ class TestFromQueries(unittest.TestCase):
 
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None, 'a'), rbql_engine.ListTableInfo('unused_table', [], None, 'a')], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None), rbql_engine.ListTableInfo('unused_table', [], None)], normalize_column_names=True)
 
         rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         self.assertEqual(warnings, [])
@@ -339,7 +339,7 @@ class TestFromQueries(unittest.TestCase):
     
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None, 'a')], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None)], normalize_column_names=True)
         with self.assertRaises(Exception) as cm:
             rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         e = cm.exception
@@ -354,7 +354,7 @@ class TestFromQueries(unittest.TestCase):
 
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None, 'a')], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None)], normalize_column_names=True)
         with self.assertRaises(Exception) as cm:
             rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         e = cm.exception
@@ -370,7 +370,7 @@ class TestFromQueries(unittest.TestCase):
 
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('my_input_table', input_table, None, 'a'), rbql_engine.ListTableInfo('my_join_table', join_table, None, 'b'), rbql_engine.ListTableInfo('unused_table', [], None, 'a')], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('my_input_table', input_table, None), rbql_engine.ListTableInfo('my_join_table', join_table, None), rbql_engine.ListTableInfo('unused_table', [], None)], normalize_column_names=True)
 
         rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         self.assertEqual(warnings, [])

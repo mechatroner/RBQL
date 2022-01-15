@@ -10,12 +10,12 @@ class IPythonDataframeRegistry(rbql_engine.RBQLTableRegistry):
     def __init__(self, all_ns_refs):
         self.all_ns_refs = all_ns_refs
 
-    def get_iterator_by_table_id(self, table_id):
+    def get_iterator_by_table_id(self, table_id, single_char_alias):
         # It seems to be the first namespace is "user" namespace, at least according to this code: 
         # https://github.com/google/picatrix/blob/a2f39766ad4b007b125dc8f84916e18fb3dc5478/picatrix/lib/utils.py
-        for ns in self.all_ns_refs
+        for ns in self.all_ns_refs:
             if table_id in ns:
-                return ns[table_id]
+                return rbql_pandas.DataframeIterator(ns[table_id], normalize_column_names=True, variable_prefix=single_char_alias)
         return None
 
 
@@ -41,6 +41,8 @@ def load_ipython_extension(ipython):
         # FIXME add proper error handling
         tables_registry = IPythonDataframeRegistry(ipython.all_ns_refs)
         output_writer = rbql_pandas.DataframeWriter()
+        # Ignore warnings because pandas dataframes can't cause them.
+        output_warnings = []
         # TODO make it possible to specify user_init_code in code cells
-        rbql_engine.query(query_text, input_iterator=None, output_writer=output_writer, output_warnings=None, join_tables_registry=tables_registry, user_init_code='')
+        rbql_engine.query(query_text, input_iterator=None, output_writer=output_writer, output_warnings=output_warnings, join_tables_registry=tables_registry, user_init_code='')
         return output_writer.result

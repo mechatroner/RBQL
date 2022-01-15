@@ -1421,7 +1421,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
     if FROM in rb_actions:
         assert input_iterator is None
         input_table_id = rb_actions[FROM]['text']
-        input_iterator = tables_registry.get_iterator_by_table_id(input_table_id)
+        input_iterator = tables_registry.get_iterator_by_table_id(input_table_id, 'a')
         if input_iterator is None:
             raise RbqlParsingError('Unable to find input table: "{}"'.format(input_table_id))
         query_context.input_iterator = input_iterator
@@ -1448,7 +1448,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
         rhs_table_id, variable_pairs = parse_join_expression(rb_actions[JOIN]['text'])
         if tables_registry is None:
             raise RbqlParsingError('JOIN operations are not supported by the application') # UT JSON
-        join_record_iterator = tables_registry.get_iterator_by_table_id(rhs_table_id)
+        join_record_iterator = tables_registry.get_iterator_by_table_id(rhs_table_id, 'b')
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
         if WITH in rb_actions:
@@ -1562,7 +1562,9 @@ class RBQLOutputWriter:
 
 
 class RBQLTableRegistry:
-    def get_iterator_by_table_id(self, table_id):
+    # table_id - external table identifier like filename for csv files or variable name for pandas dataframes.
+    # single_char_alias - either `a` (for input table) or `b` (for join table)
+    def get_iterator_by_table_id(self, table_id, single_char_alias):
         raise NotImplementedError('Unable to call the interface method')
 
     def finish(self):
@@ -1627,7 +1629,7 @@ class TableWriter(RBQLOutputWriter):
         self.header = header
 
 
-ListTableInfo = namedtuple('ListTableInfo', ['table_id', 'table', 'column_names', 'table_prefix'])
+ListTableInfo = namedtuple('ListTableInfo', ['table_id', 'table', 'column_names'])
 
 
 class ListTableRegistry(RBQLTableRegistry):
@@ -1636,10 +1638,10 @@ class ListTableRegistry(RBQLTableRegistry):
         self.table_infos = table_infos
         self.normalize_column_names = normalize_column_names
 
-    def get_iterator_by_table_id(self, table_id):
+    def get_iterator_by_table_id(self, table_id, single_char_alias):
         for table_info in self.table_infos: 
             if table_info.table_id == table_id:
-                return TableIterator(table_info.table, table_info.column_names, self.normalize_column_names, table_info.table_prefix)
+                return TableIterator(table_info.table, table_info.column_names, self.normalize_column_names, single_char_alias)
         return None
 
 
@@ -1648,7 +1650,7 @@ def query_table(query_text, input_table, output_table, output_warnings, join_tab
         ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names)
     input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
-    join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names, 'b'), ListTableInfo('B', join_table, join_column_names, 'b')], normalize_column_names)
+    join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names), ListTableInfo('B', join_table, join_column_names)], normalize_column_names)
     query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
     if output_column_names is not None:
         assert len(output_column_names) == 0, '`output_column_names` param must be an empty list or None'
