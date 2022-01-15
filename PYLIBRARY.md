@@ -1,5 +1,7 @@
 # Using RBQL as python library
 
+rbql module provides a set of query functions and an IPython "magic" command.
+
 
 #### Installation:
 ```
@@ -8,7 +10,7 @@ $ pip install rbql
 
 ## API
 
-rbql library provides 3 main functions that you can use:  
+rbql library provides 4 main functions that you can use:  
 
 1. [rbql.query_table(...)](#rbqlquery_table)  
 2. [rbql.query_csv(...)](#rbqlquery_csv)  
@@ -174,3 +176,15 @@ You will have to implement special wrapper classes for your custom data structur
 
 #### Usage example
 See `rbql.query(...)` usage in RBQL [tests](https://github.com/mechatroner/RBQL/blob/master/test/test_rbql.py)  
+
+
+## IPython/Jupyter "%rbql" magic command
+The rbql module also provide `%rbql` "magic" command which can be used to query pandas dataframes inside IPython/Jupyter notebooks.
+#### Syntax
+`%rbql <query>`
+#### Usage example
+```
+from vega_datasets import data
+my_cars = data.cars()
+%rbql SELECT a.Name, a.Weight_in_lbs / 1000, a.Horsepower FROM my_cars WHERE a.Horsepower > 100 ORDER BY a.Weight_in_lbs DESC LIMIT 15
+```
