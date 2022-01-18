@@ -670,7 +670,7 @@ if not query_context.writer.write(up_fields):
 
 # We need dummy_wrapper_for_exec function because otherwise "import" statements won't work as expected if used inside user-defined functions, see: https://github.com/mechatroner/sublime_rainbow_csv/issues/22
 MAIN_LOOP_BODY = '''
-def dummy_wrapper_for_exec(query_context, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested):
+def dummy_wrapper_for_exec(query_context, user_namespace, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested):
 
     try:
         pass
@@ -697,6 +697,7 @@ def dummy_wrapper_for_exec(query_context, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AV
     min = mad_min
     sum = mad_sum
 
+    udf = user_namespace
 
     NR = 0
     NU = 0
@@ -724,7 +725,7 @@ def dummy_wrapper_for_exec(query_context, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AV
                 raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
             raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
 
-dummy_wrapper_for_exec(query_context, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested)
+dummy_wrapper_for_exec(query_context, user_namespace, LIKE, UNNEST, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested)
 '''
 
 
@@ -786,7 +787,7 @@ builtin_min = min
 builtin_sum = sum
 
 
-def compile_and_run(query_context, unit_test_mode=False):
+def compile_and_run(query_context, user_namespace, unit_test_mode=False):
     def LIKE(text, pattern):
         matcher = query_context.like_regex_cache.get(pattern, None)
         if matcher is None:
@@ -1518,10 +1519,10 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
     return warn_msg
 
 
-def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code=''):
+def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='', user_namespace=None):
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
     shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
-    compile_and_run(query_context)
+    compile_and_run(query_context, user_namespace)
     query_context.writer.finish()
     output_warnings.extend(query_context.input_iterator.get_warnings())
     if query_context.join_map_impl is not None:

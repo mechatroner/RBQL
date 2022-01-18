@@ -26,12 +26,36 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
+class AttrDict(dict):
+    # Helper class to convert dict keys to attributes. See explanation here: https://stackoverflow.com/a/14620633/2898283
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
 def load_ipython_extension(ipython):
     from IPython.core.magic import register_line_magic
     from IPython.core.getipython import get_ipython
 
     ipython = ipython or get_ipython() # The pattern taken from here: https://github.com/pydoit/doit/blob/9efe141a5dc96d4912143561695af7fc4a076490/doit/tools.py
     # ipython is interactiveshell. Docs: https://ipython.readthedocs.io/en/stable/api/generated/IPython.core.interactiveshell.html
+
+
+    def rbql_completers(self, event):
+        # This should return a list of strings with possible completions.
+        # Note that all the included strings that don't start with event.symbol
+        # are removed, in order to not confuse readline.
+
+        # eg Typing %%rbql foo then hitting tab would yield an event like so: namespace(command='%%rbql', line='%%rbql foo', symbol='foo', text_until_cursor='%%rbql foo')
+        # https://stackoverflow.com/questions/36479197/ipython-custom-tab-completion-for-user-magic-function
+        # https://github.com/ipython/ipython/issues/11878
+
+        simple_sql_keys_lower_case = ['update', 'select', 'where', 'limit', 'from', 'group']
+        simple_sql_keys_upper_case = [sk.upper() for sk in simple_sql_keys_lower_case]
+        return simple_sql_keys_lower_case + simple_sql_keys_upper_case
+
+    ipython.set_hook('complete_command', rbql_completers, str_key='%rbql')
+
 
     # The difference between line and cell magic is described here: https://jakevdp.github.io/PythonDataScienceHandbook/01.03-magic-commands.html.
     # In short: line magic only accepts one line of input whereas cell magic supports multiline input as magic command argument.
@@ -46,8 +70,11 @@ def load_ipython_extension(ipython):
         output_warnings = []
         # TODO make it possible to specify user_init_code in code cells.
         error_type, error_msg = None, None
+        user_namespace = None
+        if len(ipython.all_ns_refs) > 0:
+            user_namespace = AttrDict(ipython.all_ns_refs[0])
         try:
-            rbql_engine.query(query_text, input_iterator=None, output_writer=output_writer, output_warnings=output_warnings, join_tables_registry=tables_registry, user_init_code='')
+            rbql_engine.query(query_text, input_iterator=None, output_writer=output_writer, output_warnings=output_warnings, join_tables_registry=tables_registry, user_init_code='', user_namespace=user_namespace)
         except Exception as e:
             error_type, error_msg = rbql_engine.exception_to_error_info(e)
         if error_type is None:

@@ -37,3 +37,5 @@
 * Check ambiguous column names internally inside rbql_engine after resolving input_iterator and join_iterator, get rid of external checks.
 
 * Figure out how to implement basic autocomplete for ipython
+
+* Figure out how to color SQL keywords such as "SELECT", "WHERE", etc
