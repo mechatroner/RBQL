@@ -50,7 +50,7 @@ def load_ipython_extension(ipython):
         # https://stackoverflow.com/questions/36479197/ipython-custom-tab-completion-for-user-magic-function
         # https://github.com/ipython/ipython/issues/11878
 
-        simple_sql_keys_lower_case = ['update', 'select', 'where', 'limit', 'from', 'group']
+        simple_sql_keys_lower_case = ['update', 'select', 'where', 'limit', 'from', 'group by', 'order by']
         simple_sql_keys_upper_case = [sk.upper() for sk in simple_sql_keys_lower_case]
         return simple_sql_keys_lower_case + simple_sql_keys_upper_case
 
