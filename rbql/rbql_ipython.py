@@ -7,16 +7,21 @@ from . import rbql_pandas
 
 # TODO figure out how to implement at least basic autocomplete for the magic command.
 
+import re
+from_autocomplete_matcher = re.compile(r'(?:^| )from +([_a-zA-Z0-9]+)(?:$| )', flags=re.IGNORECASE)
+
 
 class IPythonDataframeRegistry(rbql_engine.RBQLTableRegistry):
+    # TODO consider making this class nested under load_ipython_extension to avoid redundant `import pandas`.
     def __init__(self, all_ns_refs):
         self.all_ns_refs = all_ns_refs
 
     def get_iterator_by_table_id(self, table_id, single_char_alias):
+        import pandas
         # It seems to be the first namespace is "user" namespace, at least according to this code: 
         # https://github.com/google/picatrix/blob/a2f39766ad4b007b125dc8f84916e18fb3dc5478/picatrix/lib/utils.py
         for ns in self.all_ns_refs:
-            if table_id in ns:
+            if table_id in ns and isinstance(ns[table_id], pandas.DataFrame):
                 return rbql_pandas.DataframeIterator(ns[table_id], normalize_column_names=True, variable_prefix=single_char_alias)
         return None
 
@@ -36,9 +41,20 @@ class AttrDict(dict):
 def load_ipython_extension(ipython):
     from IPython.core.magic import register_line_magic
     from IPython.core.getipython import get_ipython
+    import pandas
 
     ipython = ipython or get_ipython() # The pattern taken from here: https://github.com/pydoit/doit/blob/9efe141a5dc96d4912143561695af7fc4a076490/doit/tools.py
     # ipython is interactiveshell. Docs: https://ipython.readthedocs.io/en/stable/api/generated/IPython.core.interactiveshell.html
+
+
+    def get_table_column_names(table_id):
+        user_namespace = ipython.all_ns_refs[0] if len(ipython.all_ns_refs) else dict()
+        if table_id not in user_namespace or not isinstance(user_namespace[table_id], pandas.DataFrame):
+            return []
+        input_df = user_namespace[table_id]
+        if isinstance(input_df.columns, pandas.RangeIndex) or not len(input_df.columns):
+            return []
+        return [str(v) for v in list(input_df.columns)]
 
 
     def rbql_completers(self, event):
@@ -50,9 +66,17 @@ def load_ipython_extension(ipython):
         # https://stackoverflow.com/questions/36479197/ipython-custom-tab-completion-for-user-magic-function
         # https://github.com/ipython/ipython/issues/11878
 
+        table_column_names = []
+        if event.symbol and event.symbol.startswith('a.'):
+            from_match = from_autocomplete_matcher.search(event.line)
+            if from_match is not None:
+                table_id = from_match.group(1)
+                table_column_names = get_table_column_names(table_id)
+                table_column_names = ['a.' + cn for cn in table_column_names]
+        
         simple_sql_keys_lower_case = ['update', 'select', 'where', 'limit', 'from', 'group by', 'order by']
         simple_sql_keys_upper_case = [sk.upper() for sk in simple_sql_keys_lower_case]
-        return simple_sql_keys_lower_case + simple_sql_keys_upper_case
+        return simple_sql_keys_lower_case + simple_sql_keys_upper_case + table_column_names
 
     ipython.set_hook('complete_command', rbql_completers, str_key='%rbql')
 
