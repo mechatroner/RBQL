@@ -9,6 +9,7 @@ from . import rbql_pandas
 
 import re
 from_autocomplete_matcher = re.compile(r'(?:^| )from +([_a-zA-Z0-9]+)(?:$| )', flags=re.IGNORECASE)
+join_autocomplete_matcher = re.compile(r'(?:^| )join +([_a-zA-Z0-9]+)(?:$| )', flags=re.IGNORECASE)
 
 
 class IPythonDataframeRegistry(rbql_engine.RBQLTableRegistry):
@@ -66,17 +67,25 @@ def load_ipython_extension(ipython):
         # https://stackoverflow.com/questions/36479197/ipython-custom-tab-completion-for-user-magic-function
         # https://github.com/ipython/ipython/issues/11878
 
-        table_column_names = []
+        simple_sql_keys_lower_case = ['update', 'select', 'where', 'limit', 'from', 'group by', 'order by']
+        simple_sql_keys_upper_case = [sk.upper() for sk in simple_sql_keys_lower_case]
+        autocomplete_suggestions = simple_sql_keys_lower_case + simple_sql_keys_upper_case
+
         if event.symbol and event.symbol.startswith('a.'):
             from_match = from_autocomplete_matcher.search(event.line)
             if from_match is not None:
                 table_id = from_match.group(1)
                 table_column_names = get_table_column_names(table_id)
-                table_column_names = ['a.' + cn for cn in table_column_names]
+                autocomplete_suggestions += ['a.' + cn for cn in table_column_names]
+
+        if event.symbol and event.symbol.startswith('b.'):
+            from_match = join_autocomplete_matcher.search(event.line)
+            if from_match is not None:
+                table_id = from_match.group(1)
+                table_column_names = get_table_column_names(table_id)
+                autocomplete_suggestions += ['b.' + cn for cn in table_column_names]
         
-        simple_sql_keys_lower_case = ['update', 'select', 'where', 'limit', 'from', 'group by', 'order by']
-        simple_sql_keys_upper_case = [sk.upper() for sk in simple_sql_keys_lower_case]
-        return simple_sql_keys_lower_case + simple_sql_keys_upper_case + table_column_names
+        return autocomplete_suggestions
 
     ipython.set_hook('complete_command', rbql_completers, str_key='%rbql')
 
