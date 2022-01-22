@@ -47,3 +47,7 @@
 * Get rid of TopWriter for non-top/limit queries in JavaScript version like it was done for Python.
 
 * Find a way to make query_context local in JavaScript version like it was done for Python.
+
+## Upstream TODO
+
+Enable better error reporting in V8 engine eval() function, see https://bugs.chromium.org/p/v8/issues/detail?id=2589
