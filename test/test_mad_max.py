@@ -16,13 +16,13 @@ from rbql import rbql_engine
 
 
 def get_mad_max():
-    return rbql_engine.compile_and_run(rbql_engine.RBQLContext(None, None, None), unit_test_mode=True)[0]
+    return rbql_engine.compile_and_run(rbql_engine.RBQLContext(None, None, None), user_namespace=None, unit_test_mode=True)[0]
 
 def get_mad_min():
-    return rbql_engine.compile_and_run(rbql_engine.RBQLContext(None, None, None), unit_test_mode=True)[1]
+    return rbql_engine.compile_and_run(rbql_engine.RBQLContext(None, None, None), user_namespace=None, unit_test_mode=True)[1]
 
 def get_mad_sum():
-    return rbql_engine.compile_and_run(rbql_engine.RBQLContext(None, None, None), unit_test_mode=True)[2]
+    return rbql_engine.compile_and_run(rbql_engine.RBQLContext(None, None, None), user_namespace=None, unit_test_mode=True)[2]
 
 
 class TestMadMax(unittest.TestCase):
