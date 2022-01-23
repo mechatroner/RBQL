@@ -4,14 +4,14 @@ from __future__ import print_function
 
 import sys
 import re
-import random
-import time
 import ast
 from collections import OrderedDict, defaultdict, namedtuple
 
-import datetime # For date operations inside user queries.
-import os # For system operations inside user queries.
-import math # For math operations inside user queries.
+import random # For usage inside user queries only.
+import datetime # For usage inside user queries only.
+import os # For usage inside user queries only.
+import math # For usage inside user queries only.
+import time # For usage inside user queries only.
 
 from ._version import __version__
 
@@ -42,6 +42,12 @@ default_statement_groups = [[STRICT_LEFT_JOIN, LEFT_OUTER_JOIN, LEFT_JOIN, INNER
 
 ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input and in join tables'
 invalid_keyword_in_aggregate_query_error_msg = '"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries'
+wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
+numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
+
+PY3 = sys.version_info[0] == 3
+
+RBQL_VERSION = __version__
 
 debug_mode = False
 
@@ -96,16 +102,6 @@ class RBQLContext:
         self.update_expressions = None
 
         self.variables_init_code = None
-
-
-RBQL_VERSION = __version__
-
-
-wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
-numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
-
-
-PY3 = sys.version_info[0] == 3
 
 
 def is_str6(val):
