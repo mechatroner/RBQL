@@ -520,6 +520,7 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         this.encoding = encoding;
         if (encoding)
             this.stream.setDefaultEncoding(encoding);
+        this.stream.on('error', (error_obj) => { this.store_first_error(error_obj); })
         this.delim = delim;
         this.policy = policy;
         this.line_separator = line_separator;
@@ -530,6 +531,7 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         this.null_in_output = false;
         this.delim_in_simple_output = false;
         this.header_len = null;
+        this.first_error = null;
 
         if (policy == 'simple') {
             this.polymorphic_join = this.simple_join;
@@ -546,6 +548,12 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         }
     }
 
+
+    store_first_error(error_obj) {
+        // Store only first error because it is typically more important than the subsequent ones.
+        if (this.first_error === null)
+            this.first_error = error_obj;
+    }
 
     set_header(header) {
         if (header !== null) {
@@ -599,13 +607,20 @@ class CSVWriter extends rbql.RBQLOutputWriter {
     };
 
 
-    write(fields) {
+    async write(fields) {
         if (this.header_len !== null && fields.length != this.header_len)
             throw new RbqlIOHandlingError(`Inconsistent number of columns in output header and the current record: ${this.header_len} != ${fields.length}`);
         this.normalize_fields(fields);
         this.stream.write(this.polymorphic_join(fields));
         this.stream.write(this.line_separator);
-        return true;
+        let writer_error = this.first_error;
+        return new Promise(function(resolve, reject) {
+            if (writer_error !== null) {
+                reject(writer_error);
+            } else {
+                resolve(true);
+            }
+        });
     };
 
 
@@ -620,7 +635,11 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         let close_stream_on_finish = this.close_stream_on_finish;
         let output_stream = this.stream;
         let output_encoding = this.encoding;
+        let writer_error = this.first_error;
         let finish_promise = new Promise(function(resolve, reject) {
+            if (writer_error !== null) {
+                reject(writer_error);
+            }
             if (close_stream_on_finish) {
                 output_stream.end('', output_encoding, () => { resolve(); });
             } else {

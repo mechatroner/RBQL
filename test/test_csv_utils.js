@@ -278,6 +278,10 @@ function PseudoWritable() {
     this.get_data = function() {
         return Buffer.from(this.data_chunks.join(''), this.encoding);
     };
+
+    this.on = function(msg_type, callback) {
+        assert(msg_type === 'error');
+    }
 }
 
 
