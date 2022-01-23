@@ -258,6 +258,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
 
     store_or_propagate_exception(exception) {
         if (this.current_exception === null)
+            // Ignore subsequent exceptions if we already have an unreported error. This way we prioritize earlier errors over the more recent ones.
             this.current_exception = exception;
         this.try_propagate_exception();
     }
