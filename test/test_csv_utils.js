@@ -459,7 +459,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
         query = randomly_replace_columns_dictionary_style(query);
 
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
-    let expected_error = test_common.get_default(test_case, 'expected_error', null);
+    let expected_error = test_common.get_default(test_case, 'expected_error', null) || test_common.get_default(test_case, 'expected_error_js', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
     let delim = test_case['csv_separator'];
@@ -469,8 +469,8 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let with_headers = test_common.get_default(test_case, 'with_headers', false);
     let output_format = test_common.get_default(test_case, 'output_format', 'input');
     let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
-    let actual_output_table_path = null;
     let expected_md5 = null;
+    let actual_output_table_path = null;
     if (expected_output_table_path !== null) {
         let output_file_name = path.basename(expected_output_table_path);
         expected_output_table_path = path.join(script_dir, expected_output_table_path);
@@ -479,6 +479,9 @@ async function process_test_case(tmp_tests_dir, test_case) {
     } else {
         actual_output_table_path = path.join(tmp_tests_dir, 'expected_empty_file');
     }
+    let absolute_output_table_path = test_common.get_default(test_case, 'absolute_output_table_path', null);
+    if (absolute_output_table_path !== null)
+        actual_output_table_path = absolute_output_table_path;
 
     bulk_read = bulk_read || random_choice([true, false]);
     let options = {'bulk_read': bulk_read};

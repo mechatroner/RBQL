@@ -875,8 +875,11 @@ class TestRBQLWithCSV(unittest.TestCase):
             actual_output_table_path = os.path.join(tmp_tests_dir, output_file_name) 
         else:
             actual_output_table_path = os.path.join(tmp_tests_dir, 'expected_empty_file') 
+        absolute_output_table_path = test_case.get('absolute_output_table_path', None)
+        if absolute_output_table_path is not None:
+            actual_output_table_path = absolute_output_table_path
 
-        expected_error = test_case.get('expected_error', None)
+        expected_error = test_case.get('expected_error', None) or test_case.get('expected_error_py', None)
         expected_warnings = test_case.get('expected_warnings', [])
         delim = test_case['csv_separator']
         policy = test_case['csv_policy']

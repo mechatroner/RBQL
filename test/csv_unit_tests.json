@@ -567,6 +567,20 @@
         "query_js": "select top 20 NR, a2, b.country, b.Population join countries.csv on a.country == b.country order by a.university_name desc"
     },
     {
+        "test_name": "Nonexistent output directory",
+        "input_table_path": "csv_files/movies.tsv",
+        "absolute_output_table_path": "/non/existent/path/to/output/table.tsv",
+        "expected_error_js": "ENOENT: no such file or directory, open '/non/existent/path/to/output/table.tsv'",
+        "expected_error_py": "[Errno 2] No such file or directory",
+        "skip_others": false,
+        "csv_separator": "\t",
+        "debug_mode": false,
+        "csv_policy": "simple",
+        "csv_encoding": "utf-8",
+        "query_python": "select a1, a2, a4, a8 where int(a8) == 142 order by int(a4) desc",
+        "query_js": "select a1, a2, a4, a8 where a8 * 1.0 == 142 order by parseInt(a4) desc"
+    },
+    {
         "test_name": "Bad header: empty strings and duplicate values in header",
         "input_table_path": "csv_files/countries_bad_header.csv",
         "expected_output_table_path": "csv_files/countries_bad_header_result1.csv",
