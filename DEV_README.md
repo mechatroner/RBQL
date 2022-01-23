@@ -48,6 +48,8 @@
 
 * Find a way to make query_context local in JavaScript version like it was done for Python.
 
+* Handle non-writable output file errors e.g. ENOENT output dir doesn't exist. Python already handles this pretty well.
+
 ## Upstream TODO
 
 Enable better error reporting in V8 engine eval() function, see https://bugs.chromium.org/p/v8/issues/detail?id=2589
