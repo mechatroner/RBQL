@@ -36,6 +36,8 @@
 
 * Optimize performance: optional compilation depending on python2/python3
 
+* Optimize performance: replace `smart_split()` with `polymorphic_split()` in rbql_csv.py
+
 ## IPython TODO
 
 * Figure out how to color SQL keywords such as "SELECT", "WHERE", etc for ipython

@@ -13,24 +13,12 @@ from . import csv_utils
 
 
 PY3 = sys.version_info[0] == 3
-
-default_csv_encoding = 'utf-8'
-
-user_home_dir = os.path.expanduser('~')
-table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
-
-
-# TODO performance improvement: replace smart_split() with polymorphic_split()
-
-
 polymorphic_xrange = range if PY3 else xrange
 
-
-debug_mode = False
-
-
+default_csv_encoding = 'utf-8'
 ansi_reset_color_code = '\u001b[0m'
 
+debug_mode = False
 
 try:
     broken_pipe_exception = BrokenPipeError
@@ -138,6 +126,8 @@ def find_table_path(main_table_dir, table_id):
         candidate_path = os.path.join(main_table_dir, candidate_path)
         if os.path.exists(candidate_path):
             return candidate_path
+    user_home_dir = os.path.expanduser('~')
+    table_names_settings_path = os.path.join(user_home_dir, '.rbql_table_names')
     name_record = get_index_record(table_names_settings_path, table_id)
     if name_record is not None and len(name_record) > 1 and os.path.exists(name_record[1]):
         return name_record[1]
