@@ -972,7 +972,7 @@ async function compile_and_run(query_context) {
             if (lower_case_query.indexOf(' like ') != -1)
                 throw new SyntaxError(e.message + "\nRBQL doesn't support \"LIKE\" operator, use like() function instead e.g. ... WHERE like(a1, 'foo%bar') ... "); // UT JSON
             if (lower_case_query.indexOf(' from ') != -1)
-                throw new SyntaxError(e.message + "\nRBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM"); // UT JSON
+                throw new SyntaxError(e.message + "\nTip: If input table is defined by the environment, RBQL query should not have \"FROM\" keyword"); // UT JSON
             if (e && e.message && String(e.message).toLowerCase().indexOf('unexpected identifier') != -1) {
                 if (lower_case_query.indexOf(' and ') != -1)
                     throw new SyntaxError(e.message + "\nDid you use 'and' keyword in your query?\nJavaScript backend doesn't support 'and' keyword, use '&&' operator instead!");

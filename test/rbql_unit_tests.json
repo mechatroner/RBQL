@@ -68,7 +68,7 @@
             ["50", "alpha", "delta"],
             ["20", "alpha", ""]
         ],
-        "expected_error": "RBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM",
+        "expected_error": "Tip: If input table is defined by the environment, RBQL query should not have \"FROM\" keyword",
         "query_python": "select * from some_table.txt",
         "query_js": "select * from some_table.txt"
     },

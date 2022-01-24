@@ -30,8 +30,6 @@
 
 * Check ambiguous column names internally inside rbql_engine after resolving input_iterator and join_iterator, get rid of external checks.
 
-* FIX js/py error message: `RBQL doesn't use \"FROM\" keyword, e.g. you can query 'SELECT *' without FROM` instead it should check if the input table is context defined or not, and show this (modified) error only for context-defined input queries. and when FROM is missing in non-context defined queries it should be another error, make sure we have it.
-
 ## Python TODO
 
 * Use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
