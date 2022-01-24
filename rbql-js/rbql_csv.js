@@ -710,7 +710,6 @@ async function query_csv(query_text, input_path, input_delim, input_policy, outp
         input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
     }
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
-    // FIXME add on(error) handler to avoid async errors, see https://github.com/nodejs/node-v0.x-archive/issues/406
     if (input_delim == '"' && input_policy == 'quoted')
         throw new RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy');
     if (csv_encoding == 'latin-1')
