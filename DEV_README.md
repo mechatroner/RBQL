@@ -30,6 +30,8 @@
 
 * Check ambiguous column names internally inside rbql_engine after resolving input_iterator and join_iterator, get rid of external checks.
 
+* Create reasonable API for converting table_ids (from query text, both join and main) to table_uri for external usage e.g. to fetch column names for autocomplete.
+
 ## Python TODO
 
 * Use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
