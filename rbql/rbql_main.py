@@ -87,7 +87,7 @@ def run_with_python_csv(args, is_interactive):
     warnings = []
     error_type, error_msg = None, None
     try:
-        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, with_headers, args.comment_prefix, user_init_code, args.color)
+        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, with_headers, args.comment_prefix, user_init_code, args.color, args.with_zero_based_vars)
     except Exception as e:
         if args.debug_mode:
             raise
@@ -388,6 +388,7 @@ def csv_main():
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
     parser.add_argument('--color', action='store_true', help='colorize columns in output in non-interactive mode')
+    parser.add_argument('--with-zero-based-vars', action='store_true', help='Query uses 0-based variables instead of 1-based')
     parser.add_argument('--version', action='store_true', help='print RBQL version and exit')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode

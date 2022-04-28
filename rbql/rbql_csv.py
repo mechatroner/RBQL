@@ -369,10 +369,10 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
             self.first_record_should_be_emitted = True
         
 
-    def get_variables_map(self, query_text):
+    def get_variables_map(self, query_text, query_uses_zero_based_variables=False):
         variable_map = dict()
-        rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
-        rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
+        rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map, query_uses_zero_based_variables)
+        rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map, query_uses_zero_based_variables)
         if self.has_header and self.first_record is not None:
             rbql_engine.parse_attribute_variables(query_text, self.variable_prefix, self.first_record, 'CSV header line', variable_map)
             rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.first_record, variable_map)
@@ -539,7 +539,7 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         return result
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False):
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False, query_uses_zero_based_variables=False):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -568,7 +568,7 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
         if debug_mode:
             rbql_engine.set_debug_mode()
-        rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
+        rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code, None, query_uses_zero_based_variables)
     finally:
         if close_input_on_finish:
             input_stream.close()

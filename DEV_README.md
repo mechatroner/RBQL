@@ -32,6 +32,8 @@
 
 * Create reasonable API for converting table_ids (from query text, both join and main) to table_uri for external usage e.g. to fetch column names for autocomplete.
 
+* Add handling of zero-based vars and unit tests
+
 ## Python TODO
 
 * Use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing

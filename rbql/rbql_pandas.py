@@ -22,10 +22,10 @@ class DataframeIterator(rbql_engine.RBQLInputIterator):
         self.column_names = get_dataframe_column_names_for_rbql(table)
         self.table_itertuples = self.table.itertuples(index=False)
 
-    def get_variables_map(self, query_text):
+    def get_variables_map(self, query_text, query_uses_zero_based_variables=False):
         variable_map = dict()
-        rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
-        rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
+        rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map, query_uses_zero_based_variables)
+        rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map, query_uses_zero_based_variables)
         if self.column_names is not None:
             if self.normalize_column_names:
                 rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)

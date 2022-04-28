@@ -1003,22 +1003,24 @@ def resolve_join_variables(input_variables_map, join_variables_map, variable_pai
     return (lhs_variables, rhs_indices)
 
 
-def parse_basic_variables(query_text, prefix, dst_variables_map):
+def parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=False):
     assert prefix in ['a', 'b']
     rgx = '(?:^|[^_a-zA-Z0-9]){}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
     matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
-        dst_variables_map[prefix + str(field_num)] = VariableInfo(initialize=True, index=field_num - 1)
+        variable_index = field_num if query_uses_zero_based_variables else field_num - 1
+        dst_variables_map[prefix + str(field_num)] = VariableInfo(initialize=True, index=variable_index)
 
 
-def parse_array_variables(query_text, prefix, dst_variables_map):
+def parse_array_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables):
     assert prefix in ['a', 'b']
     rgx = r'(?:^|[^_a-zA-Z0-9]){}\[([1-9][0-9]*)\]'.format(prefix)
     matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
-        dst_variables_map['{}[{}]'.format(prefix, field_num)] = VariableInfo(initialize=True, index=field_num - 1)
+        variable_index = field_num if query_uses_zero_based_variables else field_num - 1
+        dst_variables_map['{}[{}]'.format(prefix, field_num)] = VariableInfo(initialize=True, index=variable_index)
 
 
 def python_string_escape_column_name(column_name, quote_char):
@@ -1403,7 +1405,7 @@ def select_output_header(input_header, join_header, query_column_infos):
     return output_header
 
 
-def shallow_parse_input_query(query_text, input_iterator, tables_registry, query_context):
+def shallow_parse_input_query(query_text, input_iterator, tables_registry, query_context, query_uses_zero_based_variables=False):
     query_text = cleanup_query(query_text)
     format_expression, string_literals = separate_string_literals(query_text)
     statement_groups = default_statement_groups[:]
@@ -1428,7 +1430,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
 
     if WITH in rb_actions:
         input_iterator.handle_query_modifier(rb_actions[WITH])
-    input_variables_map = input_iterator.get_variables_map(query_text)
+    input_variables_map = input_iterator.get_variables_map(query_text, query_uses_zero_based_variables)
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
         raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries') # UT JSON
@@ -1450,7 +1452,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
         if WITH in rb_actions:
             join_record_iterator.handle_query_modifier(rb_actions[WITH])
-        join_variables_map = join_record_iterator.get_variables_map(query_text)
+        join_variables_map = join_record_iterator.get_variables_map(query_text, query_uses_zero_based_variables)
         join_header = join_record_iterator.get_header()
         # TODO check ambiguous column names here instead of external check.
 
@@ -1515,9 +1517,9 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
     return warn_msg
 
 
-def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='', user_namespace=None):
+def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='', user_namespace=None, query_uses_zero_based_variables=False):
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
-    shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
+    shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context, query_uses_zero_based_variables)
     compile_and_run(query_context, user_namespace)
     query_context.writer.finish()
     output_warnings.extend(query_context.input_iterator.get_warnings())
@@ -1527,7 +1529,7 @@ def query(query_text, input_iterator, output_writer, output_warnings, join_table
 
 
 class RBQLInputIterator:
-    def get_variables_map(self, query_text):
+    def get_variables_map(self, query_text, query_uses_zero_based_variables=False):
         raise NotImplementedError('Unable to call the interface method')
 
     def get_record(self):
@@ -1580,10 +1582,10 @@ class TableIterator(RBQLInputIterator):
         self.NR = 0
         self.fields_info = dict()
 
-    def get_variables_map(self, query_text):
+    def get_variables_map(self, query_text, query_uses_zero_based_variables=False):
         variable_map = dict()
-        parse_basic_variables(query_text, self.variable_prefix, variable_map)
-        parse_array_variables(query_text, self.variable_prefix, variable_map)
+        parse_basic_variables(query_text, self.variable_prefix, variable_map, query_uses_zero_based_variables)
+        parse_array_variables(query_text, self.variable_prefix, variable_map, query_uses_zero_based_variables)
         if self.column_names is not None:
             if len(self.table) and len(self.column_names) != len(self.table[0]):
                 raise RbqlIOHandlingError('List of column names and table records have different lengths')
