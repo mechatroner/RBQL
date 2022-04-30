@@ -278,10 +278,10 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
     };
 
 
-    async get_variables_map(query_text) {
+    async get_variables_map(query_text, query_uses_zero_based_variables=false) {
         let variable_map = new Object();
-        rbql.parse_basic_variables(query_text, this.variable_prefix, variable_map);
-        rbql.parse_array_variables(query_text, this.variable_prefix, variable_map);
+        rbql.parse_basic_variables(query_text, this.variable_prefix, variable_map, query_uses_zero_based_variables);
+        rbql.parse_array_variables(query_text, this.variable_prefix, variable_map, query_uses_zero_based_variables);
 
         await this.preread_first_record();
         if (this.has_header && this.first_record) {
@@ -688,7 +688,7 @@ class FileSystemCSVRegistry extends rbql.RBQLTableRegistry {
 }
 
 
-async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers=false, comment_prefix=null, user_init_code='', options=null) {
+async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers=false, comment_prefix=null, user_init_code='', options=null, query_uses_zero_based_variables=false) {
     let input_stream = null;
     let bulk_input_path = null;
     if (options && options['bulk_read'] && input_path) {
@@ -715,7 +715,7 @@ async function query_csv(query_text, input_path, input_delim, input_policy, outp
     let input_iterator = new CSVRecordIterator(input_stream, bulk_input_path, csv_encoding, input_delim, input_policy, with_headers, comment_prefix);
     let output_writer = new CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy);
 
-    await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
+    await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code, query_uses_zero_based_variables);
     join_tables_registry.get_warnings(output_warnings);
 }
 

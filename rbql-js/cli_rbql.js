@@ -209,6 +209,7 @@ async function run_with_js(args) {
     var output_path = get_default(args, 'output', null);
     var csv_encoding = args['encoding'];
     var with_headers = args['with-headers'];
+    var with_zero_based_vars = args['with-zero-based-vars'];
     var comment_prefix = args['comment-prefix'];
     var output_delim = get_default(args, 'out-delim', null);
     var output_policy = get_default(args, 'out-policy', null);
@@ -230,7 +231,7 @@ async function run_with_js(args) {
         // * This is CLI so no way we are in the Electron environment which can't use the TextDecoder
         // * Streaming mode works a little faster (since we don't need to do the manual validation)
         // TODO check if the current node installation doesn't have ICU enabled (which is typicaly provided by Node.js by default, see https://nodejs.org/api/intl.html) and report a user-friendly error with an option to use latin-1 encoding or switch the interpreter
-        await rbql_csv.query_csv(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, warnings, with_headers, comment_prefix, user_init_code/*, {'bulk_read': true}*/);
+        await rbql_csv.query_csv(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, warnings, with_headers, comment_prefix, user_init_code, /*options=*/null, with_zero_based_vars);
         await handle_query_success(warnings, output_path, csv_encoding, output_delim, output_policy);
         return true;
     } catch (e) {
@@ -371,6 +372,7 @@ function main() {
         '--out-format': {'default': 'input', 'help': 'Output format. Supported values: ' + out_format_names.map(v => `"${v}"`).join(', '), 'metavar': 'FORMAT'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format', 'metavar': 'DELIM'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format', 'metavar': 'POLICY'},
+        '--with-zero-based-vars': {'boolean': true, 'help': 'Query uses 0-based variables instead of 1-based, e.g. `a0` instead of `a1`'},
         '--error-format': {'default': 'hr', 'help': 'Errors and warnings format. [hr|json]', 'hidden': true},
         '--version': {'boolean': true, 'help': 'Print RBQL version and exit'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}

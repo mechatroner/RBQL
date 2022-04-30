@@ -1038,24 +1038,26 @@ function combine_string_literals(backend_expression, string_literals) {
 }
 
 
-function parse_basic_variables(query_text, prefix, dst_variables_map) {
+function parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=false) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
     let matches = get_all_matches(rgx, query_text);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
-        dst_variables_map[prefix + String(field_num)] = {initialize: true, index: field_num - 1};
+        let variable_index = query_uses_zero_based_variables ? field_num : field_num - 1;
+        dst_variables_map[prefix + String(field_num)] = {initialize: true, index: variable_index};
     }
 }
 
 
-function parse_array_variables(query_text, prefix, dst_variables_map) {
+function parse_array_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=false) {
     assert(prefix == 'a' || prefix == 'b');
     let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\]`, 'g');
     let matches = get_all_matches(rgx, query_text);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
-        dst_variables_map[`${prefix}[${field_num}]`] = {initialize: true, index: field_num - 1};
+        let variable_index = query_uses_zero_based_variables ? field_num : field_num - 1;
+        dst_variables_map[`${prefix}[${field_num}]`] = {initialize: true, index: variable_index};
     }
 }
 
@@ -1631,7 +1633,7 @@ class RBQLInputIterator {
     stop() {
         throw new Error("Unable to call the interface method");
     }
-    async get_variables_map(query_text) {
+    async get_variables_map(query_text, query_uses_zero_based_variables=false) {
         throw new Error("Unable to call the interface method");
     }
     async get_record() {
@@ -1701,10 +1703,10 @@ class TableIterator extends RBQLInputIterator {
     };
 
 
-    async get_variables_map(query_text) {
+    async get_variables_map(query_text, query_uses_zero_based_variables=false) {
         let variable_map = new Object();
-        parse_basic_variables(query_text, this.variable_prefix, variable_map);
-        parse_array_variables(query_text, this.variable_prefix, variable_map);
+        parse_basic_variables(query_text, this.variable_prefix, variable_map, query_uses_zero_based_variables);
+        parse_array_variables(query_text, this.variable_prefix, variable_map, query_uses_zero_based_variables);
         if (this.column_names !== null) {
             if (this.table.length && this.column_names.length != this.table[0].length)
                 throw new RbqlIOHandlingError('List of column names and table records have different lengths');
@@ -1779,7 +1781,7 @@ class SingleTableRegistry extends RBQLTableRegistry {
 }
 
 
-async function shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context) {
+async function shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context, query_uses_zero_based_variables=false) {
     query_text = cleanup_query(query_text);
     var [format_expression, string_literals] = separate_string_literals(query_text);
     format_expression = remove_redundant_table_name(format_expression);
@@ -1788,7 +1790,7 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     if (rb_actions.hasOwnProperty(WITH)) {
         input_iterator.handle_query_modifier(rb_actions[WITH]);
     }
-    var input_variables_map = await input_iterator.get_variables_map(query_text);
+    var input_variables_map = await input_iterator.get_variables_map(query_text, query_uses_zero_based_variables);
 
     if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');
@@ -1811,7 +1813,7 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         if (rb_actions.hasOwnProperty(WITH)) {
             join_record_iterator.handle_query_modifier(rb_actions[WITH]);
         }
-        join_variables_map = await join_record_iterator.get_variables_map(query_text);
+        join_variables_map = await join_record_iterator.get_variables_map(query_text, query_uses_zero_based_variables);
         join_header = await join_record_iterator.get_header();
         let [lhs_variables, rhs_indices] = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals);
         let sql_join_type = {'JOIN': InnerJoiner, 'INNER JOIN': InnerJoiner, 'LEFT JOIN': LeftJoiner, 'LEFT OUTER JOIN': LeftJoiner, 'STRICT LEFT JOIN': StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']];
@@ -1867,9 +1869,9 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
 }
 
 
-async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='') {
+async function query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=null, user_init_code='', query_uses_zero_based_variables=false) {
     query_context = new RBQLContext(query_text, input_iterator, output_writer, user_init_code);
-    await shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context);
+    await shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context, query_uses_zero_based_variables);
     await compile_and_run(query_context);
     await query_context.writer.finish();
     output_warnings.push(...input_iterator.get_warnings());
@@ -1879,13 +1881,13 @@ async function query(query_text, input_iterator, output_writer, output_warnings,
 }
 
 
-async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, output_column_names=null, normalize_column_names=true, user_init_code='') {
+async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, output_column_names=null, normalize_column_names=true, user_init_code='', query_uses_zero_based_variables=false) {
     if (!normalize_column_names && input_column_names !== null && join_column_names !== null)
         ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names);
     let input_iterator = new TableIterator(input_table, input_column_names, normalize_column_names);
     let output_writer = new TableWriter(output_table);
     let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table, join_column_names, normalize_column_names);
-    await query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
+    await query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code, query_uses_zero_based_variables);
     if (output_column_names !== null) {
         assert(output_column_names.length == 0, '`output_column_names` param must be an empty list or null');
         if (output_writer.header !== null) {
