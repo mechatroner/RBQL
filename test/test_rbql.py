@@ -429,6 +429,7 @@ class TestJsonTables(unittest.TestCase):
         join_column_names = test_case.get('join_column_names', None)
         normalize_column_names = test_case.get('normalize_column_names', True)
         user_init_code = test_case.get('python_init_code', '')
+        query_uses_zero_based_variables = test_case.get('query_uses_zero_based_variables', False)
         expected_output_header = test_case.get('expected_output_header', list())
         expected_output_table = test_case.get('expected_output_table', None)
         expected_error_type = test_case.get('expected_error_type', None)
@@ -449,7 +450,7 @@ class TestJsonTables(unittest.TestCase):
         output_column_names = []
         error_type, error_msg = None, None
         try:
-            rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, normalize_column_names, user_init_code)
+            rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, normalize_column_names, user_init_code, query_uses_zero_based_variables)
         except Exception as e:
             if debug_mode:
                 raise

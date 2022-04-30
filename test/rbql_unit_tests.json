@@ -1754,5 +1754,21 @@
         "expected_error": "RBQL doesn't support \"HAVING\" keyword",
         "query_python": "select a1, a3, MIN(int(a2) * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 HAVING COUNT(*) > 1",
         "query_js": "select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 HAVING COUNT(*) > 1"
+    },
+    {
+        "test_name": "Zero-based column names",
+        "skip_others": false,
+        "query_uses_zero_based_variables": true,
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5],
+            [4, "20", 0]
+        ],
+        "query_python": "select NR, a0, len(a2) FROM a where int(a0) > 5"
     }
 ]

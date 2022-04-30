@@ -1005,7 +1005,7 @@ def resolve_join_variables(input_variables_map, join_variables_map, variable_pai
 
 def parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=False):
     assert prefix in ['a', 'b']
-    rgx = '(?:^|[^_a-zA-Z0-9]){}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    rgx = '(?:^|[^_a-zA-Z0-9]){}([0-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
     matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
@@ -1013,9 +1013,9 @@ def parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero
         dst_variables_map[prefix + str(field_num)] = VariableInfo(initialize=True, index=variable_index)
 
 
-def parse_array_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables):
+def parse_array_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=False):
     assert prefix in ['a', 'b']
-    rgx = r'(?:^|[^_a-zA-Z0-9]){}\[([1-9][0-9]*)\]'.format(prefix)
+    rgx = r'(?:^|[^_a-zA-Z0-9]){}\[([0-9][0-9]*)\]'.format(prefix)
     matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
@@ -1644,13 +1644,13 @@ class ListTableRegistry(RBQLTableRegistry):
         return None
 
 
-def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True, user_init_code=''):
+def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True, user_init_code='', query_uses_zero_based_variables=False):
     if not normalize_column_names and input_column_names is not None and join_column_names is not None:
         ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names)
     input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
     output_writer = TableWriter(output_table)
     join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names), ListTableInfo('B', join_table, join_column_names)], normalize_column_names)
-    query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
+    query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code, None, query_uses_zero_based_variables)
     if output_column_names is not None:
         assert len(output_column_names) == 0, '`output_column_names` param must be an empty list or None'
         if output_writer.header is not None:
