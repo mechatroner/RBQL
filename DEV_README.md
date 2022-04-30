@@ -34,6 +34,9 @@
 
 * Add handling of zero-based vars and unit tests
 
+* Bug: `distinct count` is incompatible with headers: `rbql --input countries.csv --delim , --with-headers --query 'select distinct count a1'` - returns error
+
+
 ## Python TODO
 
 * Use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
