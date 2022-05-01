@@ -1005,7 +1005,9 @@ def resolve_join_variables(input_variables_map, join_variables_map, variable_pai
 
 def parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=False):
     assert prefix in ['a', 'b']
-    rgx = '(?:^|[^_a-zA-Z0-9]){}([0-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix)
+    # FIXME the query still outputs header for some reason: `python3 -m rbql --input ~/rainbow_csv/rbql_core/test/csv_files/university_ranking_with_comments.csv --query 'select a0 limit 10' --delim , --comment-prefix '#' --with-headers`
+    first_digit_regex = '[0-9]' if query_uses_zero_based_variables else '[1-9]'
+    rgx = '(?:^|[^_a-zA-Z0-9]){}({}[0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix, first_digit_regex)
     matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:
@@ -1015,7 +1017,8 @@ def parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero
 
 def parse_array_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=False):
     assert prefix in ['a', 'b']
-    rgx = r'(?:^|[^_a-zA-Z0-9]){}\[([0-9][0-9]*)\]'.format(prefix)
+    first_digit_regex = '[0-9]' if query_uses_zero_based_variables else '[1-9]'
+    rgx = r'(?:^|[^_a-zA-Z0-9]){}\[({}[0-9]*)\]'.format(prefix, first_digit_regex)
     matches = list(re.finditer(rgx, query_text))
     field_nums = list(set([int(m.group(1)) for m in matches]))
     for field_num in field_nums:

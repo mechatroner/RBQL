@@ -243,6 +243,7 @@ async function test_json_tables() {
         let join_column_names = test_common.get_default(test_case, 'join_column_names', null)
         let normalize_column_names = test_common.get_default(test_case, 'normalize_column_names', true)
         let user_init_code = test_common.get_default(test_case, 'js_init_code', '');
+        let query_uses_zero_based_variables = test_common.get_default(test_case, 'query_uses_zero_based_variables', false);
         let expected_output_header = test_common.get_default(test_case, 'expected_output_header', null);
         let expected_output_table = test_common.get_default(test_case, 'expected_output_table', null);
         let expected_error = test_common.get_default(test_case, 'expected_error', null);
@@ -257,7 +258,7 @@ async function test_json_tables() {
         let output_column_names = [];
         let error_type = null;
         try {
-            await rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, normalize_column_names, user_init_code);
+            await rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, normalize_column_names, user_init_code, query_uses_zero_based_variables);
         } catch (e) {
             if (local_debug_mode)
                 throw(e);

@@ -1040,7 +1040,8 @@ function combine_string_literals(backend_expression, string_literals) {
 
 function parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=false) {
     assert(prefix == 'a' || prefix == 'b');
-    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}([1-9][0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
+    let first_digit_regex = query_uses_zero_based_variables ? '[0-9]' : '[1-9]';
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}(${first_digit_regex}[0-9]*)(?:$|(?=[^_a-zA-Z0-9]))`, 'g');
     let matches = get_all_matches(rgx, query_text);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);
@@ -1052,7 +1053,8 @@ function parse_basic_variables(query_text, prefix, dst_variables_map, query_uses
 
 function parse_array_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=false) {
     assert(prefix == 'a' || prefix == 'b');
-    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[([1-9][0-9]*)\\]`, 'g');
+    let first_digit_regex = query_uses_zero_based_variables ? '[0-9]' : '[1-9]';
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[(${first_digit_regex}[0-9]*)\\]`, 'g');
     let matches = get_all_matches(rgx, query_text);
     for (let i = 0; i < matches.length; i++) {
         let field_num = parseInt(matches[i][1]);

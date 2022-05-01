@@ -1769,6 +1769,7 @@
             [3, "50", 5],
             [4, "20", 0]
         ],
-        "query_python": "select NR, a0, len(a2) FROM a where int(a0) > 5"
+        "query_python": "select NR, a0, len(a2) FROM a where int(a0) > 5",
+        "query_js": "select NR, a0, a2.length FROM a where a0 > 5"
     }
 ]
