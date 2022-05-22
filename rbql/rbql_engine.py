@@ -118,7 +118,7 @@ def get_field(root, field_name):
     return None
 
 
-def column_info_from_node(root):
+def column_info_from_node(root, query_uses_zero_based_variables=False):
     rbql_star_marker = '__RBQL_INTERNAL_STAR'
     if isinstance(root, ast.Name):
         var_name = get_field(root, 'id')
@@ -130,7 +130,7 @@ def column_info_from_node(root):
         match_obj = re.match(good_column_name_rgx, var_name)
         if match_obj is not None:
             table_name = match_obj.group(1)
-            column_index = int(match_obj.group(2)) - 1
+            column_index = int(match_obj.group(2)) if query_uses_zero_based_variables else int(match_obj.group(2)) - 1
             return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False)
         # Some examples for this branch: NR, NF
         return QueryColumnInfo(table_name=None, column_index=None, column_name=var_name, is_star=False)
@@ -175,7 +175,7 @@ def column_info_from_node(root):
     return None
 
 
-def ast_parse_select_expression_to_column_infos(select_expression):
+def ast_parse_select_expression_to_column_infos(select_expression, query_uses_zero_based_variables=False):
     root = ast.parse(select_expression)
     children = list(ast.iter_child_nodes(root))
     if 'body' not in root._fields:
@@ -189,9 +189,9 @@ def ast_parse_select_expression_to_column_infos(select_expression):
     root = children[0]
     if isinstance(root, ast.Tuple):
         column_expression_trees = root.elts
-        column_infos = [column_info_from_node(ct) for ct in column_expression_trees]
+        column_infos = [column_info_from_node(ct, query_uses_zero_based_variables) for ct in column_expression_trees]
     else:
-        column_infos = [column_info_from_node(root)]
+        column_infos = [column_info_from_node(root, query_uses_zero_based_variables)]
     return column_infos
 
 
@@ -1005,7 +1005,6 @@ def resolve_join_variables(input_variables_map, join_variables_map, variable_pai
 
 def parse_basic_variables(query_text, prefix, dst_variables_map, query_uses_zero_based_variables=False):
     assert prefix in ['a', 'b']
-    # FIXME the query still outputs header for some reason: `python3 -m rbql --input ~/rainbow_csv/rbql_core/test/csv_files/university_ranking_with_comments.csv --query 'select a0 limit 10' --delim , --comment-prefix '#' --with-headers`
     first_digit_regex = '[0-9]' if query_uses_zero_based_variables else '[1-9]'
     rgx = '(?:^|[^_a-zA-Z0-9]){}({}[0-9]*)(?:$|(?=[^_a-zA-Z0-9]))'.format(prefix, first_digit_regex)
     matches = list(re.finditer(rgx, query_text))
@@ -1492,7 +1491,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             select_expression = combine_string_literals(select_expression, string_literals)
             # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
             combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
-            column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+            column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast, query_uses_zero_based_variables)
             output_header = select_output_header(input_iterator.get_header(), join_header, column_infos)
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)

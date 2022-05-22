@@ -135,6 +135,7 @@ function column_info_from_text_span(text_span, string_literals) {
             return null;
         let match = /^([ab])([0-9]+)$/.exec(text_span);
         if (match !== null) {
+            // FIXME we should use query_uses_zero_based_variables to deside wether substract - 1 or not. And add unit tests both for Python and for JS.
             return {table_name: match[1], column_index: parseInt(match[2]) - 1, column_name: null, is_star: false};
         }
         // Some examples for this branch: NR, NF
