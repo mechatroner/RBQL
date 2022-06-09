@@ -2,7 +2,7 @@
 
 # RBQL: Rainbow Query Language
 
-RBQL is an eval-based SQL-like query engine for (not only) CSV file processing. It provides SQL-like language that supports SELECT queries with Python or JavaScript expressions.  
+RBQL is an eval-based SQL-like query engine for (not only) CSV file processing. It provides SQL-like language that supports SELECT queries (or rainbow [queeries](https://twitter.com/ddokhan97/status/1534573649096736768?s=20&t=VBVIZJxBHN7lhdS7f8VgVw) as some people call them) with Python or JavaScript expressions.  
 RBQL is best suited for data transformation, data cleaning, and analytical queries.  
 RBQL is distributed with CLI apps, text editor plugins, IPython/Jupyter magic command, Python and JS libraries.  
 
