@@ -62,20 +62,9 @@ function remove_utf8_bom(line, assumed_source_encoding) {
 
 
 function make_inconsistent_num_fields_warning(table_name, inconsistent_records_info) {
-    // FIXME use Map instead of object / Object.keys().
-    let keys = Object.keys(inconsistent_records_info);
-    let entries = [];
-    for (let i = 0; i < keys.length; i++) {
-        let key = keys[i];
-        let record_id = inconsistent_records_info[key];
-        entries.push([record_id, key]);
-    }
-    entries.sort(function(a, b) { return a[0] - b[0]; });
-    assert(entries.length > 1);
-    let [record_1, num_fields_1] = entries[0];
-    let [record_2, num_fields_2] = entries[1];
+    let [record_num_1, num_fields_1, record_num_2, num_fields_2] = rbql.sample_first_two_inconsistent_records(inconsistent_records_info);
     let warn_msg = `Number of fields in "${table_name}" table is not consistent: `;
-    warn_msg += `e.g. record ${record_1} -> ${num_fields_1} fields, record ${record_2} -> ${num_fields_2} fields`;
+    warn_msg += `e.g. record ${record_num_1} -> ${num_fields_1} fields, record ${record_num_2} -> ${num_fields_2} fields`;
     return warn_msg;
 }
 
@@ -205,7 +194,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         this.utf8_bom_removed = false; // BOM doesn't get automatically removed by the decoder when utf-8 file is treated as latin-1
         this.first_defective_line = null;
 
-        this.fields_info = new Object();
+        this.fields_info = new Map();
         this.NR = 0; // Record number
         this.NL = 0; // Line number (NL != NR when the CSV file has comments or multiline fields)
 
@@ -369,8 +358,8 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
             }
         }
         let num_fields = record.length;
-        if (!this.fields_info.hasOwnProperty(num_fields))
-            this.fields_info[num_fields] = this.NR;
+        if (!this.fields_info.has(num_fields))
+            this.fields_info.set(num_fields, this.NR);
         this.produced_records_queue.enqueue(record);
         this.try_resolve_next_record();
     };
@@ -503,7 +492,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
             result.push(`Inconsistent double quote escaping in ${this.table_name} table. E.g. at line ${this.first_defective_line}`);
         if (this.utf8_bom_removed)
             result.push(`UTF-8 Byte Order Mark (BOM) was found and skipped in ${this.table_name} table`);
-        if (Object.keys(this.fields_info).length > 1)
+        if (this.fields_info.size > 1)
             result.push(make_inconsistent_num_fields_warning(this.table_name, this.fields_info));
         return result;
     };

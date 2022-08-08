@@ -359,6 +359,21 @@ function test_column_name_parsing_from_file() {
 }
 
 
+function test_inconsistent_record_sampling() {
+    let fields_info = new Map([[2, 1], [10, 5]]);
+    test_common.assert_objects_are_equal([1, 2, 5, 10], rbql.sample_first_two_inconsistent_records(fields_info));
+
+    fields_info = new Map([[2, 1], [10, 5], [1, 6]]);
+    test_common.assert_objects_are_equal([1, 2, 5, 10], rbql.sample_first_two_inconsistent_records(fields_info));
+
+    fields_info = new Map([[2, 1], [10, 5], [1, 6], [3, 200], [4, 110]]);
+    test_common.assert_objects_are_equal([1, 2, 5, 10], rbql.sample_first_two_inconsistent_records(fields_info));
+
+    fields_info = new Map([[2, 1], [10, 5], [1, 6], [3, 200], [8, 0]]);
+    test_common.assert_objects_are_equal([0, 8, 1, 2], rbql.sample_first_two_inconsistent_records(fields_info));
+}
+
+
 async function test_everything() {
     test_test_common();
     test_comment_strip();
@@ -371,6 +386,7 @@ async function test_everything() {
     test_select_translation();
     test_column_name_parsing();
     test_column_name_parsing_from_file();
+    test_inconsistent_record_sampling();
     await test_direct_table_queries();
     await test_json_tables();
 }
