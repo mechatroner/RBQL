@@ -32,6 +32,10 @@
 
 * Create reasonable API for converting table_ids (from query text, both join and main) to table_uri for external usage e.g. to fetch column names for autocomplete.
 
+* Setup test coverage framework and metrics.
+
+* Support ASC/DESC in the middler of ORDER BY statements, see #35
+
 ## Python TODO
 
 * Use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
