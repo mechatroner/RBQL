@@ -278,6 +278,7 @@ async function test_json_tables() {
             }
             continue;
         }
+        // FIXME this logic doesn't correctly handle the case when we expect an error but RBQL doesn't generate it.
         warnings = test_common.normalize_warnings(warnings).sort();
         test_common.assert_arrays_are_equal(expected_warnings, warnings);
         test_common.round_floats(output_table);

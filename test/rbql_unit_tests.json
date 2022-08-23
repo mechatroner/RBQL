@@ -324,6 +324,29 @@
         "query_js": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc"
     },
     {
+        "test_name": "except with join",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas "],
+            ["plane", "wings  "],
+            ["boat", "wind"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_error_exact": true,
+        "expected_error": "EXCEPT and JOIN are not allowed in the same query",
+        "query_python": "select top 3 * except a1 join b on a2 == b1",
+        "query_js": "select top 3 * except a1 join b on a2 == b1"
+    },
+    {
         "test_name": "join with emptiness error",
         "input_table": [
             ["5", "car", "lada"],
