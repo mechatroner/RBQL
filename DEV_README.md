@@ -1,3 +1,13 @@
+# Explanation of rbql-js module structure
+
+Key components:
+* index.js file - main entry point which exports all main functionality
+* rbql.js file - since it is named `rbql.js` it allows the file to be used directly from browser, without renaming. But we should consider renaming it to rbql_engine.js and adding `browser` package.json entry to allow integration with webpack and similar tools.
+
+Issues:
+Lack of `main` and `browser` entries.
+
+
 # TODO
 
 ## Generic TODO

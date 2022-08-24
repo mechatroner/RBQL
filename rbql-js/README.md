@@ -196,7 +196,7 @@ rbql.query_table(user_query, input_table, output_table, warnings).then(success_h
 
 #### Example of query_csv() usage:  
 ```
-const rbql_csv = require('rbql_csv');
+const rbql = require('rbql');
 let user_query = 'SELECT a1, parseInt(a2) % 1000 WHERE a3 != "USA" LIMIT 5';
 let error_handler = function(exception) {
     console.log('Error: ' + String(exception));
@@ -207,7 +207,7 @@ let success_handler = function() {
         console.log('warnings: ' + JSON.stringify(warnings));
     console.log('output table: output.csv');
 }
-rbql_csv.query_csv(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8', warnings).then(success_handler).catch(error_handler);
+rbql.query_csv(user_query, 'input.csv', ',', 'quoted', 'output.csv', ',', 'quoted', 'utf-8', warnings).then(success_handler).catch(error_handler);
 ```
 
 
