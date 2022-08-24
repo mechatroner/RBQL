@@ -1,0 +1,22 @@
+{
+  "name": "rbql",
+  "version": "0.20.1",
+  "description": "Rainbow Query Language",
+  "keywords": ["CSV", "TSV", "spreadsheet", "SQL", "SQL-like", "transpiler", "CLI", "command-line", "library", "browser", "Node", "select", "update", "join"],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mechatroner/RBQL.git"
+  },
+  "author": "Dmitry Ignatovich",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mechatroner/RBQL/issues"
+  },
+  "homepage": "https://rbql.org",
+  "bin": {
+    "rbql-js": "./cli_rbql.js"
+  }
+}
