@@ -19,6 +19,10 @@ import json
 import shutil
 import copy
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Use insert instead of append to make sure that we are using local rbql here.
+sys.path.insert(0, os.path.join(os.path.dirname(script_dir), 'rbql-py'))
+
 import rbql
 from rbql import rbql_csv
 from rbql import csv_utils
@@ -36,9 +40,6 @@ PY3 = sys.version_info[0] == 3
 
 
 line_separators = ['\n', '\r\n', '\r']
-
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 vinf = rbql_engine.VariableInfo

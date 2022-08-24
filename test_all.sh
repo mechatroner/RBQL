@@ -2,6 +2,7 @@
 
 dir_name=$( basename "$PWD" )
 
+export PYTHONPATH="./rbql-py:$PYTHONPATH" 
 
 if [ "$dir_name" != "RBQL" ] && [ "$dir_name" != "rbql_core" ]; then
     echo "Error: This test must be run from RBQL dir. Exiting"
@@ -112,7 +113,7 @@ if [ $run_node_tests == "yes" ]; then
 fi
 
 
-PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --create_big_csv_table speed_test.csv
+python test/test_csv_utils.py --create_big_csv_table speed_test.csv
 
 
 if [ $run_unit_tests == "yes" ]; then
@@ -143,7 +144,7 @@ if [ $run_unit_tests == "yes" ]; then
         die_if_error $?
     fi
 
-    PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
+    python test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
 
     if [ "$run_node_tests" == "yes" ]; then
         js_rbql_version=$( node rbql-js/cli_rbql.js --version )
@@ -376,7 +377,7 @@ fi
 
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
-    PYTHONPATH=".:$PYTHONPATH" python test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv > /dev/null
+    python test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv > /dev/null
     end_tm=$(date +%s.%N)
     elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python reference split test took $elapsed seconds"

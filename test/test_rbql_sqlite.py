@@ -12,14 +12,15 @@ import time
 import shutil
 import sqlite3
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Use insert instead of append to make sure that we are using local rbql here.
+sys.path.insert(0, os.path.join(os.path.dirname(script_dir), 'rbql-py'))
+
 import rbql
 from rbql import rbql_engine
 from rbql import rbql_sqlite
 
 #This module must be both python2 and python3 compatible
-
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
 
 python_version = float('{}.{}'.format(sys.version_info[0], sys.version_info[1]))
 

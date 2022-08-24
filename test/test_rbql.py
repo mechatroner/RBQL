@@ -9,10 +9,8 @@ import json
 import random
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-root_dir = os.path.dirname(script_dir)
-rbql_py_path = os.path.join(root_dir, 'rbql-py')
 # Use insert instead of append to make sure that we are using local rbql here.
-sys.path.insert(0, rbql_py_path)
+sys.path.insert(0, os.path.join(os.path.dirname(script_dir), 'rbql-py'))
 
 import rbql
 from rbql import rbql_csv
