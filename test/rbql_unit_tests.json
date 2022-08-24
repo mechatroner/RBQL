@@ -1,5 +1,19 @@
 [
     {
+        "test_name": "select version",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            ["0.25.1"]
+        ],
+        "query_python": "select top 1 RBQL_VERSION",
+        "query_js": "select top 1 RBQL_VERSION"
+    },
+    {
         "test_name": "valid FROM",
         "skip_others": false,
         "input_table": [
@@ -1419,20 +1433,6 @@
         ],
         "query_python": "select NR, a[1], len(a[3]) where int(a[1]) > 5",
         "query_js": "select NR, a[1], a[3].length where parseInt(a[1]) > 5"
-    },
-    {
-        "test_name": "select version",
-        "input_table": [
-            ["5", "alpha", "beta"],
-            ["-20", "alpha", "gamma"],
-            ["50", "alpha", "delta"],
-            ["20", "alpha", ""]
-        ],
-        "expected_output_table": [
-            ["0.25.1"]
-        ],
-        "query_python": "select top 1 RBQL_VERSION",
-        "query_js": "select top 1 RBQL_VERSION"
     },
     {
         "test_name": "test column names direct",
