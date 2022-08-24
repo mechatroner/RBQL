@@ -1,6 +1,6 @@
 {
   "name": "rbql",
-  "version": "0.20.1",
+  "version": "0.25.1",
   "description": "Rainbow Query Language",
   "keywords": ["CSV", "TSV", "spreadsheet", "SQL", "SQL-like", "transpiler", "CLI", "command-line", "library", "browser", "Node", "select", "update", "join"],
   "scripts": {
