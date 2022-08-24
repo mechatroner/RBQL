@@ -9,6 +9,11 @@ Issues:
 Lack of `main` and `browser` entries.
 
 
+# Publishing of rbql python module
+
+Under WSL the pre-publishing command `python3 setup.py sdist bdist_wheel` may fail with a permission error. In this case follow steps described here:
+https://github.com/pypa/packaging-problems/issues/258
+
 # TODO
 
 ## Generic TODO
