@@ -56,6 +56,8 @@ https://github.com/pypa/packaging-problems/issues/258
 
 * Use ast module to improve parsing of parse_attribute_variables / parse_dictionary_variables, like it was done for select parsing
 
+* Consider getting rid of ast module altogether by replacing it with adhoc parsing algorithm like it was done in js version.
+
 * Optimize performance: optional compilation depending on python2/python3
 
 * Optimize performance: replace `smart_split()` with `polymorphic_split()` in rbql_csv.py

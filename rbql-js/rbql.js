@@ -128,6 +128,7 @@ function column_info_from_text_span(text_span, string_literals) {
     let attribute_match = /^([ab])\.([_a-zA-Z][_a-zA-Z0-9]*)$/.exec(text_span);
     let subscript_int_match = /^([ab])\[([0-9]+)\]$/.exec(text_span);
     let subscript_str_match = /^([ab])\[___RBQL_STRING_LITERAL([0-9]+)___\]$/.exec(text_span);
+    // FIXME just add another matcher here to check `AS blablabla` at the end.
     if (simple_var_match !== null) {
         if (text_span == rbql_star_marker)
             return {table_name: null, column_index: null, column_name: null, is_star: true};
@@ -174,6 +175,7 @@ function adhoc_parse_select_expression_to_column_infos(select_expression, string
     // 1. The number of column_infos is correct and will match the number of fields in each record in the output - otherwise the exception should be thrown
     // 2. If column_info at pos j is not null, it is guaranteed to correctly represent that column name in the output
     let text_spans = parse_root_bracket_level_text_spans(select_expression);
+    // FIXME this is likely the place where we need to handle "AS" keyword.
     let column_infos = text_spans.map(ts => column_info_from_text_span(ts, string_literals));
     return column_infos;
 }

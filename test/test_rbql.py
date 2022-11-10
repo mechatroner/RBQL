@@ -38,9 +38,8 @@ def normalize_warnings(warnings):
 
 def prepare_and_parse_select_expression_to_column_infos(select_part):
     select_expression, string_literals = rbql_engine.separate_string_literals(select_part)
-    select_expression = rbql_engine.replace_star_count(select_expression)
-    select_expression = rbql_engine.replace_star_vars_for_ast(select_expression)
-    combined_select_expression_for_ast = rbql_engine.combine_string_literals(select_expression, string_literals)
+    select_expression_for_ast = rbql_engine.translate_select_expression(select_expression)[1]
+    combined_select_expression_for_ast = rbql_engine.combine_string_literals(select_expression_for_ast, string_literals)
     column_infos = rbql_engine.ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
     return column_infos
 
@@ -74,28 +73,30 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
 
     def test_column_name_parsing(self):
-        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*, b2'
+        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*, b2, a.hello  as  my_hello , NR  AS MY_NR'
         column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
-        expected = [rbql_engine.QueryColumnInfo('a', 0, None, False), # a1
-                    rbql_engine.QueryColumnInfo('a', 1, None, False), # a[2]
-                    rbql_engine.QueryColumnInfo(None, None, 'hello', False), # a.hello
-                    rbql_engine.QueryColumnInfo(None, None, 'world', False), # a["world"]
-                    rbql_engine.QueryColumnInfo(None, None, 'NR', False), # NR
-                    rbql_engine.QueryColumnInfo(None, None, 'NF', False), # NF
-                    rbql_engine.QueryColumnInfo(None, None, 'something', False), # something 
+        expected = [rbql_engine.QueryColumnInfo('a', 0, None, False, False), # a1
+                    rbql_engine.QueryColumnInfo('a', 1, None, False, False), # a[2]
+                    rbql_engine.QueryColumnInfo(None, None, 'hello', False, False), # a.hello
+                    rbql_engine.QueryColumnInfo(None, None, 'world', False, False), # a["world"]
+                    rbql_engine.QueryColumnInfo(None, None, 'NR', False, False), # NR
+                    rbql_engine.QueryColumnInfo(None, None, 'NF', False, False), # NF
+                    rbql_engine.QueryColumnInfo(None, None, 'something', False, False), # something 
                     None, # foo(something, 'bar')
                     None, # "test"
                     None, # 3
                     None, # 3 + 3
-                    rbql_engine.QueryColumnInfo(None, None, None, True), # *
-                    rbql_engine.QueryColumnInfo('a', None, None, True), # a.*
-                    rbql_engine.QueryColumnInfo('b', None, None, True), # b.*
-                    rbql_engine.QueryColumnInfo('b', 1, None, False) # b2
+                    rbql_engine.QueryColumnInfo(None, None, None, True, False), # *
+                    rbql_engine.QueryColumnInfo('a', None, None, True, False), # a.*
+                    rbql_engine.QueryColumnInfo('b', None, None, True, False), # b.*
+                    rbql_engine.QueryColumnInfo('b', 1, None, False, False), # b2
+                    rbql_engine.QueryColumnInfo(None, None, 'my_hello', False, True), # as my_hello
+                    rbql_engine.QueryColumnInfo(None, None, 'MY_NR', False, True), # as MY_NR
                    ]
         self.assertEqual(expected, column_infos) 
 
         output_header = rbql_engine.select_output_header(['a_foo_1', 'a_foo_2'], ['b_foo_1'], expected);
-        expected_header = ['a_foo_1', 'a_foo_2', 'hello', 'world', 'NR', 'NF', 'something', 'col8', 'col9', 'col10', 'col11', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'col18'];
+        expected_header = ['a_foo_1', 'a_foo_2', 'hello', 'world', 'NR', 'NF', 'something', 'col8', 'col9', 'col10', 'col11', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'col18', 'my_hello', 'MY_NR'];
         self.assertEqual(expected_header, output_header);
 
         select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\')), "test", 3, 3 + 3, *, a.*, b.*, b2'
@@ -106,6 +107,10 @@ class TestRBQLQueryParsing(unittest.TestCase):
         with self.assertRaises(SyntaxError) as cm:
             prepare_and_parse_select_expression_to_column_infos(select_part)
 
+        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*, b2, a.hello  aas  my_hello , NR  AS MY_NR'
+        with self.assertRaises(SyntaxError) as cm:
+            # Explanation: "aas" should not parse.
+            prepare_and_parse_select_expression_to_column_infos(select_part)
 
     def test_string_literals_separation(self):
         #TODO generate some random examples: Generate some strings randomly and then parse them
