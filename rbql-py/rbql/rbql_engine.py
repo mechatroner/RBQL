@@ -1202,14 +1202,17 @@ def translate_update_expression(update_expression, input_variables_map, string_l
 
 def translate_select_expression(select_expression):
     regexp_for_as_column_alias = r' +(AS|as) +([a-zA-Z][a-zA-Z0-9_]*) *(?=$|,)'
-    expression_without_stars = replace_star_count(select_expression)
-    # TODO the problem with these 2 replaments below is that they happen on global level, the right way to do this is to split the qury into columns first by using stack-parsing.
+    expression_without_counting_stars = replace_star_count(select_expression)
+    # TODO the problem with these 2 replaments below is that they happen on global level, the right way to do this is to split the query into columns first by using stack-parsing.
     # Or we can at least replace parentheses groups with literals e.g. `(.....)` -> `(PARENT_GROUP_1)`
-    translated = replace_star_vars(expression_without_stars).strip()
-    translated = re.sub(regexp_for_as_column_alias, '', translated).strip()
-    translated_for_ast = replace_star_vars_for_ast(expression_without_stars).strip()
+
+    expression_without_as_column_alias = re.sub(regexp_for_as_column_alias, '', expression_without_counting_stars).strip()
+    translated = replace_star_vars(expression_without_as_column_alias).strip()
+
+    expression_without_as_column_alias_for_ast = re.sub(regexp_for_as_column_alias, r' == alias_column_as_pseudo_func(\2)', expression_without_counting_stars).strip()
     # Replace `as xyz` with `== alias_column_as_pseudo_func(xyz)` as a workaround to make it parsable to Python ast.
-    translated_for_ast = re.sub(regexp_for_as_column_alias, r' == alias_column_as_pseudo_func(\2)', translated_for_ast).strip()
+    translated_for_ast = replace_star_vars_for_ast(expression_without_as_column_alias_for_ast).strip()
+
     if not len(translated):
         raise RbqlParsingError('"SELECT" expression is empty') # UT JSON
     return ('[{}]'.format(translated), translated_for_ast)
@@ -1477,8 +1480,8 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
         query_context.aggregation_key_expression = '({},)'.format(combine_string_literals(rb_actions[GROUP_BY]['text'], string_literals))
 
 
-    join_variables_map = None
     input_header = input_iterator.get_header()
+    join_variables_map = None
     join_header = None
     if JOIN in rb_actions:
         rhs_table_id, variable_pairs = parse_join_expression(rb_actions[JOIN]['text'])
