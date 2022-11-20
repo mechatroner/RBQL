@@ -73,7 +73,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
 
     def test_column_name_parsing(self):
-        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, *, a.*, b.*, b2, a.hello  as  my_hello , NR  AS MY_NR'
+        select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, a.hello  as  my_hello , *, NR  AS MY_NR, a.*, b.*, b2'
         column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
         expected = [rbql_engine.QueryColumnInfo('a', 0, None, False, False), # a1
                     rbql_engine.QueryColumnInfo('a', 1, None, False, False), # a[2]
@@ -86,17 +86,17 @@ class TestRBQLQueryParsing(unittest.TestCase):
                     None, # "test"
                     None, # 3
                     None, # 3 + 3
+                    rbql_engine.QueryColumnInfo(None, None, 'my_hello', False, True), # as my_hello
                     rbql_engine.QueryColumnInfo(None, None, None, True, False), # *
+                    rbql_engine.QueryColumnInfo(None, None, 'MY_NR', False, True), # as MY_NR
                     rbql_engine.QueryColumnInfo('a', None, None, True, False), # a.*
                     rbql_engine.QueryColumnInfo('b', None, None, True, False), # b.*
                     rbql_engine.QueryColumnInfo('b', 1, None, False, False), # b2
-                    rbql_engine.QueryColumnInfo(None, None, 'my_hello', False, True), # as my_hello
-                    rbql_engine.QueryColumnInfo(None, None, 'MY_NR', False, True), # as MY_NR
                    ]
         self.assertEqual(expected, column_infos) 
 
         output_header = rbql_engine.select_output_header(['a_foo_1', 'a_foo_2'], ['b_foo_1'], expected);
-        expected_header = ['a_foo_1', 'a_foo_2', 'hello', 'world', 'NR', 'NF', 'something', 'col8', 'col9', 'col10', 'col11', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'col18', 'my_hello', 'MY_NR'];
+        expected_header = ['a_foo_1', 'a_foo_2', 'hello', 'world', 'NR', 'NF', 'something', 'col8', 'col9', 'col10', 'col11', 'my_hello', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'MY_NR', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'col20'];
         self.assertEqual(expected_header, output_header);
 
         select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\')), "test", 3, 3 + 3, *, a.*, b.*, b2'
