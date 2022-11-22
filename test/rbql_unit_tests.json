@@ -1777,5 +1777,70 @@
         "expected_error": "RBQL doesn't support \"HAVING\" keyword",
         "query_python": "select a1, a3, MIN(int(a2) * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 HAVING COUNT(*) > 1",
         "query_js": "select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) group by a1 HAVING COUNT(*) > 1"
+    },
+    {
+        "test_name": "Simple select with column name alias",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5],
+            [4, "20", 0]
+        ],
+        "input_column_names": ["value", "letter_left", "letter_right"],
+        "normalize_column_names": false,
+        "expected_output_header": ["NR", "value", "lr_l"],
+        "debug_mode": true,
+        "query_python": "select NR, value, len(letter_right) AS lr_l where int(value) > 5",
+        "query_js": "select NR, value, letter_right.length AS lr_l where value > 5"
+    },
+    {
+        "test_name": "Alias with join and star",
+        "input_table": [
+            ["5", "car", "lada"],
+            ["-20", "car", "Ferrari"],
+            ["50", "plane", "tu-134"],
+            ["20", "boat", "destroyer"],
+            ["10", "boat", "yacht "],
+            ["200", "plane", "boeing 737"],
+            ["80", "train", "Thomas"]
+        ],
+        "join_table": [
+            ["bicycle", "legs"],
+            ["car", "gas "],
+            ["plane", "wings  "],
+            ["boat", "wind"],
+            ["rocket", "some stuff"]
+        ],
+        "expected_output_table": [
+            ["lala", "10", "boat", "yacht ", "boat", "wind", "foo"],
+            ["lala", "20", "boat", "destroyer", "boat", "wind", "foo"],
+            ["lala", "-20", "car", "Ferrari", "car", "gas ", "foo"],
+            ["lala", "5", "car", "lada", "car", "gas ", "foo"],
+            ["lala", "50", "plane", "tu-134", "plane", "wings  ", "foo"],
+            ["lala", "200", "plane", "boeing 737", "plane", "wings  ", "foo"]
+        ],
+        "input_column_names": ["speed", "vehicle", "brand"],
+        "join_column_names": ["vehicle", "propulsion"],
+        "expected_output_header": ["something", "speed", "vehicle", "brand", "vehicle", "propulsion", "The_foo"],
+        "query_python": "select 'lala' as something, *, 'foo' as The_foo inner join b on a2 == b1 where b2 != \"alpha\" and int(a1) > -100 and len(b2) > 1 order by a2, int(a1)",
+        "query_js": "select 'lala' as something, *, 'foo' as The_foo inner join b on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
+    },
+    {
+        "test_name": "Select with column name alias and no headers, should trigger an error",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "normalize_column_names": false,
+        "expected_error": "Specifying column alias \"AS lr_l\" is not allowed if input table has no header",
+        "expected_error_exact": true,
+        "query_python": "select NR, value, len(letter_right) as lr_l where int(value) > 5",
+        "query_js": "select NR, value, letter_right.length as lr_l where value > 5"
     }
 ]

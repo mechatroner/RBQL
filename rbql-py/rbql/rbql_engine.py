@@ -1413,7 +1413,6 @@ def select_output_header(input_header, join_header, query_column_infos):
     if input_header is None:
         for qci in query_column_infos:
             if qci is not None and qci.is_alias:
-                # FIXME unit test this.
                 raise RbqlParsingError('Specifying column alias "AS {}" is not allowed if input table has no header'.format(qci.column_name))
         return None
     if join_header is None:
