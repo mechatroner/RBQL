@@ -1333,7 +1333,6 @@ function translate_update_expression(update_expression, input_variables_map, str
 
 function translate_select_expression(select_expression) {
     let as_alias_replacement_regexp = / +(AS|as) +([a-zA-Z][a-zA-Z0-9_]*) *(?=$|,)/g;
-    // FIXME add unit test for `select a1 as foo, *, a2 as bar, *, a1 as foobar` - to test stars and as combination which can be explosive
     let expression_without_counting_stars = replace_star_count(select_expression);
     let expression_without_as_column_alias = expression_without_counting_stars.replace(as_alias_replacement_regexp, '');
     let translated = str_strip(replace_star_vars(expression_without_as_column_alias));
@@ -1584,7 +1583,6 @@ function select_output_header(input_header, join_header, query_column_infos) {
     if (input_header === null) {
         for (let qci of query_column_infos) {
             if (qci !== null && qci.is_alias) {
-                // FIXME unit test this.
                 throw new RbqlParsingError(`Specifying column alias "AS ${qci.column_name}" is not allowed if input table has no header`);
             }
         }
@@ -1833,11 +1831,9 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         join_variables_map = await join_record_iterator.get_variables_map(query_text);
         join_header = await join_record_iterator.get_header();
         if (input_header === null && join_header !== null) {
-            // FIXME add unit test
             throw new RbqlIOHandlingError('Inconsistent modes: Input table doesn\'t have a header while the Join table has a header');
         }
         if (input_header !== null && join_header === null) {
-            // FIXME add unit test
             throw new RbqlIOHandlingError('Inconsistent modes: Input table has a header while the Join table doesn\'t have a header');
         }
         let [lhs_variables, rhs_indices] = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals);
