@@ -1494,10 +1494,8 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
         join_variables_map = join_record_iterator.get_variables_map(query_text)
         join_header = join_record_iterator.get_header()
         if input_header is None and join_header is not None:
-            # FIXME make sure to add unit test and add this condition in JS too.
             raise RbqlIOHandlingError('Inconsistent modes: Input table doesn\'t have a header while the Join table has a header')
         if input_header is not None and join_header is None:
-            # FIXME make sure to add unit test and add this condition in JS too.
             raise RbqlIOHandlingError('Inconsistent modes: Input table has a header while the Join table doesn\'t have a header')
 
         # TODO check ambiguous column names here instead of external check.
