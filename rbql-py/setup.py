@@ -4,7 +4,7 @@ import re
 from setuptools import setup
  
  
-version = '0.25.1'
+version = '0.26.0'
  
  
 with open("README.md", "rb") as f:
