@@ -267,6 +267,7 @@ $ rbql-js --input input.csv --output result.csv
 * GROUP BY
 * TOP _N_
 * LIMIT _N_
+* AS
 
 All keywords have the same meaning as in SQL queries. You can check them [online](https://www.w3schools.com/sql/default.asp)  
 
@@ -306,7 +307,7 @@ _COUNT_, _ARRAY_AGG_, _MIN_, _MAX_, _SUM_, _AVG_, _VARIANCE_, _MEDIAN_
 Limitation: aggregate functions inside JavaScript expressions are not supported. Although you can use expressions inside aggregate functions.  
 E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid.  
 There is a workaround for the limitation above for _ARRAY_AGG_ function which supports an optional parameter - a callback function that can do something with the aggregated array. Example:  
-`select a2, ARRAY_AGG(a1, v => v.sort().slice(0, 5)) group by a2`
+`SELECT a2, ARRAY_AGG(a1, v => v.sort().slice(0, 5)) GROUP BY a2`
 
 
 ### JOIN statements
@@ -346,14 +347,15 @@ You can define custom functions and/or import libraries in a special file: `~/.r
 
 ## Examples of RBQL queries
 
-* `select top 100 a1, a2 * 10, a4.length where a1 == "Buy" order by parseInt(a2) desc`
-* `select * order by Math.random()` - random sort
-* `select top 20 a.vehicle_price.length / 10, a2 where parseInt(a.vehicle_price) < 500 && ["car", "plane", "boat"].indexOf(a['Vehicle type']) > -1 limit 20` - referencing columns by names from header
-* `update set a3 = 'NPC' where a3.indexOf('Non-playable character') != -1`
-* `select NR, *` - enumerate records, NR is 1-based
-* `select a1, b1, b2 inner join ./countries.txt on a2 == b1 order by a1, a3` - example of join query
-* `select MAX(a1), MIN(a1) where a.Name != 'John' group by a2, a3` - example of aggregate query
-* `select ...a1.split(':')` - Using JS "destructuring assignment" syntax to split one column into many. Do not try this with other SQL engines!
+* `SELECT TOP 100 a1, a2 * 10, a4.length WHERE a1 == "Buy" ORDER BY parseInt(a2) DESC`
+* `SELECT a.id, a.weight / 1000 AS weight_kg`
+* `SELECT * ORDER BY Math.random()` - random sort
+* `SELECT TOP 20 a.vehicle_price.length / 10, a2 WHERE parseInt(a.vehicle_price) < 500 && ["car", "plane", "boat"].indexOf(a['Vehicle type']) > -1 limit 20` - referencing columns by names from header
+* `UPDATE SET a3 = 'NPC' WHERE a3.indexOf('Non-playable character') != -1`
+* `SELECT NR, *` - enumerate records, NR is 1-based
+* `SELECT a1, b1, b2 INNER JOIN ./countries.txt ON a2 == b1 ORDER BY a1, a3` - example of join query
+* `SELECT MAX(a1), MIN(a1) WHERE a.Name != 'John' GROUP BY a2, a3` - example of aggregate query
+* `SELECT ...a1.split(':')` - Using JS "destructuring assignment" syntax to split one column into many. Do not try this with other SQL engines!
 
 
 ### References
