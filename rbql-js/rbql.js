@@ -1259,8 +1259,8 @@ function generate_init_statements(query_text, variables_map, join_variables_map,
 
 
 function replace_star_count(aggregate_expression) {
-    var rgx = /(^|,) *COUNT\( *\* *\) *(?:$|(?=,))/ig;
-    var result = aggregate_expression.replace(rgx, '$1 COUNT(1)');
+    var rgx = /(?:(?<=^)|(?<=,)) *COUNT\( *\* *\)/ig;
+    var result = aggregate_expression.replace(rgx, ' COUNT(1)');
     return str_strip(result);
 }
 

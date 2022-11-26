@@ -58,6 +58,19 @@ class TestRBQLQueryParsing(unittest.TestCase):
         self.assertEqual(r'^.*hello.world\.foo\.\*bar.*$', b)
 
 
+    def test_replace_star_count(self):
+        src = 'a1, COUNT(*), a2'
+        expected_dst = 'a1, COUNT(1), a2'
+        dst = rbql_engine.replace_star_count(src)
+        self.assertEqual(expected_dst, dst)
+
+        src = 'a1, COUNT(*) as cnt , a2'
+        expected_dst = 'a1, COUNT(1) as cnt , a2'
+        dst = rbql_engine.replace_star_count(src)
+        self.assertEqual(expected_dst, dst)
+
+
+
     def test_column_name_parsing_from_file(self):
         tests_file = os.path.join(script_dir, 'other_test_files', 'select_parts.txt')
         output_path_to_compare_with_js = os.path.join(script_dir, 'python_column_infos.txt')

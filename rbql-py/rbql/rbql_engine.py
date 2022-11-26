@@ -1144,7 +1144,7 @@ def generate_init_statements(query_text, variables_map, join_variables_map):
 
 
 def replace_star_count(aggregate_expression):
-    return re.sub(r'(^|(?<=,)) *COUNT\( *\* *\) *($|(?=,))', ' COUNT(1)', aggregate_expression, flags=re.IGNORECASE).lstrip(' ')
+    return re.sub(r'(?:(?<=^)|(?<=,)) *COUNT\( *\* *\)', ' COUNT(1)', aggregate_expression, flags=re.IGNORECASE).lstrip(' ')
 
 
 def replace_star_vars(rbql_expression):
@@ -1211,7 +1211,6 @@ def translate_select_expression(select_expression):
     expression_without_as_column_alias = re.sub(regexp_for_as_column_alias, '', expression_without_counting_stars).strip()
     translated = replace_star_vars(expression_without_as_column_alias).strip()
 
-    # FIXME this pseudo_func trick is incompatible with COUNT(*) replacement logic.
     expression_without_as_column_alias_for_ast = re.sub(regexp_for_as_column_alias, r' == alias_column_as_pseudo_func(\2)', expression_without_counting_stars).strip()
     # Replace `as xyz` with `== alias_column_as_pseudo_func(xyz)` as a workaround to make it parsable to Python ast.
     translated_for_ast = replace_star_vars_for_ast(expression_without_as_column_alias_for_ast).strip()
@@ -1219,33 +1218,6 @@ def translate_select_expression(select_expression):
     if not len(translated):
         raise RbqlParsingError('"SELECT" expression is empty') # UT JSON
     return ('[{}]'.format(translated), translated_for_ast)
-
-
-#def translate_select_expression(select_expression):
-#    regexp_for_as_column_alias = r' +(AS|as) +([a-zA-Z][a-zA-Z0-9_]*) *(?=$|,)'
-#    # FIXME add unit test with `count(*) AS cnt group by ...` to test star count replacement and aliases together.
-#
-#    #expression_without_counting_stars = replace_star_count(select_expression)
-#    ## TODO the problem with these 2 replaments below is that they happen on global level, the right way to do this is to split the query into columns first by using stack-parsing.
-#    ## Or we can at least replace parentheses groups with literals e.g. `(.....)` -> `(PARENT_GROUP_1)`
-#    #
-#    #expression_without_as_column_alias = re.sub(regexp_for_as_column_alias, '', expression_without_counting_stars).strip()
-#    #translated = replace_star_vars(expression_without_as_column_alias).strip()
-#
-#    # TODO the problem with these replaments is that they happen on global level, the right way to do this is to split the query into columns first by using stack-parsing.
-#    # Or we can at least replace parentheses groups with literals e.g. `(.....)` -> `(PARENT_GROUP_1)`
-#    expression_without_as_column_alias = re.sub(regexp_for_as_column_alias, '', select_expression).strip()
-#    expression_without_counting_stars = replace_star_count(expression_without_as_column_alias)
-#    translated = replace_star_vars(expression_without_counting_stars).strip()
-#
-#    expression_without_as_column_alias_for_ast = re.sub(regexp_for_as_column_alias, r' == alias_column_as_pseudo_func(\2)', expression_without_counting_stars).strip()
-#    expression_without_counting_stars_for_ast = replace_star_count(expression_without_as_column_alias_for_ast)
-#    # Replace `as xyz` with `== alias_column_as_pseudo_func(xyz)` as a workaround to make it parsable to Python ast.
-#    translated_for_ast = replace_star_vars_for_ast(expression_without_as_column_alias_for_ast).strip()
-#
-#    if not len(translated):
-#        raise RbqlParsingError('"SELECT" expression is empty') # UT JSON
-#    return ('[{}]'.format(translated), translated_for_ast)
 
 
 def separate_string_literals(rbql_expression):

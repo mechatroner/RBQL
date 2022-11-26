@@ -46,6 +46,20 @@ function test_like_to_regex_conversion() {
 }
 
 
+function test_replace_star_count() {
+    let [src, expected_dst, dst] = [null, null, null];
+    src = 'a1, COUNT(*), a2';
+    expected_dst = 'a1, COUNT(1), a2';
+    dst = rbql.replace_star_count(src);
+    test_common.assert_equal(expected_dst, dst);
+
+    src = 'a1, COUNT(*) as cnt , a2';
+    expected_dst = 'a1, COUNT(1) as cnt , a2';
+    dst = rbql.replace_star_count(src);
+    test_common.assert_equal(expected_dst, dst);
+}
+
+
 function test_string_literals_separation() {
     let test_cases = [];
     test_cases.push(['Select 100 order by a1', []]);
@@ -381,6 +395,7 @@ async function test_everything() {
     test_test_common();
     test_comment_strip();
     test_like_to_regex_conversion();
+    test_replace_star_count();
     test_string_literals_separation();
     test_separate_actions();
     test_join_parsing();
