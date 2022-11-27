@@ -1798,6 +1798,29 @@
         "query_js": "select NR, value, letter_right.length AS lr_l where value > 5"
     },
     {
+        "test_name": "Group by select with count(*) and column name alias",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_output_table": [
+            ["car", 5, "abc"],
+            ["cat", 2, "abc"],
+            ["dog", 1, "abc"]
+        ],
+        "input_column_names": ["kind", "id", "location", "destination"],
+        "expected_output_header": ["kind", "cnt", "letters"],
+        "debug_mode": false,
+        "query_python": "select a.kind, count(*) as cnt, 'abc' as letters group by a.kind",
+        "query_js": "select a.kind, count(*) as cnt, 'abc' as letters group by a.kind"
+    },
+    {
         "test_name": "Alias with join and star",
         "input_table": [
             ["5", "car", "lada"],

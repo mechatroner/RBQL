@@ -1202,7 +1202,6 @@ def translate_update_expression(update_expression, input_variables_map, string_l
 
 def translate_select_expression(select_expression):
     regexp_for_as_column_alias = r' +(AS|as) +([a-zA-Z][a-zA-Z0-9_]*) *(?=$|,)'
-    # FIXME add unit test with `count(*) AS cnt group by ...` to test star count replacement and aliases together.
     expression_without_counting_stars = replace_star_count(select_expression)
 
     # TODO the problem with these replaments is that they happen on global level, the right way to do this is to split the query into columns first by using stack-parsing.
