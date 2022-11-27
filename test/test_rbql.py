@@ -88,23 +88,23 @@ class TestRBQLQueryParsing(unittest.TestCase):
     def test_column_name_parsing(self):
         select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, a.hello  as  my_hello , *, NR  AS MY_NR, a.*, b.*, b2'
         column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
-        expected = [rbql_engine.QueryColumnInfo('a', 0, None, False, False), # a1
-                    rbql_engine.QueryColumnInfo('a', 1, None, False, False), # a[2]
-                    rbql_engine.QueryColumnInfo(None, None, 'hello', False, False), # a.hello
-                    rbql_engine.QueryColumnInfo(None, None, 'world', False, False), # a["world"]
-                    rbql_engine.QueryColumnInfo(None, None, 'NR', False, False), # NR
-                    rbql_engine.QueryColumnInfo(None, None, 'NF', False, False), # NF
-                    rbql_engine.QueryColumnInfo(None, None, 'something', False, False), # something 
+        expected = [rbql_engine.QueryColumnInfo('a', 0, None, False, None), # a1
+                    rbql_engine.QueryColumnInfo('a', 1, None, False, None), # a[2]
+                    rbql_engine.QueryColumnInfo(None, None, 'hello', False, None), # a.hello
+                    rbql_engine.QueryColumnInfo(None, None, 'world', False, None), # a["world"]
+                    rbql_engine.QueryColumnInfo(None, None, 'NR', False, None), # NR
+                    rbql_engine.QueryColumnInfo(None, None, 'NF', False, None), # NF
+                    rbql_engine.QueryColumnInfo(None, None, 'something', False, None), # something 
                     None, # foo(something, 'bar')
                     None, # "test"
                     None, # 3
                     None, # 3 + 3
-                    rbql_engine.QueryColumnInfo(None, None, 'my_hello', False, True), # as my_hello
-                    rbql_engine.QueryColumnInfo(None, None, None, True, False), # *
-                    rbql_engine.QueryColumnInfo(None, None, 'MY_NR', False, True), # as MY_NR
-                    rbql_engine.QueryColumnInfo('a', None, None, True, False), # a.*
-                    rbql_engine.QueryColumnInfo('b', None, None, True, False), # b.*
-                    rbql_engine.QueryColumnInfo('b', 1, None, False, False), # b2
+                    rbql_engine.QueryColumnInfo(None, None, None, False, 'my_hello'), # as my_hello
+                    rbql_engine.QueryColumnInfo(None, None, None, True, None), # *
+                    rbql_engine.QueryColumnInfo(None, None, None, False, 'MY_NR'), # as MY_NR
+                    rbql_engine.QueryColumnInfo('a', None, None, True, None), # a.*
+                    rbql_engine.QueryColumnInfo('b', None, None, True, None), # b.*
+                    rbql_engine.QueryColumnInfo('b', 1, None, False, None), # b2
                    ]
         self.assertEqual(expected, column_infos) 
 

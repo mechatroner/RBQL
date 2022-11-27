@@ -108,7 +108,7 @@ def is_str6(val):
     return (PY3 and isinstance(val, str)) or (not PY3 and isinstance(val, basestring))
 
 
-QueryColumnInfo = namedtuple('QueryColumnInfo', ['table_name', 'column_index', 'column_name', 'is_star', 'is_alias'])
+QueryColumnInfo = namedtuple('QueryColumnInfo', ['table_name', 'column_index', 'column_name', 'is_star', 'alias_name'])
 
 
 def get_field(root, field_name):
@@ -149,15 +149,15 @@ def column_info_from_node(root):
         if var_name is None:
             return None
         if var_name == rbql_star_marker:
-            return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=True, is_alias=False)
+            return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=True, alias_name=None)
         good_column_name_rgx = '^([ab])([0-9][0-9]*)$'
         match_obj = re.match(good_column_name_rgx, var_name)
         if match_obj is not None:
             table_name = match_obj.group(1)
             column_index = int(match_obj.group(2)) - 1
-            return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False, is_alias=False)
+            return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False, alias_name=None)
         # Some examples for this branch: NR, NF
-        return QueryColumnInfo(table_name=None, column_index=None, column_name=var_name, is_star=False, is_alias=False)
+        return QueryColumnInfo(table_name=None, column_index=None, column_name=var_name, is_star=False, alias_name=None)
     if isinstance(root, ast.Attribute):
         column_name = get_field(root, 'attr')
         if not column_name:
@@ -171,8 +171,8 @@ def column_info_from_node(root):
         if table_name is None or table_name not in ['a', 'b']:
             return None
         if column_name == rbql_star_marker:
-            return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True, is_alias=False)
-        return QueryColumnInfo(table_name=None, column_index=None, column_name=column_name, is_star=False, is_alias=False)
+            return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True, alias_name=None)
+        return QueryColumnInfo(table_name=None, column_index=None, column_name=column_name, is_star=False, alias_name=None)
     if isinstance(root, ast.Subscript):
         var_root = get_field(root, 'value')
         if not isinstance(var_root, ast.Name):
@@ -195,10 +195,10 @@ def column_info_from_node(root):
             return None
         if not PY3 and isinstance(column_name, str):
             column_name = column_name.decode('utf-8')
-        return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=column_name, is_star=False, is_alias=False)
+        return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=column_name, is_star=False, alias_name=None)
     column_alias_name = search_for_as_alias_pseudo_function(root)
     if column_alias_name:
-        return QueryColumnInfo(table_name=None, column_index=None, column_name=column_alias_name, is_star=False, is_alias=True)
+        return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=False, alias_name=column_alias_name)
     return None
 
 
@@ -1413,8 +1413,8 @@ def select_output_header(input_header, join_header, query_column_infos):
         assert join_header is None
     if input_header is None:
         for qci in query_column_infos:
-            if qci is not None and qci.is_alias:
-                raise RbqlParsingError('Specifying column alias "AS {}" is not allowed if input table has no header'.format(qci.column_name))
+            if qci is not None and qci.alias_name is not None:
+                raise RbqlParsingError('Specifying column alias "AS {}" is not allowed if input table has no header'.format(qci.alias_name))
         return None
     if join_header is None:
         # This means that there is no join table.
@@ -1432,6 +1432,8 @@ def select_output_header(input_header, join_header, query_column_infos):
                 output_header += join_header
         elif qci.column_name is not None:
             output_header.append(qci.column_name)
+        elif qci.alias_name is not None:
+            output_header.append(qci.alias_name)
         elif qci.column_index is not None:
             if qci.table_name == 'a' and qci.column_index < len(input_header):
                 output_header.append(input_header[qci.column_index])
@@ -1536,6 +1538,8 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
             combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
             column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+            # FIXME use number of columns in column_infos to generate 'fake' header even if no real header is povided for 'AS' syntax - we can't actually do this because when we have star, we don't know the exact number of output columns withouth knowing the input header. But we can probably still process AS column infos, just add an additional restriction that AS is not allowed if no input header is provided and the query has star in it. Otherwise we can process!
+            # FIXME make sure `SELECT a.foo` or `SELECT a.foo as bar` doesn't silently produce an empty column when no header is specified in javascript.
             output_header = select_output_header(input_header, join_header, column_infos)
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)

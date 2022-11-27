@@ -328,23 +328,23 @@ function test_column_name_parsing() {
     let select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", 3, 3 + 3, a.hello as my_hello, *, NR as   AS MY_NR , a.*, b.*, b2';
     let column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
     let expected = [
-        {"table_name":"a","column_index":0,"column_name":null,"is_star":false, is_alias: false},
-        {"table_name":"a","column_index":1,"column_name":null,"is_star":false, is_alias: false},
-        {"table_name":null,"column_index":null,"column_name":"hello","is_star":false, is_alias: false},
-        {"table_name":null,"column_index":null,"column_name":"world","is_star":false, is_alias: false},
-        {"table_name":null,"column_index":null,"column_name":"NR","is_star":false, is_alias: false},
-        {"table_name":null,"column_index":null,"column_name":"NF","is_star":false, is_alias: false},
-        {"table_name":null,"column_index":null,"column_name":"something","is_star":false, is_alias: false},
+        {"table_name":"a","column_index":0,"column_name":null,"is_star":false, alias_name: null},
+        {"table_name":"a","column_index":1,"column_name":null,"is_star":false, alias_name: null},
+        {"table_name":null,"column_index":null,"column_name":"hello","is_star":false, alias_name: null},
+        {"table_name":null,"column_index":null,"column_name":"world","is_star":false, alias_name: null},
+        {"table_name":null,"column_index":null,"column_name":"NR","is_star":false, alias_name: null},
+        {"table_name":null,"column_index":null,"column_name":"NF","is_star":false, alias_name: null},
+        {"table_name":null,"column_index":null,"column_name":"something","is_star":false, alias_name: null},
         null,
         null,
         null,
         null,
-        {"table_name":null,"column_index":null,"column_name":'my_hello',"is_star":false, is_alias: true},
-        {"table_name":null,"column_index":null,"column_name":null,"is_star":true, is_alias: false},
-        {"table_name":null,"column_index":null,"column_name":'MY_NR',"is_star":false, is_alias: true},
-        {"table_name":"a","column_index":null,"column_name":null,"is_star":true, is_alias: false},
-        {"table_name":"b","column_index":null,"column_name":null,"is_star":true, is_alias: false},
-        {"table_name":"b","column_index":1,"column_name":null,"is_star":false, is_alias: false},
+        {"table_name":null,"column_index":null,"column_name":null,"is_star":false, alias_name:'my_hello'},
+        {"table_name":null,"column_index":null,"column_name":null,"is_star":true, alias_name: null},
+        {"table_name":null,"column_index":null,"column_name":null,"is_star":false, alias_name:'MY_NR'},
+        {"table_name":"a","column_index":null,"column_name":null,"is_star":true, alias_name: null},
+        {"table_name":"b","column_index":null,"column_name":null,"is_star":true, alias_name: null},
+        {"table_name":"b","column_index":1,"column_name":null,"is_star":false, alias_name: null},
     ];
     test_common.assert_objects_are_equal(expected, column_infos);
     let output_header = rbql.select_output_header(['a_foo_1', 'a_foo_2'], ['b_foo_1'], expected);
