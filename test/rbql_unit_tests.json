@@ -1798,6 +1798,23 @@
         "query_js": "select NR, value, letter_right.length AS lr_l where value > 5"
     },
     {
+        "test_name": "Select with column name alias and without input header - still generated output header",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5, "delta"],
+            [4, "20", 0, ""]
+        ],
+        "expected_output_header": ["my_NR", "my_value", "my_lr_l", "col4"],
+        "debug_mode": true,
+        "query_python": "select NR as my_NR, a1 as my_value, len(a3) AS my_lr_l, a3 where int(a1) > 5",
+        "query_js": "select NR as my_NR, a1 as my_value, a3.length AS my_lr_l, a3 where a1 > 5"
+    },
+    {
         "test_name": "Group by select with count(*) and column name alias",
         "input_table": [
             ["car", "1", "100", "1"],
@@ -1853,18 +1870,17 @@
         "query_js": "select 'lala' as something, *, 'foo' as The_foo inner join b on a2 == b1 where   b2 !=  \"alpha\" &&  a1 > -100 &&  b2.length >  1 order by a2, parseInt(a1)"
     },
     {
-        "test_name": "Select with column name alias and no headers, should trigger an error",
+        "test_name": "Select with column name alias, star and no headers, should trigger an error",
         "input_table": [
             ["5", "alpha", "beta"],
             ["-20", "alpha", "gamma"],
             ["50", "alpha", "delta"],
             ["20", "alpha", ""]
         ],
-        "normalize_column_names": false,
-        "expected_error": "Specifying column alias \"AS lr_l\" is not allowed if input table has no header",
+        "expected_error": "Using both * (star) and AS alias in the same query is not allowed for input tables without header",
         "expected_error_exact": true,
-        "query_python": "select NR, value, len(letter_right) as lr_l where int(value) > 5",
-        "query_js": "select NR, value, letter_right.length as lr_l where value > 5"
+        "query_python": "select *, len(a.letter_right) as lr_l where int(a.value) > 5",
+        "query_js": "select *, a.letter_right.length as lr_l where a.value > 5"
     },
     {
         "test_name": "Inconsistent header presence: input table has header while join table has not",

@@ -1580,13 +1580,26 @@ function select_output_header(input_header, join_header, query_column_infos) {
     if (input_header === null) {
         assert(join_header === null);
     }
-    if (input_header === null) {
-        for (let qci of query_column_infos) {
-            if (qci !== null && qci.alias_name !== null) {
-                throw new RbqlParsingError(`Specifying column alias "AS ${qci.alias_name}" is not allowed if input table has no header`);
-            }
+    let query_has_star = false;
+    let query_has_column_alias = false;
+    for (let qci of query_column_infos) {
+        if (qci !== null && qci.is_star) {
+            query_has_star = true;
         }
-        return null;
+        if (qci !== null && qci.alias_name !== null) {
+            query_has_column_alias = true;
+        }
+    }
+    if (input_header === null) {
+        if (query_has_star && query_has_column_alias) {
+            throw new RbqlParsingError(`Using both * (star) and AS alias in the same query is not allowed for input tables without header`);
+        }
+        if (!query_has_column_alias) {
+            // Input table has no header and query has no aliases therefore the output table will be without header.
+            return null;
+        }
+        input_header = [];
+        join_header = [];
     }
     if (join_header === null) {
         // This means there is no JOIN table.
