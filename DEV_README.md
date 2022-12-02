@@ -8,6 +8,10 @@ Key components:
 Issues:
 Lack of `main` and `browser` entries.
 
+# To update RBQL version run:
+1. Remove tmp files: `git clean -fd`
+2. Replace version, e.g.: `find ./ -type f -exec sed -i 's/0\.26\.0/0.27.0/g' {} \;`
+
 
 # Publishing of rbql python module
 
