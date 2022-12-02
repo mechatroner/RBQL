@@ -1411,11 +1411,19 @@ def remove_redundant_input_table_name(query_text):
 def select_output_header(input_header, join_header, query_column_infos):
     if input_header is None:
         assert join_header is None
+    query_has_star = False
+    query_has_column_alias = False
+    for qci in query_column_infos:
+        query_has_star = query_has_star or (qci is not None and qci.is_star)
+        query_has_column_alias = query_has_column_alias or (qci is not None and qci.alias_name is not None)
+
     if input_header is None:
-        for qci in query_column_infos:
-            if qci is not None and qci.alias_name is not None:
-                raise RbqlParsingError('Specifying column alias "AS {}" is not allowed if input table has no header'.format(qci.alias_name))
-        return None
+        if query_has_star and query_has_column_alias:
+            raise RbqlParsingError('Using both * (star) and AS alias in the same query is not allowed for input tables without header')
+        if not query_has_column_alias:
+            return None
+        input_header = []
+        join_header = []
     if join_header is None:
         # This means that there is no join table.
         join_header = []
@@ -1538,8 +1546,6 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
             combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
             column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
-            # FIXME use number of columns in column_infos to generate 'fake' header even if no real header is povided for 'AS' syntax - we can't actually do this because when we have star, we don't know the exact number of output columns withouth knowing the input header. But we can probably still process AS column infos, just add an additional restriction that AS is not allowed if no input header is provided and the query has star in it. Otherwise we can process!
-            # FIXME make sure `SELECT a.foo` or `SELECT a.foo as bar` doesn't silently produce an empty column when no header is specified in javascript.
             output_header = select_output_header(input_header, join_header, column_infos)
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)

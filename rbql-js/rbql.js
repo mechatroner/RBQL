@@ -1583,16 +1583,12 @@ function select_output_header(input_header, join_header, query_column_infos) {
     let query_has_star = false;
     let query_has_column_alias = false;
     for (let qci of query_column_infos) {
-        if (qci !== null && qci.is_star) {
-            query_has_star = true;
-        }
-        if (qci !== null && qci.alias_name !== null) {
-            query_has_column_alias = true;
-        }
+        query_has_star = query_has_star || (qci !== null && qci.is_star);
+        query_has_column_alias = query_has_column_alias || (qci !== null && qci.alias_name !== null);
     }
     if (input_header === null) {
         if (query_has_star && query_has_column_alias) {
-            throw new RbqlParsingError(`Using both * (star) and AS alias in the same query is not allowed for input tables without header`);
+            throw new RbqlParsingError('Using both * (star) and AS alias in the same query is not allowed for input tables without header');
         }
         if (!query_has_column_alias) {
             // Input table has no header and query has no aliases therefore the output table will be without header.
