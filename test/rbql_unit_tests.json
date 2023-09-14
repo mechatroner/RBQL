@@ -1343,7 +1343,7 @@
         "expected_error": "Only one UNNEST is allowed per query"
     },
     {
-        "test_name": "invalid aggregate",
+        "test_name": "invalid aggregate without group by",
         "input_table": [
             ["car", "100"],
             ["dog", "200"],
@@ -1353,6 +1353,34 @@
         "query_python": "select MAX(a2), a1, 100",
         "query_js": "select MAX(a2), a1, 100",
         "expected_error": "Invalid aggregate expression: non-constant values in output column 2. E.g. \"car\" and \"dog\""
+    },
+    {
+        "test_name": "invalid group by without aggregation function",
+        "input_table": [
+            ["car", "100"],
+            ["car", "200"],
+            ["foo bar", "20"],
+            ["dog dog", "9"]
+        ],
+        "query_python": "select a1, a2, 100 group by a1",
+        "query_js": "select a1, a2, 100 group by a1",
+        "expected_error": "Invalid aggregate expression: non-constant values in output column 2. E.g. \"100\" and \"200\""
+    },
+    {
+        "test_name": "correct group by without aggregation function",
+        "input_table": [
+            ["car", "200"],
+            ["car", "200"],
+            ["foo bar", "20"],
+            ["dog dog", "9"]
+        ],
+        "expected_output_table": [
+            ["car", "200", 100],
+            ["dog dog", "9", 100],
+            ["foo bar", "20", 100]
+        ],
+        "query_python": "select a1, a2, 100 group by a1",
+        "query_js": "select a1, a2, 100 group by a1"
     },
     {
         "test_name": "many_strings_more_than_10",
