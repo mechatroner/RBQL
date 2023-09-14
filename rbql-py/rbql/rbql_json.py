@@ -251,12 +251,10 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
 
 
 class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, encoding, delim, policy, comment_prefix=None, table_name='input', variable_prefix='a', chunk_size=1024):
+    def __init__(self, stream, encoding, comment_prefix=None, table_name='input', variable_prefix='a', chunk_size=1024):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = encode_input_stream(stream, encoding)
-        self.delim = delim
-        self.policy = policy
         self.table_name = table_name
         self.variable_prefix = variable_prefix
         self.comment_prefix = comment_prefix if (comment_prefix is not None and len(comment_prefix)) else None
@@ -356,15 +354,12 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         return []
 
 
-class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
-    def __init__(self, input_file_dir, delim, policy, encoding, has_header, comment_prefix):
+class FileSystemJsonRegistry(rbql_engine.RBQLTableRegistry):
+    def __init__(self, input_file_dir, encoding, comment_prefix):
         self.input_file_dir = input_file_dir
-        self.delim = delim
-        self.policy = policy
         self.encoding = encoding
         self.record_iterator = None
         self.input_stream = None
-        self.has_header = has_header
         self.comment_prefix = comment_prefix
         self.table_path = None
 
@@ -373,7 +368,7 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         if self.table_path is None:
             raise rbql_engine.RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
         self.input_stream = open(self.table_path, 'rb')
-        self.record_iterator = JsonLinesRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.has_header, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix=single_char_alias)
+        self.record_iterator = JsonLinesRecordIterator(self.input_stream, self.encoding, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix=single_char_alias)
         return self.record_iterator
 
     def finish(self):
@@ -387,7 +382,7 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         return result
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False):
+def query_json_lines(query_text, input_path, output_path, file_encoding, output_warnings, comment_prefix=None, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -395,25 +390,17 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
 
-        if input_delim == '"' and input_policy == 'quoted':
-            raise rbql_engine.RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy')
-        if input_delim != ' ' and input_policy == 'whitespace':
-            raise rbql_engine.RbqlIOHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
-
-        if not is_ascii(query_text) and csv_encoding == 'latin-1':
+        if not is_ascii(query_text) and file_encoding == 'latin-1':
             raise rbql_engine.RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
-
-        if (not is_ascii(input_delim) or not is_ascii(output_delim)) and csv_encoding == 'latin-1':
-            raise rbql_engine.RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = read_user_init_code(default_init_source_path)
 
         input_file_dir = None if not input_path else os.path.dirname(input_path)
-        join_tables_registry = FileSystemCSVRegistry(input_file_dir, input_delim, input_policy, csv_encoding, with_headers, comment_prefix)
-        input_iterator = JsonLinesRecordIterator(input_stream, csv_encoding, input_delim, input_policy, with_headers, comment_prefix=comment_prefix)
-        output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
+        join_tables_registry = FileSystemJsonRegistry(input_file_dir, input_delim, input_policy, file_encoding, comment_prefix)
+        input_iterator = JsonLinesRecordIterator(input_stream, file_encoding, input_delim, input_policy, comment_prefix=comment_prefix)
+        output_writer = CSVWriter(output_stream, close_output_on_finish, file_encoding, output_delim, output_policy)
         if debug_mode:
             rbql_engine.set_debug_mode()
         rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
