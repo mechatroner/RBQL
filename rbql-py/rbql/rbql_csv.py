@@ -51,7 +51,7 @@ def interpret_named_csv_format(format_name):
         return (',', 'quoted')
     if format_name == 'tsv':
         return ('\t', 'simple')
-    raise RuntimeError('Unknown format name: "{}"'.format(format_name))
+    raise ValueError('Unknown format name: "{}"'.format(format_name))
 
 
 
@@ -189,7 +189,7 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
             self.polymorphic_preprocess = self.ensure_single_field
             self.polymorphic_join = self.monocolumn_join
         else:
-            raise RuntimeError('unknown output csv policy')
+            raise ValueError('unknown output csv policy')
 
         if colorize_output:
             self.colors = init_ansi_terminal_colors()
@@ -539,7 +539,32 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         return result
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False):
+class CSVTableRegistry:
+    def __init__(self):
+        self.alias_map = dict()
+        self.column_names_map = dict()
+        self.column_types_map = dict()
+
+    def add_alias(self, table_path, alias):
+        if alias in self.alias_map:
+            if self.alias_map[alias] != table_path:
+                raise ValueError('Alias already assigned to another table')
+            return
+        self.alias_map[alias] = table_path
+
+    def set_column_names(self, table_path, column_names):
+        self.column_names_map[table_path] = column_names
+
+    def set_column_types(self, table_path, column_types):
+        self.column_types_map[table_path] = column_types
+
+
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False, csv_table_registry=None):
+    # FIXME we need option to pass column names (list ?) and pass column types (list ?)
+    # Join table column names/types can be fetched optionally from the same file as join table alias.
+    # OK, the path forward is probably deprecate reading from .rbql_table_names and instead pass tablenames map /table registry directly, together with column types.
+    # The format could be: [(table_id/path, [table aliases e.g. "b" ... ], column_names, column_types)]
+    # Or better to pass a dedicated registry object instead, we can hide the implementation, or maybe make it even inherited from an interface
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
