@@ -539,6 +539,7 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         return result
 
 
+# FIXME consider alternative - provide a list of lambda functions table_alias -> table_id, table_id -> column_names, table_id -> column_types
 class CSVTableRegistry:
     def __init__(self):
         self.alias_map = dict()
@@ -559,7 +560,9 @@ class CSVTableRegistry:
         self.column_types_map[table_path] = column_types
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False, csv_table_registry=None):
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False, table_alias_map=None, column_name_map=None, column_type_map=None):
+    # The interface can be easily expanded by allowing table_alias_map, column_name_map, column_type_map to be lambda functions insted of dictionaries.
+
     # FIXME we need option to pass column names (list ?) and pass column types (list ?)
     # Join table column names/types can be fetched optionally from the same file as join table alias.
     # OK, the path forward is probably deprecate reading from .rbql_table_names and instead pass tablenames map /table registry directly, together with column types.
@@ -588,6 +591,7 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
             user_init_code = read_user_init_code(default_init_source_path)
 
         input_file_dir = None if not input_path else os.path.dirname(input_path)
+        # FIXME pass csv_table_registry and populate it from the table .rbql_table_names if empty instead of using .rbql_table_names directly.
         join_tables_registry = FileSystemCSVRegistry(input_file_dir, input_delim, input_policy, csv_encoding, with_headers, comment_prefix)
         input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, with_headers, comment_prefix=comment_prefix)
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
