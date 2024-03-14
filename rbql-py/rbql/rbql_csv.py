@@ -6,6 +6,7 @@ import sys
 import os
 import codecs
 import io
+import json
 from errno import EPIPE
 
 from . import rbql_engine
@@ -329,7 +330,7 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
 
 
 class CSVRecordIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, encoding, delim, policy, has_header=False, comment_prefix=None, table_name='input', variable_prefix='a', chunk_size=1024, line_mode=False):
+    def __init__(self, stream, encoding, delim, policy, has_header=False, comment_prefix=None, table_name='input', variable_prefix='a', column_types=None, chunk_size=1024, line_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = encode_input_stream(stream, encoding)
@@ -338,6 +339,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.table_name = table_name
         self.variable_prefix = variable_prefix
         self.comment_prefix = comment_prefix if (comment_prefix is not None and len(comment_prefix)) else None
+        self.column_types = column_types
 
         self.buffer = ''
         self.detected_line_separator = '\n'
@@ -349,13 +351,13 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
 
         self.utf8_bom_removed = False
         self.first_defective_line = None
-        self.polymorphic_get_row = self.get_row_rfc if policy == 'quoted_rfc' else self.get_row_simple
+        self.polymorphic_get_row = self._get_row_rfc if policy == 'quoted_rfc' else self._get_row_simple
         self.has_header = has_header
         self.first_record_should_be_emitted = False
 
         if not line_mode:
             self.first_record = None
-            self.first_record = self.get_record()
+            self.first_record = self.get_header_record()
             self.first_record_should_be_emitted = not has_header
 
 
@@ -411,7 +413,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.buffer += ''.join(chunks)
 
 
-    def get_row_simple(self):
+    def _get_row_simple(self):
         try:
             row = self._get_row_from_buffer()
             if row is None:
@@ -434,8 +436,8 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
             raise rbql_engine.RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
 
     
-    def get_row_rfc(self):
-        first_row = self.get_row_simple()
+    def _get_row_rfc(self):
+        first_row = self._get_row_simple()
         if first_row is None:
             return None
         if self.comment_prefix is not None and first_row.startswith(self.comment_prefix):
@@ -444,7 +446,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
             return first_row
         rows_buffer = [first_row]
         while True:
-            row = self.get_row_simple()
+            row = self._get_row_simple()
             if row is None:
                 return '\n'.join(rows_buffer)
             rows_buffer.append(row)
@@ -452,7 +454,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
                 return '\n'.join(rows_buffer)
 
 
-    def get_record(self):
+    def get_raw_record(self):
         if self.first_record_should_be_emitted:
             self.first_record_should_be_emitted = False
             return self.first_record
@@ -473,6 +475,18 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         if num_fields not in self.fields_info:
             self.fields_info[num_fields] = self.NR
         return record
+
+
+    def get_record(self):
+        record = self.get_raw_record()
+        if self.column_types is not None:
+            for column_num in range(min(len(self.column_types), len(record))):
+                record[column_num] = self.column_types[column_num](record[column_num])
+        return record
+
+
+    def get_header_record(self):
+        return self.get_raw_record()
 
 
     def _get_all_rows(self):
@@ -509,7 +523,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
 
 
 class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
-    def __init__(self, input_file_dir, delim, policy, encoding, has_header, comment_prefix):
+    def __init__(self, input_file_dir, delim, policy, encoding, has_header, comment_prefix, column_type_map):
         self.input_file_dir = input_file_dir
         self.delim = delim
         self.policy = policy
@@ -519,13 +533,19 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         self.has_header = has_header
         self.comment_prefix = comment_prefix
         self.table_path = None
+        self.column_type_map = column_type_map
 
     def get_iterator_by_table_id(self, table_id, single_char_alias):
         self.table_path = find_table_path(self.input_file_dir, table_id)
         if self.table_path is None:
             raise rbql_engine.RbqlIOHandlingError('Unable to find join table "{}"'.format(table_id))
         self.input_stream = open(self.table_path, 'rb')
-        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.has_header, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix=single_char_alias)
+        column_types = None
+        if self.table_path in self.column_type_map:
+            column_types = self.column_type_map[self.table_path]
+        elif table_id in self.column_type_map:
+            column_types = self.column_type_map[table_id]
+        self.record_iterator = CSVRecordIterator(self.input_stream, self.encoding, self.delim, self.policy, self.has_header, comment_prefix=self.comment_prefix, table_name=table_id, variable_prefix=single_char_alias, column_types=column_types)
         return self.record_iterator
 
     def finish(self):
@@ -539,35 +559,28 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         return result
 
 
-# FIXME consider alternative - provide a list of lambda functions table_alias -> table_id, table_id -> column_names, table_id -> column_types
-class CSVTableRegistry:
-    def __init__(self):
-        self.alias_map = dict()
-        self.column_names_map = dict()
-        self.column_types_map = dict()
-
-    def add_alias(self, table_path, alias):
-        if alias in self.alias_map:
-            if self.alias_map[alias] != table_path:
-                raise ValueError('Alias already assigned to another table')
-            return
-        self.alias_map[alias] = table_path
-
-    def set_column_names(self, table_path, column_names):
-        self.column_names_map[table_path] = column_names
-
-    def set_column_types(self, table_path, column_types):
-        self.column_types_map[table_path] = column_types
+def parse_python_type_conversion_map(column_types_str):
+    # FIXME: write a unit test.
+    if column_types_str is None or len(column_types_str) == 0:
+        return []
+    str_types = column_types_str.split(',')
+    conversion_map = {'str': str, 'int': int, 'json': json.loads, 'float': float}
+    result = []
+    for str_type in str_types:
+        if str_type not in conversion_map:
+            # FIXME unit test this
+            raise ValueError('Unsupported column type: "{}". The following types are supported: {}'.format(str_type, ','.join(sorted(conversion_map.keys()))))
+        result.append(conversion_map[str_type])
+    return result
 
 
-def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False, table_alias_map=None, column_name_map=None, column_type_map=None):
-    # The interface can be easily expanded by allowing table_alias_map, column_name_map, column_type_map to be lambda functions insted of dictionaries.
-
-    # FIXME we need option to pass column names (list ?) and pass column types (list ?)
-    # Join table column names/types can be fetched optionally from the same file as join table alias.
-    # OK, the path forward is probably deprecate reading from .rbql_table_names and instead pass tablenames map /table registry directly, together with column types.
-    # The format could be: [(table_id/path, [table aliases e.g. "b" ... ], column_names, column_types)]
-    # Or better to pass a dedicated registry object instead, we can hide the implementation, or maybe make it even inherited from an interface
+# FIXME now add column_type_map to cli interface first and then to other interfaces.
+# FIXME add column_type_map to unit tests
+# FIXME add column_type_map to JS version
+def query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False, column_type_map=None):
+    # The interface can be easily expanded by allowing `column_type_map` to be either a lambda function OR dictionary.
+    # TODO consider adding column_name_map and table_alias_map params.
+    # TODO consider deprecate reading from .rbql_table_names.
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -591,9 +604,13 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
             user_init_code = read_user_init_code(default_init_source_path)
 
         input_file_dir = None if not input_path else os.path.dirname(input_path)
-        # FIXME pass csv_table_registry and populate it from the table .rbql_table_names if empty instead of using .rbql_table_names directly.
-        join_tables_registry = FileSystemCSVRegistry(input_file_dir, input_delim, input_policy, csv_encoding, with_headers, comment_prefix)
-        input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, with_headers, comment_prefix=comment_prefix)
+        join_tables_registry = FileSystemCSVRegistry(input_file_dir, input_delim, input_policy, csv_encoding, with_headers, comment_prefix, column_type_map)
+        input_column_types = None
+        if 'a' in column_type_map:
+            input_column_types = column_type_map['a']
+        elif input_path in column_type_map:
+            input_column_types = column_type_map[input_path]
+        input_iterator = CSVRecordIterator(input_stream, csv_encoding, input_delim, input_policy, with_headers, comment_prefix=comment_prefix, column_types=input_column_types)
         output_writer = CSVWriter(output_stream, close_output_on_finish, csv_encoding, output_delim, output_policy, colorize_output=colorize_output)
         if debug_mode:
             rbql_engine.set_debug_mode()

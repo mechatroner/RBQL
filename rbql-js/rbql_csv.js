@@ -687,7 +687,31 @@ class FileSystemCSVRegistry extends rbql.RBQLTableRegistry {
 }
 
 
-async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers=false, comment_prefix=null, user_init_code='', options=null) {
+function parse_js_type_conversion_map(column_types_str) {
+    // FIXME add unit tests.
+    if (!column_types_str) {
+        return [];
+    }
+    column_types_str = column_types_str.toLowerCase();
+    let str_types = column_types_str.split(',');
+    let conversion_map = new Map([['string', String], ['number', Number], ['json', JSON.parse]]);
+    let result = [];
+    for (let str_type of str_types) {
+        if (!conversion_map.has(str_type)) {
+            // FIXME unit test this.
+            let supported_types = Array.from(conversion_map.keys()).join(',');
+            throw new Error(`Unsupported column type: "${str_type}". Supported types: ${supported_types}`);
+        }
+    }
+    result.push(conversion_map.get(str_type));
+    return result;
+}
+
+
+async function query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers=false, comment_prefix=null, user_init_code='', options=null, column_type_map=null) {
+    // The interface can be easily expanded by allowing `column_type_map` to be either a lambda function OR map.
+    // TODO consider adding column_name_map and table_alias_map params.
+    // TODO consider deprecate reading from .rbql_table_names.
     let input_stream = null;
     let bulk_input_path = null;
     if (options && options['bulk_read'] && input_path) {
