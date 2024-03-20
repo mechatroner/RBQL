@@ -479,7 +479,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
 
     def get_record(self):
         record = self.get_raw_record()
-        if self.column_types is not None:
+        if self.column_types is not None and record is not None:
             for column_num in range(min(len(self.column_types), len(record))):
                 record[column_num] = self.column_types[column_num](record[column_num])
         return record
@@ -528,12 +528,14 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         self.delim = delim
         self.policy = policy
         self.encoding = encoding
-        self.record_iterator = None
-        self.input_stream = None
         self.has_header = has_header
         self.comment_prefix = comment_prefix
-        self.table_path = None
         self.column_type_map = column_type_map
+
+        # TODO get rid of table-related variables in the class definition, they don't belong here.
+        self.record_iterator = None
+        self.input_stream = None
+        self.table_path = None
 
     def get_iterator_by_table_id(self, table_id, single_char_alias):
         self.table_path = find_table_path(self.input_file_dir, table_id)
@@ -559,7 +561,7 @@ class FileSystemCSVRegistry(rbql_engine.RBQLTableRegistry):
         return result
 
 
-def parse_python_type_conversion_map(column_types_str):
+def parse_type_conversion_map(column_types_str):
     # FIXME: write a unit test.
     if column_types_str is None or len(column_types_str) == 0:
         return []
@@ -581,6 +583,8 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
     # The interface can be easily expanded by allowing `column_type_map` to be either a lambda function OR dictionary.
     # TODO consider adding column_name_map and table_alias_map params.
     # TODO consider deprecate reading from .rbql_table_names.
+    if column_type_map is None:
+        column_type_map = {}
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None

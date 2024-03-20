@@ -87,8 +87,8 @@ def run_with_python_csv(args, is_interactive):
     warnings = []
     error_type, error_msg = None, None
     try:
-        column_type_map = rbql_csv.parse_python_type_conversion_map(args.column_types)
-        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, with_headers, args.comment_prefix, user_init_code, args.color, {'a' :column_type_map})
+        input_column_types = rbql_csv.parse_type_conversion_map(args.column_types)
+        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, with_headers, args.comment_prefix, user_init_code, args.color, {'a' :input_column_types})
     except Exception as e:
         if args.debug_mode:
             raise

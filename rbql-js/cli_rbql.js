@@ -214,6 +214,7 @@ async function run_with_js(args) {
     var output_policy = get_default(args, 'out-policy', null);
     let init_source_file = get_default(args, 'init-source-file', null);
     let output_format = args['out-format'];
+    let column_types_csv_str = get_default(args, 'column-types', '');
     if (output_delim === null) {
         [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
     }
@@ -223,6 +224,8 @@ async function run_with_js(args) {
         user_init_code = rbql_csv.read_user_init_code(init_source_file);
     try {
         let warnings = [];
+        let input_column_types = rbql_csv.parse_type_conversion_map(column_types_csv_str);
+        let column_type_map = new Map([['a', input_column_types]]);
         // Do not use bulk_read mode here because:
         // * Bulk read can't handle large file since node unable to read the whole file into a string, see https://github.com/mechatroner/rainbow_csv/issues/19
         // * In case of stdin read we would have to use the util.TextDecoder anyway
@@ -230,7 +233,7 @@ async function run_with_js(args) {
         // * This is CLI so no way we are in the Electron environment which can't use the TextDecoder
         // * Streaming mode works a little faster (since we don't need to do the manual validation)
         // TODO check if the current node installation doesn't have ICU enabled (which is typicaly provided by Node.js by default, see https://nodejs.org/api/intl.html) and report a user-friendly error with an option to use latin-1 encoding or switch the interpreter
-        await rbql_csv.query_csv(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, warnings, with_headers, comment_prefix, user_init_code/*, {'bulk_read': true}*/);
+        await rbql_csv.query_csv(query, input_path, delim, policy, output_path, output_delim, output_policy, csv_encoding, warnings, with_headers, comment_prefix, user_init_code, /*options=*/null, column_type_map);
         await handle_query_success(warnings, output_path, csv_encoding, output_delim, output_policy);
         return true;
     } catch (e) {
@@ -325,7 +328,6 @@ Description of the available CSV split policies:
 
 
 async function do_main(args) {
-
     if (args['version']) {
         console.log(rbql.version);
         process.exit(0);
@@ -371,6 +373,7 @@ function main() {
         '--out-format': {'default': 'input', 'help': 'Output format. Supported values: ' + out_format_names.map(v => `"${v}"`).join(', '), 'metavar': 'FORMAT'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format', 'metavar': 'DELIM'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format', 'metavar': 'POLICY'},
+        '--column-types': {'help': 'CSV list of column types, e.g. `string,number,json`. Default types: all string (can be converted inside the query e.g. `Number(a1)`)'},
         '--error-format': {'default': 'hr', 'help': 'Errors and warnings format. [hr|json]', 'hidden': true},
         '--version': {'boolean': true, 'help': 'Print RBQL version and exit'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
