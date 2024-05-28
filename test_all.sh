@@ -426,6 +426,7 @@ fi
 # Testing generic CLI
 md5sum_expected=($( md5sum test/csv_files/expected_result_4.tsv ))
 
+# FIXME randomly add --strip_spaces param, should not affect the result if input doesn't have spaces.
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($($random_python_interpreter -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test/csv_files/movies.tsv | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then

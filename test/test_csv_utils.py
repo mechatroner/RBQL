@@ -476,7 +476,6 @@ class TestLineSplit(unittest.TestCase):
             expected_res = src.splitlines()
             self.assertEqual(expected_res, test_res)
 
-
 class TestRecordIterator(unittest.TestCase):
     def test_iterator(self):
         for _test_num in xrange6(100):
@@ -580,6 +579,41 @@ class TestRecordIterator(unittest.TestCase):
         parsed_table = write_and_parse_back(table, encoding, delim, policy)
         self.assertEqual(table, parsed_table)
 
+
+    def test_strip_whitespaces_true(self):
+        data_lines = []
+        data_lines.append('aa,bb,cc')
+        data_lines.append('  aa ,  bb  , cc  ')
+        data_lines.append('\ta  aa ,  bb \t , cc  c')
+        csv_data = '\n'.join(data_lines)
+        stream, encoding = string_to_randomly_encoded_stream(csv_data)
+        table = [['aa', 'bb', 'cc'], ['aa', 'bb', 'cc'], ['a  aa', 'bb', 'cc  c']]
+        delim = ','
+        policy = 'simple'
+        record_iterator = rbql_csv.CSVRecordIterator(stream, encoding, delim=delim, policy=policy, strip_whitespaces=True)
+        parsed_table = record_iterator.get_all_records()
+        stream.close()
+        self.assertEqual(table, parsed_table)
+        parsed_table = write_and_parse_back(table, encoding, delim, policy)
+        self.assertEqual(table, parsed_table)
+
+
+    def test_strip_whitespaces_false(self):
+        data_lines = []
+        data_lines.append('aa,bb,cc')
+        data_lines.append('  aa ,  bb  , cc  ')
+        data_lines.append('\ta  aa ,  bb \t , cc  c')
+        csv_data = '\n'.join(data_lines)
+        stream, encoding = string_to_randomly_encoded_stream(csv_data)
+        table = [['aa', 'bb', 'cc'], ['  aa ', '  bb  ', ' cc  '], ['\ta  aa ', '  bb \t ', ' cc  c']]
+        delim = ','
+        policy = 'simple'
+        record_iterator = rbql_csv.CSVRecordIterator(stream, encoding, delim=delim, policy=policy, strip_whitespaces=False)
+        parsed_table = record_iterator.get_all_records()
+        stream.close()
+        self.assertEqual(table, parsed_table)
+        parsed_table = write_and_parse_back(table, encoding, delim, policy)
+        self.assertEqual(table, parsed_table)
 
     def test_multicharacter_separator_parsing(self):
         data_lines = []
