@@ -373,13 +373,22 @@ fi
 
 
 
-# Testing performance
+rand_val=$[ $RANDOM % 2 ]
+if [ $rand_val = 1 ]; then
+    # FIXME randomly add --trim_spaces option for JS too
+    strip_spaces_option=" --strip-spaces"
+else
+    strip_spaces_option=""
+fi
+echo "strip spaces option: '$strip_spaces_option'"
 
+
+# Testing performance
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
     python test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' $strip_spaces_option )
     echo "Python reference split test took $elapsed seconds"
 
     start_tm=$(date +%s.%N)
@@ -389,7 +398,7 @@ if [ "$run_python_tests" == "yes" ]; then
     echo "Python empty result select query took $elapsed seconds. Reference value: 2.6 seconds"
 
     start_tm=$(date +%s.%N)
-    python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 0' > /dev/null
+    python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 0' $strip_spaces_option > /dev/null
     end_tm=$(date +%s.%N)
     elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python simple select query took $elapsed seconds. Reference value: 3 seconds"
@@ -425,17 +434,15 @@ fi
 
 # Testing generic CLI
 md5sum_expected=($( md5sum test/csv_files/expected_result_4.tsv ))
-
-# FIXME randomly add --strip_spaces param, should not affect the result if input doesn't have spaces.
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" < test/csv_files/movies.tsv | md5sum))
+    md5sum_test=($($random_python_interpreter -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" $strip_spaces_option < test/csv_files/movies.tsv | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "CLI Python test FAIL!"  1>&2
         exit 1
     fi
 
     # XXX theorethically this test can randomly fail because sleep timeout is not long enough
-    (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010") | $random_python_interpreter -m rbql --delim '\t' --input test/csv_files/movies.tsv --output tmp_out.csv > /dev/null
+    (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010") | $random_python_interpreter -m rbql --delim '\t' --input test/csv_files/movies.tsv --output tmp_out.csv $strip_spaces_option > /dev/null
     md5sum_test=($(cat tmp_out.csv | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Interactive CLI Python test FAIL!"  1>&2

@@ -175,9 +175,9 @@ def autodetect_delim_policy(input_path, encoding, comment_prefix=None):
     return (None, None)
 
 
-def sample_records(input_path, delim, policy, encoding, comment_prefix=None):
+def sample_records(input_path, delim, policy, encoding, comment_prefix, strip_whitespaces):
     with open(input_path, 'rb') as source:
-        record_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, comment_prefix=comment_prefix)
+        record_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, comment_prefix=comment_prefix, strip_whitespaces=strip_whitespaces)
         sampled_records = record_iterator.get_all_records(num_rows=10);
         warnings = record_iterator.get_warnings()
         return (sampled_records, warnings)
@@ -246,7 +246,8 @@ def run_interactive_loop(mode, args):
         if success:
             print('\nOutput table preview:')
             print('====================================')
-            records, _warnings = sample_records(args.output, args.output_delim, args.output_policy, args.encoding, comment_prefix=None)
+            # Never strip whitespaces in the output preview.
+            records, _warnings = sample_records(args.output, args.output_delim, args.output_policy, args.encoding, comment_prefix=None, strip_whitespaces=False)
             print_colorized(records, args.output_delim, args.encoding, show_column_names=False, with_headers=False)
             print('====================================')
             print('Success! Result table was saved to: ' + args.output)
@@ -332,7 +333,8 @@ def start_preview_mode_csv(args):
             return
         args.delim = delim
         args.policy = policy
-    records, warnings = sample_records(input_path, delim, policy, args.encoding, args.comment_prefix)
+    # FIXME manually test preview mode.
+    records, warnings = sample_records(input_path, delim, policy, args.encoding, args.comment_prefix, args.strip_spaces)
     print('Input table preview:')
     print('====================================')
     print_colorized(records, delim, args.encoding, show_column_names=True, with_headers=args.with_headers)

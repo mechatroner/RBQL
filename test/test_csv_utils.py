@@ -884,7 +884,7 @@ class TestRBQLSimple(unittest.TestCase):
 
 
 class TestRBQLWithCSV(unittest.TestCase):
-
+    # FIXME add test with whitespace strip in join table.
     def process_test_case(self, tmp_tests_dir, test_case):
         test_name = test_case['test_name']
         minimal_python_version = float(test_case.get('minimal_python_version', 2.7))
