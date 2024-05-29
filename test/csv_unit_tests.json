@@ -581,6 +581,22 @@
         "query_js": "select a1, a2, a4, a8 where a8 * 1.0 == 142 order by parseInt(a4) desc"
     },
     {
+        "test_name": "join strip spaces",
+        "input_table_path": "csv_files/university_ranking_with_extra_whitespaces.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result5.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "with_headers": true,
+        "strip_whitespaces": true,
+        "debug_mode": true,
+        "expected_warnings": [
+            "The first record in JOIN file countries_with_extra_whitespaces.csv was also treated as header (and skipped)"
+        ],
+        "query_python": "select top 20 NR, a2, b.country, b.Population join countries_with_extra_whitespaces.csv on a.country == b.country order by a.university_name desc",
+        "query_js": "select top 20 NR, a2, b.country, b.Population join countries_with_extra_whitespaces.csv on a.country == b.country order by a.university_name desc"
+    },
+    {
         "test_name": "Bad header: empty strings and duplicate values in header",
         "input_table_path": "csv_files/countries_bad_header.csv",
         "expected_output_table_path": "csv_files/countries_bad_header_result1.csv",

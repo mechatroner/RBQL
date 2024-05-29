@@ -333,7 +333,6 @@ def start_preview_mode_csv(args):
             return
         args.delim = delim
         args.policy = policy
-    # FIXME manually test preview mode.
     records, warnings = sample_records(input_path, delim, policy, args.encoding, args.comment_prefix, args.strip_spaces)
     print('Input table preview:')
     print('====================================')
