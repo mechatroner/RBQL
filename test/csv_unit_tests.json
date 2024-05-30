@@ -597,6 +597,21 @@
         "query_js": "select top 20 NR, a2, b.country, b.Population join countries_with_extra_whitespaces.csv on a.country == b.country order by a.university_name desc"
     },
     {
+        "test_name": "join do not strip spaces",
+        "input_table_path": "csv_files/university_ranking_with_extra_whitespaces.csv",
+        "expected_output_table_path": "csv_files/university_ranking_result9.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "csv_encoding": "utf-8",
+        "with_headers": true,
+        "debug_mode": true,
+        "expected_warnings": [
+            "The first record in JOIN file countries_with_extra_whitespaces.csv was also treated as header (and skipped)"
+        ],
+        "query_python": "select top 5 NR, a2, b1, b3 join countries_with_extra_whitespaces.csv on a3 == b1 order by a2 desc",
+        "query_js": "select top 5 NR, a2, b1, b3 join countries_with_extra_whitespaces.csv on a3 == b1 order by a2 desc"
+    },
+    {
         "test_name": "Bad header: empty strings and duplicate values in header",
         "input_table_path": "csv_files/countries_bad_header.csv",
         "expected_output_table_path": "csv_files/countries_bad_header_result1.csv",
