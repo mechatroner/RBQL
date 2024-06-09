@@ -358,7 +358,7 @@ async function do_main(args) {
     }
 }
 
-// FIXME test trim logic in cli mode, and add integration tests.
+// FIXME add integration tests to the shell script.
 
 function main() {
     var scheme = {
@@ -370,6 +370,7 @@ function main() {
         '--with-headers': {'boolean': true, 'help': 'Indicates that input (and join) table has header'},
         '--comment-prefix': {'help': 'Ignore lines in input and join tables that start with the comment PREFIX, e.g. "#" or ">>"', 'metavar': 'PREFIX'},
         '--encoding': {'default': 'utf-8', 'help': 'Manually set csv encoding', 'metavar': 'ENCODING'},
+        '--trim-spaces': {'boolean': true, 'help': 'Trim leading and trailing spaces from fields'},
         '--out-format': {'default': 'input', 'help': 'Output format. Supported values: ' + out_format_names.map(v => `"${v}"`).join(', '), 'metavar': 'FORMAT'},
         '--out-delim': {'help': 'Output delim. Use with "out-policy". Overrides out-format', 'metavar': 'DELIM'},
         '--out-policy': {'help': 'Output policy. Use with "out-delim". Overrides out-format', 'metavar': 'POLICY'},
