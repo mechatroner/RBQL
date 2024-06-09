@@ -358,7 +358,6 @@ async function do_main(args) {
     }
 }
 
-// FIXME add integration tests to the shell script.
 
 function main() {
     var scheme = {
