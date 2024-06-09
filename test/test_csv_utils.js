@@ -404,6 +404,46 @@ function test_unquote() {
 }
 
 
+async function test_strip_whitespaces_true() {
+    let data_lines = [];
+    data_lines.push('aa,bb,cc');
+    data_lines.push('  aa ,  bb  , cc  ');
+    data_lines.push('\ta  aa ,  bb \t , cc  c');
+    let expected_table = [['aa', 'bb', 'cc'], ['aa', 'bb', 'cc'], ['a  aa', 'bb', 'cc  c']];
+    let csv_data = data_lines.join('\n');
+    let input_stream = new stream.Readable();
+    input_stream.push(csv_data);
+    input_stream.push(null);
+    let delim = ',';
+    let policy = 'simple';
+    let encoding = 'utf-8';
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, /*csv_path=*/null, encoding, delim, policy, /*has_header=*/false, /*comment_prefix=*/null, /*table_name=*/'input', /*variable_prefix=*/'a', /*trim_whitespaces=*/true);
+    let output_table = await record_iterator.get_all_records();
+    test_common.assert_arrays_are_equal(expected_table, output_table);
+    await write_and_parse_back(expected_table, encoding, delim, policy);
+}
+
+
+async function test_strip_whitespaces_false() {
+    let data_lines = [];
+    data_lines.push('aa,bb,cc');
+    data_lines.push('  aa ,  bb  , cc  ');
+    data_lines.push('\ta  aa ,  bb \t , cc  c');
+    let expected_table = [['aa', 'bb', 'cc'], ['  aa ', '  bb  ', ' cc  '], ['\ta  aa ', '  bb \t ', ' cc  c']];
+    let csv_data = data_lines.join('\n');
+    let input_stream = new stream.Readable();
+    input_stream.push(csv_data);
+    input_stream.push(null);
+    let delim = ',';
+    let policy = 'simple';
+    let encoding = 'utf-8';
+    let record_iterator = new rbql_csv.CSVRecordIterator(input_stream, /*csv_path=*/null, encoding, delim, policy, /*has_header=*/false, /*comment_prefix=*/null, /*table_name=*/'input', /*variable_prefix=*/'a', /*trim_whitespaces=*/false);
+    let output_table = await record_iterator.get_all_records();
+    test_common.assert_arrays_are_equal(expected_table, output_table);
+    await write_and_parse_back(expected_table, encoding, delim, policy);
+}
+
+
 async function test_whitespace_separated_parsing() {
     let data_lines = [];
     data_lines.push('hello world');
@@ -465,6 +505,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let delim = test_case['csv_separator'];
     let policy = test_case['csv_policy'];
     let encoding = test_case['csv_encoding'];
+    let trim_whitespaces = test_case['strip_whitespaces'] ? true : false;
     let comment_prefix = test_common.get_default(test_case, 'comment_prefix', null);
     let with_headers = test_common.get_default(test_case, 'with_headers', false);
     let output_format = test_common.get_default(test_case, 'output_format', 'input');
@@ -484,7 +525,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
         actual_output_table_path = absolute_output_table_path;
 
     bulk_read = bulk_read || random_choice([true, false]);
-    let options = {'bulk_read': bulk_read};
+    let options = {'bulk_read': bulk_read, 'trim_whitespaces': trim_whitespaces};
 
     let warnings = [];
     try {
@@ -724,6 +765,8 @@ async function test_everything() {
     test_dictionary_variables_parsing();
     test_attribute_variables_parsing();
     await test_whitespace_separated_parsing();
+    await test_strip_whitespaces_true();
+    await test_strip_whitespaces_false();
     await test_record_iterator();
     await test_record_iterator_bulk_mode();
     await test_monocolumn_separated_parsing();
