@@ -338,7 +338,6 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.table_name = table_name
         self.variable_prefix = variable_prefix
         self.comment_prefix = comment_prefix if (comment_prefix is not None and len(comment_prefix)) else None
-        # FIXME add unit test for this, test both strip and non-strip with file that contains some extra whitespaces, both Python and JS.
         self.strip_whitespaces = strip_whitespaces
 
         self.buffer = ''
