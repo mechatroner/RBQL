@@ -64,12 +64,19 @@ def split_whitespace_separated_str(src, preserve_whitespaces=False):
 
 
 def smart_split(src, dlm, policy, preserve_quotes_and_whitespaces):
+    # Dynamic dispatch here might seem somewhat suboptimal but it is still very cheap compared to the split logic itself.
     if policy == 'simple':
         return (src.split(dlm), False)
     if policy == 'whitespace':
         return (split_whitespace_separated_str(src, preserve_quotes_and_whitespaces), False)
     if policy == 'monocolumn':
         return ([src], False)
+    if policy == 'regex':
+        # FIXME we need to figure out 2 things (at least):
+        # 1. Is it possible for regex split to return a warning?
+        # 2. Is it possible for regex split to return a warning?
+        # Another problem is that regex approach that it agnostic to the regex itself won't be able to e.g. remove backslash from unix csv or replace double quote with a single one, so maybe it is not worth it after all 
+        return regex_based_split(src, dlm)
     return split_quoted_str(src, dlm, preserve_quotes_and_whitespaces)
 
 

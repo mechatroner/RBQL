@@ -33,7 +33,8 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-policy_names = ['quoted', 'simple', 'whitespace', 'quoted_rfc', 'monocolumn']
+# FIXME implement everything. The main idea is that in regex mode we have regex policy and regex itself as the delim. This kinda makes sense and allows us to keep the same interface as before.
+policy_names = ['quoted', 'simple', 'whitespace', 'quoted_rfc', 'monocolumn', 'regex']
 out_format_names = ['csv', 'tsv', 'input']
 
 
@@ -367,6 +368,7 @@ To learn how to use rbql to query an sqlite database, run this command:
 
 '''
 
+# FIXME add regex policy and description for it
 csv_epilog = '''
 Description of the available CSV split policies:
   * "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
@@ -380,7 +382,7 @@ Description of the available CSV split policies:
 def csv_main():
     parser = argparse.ArgumentParser(prog='rbql [csv]', formatter_class=argparse.RawDescriptionHelpFormatter, description=csv_tool_description, epilog=csv_epilog)
     parser.add_argument('--input', metavar='FILE', help='read csv table from FILE instead of stdin. Required in interactive mode')
-    parser.add_argument('--delim', help='delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode')
+    parser.add_argument('--delim', help='delimiter character or multicharacter string, e.g. "," or "###" or regex if the policy specified as "regex". Can be autodetected in interactive mode')
     parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
     parser.add_argument('--with-headers', action='store_true', help='indicates that input (and join) table has header')
     parser.add_argument('--comment-prefix', metavar='PREFIX', help='ignore lines in input and join tables that start with the comment PREFIX, e.g. "#" or ">>"')
