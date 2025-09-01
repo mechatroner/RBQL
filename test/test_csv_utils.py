@@ -37,7 +37,7 @@ line_separators = ['\n', '\r\n', '\r']
 vinf = rbql_engine.VariableInfo
 
 
-python_version = float('{}.{}'.format(sys.version_info[0], sys.version_info[1]))
+python_version = '{}.{}'.format(sys.version_info[0], sys.version_info[1])
 
 
 def normalize_warnings(warnings):
@@ -870,10 +870,11 @@ class TestRBQLWithCSV(unittest.TestCase):
     # FIXME add test with whitespace strip in join table.
     def process_test_case(self, tmp_tests_dir, test_case):
         test_name = test_case['test_name']
-        minimal_python_version = float(test_case.get('minimal_python_version', 2.7))
-        if python_version < minimal_python_version:
-            print('Skipping {}: python version must be at least {}. Interpreter version is {}'.format(test_name, minimal_python_version, python_version))
-            return
+        # FIXME fix and restore this check. Currently it works incorrectly because considers 3.10 < 3.7 - both numerically and lexicographically.
+        #minimal_python_version = test_case.get('minimal_python_version', '3.0')
+        #if python_version < minimal_python_version:
+        #    print('Skipping {}: python version must be at least {}. Interpreter version is {}'.format(test_name, minimal_python_version, python_version))
+        #    return
         query = test_case.get('query_python', None)
         if query is None:
             return
