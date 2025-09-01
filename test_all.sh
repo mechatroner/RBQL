@@ -30,6 +30,7 @@ cleanup_tmp_files() {
 
 
 run_unit_tests="yes"
+run_pandas_tests="yes"
 run_python_tests="yes"
 run_node_tests="yes"
 cleanup_mode="no"
@@ -48,6 +49,9 @@ while [[ $# -gt 0 ]]; do
     case "$key" in
         --skip_unit_tests)
         run_unit_tests="no"
+        ;;
+        --skip_pandas_tests)
+        run_pandas_tests="no"
         ;;
         --skip_node_tests)
         run_node_tests="no"
@@ -100,8 +104,10 @@ if [ $run_unit_tests == "yes" ]; then
         python3 -m unittest test.test_rbql_sqlite
         die_if_error $?
 
-        python3 -m unittest test.test_rbql_pandas
-        die_if_error $?
+        if [ "$run_pandas_tests" == "yes" ]; then
+            python3 -m unittest test.test_rbql_pandas
+            die_if_error $?
+        fi
 
         python3 -m unittest test.test_mad_max
         die_if_error $?
