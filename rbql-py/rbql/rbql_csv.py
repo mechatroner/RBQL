@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-
 import sys
 import os
-import codecs
 import io
 from errno import EPIPE
 
@@ -12,18 +7,10 @@ from . import rbql_engine
 from . import csv_utils
 
 
-PY3 = sys.version_info[0] == 3
-polymorphic_xrange = range if PY3 else xrange
-
 default_csv_encoding = 'utf-8'
 ansi_reset_color_code = '\u001b[0m'
 
 debug_mode = False
-
-try:
-    broken_pipe_exception = BrokenPipeError
-except NameError: # Python 2
-    broken_pipe_exception = IOError
 
 
 def is_ascii(s):
@@ -58,31 +45,23 @@ def interpret_named_csv_format(format_name):
 def encode_input_stream(stream, encoding):
     if encoding is None:
         return stream
-    if PY3:
-        # Reference: https://stackoverflow.com/a/16549381/2898283
-        # typical stream (e.g. sys.stdin) in Python 3 is actually a io.TextIOWrapper but with some unknown encoding
-        try:
-            return io.TextIOWrapper(stream.buffer, encoding=encoding)
-        except AttributeError:
-            # BytesIO doesn't have "buffer"
-            return io.TextIOWrapper(stream, encoding=encoding)
-    else:
-        # Reference: https://stackoverflow.com/a/27425797/2898283
-        # Python 2 streams don't have stream.buffer and therefore we can't use io.TextIOWrapper. Instead we use codecs
-        return codecs.getreader(encoding)(stream)
+    # Reference: https://stackoverflow.com/a/16549381/2898283
+    # typical stream (e.g. sys.stdin) in Python 3 is actually a io.TextIOWrapper but with some unknown encoding
+    try:
+        return io.TextIOWrapper(stream.buffer, encoding=encoding)
+    except AttributeError:
+        # BytesIO doesn't have "buffer"
+        return io.TextIOWrapper(stream, encoding=encoding)
 
 
 def encode_output_stream(stream, encoding):
     if encoding is None:
         return stream
-    if PY3:
-        try:
-            return io.TextIOWrapper(stream.buffer, encoding=encoding)
-        except AttributeError:
-            # BytesIO doesn't have "buffer"
-            return io.TextIOWrapper(stream, encoding=encoding)
-    else:
-        return codecs.getwriter(encoding)(stream)
+    try:
+        return io.TextIOWrapper(stream.buffer, encoding=encoding)
+    except AttributeError:
+        # BytesIO doesn't have "buffer"
+        return io.TextIOWrapper(stream, encoding=encoding)
 
 
 def remove_utf8_bom(line, assumed_source_encoding):
@@ -246,8 +225,8 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
                 self.stream.write(ansi_reset_color_code)
             self.stream.write(self.line_separator)
             return True
-        except broken_pipe_exception as exc:
-            if broken_pipe_exception == IOError:
+        except BrokenPipeError as exc:
+            if BrokenPipeError == IOError: # FIXME perhaps we don't need this? Maybe it was needed for Python 2 only?
                 if exc.errno != EPIPE:
                     raise
             self.broken_pipe = True
@@ -255,17 +234,17 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
 
 
     def colorize_fields(self, fields):
-        for i in polymorphic_xrange(len(fields)):
+        for i in range(len(fields)):
             fields[i] = self.colors[i % len(self.colors)] + fields[i]
 
 
     def quote_fields(self, fields):
-        for i in polymorphic_xrange(len(fields)):
+        for i in range(len(fields)):
             fields[i] = csv_utils.quote_field(fields[i], self.delim)
 
 
     def quote_fields_rfc(self, fields):
-        for i in polymorphic_xrange(len(fields)):
+        for i in range(len(fields)):
             fields[i] = csv_utils.rfc_quote_field(fields[i], self.delim)
 
 
@@ -275,10 +254,8 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
 
 
     def normalize_fields(self, fields):
-        for i in polymorphic_xrange(len(fields)):
-            if PY3 and isinstance(fields[i], str):
-                continue
-            elif not PY3 and isinstance(fields[i], basestring):
+        for i in range(len(fields)):
+            if isinstance(fields[i], str):
                 continue
             elif fields[i] is None:
                 fields[i] = ''
@@ -306,8 +283,8 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
                 self.stream.flush() # This flush still can throw if all flushes before were sucessfull! And the exceptions would be printed anyway, even if it was explicitly catched just couple of lines after.
                 # Basically this fails if output is small and this is the first flush after the pipe was broken e.g. second flush if piped to head -n 1
                 # Here head -n 1 finished after the first flush, and the final explict flush here just killing it
-            except broken_pipe_exception as exc:
-                if broken_pipe_exception == IOError:
+            except BrokenPipeError as exc:
+                if BrokenPipeError == IOError: # FIXME perhaps we don't need this? Maybe it was needed for Python 2 only?
                     if exc.errno != EPIPE:
                         raise
                 # In order to avoid BrokenPipeError from being printed as a warning to stderr, we need to perform this magic below. See:

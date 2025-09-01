@@ -1,15 +1,7 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-
 import unittest
 import sys
 import datetime
 import os
-
-PY3 = sys.version_info[0] == 3
-
-#This module must be both python2 and python3 compatible
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Use insert instead of append to make sure that we are using local rbql here.
@@ -41,9 +33,8 @@ class TestMadMax(unittest.TestCase):
         self.assertTrue(get_mad_max()(4, 6) == 6)
         self.assertTrue(get_mad_max()(4, 8, 6) == 8)
         self.assertTrue(get_mad_max()(4, 8, 6, key=lambda v: -v) == 4)
-        if PY3:
-            self.assertTrue(get_mad_max()([], default=7) == 7)
-            self.assertTrue(get_mad_max()(['b', 'x', 'a'], default='m') == 'x')
+        self.assertTrue(get_mad_max()([], default=7) == 7)
+        self.assertTrue(get_mad_max()(['b', 'x', 'a'], default='m') == 'x')
         with self.assertRaises(TypeError) as cm:
             get_mad_max()(7, key=lambda v: v)
         e = cm.exception
@@ -60,9 +51,8 @@ class TestMadMax(unittest.TestCase):
         self.assertTrue(get_mad_min()(4, 6) == 4)
         self.assertTrue(get_mad_min()(4, 8, 6) == 4)
         self.assertTrue(get_mad_min()(4, 8, 6, key=lambda v: -v) == 8)
-        if PY3:
-            self.assertTrue(get_mad_min()([], default=7) == 7)
-            self.assertTrue(get_mad_min()(['b', 'x', 'a'], default='m') == 'a')
+        self.assertTrue(get_mad_min()([], default=7) == 7)
+        self.assertTrue(get_mad_min()(['b', 'x', 'a'], default='m') == 'a')
         with self.assertRaises(TypeError) as cm:
             get_mad_min()(7, key=lambda v: v)
         e = cm.exception

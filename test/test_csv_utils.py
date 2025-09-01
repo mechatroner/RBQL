@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
 
 import sys
 import os
@@ -27,11 +24,6 @@ import rbql
 from rbql import rbql_csv
 from rbql import csv_utils
 from rbql import rbql_engine
-
-
-#This module must be both python2 and python3 compatible
-
-PY3 = sys.version_info[0] == 3
 
 
 ########################################################################################################
@@ -73,15 +65,6 @@ def calc_file_md5(fname):
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
-
-polymorphic_unichr = chr if PY3 else unichr
-
-
-def xrange6(x):
-    if PY3:
-        return range(x)
-    return xrange(x)
 
 
 def natural_random(low, high):
@@ -227,7 +210,7 @@ def make_random_decoded_binary_csv_entry(min_len, max_len, restricted_chars):
     restricted_chars = [ord(c) for c in restricted_chars]
     char_codes = [i for i in char_codes if i not in restricted_chars]
     data_bytes = list()
-    for i in xrange6(strlen):
+    for i in range(strlen):
         data_bytes.append(random.choice(char_codes))
     binary_data = bytes(bytearray(data_bytes))
     decoded_binary = binary_data.decode('latin-1')
@@ -241,9 +224,9 @@ def generate_random_decoded_binary_table(max_num_rows, max_num_cols, restricted_
     good_keys = ['Hello', 'Avada Kedavra ', '>> ??????', '128', '#3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
     result = list()
     good_column = random.randint(0, num_cols - 1)
-    for r in xrange6(num_rows):
+    for r in range(num_rows):
         result.append(list())
-        for c in xrange6(num_cols):
+        for c in range(num_cols):
             if c == good_column:
                 result[-1].append(random.choice(good_keys))
             else:
@@ -259,7 +242,7 @@ def make_random_unicode_entry(min_len, max_len, restricted_chars):
     while len(result) < strlen:
         v = random.randrange(0xD7FF)
         if v not in restricted_codes:
-            result.append(polymorphic_unichr(v))
+            result.append(chr(v))
     return ''.join(result)
 
 
@@ -269,9 +252,9 @@ def generate_random_unicode_table(max_num_rows, max_num_cols, restricted_chars):
     good_keys = ['Привет!', 'Бабушка', ' ??????', '128', '3q295 fa#(@*$*)', ' abc defg ', 'NR', 'a1', 'a2']
     result = list()
     good_column = random.randint(0, num_cols - 1)
-    for r in xrange6(num_rows):
+    for r in range(num_rows):
         result.append(list())
-        for c in xrange6(num_cols):
+        for c in range(num_cols):
             if c == good_column:
                 result[-1].append(random.choice(good_keys))
             else:
@@ -294,7 +277,7 @@ def make_random_csv_fields_naive(num_fields, max_field_len):
 
 def make_random_csv_records_naive():
     result = list()
-    for num_test in xrange6(1000):
+    for num_test in range(1000):
         num_fields = random.randint(1, 11)
         max_field_len = 25
         fields = make_random_csv_fields_naive(num_fields, max_field_len)
@@ -309,7 +292,7 @@ def make_random_csv_records_naive():
 
 def normalize_newlines_in_fields(table):
     for row in table:
-        for c in xrange6(len(row)):
+        for c in range(len(row)):
             row[c] = row[c].replace('\r\n', '\n')
             row[c] = row[c].replace('\r', '\n')
 
@@ -462,11 +445,11 @@ class TestLineSplit(unittest.TestCase):
 
     def test_split_chunk_sizes(self):
         source_tokens = ['', 'defghIJKLMN', 'a', 'bc'] + ['\n', '\r\n', '\r']
-        for test_case in xrange6(1000):
+        for test_case in range(1000):
             num_tokens = random.randint(0, 12)
             chunk_size = random.randint(1, 5) if random.randint(0, 1) else random.randint(1, 100)
             src = ''
-            for tnum in xrange6(num_tokens):
+            for tnum in range(num_tokens):
                 token = random.choice(source_tokens)
                 src += token
             stream, encoding = string_to_randomly_encoded_stream(src)
@@ -478,7 +461,7 @@ class TestLineSplit(unittest.TestCase):
 
 class TestRecordIterator(unittest.TestCase):
     def test_iterator(self):
-        for _test_num in xrange6(100):
+        for _test_num in range(100):
             table = generate_random_decoded_binary_table(10, 10, ['\r', '\n'])
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
@@ -497,7 +480,7 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_iterator_unicode(self):
-        for _test_num in xrange6(100):
+        for _test_num in range(100):
             table = generate_random_unicode_table(10, 10, ['\r', '\n'])
             delims = ['\t', ',', ';', '|', 'Д', 'Ф', '\u2063']
             delim = random.choice(delims)
@@ -517,7 +500,7 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_iterator_rfc(self):
-        for _test_num in xrange6(100):
+        for _test_num in range(100):
             table = generate_random_decoded_binary_table(10, 10, None)
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
@@ -536,7 +519,7 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_iterator_rfc_comments(self):
-        for _test_num in xrange6(200):
+        for _test_num in range(200):
             table = generate_random_decoded_binary_table(10, 10, None)
             comment_prefix = random.choice(['#', '>>'])
             if table_has_records_with_comment_prefix(table, comment_prefix):
@@ -657,11 +640,11 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_monocolumn_separated_parsing(self):
-        for i in xrange6(10):
+        for i in range(10):
             self.maxDiff = None
             table = list()
             num_rows = random.randint(1, 30)
-            for irow in xrange6(num_rows):
+            for irow in range(num_rows):
                 min_len = 0 if irow + 1 < num_rows else 1
                 table.append([make_random_decoded_binary_csv_entry(min_len, 20, restricted_chars=['\r', '\n'])])
             csv_data = table_to_csv_string_random(table, None, 'monocolumn')
@@ -996,7 +979,7 @@ def main():
         dst_path = args.create_big_csv_table
         num_rows = 300 * 1000
         with open(dst_path, 'w') as dst:
-            for nr in xrange6(num_rows):
+            for nr in range(num_rows):
                 price = str(random.randint(10, 20))
                 item = random.choice(['parsley', 'sage', 'rosemary', 'thyme'])
                 csv_line = random_smart_join([price, item], ',', 'quoted')

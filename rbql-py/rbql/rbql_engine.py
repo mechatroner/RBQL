@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-
 import sys
 import re
 import ast
@@ -44,8 +40,6 @@ ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input an
 invalid_keyword_in_aggregate_query_error_msg = '"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries'
 wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
 numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
-
-PY3 = sys.version_info[0] == 3
 
 RBQL_VERSION = __version__
 
@@ -104,10 +98,6 @@ class RBQLContext:
         self.variables_init_code = None
 
 
-def is_str6(val):
-    return (PY3 and isinstance(val, str)) or (not PY3 and isinstance(val, basestring))
-
-
 QueryColumnInfo = namedtuple('QueryColumnInfo', ['table_name', 'column_index', 'column_name', 'is_star', 'alias_name'])
 
 
@@ -162,7 +152,7 @@ def column_info_from_node(root):
         column_name = get_field(root, 'attr')
         if not column_name:
             return None
-        if not is_str6(column_name):
+        if not isinstance(column_name, str):
             return None
         var_root = get_field(root, 'value')
         if not isinstance(var_root, ast.Name):
@@ -193,8 +183,6 @@ def column_info_from_node(root):
             column_index = get_field(slice_val_root, 'n') - 1
         else:
             return None
-        if not PY3 and isinstance(column_name, str):
-            column_name = column_name.decode('utf-8')
         return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=column_name, is_star=False, alias_name=None)
     column_alias_name = search_for_as_alias_pseudo_function(root)
     if column_alias_name:
@@ -220,12 +208,6 @@ def ast_parse_select_expression_to_column_infos(select_expression):
     else:
         column_infos = [column_info_from_node(root)]
     return column_infos
-
-
-def iteritems6(x):
-    if PY3:
-        return x.items()
-    return x.iteritems()
 
 
 class RBQLRecord:
@@ -295,7 +277,7 @@ class NumHandler:
     def parse(self, val):
         if not self.string_detection_done:
             self.string_detection_done = True
-            if is_str6(val):
+            if isinstance(val, str):
                 self.is_str = True
         if not self.is_str:
             return val
@@ -525,7 +507,7 @@ class UniqCountWriter(object):
         return True
 
     def finish(self):
-        for record, cnt in iteritems6(self.records):
+        for record, cnt in self.records.items():
             mutable_record = list(record)
             mutable_record.insert(0, cnt)
             if not self.subwriter.write(mutable_record):
@@ -899,9 +881,7 @@ def compile_and_run(query_context, user_namespace, unit_test_mode=False):
     def mad_max(*args, **kwargs):
         single_arg = len(args) == 1 and not kwargs
         if single_arg:
-            if PY3 and isinstance(args[0], str):
-                return MAX(args[0])
-            if not PY3 and isinstance(args[0], basestring):
+            if isinstance(args[0], str):
                 return MAX(args[0])
             if isinstance(args[0], int) or isinstance(args[0], float):
                 return MAX(args[0])
@@ -916,9 +896,7 @@ def compile_and_run(query_context, user_namespace, unit_test_mode=False):
     def mad_min(*args, **kwargs):
         single_arg = len(args) == 1 and not kwargs
         if single_arg:
-            if PY3 and isinstance(args[0], str):
-                return MIN(args[0])
-            if not PY3 and isinstance(args[0], basestring):
+            if isinstance(args[0], str):
                 return MIN(args[0])
             if isinstance(args[0], int) or isinstance(args[0], float):
                 return MIN(args[0])

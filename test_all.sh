@@ -32,42 +32,15 @@ cleanup_tmp_files() {
 run_unit_tests="yes"
 run_python_tests="yes"
 run_node_tests="yes"
-has_python2="yes"
-has_python3="yes"
 cleanup_mode="no"
 
-
-py2_version=$( python2 --version 2>&1 )
-rc=$?
-if [ "$rc" != 0 ] || [ -z "$py2_version" ]; then
-    echo "WARNING! python2 was not found"  1>&2
-    has_python2="no"
-fi
 
 py3_version=$( python3 --version 2> /dev/null )
 rc=$?
 if [ "$rc" != 0 ] || [ -z "$py3_version" ]; then
-    echo "WARNING! python3 was not found"  1>&2
-    has_python3="no"
+    echo "ERROR! python3 was not found. Exiting"  1>&2
+    exit 1
 fi
-
-if [ $has_python2 = "yes" ] && [ $has_python3 = "yes" ]; then
-    rand_val=$[ $RANDOM % 2 ]
-    if [ $rand_val = 1 ]; then
-        random_python_interpreter="python3"
-    else
-        random_python_interpreter="python2"
-    fi
-elif [ $has_python2 = "yes" ]; then
-    random_python_interpreter="python2"
-elif [ $has_python3 = "yes" ]; then
-    random_python_interpreter="python3"
-else
-    echo "WARNING! python was not found. Skipping python tests"  1>&2
-    run_python_tests="no"
-fi
-
-echo "Random python interpreter to use: $random_python_interpreter"
 
 
 while [[ $# -gt 0 ]]; do
@@ -100,7 +73,7 @@ if [ "$cleanup_mode" == "yes" ]; then
     exit 0
 fi
 
-py_rbql_version=$( python -m rbql --version )
+py_rbql_version=$( python3 -m rbql --version )
 
 
 if [ $run_node_tests == "yes" ]; then
@@ -113,38 +86,28 @@ if [ $run_node_tests == "yes" ]; then
 fi
 
 
-python test/test_csv_utils.py --create_big_csv_table speed_test.csv
+python3 test/test_csv_utils.py --create_big_csv_table speed_test.csv
 
 
 if [ $run_unit_tests == "yes" ]; then
     if [ "$run_python_tests" == "yes" ]; then
-        python2 -m unittest test.test_csv_utils
-        die_if_error $?
         python3 -m unittest test.test_csv_utils
         die_if_error $?
 
-        python2 -m unittest test.test_rbql
-        die_if_error $?
         python3 -m unittest test.test_rbql
         die_if_error $?
 
-        python2 -m unittest test.test_rbql_sqlite
-        die_if_error $?
         python3 -m unittest test.test_rbql_sqlite
         die_if_error $?
 
-        python2 -m unittest test.test_rbql_pandas
-        die_if_error $?
         python3 -m unittest test.test_rbql_pandas
         die_if_error $?
 
-        python2 -m unittest test.test_mad_max
-        die_if_error $?
         python3 -m unittest test.test_mad_max
         die_if_error $?
     fi
 
-    python test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
+    python3 test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
 
     if [ "$run_node_tests" == "yes" ]; then
         js_rbql_version=$( node rbql-js/cli_rbql.js --version )
@@ -183,11 +146,6 @@ if [ "$run_python_tests" == "yes" ]; then
         echo "python3 unicode separator test FAIL!"  1>&2
         exit 1
     fi
-    md5sum_test=($(python2 -m rbql --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
-    if [ "$md5sum_expected" != "$md5sum_test" ]; then
-        echo "python2 unicode separator test FAIL!"  1>&2
-        exit 1
-    fi
 fi
 if [ "$run_node_tests" == "yes" ]; then
     md5sum_test=($( node ./rbql-js/cli_rbql.js --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
@@ -202,11 +160,6 @@ fi
 md5sum_expected="e1fe4bd13b25b2696e3df2623cd0f134"
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_test=($(python3 -m rbql --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
-    if [ "$md5sum_expected" != "$md5sum_test" ]; then
-        echo "python3 unicode query test FAIL!"  1>&2
-        exit 1
-    fi
-    md5sum_test=($(python2 -m rbql --query "select a2, '$(echo -e "\u041f\u0440\u0438\u0432\u0435\u0442")' + ' ' + a1" --delim TAB --policy simple --input test/csv_files/movies.tsv --encoding utf-8 | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "python3 unicode query test FAIL!"  1>&2
         exit 1
@@ -237,23 +190,13 @@ if [ "$run_python_tests" == "yes" ]; then
     fi
 
     rm rbql_warning.out 2> /dev/null
-    md5sum_test=($(python2 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a1' --delim TAB 2> rbql_warning.out | head -n 10 | md5sum))
-    warning_test=$( cat rbql_warning.out )
-    if [ "$md5sum_expected" != "$md5sum_test" ]; then
-        echo "Python2 broken pipe test fail!"  1>&2
-        exit 1
-    fi
-    if [ "$warning_test" != "Warning: None values in output were replaced by empty strings" ]; then
-        echo "Python2 broken pipe test fail: wrong warning!"  1>&2
-        exit 1
-    fi
 fi
 
 
 # Testing colored output
 md5sum_expected="4798e34af6a68d76119048ed2cf0a0c2"
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a1' --delim TAB --color 2> /dev/null | head -n 10 | md5sum))
+    md5sum_test=($(python3 -m rbql --input test/csv_files/movies.tsv --query 'select a2, None, a1' --delim TAB --color 2> /dev/null | head -n 10 | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python colored output test fail!"  1>&2
         exit 1
@@ -261,7 +204,7 @@ if [ "$run_python_tests" == "yes" ]; then
 fi
 md5sum_expected="27a29bfe96e6dceacdc9b6ed197a9158"
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/universities.monocolumn --query 'select str(NR) + " " + a1 where a1.find(" of ") != -1' --policy monocolumn --color | head -n 20 | md5sum))
+    md5sum_test=($(python3 -m rbql --input test/csv_files/universities.monocolumn --query 'select str(NR) + " " + a1 where a1.find(" of ") != -1' --policy monocolumn --color | head -n 20 | md5sum))
     # Monocolumn policy should disregard --color parameter
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python monocolumn non-colored output test fail: monocolumn policy should disregard --column argument!"  1>&2
@@ -270,7 +213,7 @@ if [ "$run_python_tests" == "yes" ]; then
 fi
 md5sum_expected="b259b60f8ac1f51a1a1b9d6db416c5f9"
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/rfc_newlines_in_header.csv --delim , --policy quoted_rfc --query 'select NR, a3 + a1, a2, NF' --color | md5sum))
+    md5sum_test=($(python3 -m rbql --input test/csv_files/rfc_newlines_in_header.csv --delim , --policy quoted_rfc --query 'select NR, a3 + a1, a2, NF' --color | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Python colored output rfc test fail!"  1>&2
         exit 1
@@ -322,7 +265,7 @@ fi
 # Testing with-headers / named columns in CLI
 md5sum_expected=($( md5sum test/csv_files/expected_result_14.csv ))
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by int(a['GDP per capita']) desc" --delim , --with-headers | md5sum))
+    md5sum_test=($(python3 -m rbql --input test/csv_files/countries.csv --query "select top 5 a.country, a['GDP per capita'] order by int(a['GDP per capita']) desc" --delim , --with-headers | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "CLI Python with-headers test FAIL!"  1>&2
         exit 1
@@ -342,14 +285,14 @@ fi
 
 
 # Testing CLI errors and warnings
-output=$( $random_python_interpreter -m rbql --delim , --query "SELECT top 3 a1, foobarium(a2)" --input test/csv_files/countries.csv 2>&1 )
+output=$( python3 -m rbql --delim , --query "SELECT top 3 a1, foobarium(a2)" --input test/csv_files/countries.csv 2>&1 )
 rc=$?
 if [ $rc != 1 ] || [[ $output != *"name 'foobarium' is not defined"* ]]; then
     echo "rbql-py does not produce expected error. rc:$rc, output:$output "  1>&2
     exit 1
 fi
 
-output=$( $random_python_interpreter -m rbql --delim , --query "SELECT top 3 a1, None, a2" --input test/csv_files/countries.csv 2>&1 > /dev/null )
+output=$( python3 -m rbql --delim , --query "SELECT top 3 a1, None, a2" --input test/csv_files/countries.csv 2>&1 > /dev/null )
 rc=$?
 if [ $rc != 0 ] || [[ $output != *"Warning: None values in output were replaced by empty strings"* ]]; then
     echo "rbql-py does not produce expected warning. rc:$rc, output:$output "  1>&2
@@ -375,7 +318,7 @@ fi
 
 rand_val=$[ $RANDOM % 2 ]
 if [ $rand_val = 1 ]; then
-    # FIXME randomly add --trim_spaces option for JS too
+    # TODO randomly add --trim_spaces option for JS too
     strip_spaces_option=" --strip-spaces"
     trim_spaces_option=" --trim-spaces"
 else
@@ -388,27 +331,27 @@ echo "strip spaces option: '$strip_spaces_option'"
 # Testing performance
 if [ "$run_python_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
-    python test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv > /dev/null
+    python3 test/test_csv_utils.py --dummy_csv_speedtest speed_test.csv > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python3 -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python reference split test took $elapsed seconds"
 
     start_tm=$(date +%s.%N)
     python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 3' > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python3 -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python empty result select query took $elapsed seconds. Reference value: 2.6 seconds"
 
     start_tm=$(date +%s.%N)
     python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where int(a1) % 2 == 0' $strip_spaces_option > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python3 -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python simple select query took $elapsed seconds. Reference value: 3 seconds"
 
     start_tm=$(date +%s.%N)
     python3 -m rbql --input speed_test.csv --delim , --policy quoted --query 'select max(a1), count(*), a2 where int(a1) > 15 group by a2' > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python3 -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "Python GROUP BY query took $elapsed seconds. Reference value: 2.6 seconds"
 fi
 
@@ -416,19 +359,19 @@ if [ "$run_node_tests" == "yes" ]; then
     start_tm=$(date +%s.%N)
     node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where parseInt(a1) % 2 == 3' $trim_spaces_option > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python3 -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "JS empty result select query took $elapsed seconds. Reference value: 1.1 seconds"
 
     start_tm=$(date +%s.%N)
     node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select a2, a1, a2, NR where parseInt(a1) % 2 == 0' > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python3 -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "JS simple select query took $elapsed seconds. Reference value: 2.3 seconds"
 
     start_tm=$(date +%s.%N)
     node ./rbql-js/cli_rbql.js --input speed_test.csv --delim , --policy quoted --query 'select max(a1), count(*), a2 where parseInt(a1) > 15 group by a2' $trim_spaces_option > /dev/null
     end_tm=$(date +%s.%N)
-    elapsed=$( echo "$start_tm,$end_tm" | python -m rbql --delim , --query 'select float(a2) - float(a1)' )
+    elapsed=$( echo "$start_tm,$end_tm" | python3 -m rbql --delim , --query 'select float(a2) - float(a1)' )
     echo "JS GROUP BY query took $elapsed seconds. Reference value: 1.1 seconds"
 fi
 
@@ -437,14 +380,14 @@ fi
 # Testing generic CLI
 md5sum_expected=($( md5sum test/csv_files/expected_result_4.tsv ))
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($($random_python_interpreter -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" $strip_spaces_option < test/csv_files/movies.tsv | md5sum))
+    md5sum_test=($(python3 -m rbql --delim TAB --query "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010" $strip_spaces_option < test/csv_files/movies.tsv | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "CLI Python test FAIL!"  1>&2
         exit 1
     fi
 
     # XXX theorethically this test can randomly fail because sleep timeout is not long enough
-    (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010") | $random_python_interpreter -m rbql --delim '\t' --input test/csv_files/movies.tsv --output tmp_out.csv $strip_spaces_option > /dev/null
+    (echo "select select a1" && sleep 0.5 && echo "select a1, nonexistent_func(a2)" && sleep 0.5 && echo "select a1,a2,a7,b2,b3,b4 left join test/csv_files/countries.tsv on a2 == b1 where 'Sci-Fi' in a7.split('|') and b2!='US' and int(a4) > 2010") | python3 -m rbql --delim '\t' --input test/csv_files/movies.tsv --output tmp_out.csv $strip_spaces_option > /dev/null
     md5sum_test=($(cat tmp_out.csv | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "Interactive CLI Python test FAIL!"  1>&2
@@ -474,7 +417,7 @@ fi
 if [ "$run_python_tests" == "yes" ]; then
     md5sum_expected=($( md5sum test/sqlite_files/expected_result_1.csv ))
     expected_warning="Warning: None values in output were replaced by empty strings"
-    $random_python_interpreter -m rbql sqlite test/sqlite_files/mental_health_single_table.sqlite --input Question --query 'select top 100 *, a2 * 10, len(a.questiontext) if a.questiontext else 0 WHERE a1 is None or a1.find("your") != -1' > tmp_out.csv 2> tmp_err.txt
+    python3 -m rbql sqlite test/sqlite_files/mental_health_single_table.sqlite --input Question --query 'select top 100 *, a2 * 10, len(a.questiontext) if a.questiontext else 0 WHERE a1 is None or a1.find("your") != -1' > tmp_out.csv 2> tmp_err.txt
     md5sum_test=($( md5sum tmp_out.csv ))
     test_warning=$( cat tmp_err.txt )
     if [ "$md5sum_expected" != "$md5sum_test" ]; then

@@ -4,7 +4,7 @@ import re
 from setuptools import setup
  
  
-version = '0.27.0'
+version = '0.28.0'
  
  
 with open("README.md", "rb") as f:
@@ -27,7 +27,6 @@ setup(
     classifiers = [
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 2.7",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Framework :: IPython",
