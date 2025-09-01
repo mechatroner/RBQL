@@ -15,7 +15,6 @@ import time # For usage inside user queries only.
 
 from ._version import __version__
 
-# This module must be both python2 and python3 compatible.
 # This module works with records only. It is CSV-agnostic.
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc.
 # See DEV_README.md for additional info.
@@ -790,6 +789,10 @@ def embed_code(parent_code, child_placeholder, child_code):
 
 
 def generate_main_loop_code(query_context):
+    # FIXME we can have 1 producer thread + 1 thread for each pipe - separated operation. In simple case we would have 1 + 1 = 2 main threads.
+    # Non-producing threads could be in the future divided futher into thread pools operated upon the batches.
+    # Python also has `multiprocessing` module for the true parallelism (spawns a new process so beware).
+    # Also consider using asyncio for reading from the initial data source.
     is_select_query = query_context.select_expression is not None
     is_join_query = query_context.join_map is not None
     where_expression = 'True' if query_context.where_expression is None else query_context.where_expression
@@ -1588,6 +1591,13 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
     return warn_msg
 
 
+# OK, it is fine I guess to do 0-level parsing by just splitting the query into | - separated parts.
+# The plan:
+# 1. Split the query into pipe-separated sub-queries.
+#    Each part gets its own input_iterator and output_writer.
+#    We need a way to transform output_writer to input_iterator.
+# 2. Run one `query` function for each part in a separate thread or process.
+#    The communication between can be done via a queue.
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='', user_namespace=None):
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
     shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
