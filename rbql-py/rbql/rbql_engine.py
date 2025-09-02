@@ -175,7 +175,6 @@ def column_info_from_node(root):
             return None
         column_index = None
         column_name = None
-        # FIXME test this with older version of python3 e.g. Python 3.7
         if hasattr(ast, 'Index') and isinstance(slice_root, ast.Index):
             # Important: Since version 3.8 ast.Constant is used instead of ast.Index.
             # Furthermore ast.Index might be removed from ast in future releases.
@@ -190,7 +189,7 @@ def column_info_from_node(root):
             else:
                 return None
         elif hasattr(ast, 'Constant') and isinstance(slice_root, ast.Constant):
-            # ast.Constant replaced ast.Index since version 3.8
+            # Note: `ast.Constant` replaced `ast.Index` since version 3.8
             slice_val_root = get_field(slice_root, 'value')
             if isinstance(slice_val_root, str):
                 column_name = slice_val_root
