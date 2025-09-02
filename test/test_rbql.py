@@ -22,7 +22,7 @@ from rbql import rbql_engine
 
 vinf = rbql_engine.VariableInfo
 
-python_version = float('{}.{}'.format(sys.version_info[0], sys.version_info[1]))
+python_minor_version = int(sys.version_info[1])
 
 
 def normalize_warnings(warnings):
@@ -429,14 +429,11 @@ class TestJsonTables(unittest.TestCase):
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
         if query is None:
-            if python_version >= 3:
-                query = test_case.get('query_python_3', None)
-            else:
-                query = test_case.get('query_python_2', None)
+            query = test_case.get('query_python_3', None)
         debug_mode = test_case.get('debug_mode', False)
-        minimal_python_version = float(test_case.get('minimal_python_version', 2.7))
-        if python_version < minimal_python_version:
-            print('Skipping {}: python version must be at least {}. Interpreter version is {}'.format(test_name, minimal_python_version, python_version))
+        minimal_minor_python_version = int(test_case.get('minimal_python_version', '3.0').split('.')[1])
+        if python_minor_version < minimal_minor_python_version:
+            print('Skipping {}: python version must be at least {}. Interpreter version is {}'.format(test_name, minimal_minor_python_version, python_minor_version))
             return
         randomly_replace_var_names = test_case.get('randomly_replace_var_names', True)
         if query is None:
@@ -457,10 +454,7 @@ class TestJsonTables(unittest.TestCase):
         if expected_error is None:
             expected_error = test_case.get('expected_error_py', None)
         if expected_error is None:
-            if python_version >= 3:
-                expected_error = test_case.get('expected_error_py_3', None)
-            else:
-                expected_error = test_case.get('expected_error_py_2', None)
+            expected_error = test_case.get('expected_error_py_3', None)
         expected_error_exact = test_case.get('expected_error_exact', False)
         expected_warnings = test_case.get('expected_warnings', [])
         output_table = []

@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-
 import unittest
 import os
 import sys
@@ -19,11 +15,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(script_dir), 'rbql-py'))
 import rbql
 from rbql import rbql_engine
 from rbql import rbql_sqlite
-
-#This module must be both python2 and python3 compatible
-
-python_version = float('{}.{}'.format(sys.version_info[0], sys.version_info[1]))
-
 
 def calc_file_md5(fname):
     # TODO put into a common test_common.py module
@@ -59,15 +50,8 @@ class TestSqliteJsonScenarios(unittest.TestCase):
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
         if query is None:
-            if python_version >= 3:
-                query = test_case.get('query_python_3', None)
-            else:
-                query = test_case.get('query_python_2', None)
+            query = test_case.get('query_python_3', None)
         debug_mode = test_case.get('debug_mode', False)
-        minimal_python_version = float(test_case.get('minimal_python_version', 2.7))
-        if python_version < minimal_python_version:
-            print('Skipping {}: python version must be at least {}. Interpreter version is {}'.format(test_name, minimal_python_version, python_version))
-            return
         if query is None:
             self.assertTrue(test_case.get('query_js', None) is not None)
             return # Skip this test
