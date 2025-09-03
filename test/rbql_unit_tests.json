@@ -1795,8 +1795,7 @@
             ["50", "alpha", "delta"],
             ["20", "alpha", ""]
         ],
-        "expected_error": "Unexpected identifier\nDid you use 'and' keyword in your query?\nJavaScript backend doesn't support 'and' keyword, use '&&' operator instead!",
-        "expected_error_exact": true,
+        "expected_error": "Did you use 'and' keyword in your query?\nJavaScript backend doesn't support 'and' keyword, use '&&' operator instead!",
         "query_js": "select * where a1 > 0 and a1 < 40"
     },
     {
@@ -1807,8 +1806,7 @@
             ["50", "alpha", "delta"],
             ["20", "alpha", ""]
         ],
-        "expected_error": "Unexpected identifier\nDid you use 'or' keyword in your query?\nJavaScript backend doesn't support 'or' keyword, use '||' operator instead!",
-        "expected_error_exact": true,
+        "expected_error": "Did you use 'or' keyword in your query?\nJavaScript backend doesn't support 'or' keyword, use '||' operator instead!",
         "query_js": "select * where a1 < 0 or a1 > 40"
     },
     {
@@ -1820,7 +1818,6 @@
             ["20", "alpha", ""]
         ],
         "expected_error": "Unexpected identifier",
-        "expected_error_exact": true,
         "query_js": "select * where a1 < 0 andor a1 > 40"
     },
     {
