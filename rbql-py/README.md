@@ -193,7 +193,7 @@ The diagram below gives an overview of the main RBQL components and data flow:
 * Supports EXCEPT statement
 * Provides a fully-functional client-side browser demo application
 * Almost nonexistent entry barrier both for SQL users and JS/Python users
-* Integration with popular text editors (VSCode, Vim, Sublime Text, Atom)
+* Integration with popular text editors (VSCode, Vim, Sublime Text)
 * Small, maintainable, dependency-free, eco-friendly and hackable code base: RBQL engine fits into a single file with less than 2000 LOC
 
 ### Disadvantages of RBQL compared to traditional SQL engines
@@ -210,4 +210,3 @@ The diagram below gives an overview of the main RBQL components and data flow:
 * Rainbow CSV extension with integrated RBQL in [Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=mechatroner.rainbow-csv)  
 * Rainbow CSV extension with integrated RBQL in [Vim](https://github.com/mechatroner/rainbow_csv)  
 * Rainbow CSV extension with integrated RBQL in [Sublime Text 3](https://packagecontrol.io/packages/rainbow_csv)  
-* Rainbow CSV extension with integrated RBQL in [Atom](https://atom.io/packages/rainbow-csv)

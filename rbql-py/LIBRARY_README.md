@@ -24,8 +24,7 @@ Run user query against a list of records and put the result set in the output li
 
 #### Signature:  
   
-`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True)`
-
+`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True, user_init_code='')`
 
 #### Parameters: 
 * _user_query_: **string**  
@@ -47,6 +46,8 @@ Run user query against a list of records and put the result set in the output li
 * _normalize_column_names_: **boolean**  
   If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
   If set to False - column names can be used in user queries "as is".  
+* _user_init_code_: **string**  
+  Optional user-provided code that will be evaluated at the beginning of the query.
 
 
 #### Usage example:
@@ -75,7 +76,7 @@ Run user query against input_path CSV file and save it as output_path CSV file.
 
 #### Signature:  
   
-`rbql.query_csv(user_query, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None)`  
+`rbql.query_csv(query_text, input_path, input_delim, input_policy, output_path, output_delim, output_policy, csv_encoding, output_warnings, with_headers, comment_prefix=None, user_init_code='', colorize_output=False, strip_whitespaces=False)`
   
 #### Parameters:
 * _user_query_: **string**  
@@ -102,6 +103,12 @@ Run user query against input_path CSV file and save it as output_path CSV file.
   if set to `true` treat the first record in input (and join) file as header.
 * _comment_prefix_: **string**  
   ignore lines in input and join tables that start with the comment prefix, e.g. "#" or ">>"
+* _user_init_code_: **string**  
+  Optional user-provided code that will be evaluated at the beginning of the query.
+* _colorize_output_: **boolean**  
+  If enabled - adds alternating ansi color codes to the resulting csv output.
+* _strip_whitespaces_: **boolean**  
+  If enabled - strips leading and trailing whitespaces from each input fields before processing.
 
 #### Usage example
 
@@ -159,7 +166,7 @@ You will have to implement special wrapper classes for your custom data structur
 
 #### Signature:
   
-`query(user_query, input_iterator, output_writer, output_warnings, join_tables_registry=None)`  
+`query(user_query, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='')`  
   
 #### Parameters:
 * _user_query_: **string**  
@@ -172,6 +179,8 @@ You will have to implement special wrapper classes for your custom data structur
   warnings will be stored here after the query completion. If no warnings - the list would be empty
 * _join_tables_registry_: **RBQLTableRegistry**  
   special object which provides **RBQLInputIterator** iterators for join tables (e.g. table "B") which users can refer to in their queries.  
+* _user_init_code_: **string**  
+  Optional user-provided code that will be evaluated at the beginning of the query.
 
 
 #### Usage example
