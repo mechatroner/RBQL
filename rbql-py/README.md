@@ -48,7 +48,7 @@ $ rbql-py --input input.csv --output result.csv
 * Use Python expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
 * Supports multiple input formats
 * Result set of any query immediately becomes a first-class table on its own
-* No need to provide FROM statement in the query - input table is defined by the current context
+* No need to provide FROM statement in the query  when the input table is defined by the current context.
 * Supports all main SQL keywords
 * Supports aggregate functions and GROUP BY queries
 * Supports user-defined functions (UDF)
@@ -106,7 +106,7 @@ _UPDATE_ query produces a new table where original values are replaced according
 ### Aggregate functions and queries
 
 RBQL supports the following aggregate functions, which can also be used with _GROUP BY_ keyword:  
-_COUNT_, _ARRAY_AGG_, _MIN_, _MAX_, _SUM_, _AVG_, _VARIANCE_, _MEDIAN_  
+_COUNT_, _ARRAY_AGG_, _MIN_, _MAX_, _ANY_VALUE_, _SUM_, _AVG_, _VARIANCE_, _MEDIAN_  
 
 Limitation: aggregate functions inside Python expressions are not supported. Although you can use expressions inside aggregate functions.  
 E.g. `MAX(float(a1) / 1000)` - valid; `MAX(a1) / 1000` - invalid.  
@@ -188,7 +188,7 @@ The diagram below gives an overview of the main RBQL components and data flow:
 * Supports input tables with inconsistent number of fields per record
 * Allows to generate result sets with variable number of fields per record e.g. by using split() function and unpack operator (Python) / destructuring assignment (JS)
 * UPDATE is a special case of SELECT query - this prevents accidental data loss
-* No need to use FROM statement - the table name is defined by the context. This improves query typing speed and allows immediate autocomplete for variables inside SELECT statement (in traditional SQL engines autocomplete will not work until you write FROM statement, which goes after SELECT statement)
+* No need to use FROM statement when the table name is defined by the context. This improves query typing speed and allows immediate autocomplete for variables inside SELECT statement (in traditional SQL engines autocomplete will not work until you write FROM statement, which goes after SELECT statement)
 * SELECT, WHERE, ORDER BY, and other statements can be rearranged in any way you like
 * Supports EXCEPT statement
 * Provides a fully-functional client-side browser demo application
