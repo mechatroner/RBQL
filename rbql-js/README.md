@@ -219,10 +219,13 @@ You can also check rbql-js cli app code as a usage example: [rbql-js cli source 
 
 
 ### Installation:
-To use RBQL as CLI app you need to install it in global (-g) mode:  
+To use RBQL as CLI app you can install it in global (-g) mode:  
 ```
 $ npm install -g rbql
 ```
+
+RBQL can also be installed locally with `$ npm install rbql`, but then you would have to run it with `$ npx rbql-js ...` instead of `$ rbql-js ...`.
+
 
 ### Usage (non-interactive mode):
 
