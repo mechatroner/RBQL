@@ -1583,7 +1583,7 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
     return warn_msg
 
 
-def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='', user_namespace=None):
+def staged_query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code, user_namespace):
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
     shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
     compile_and_run(query_context, user_namespace)
@@ -1592,6 +1592,23 @@ def query(query_text, input_iterator, output_writer, output_warnings, join_table
     if query_context.join_map_impl is not None:
         output_warnings.extend(query_context.join_map_impl.get_warnings())
     output_warnings.extend(output_writer.get_warnings())
+
+
+def split_query_to_stages(query_text):
+    # It is better to use nix-style pipe '|' syntax instead of bigquery '|>' syntax because RBQL pipes create actual execution boundaries and "physical" pipes, while in bigquery pipe syntax is just syntatic sugar, query is transformed to a normal form anyway.
+    # FIXME this is a very crude way to split the query. Just to test the POC.
+    return query_text.split('|')
+
+
+def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='', user_namespace=None):
+    query_stages = split_query_to_stages(query_text)
+    previous_pipe = None
+    for i, query_stage_text in enumerate(query_stages):
+        output_pipe = TablePipe() if i + 1 < len(query_stages) else None
+        stage_iterator = input_iterator if previous_pipe is None else previous_pipe.get_iterator()
+        stage_writer = output_writer if output_pipe is None else output_pipe.get_writer()
+        staged_query(query_stage_text, stage_iterator, stage_writer, output_warnings, join_tables_registry, user_init_code, user_namespace)
+        previous_pipe = output_pipe
 
 
 class RBQLInputIterator:
@@ -1685,13 +1702,38 @@ class TableWriter(RBQLOutputWriter):
     def __init__(self, external_table):
         self.table = external_table
         self.header = None
+        self.finished = False
 
     def write(self, fields):
+        # We don't throw exception here if `self.finished` because it might slow things down.
         self.table.append(fields)
         return True
 
     def set_header(self, header):
         self.header = header
+
+    def finish(self):
+        self.finished = True
+
+
+class TablePipe:
+    # Each concrete class with Pipe interface like this one should know how to pass data and header from the reader to the iterator, so they can share some internal info
+    def __init__(self):
+        self.table = []
+        self.writer = TableWriter(self.table)
+        self.iterator = None
+
+    def get_writer(self):
+        return self.writer
+
+    def get_iterator(self):
+        if not self.writer.finished:
+            # We don't have to check it in other pipes if implemented but this one is not thread safe.
+            raise RbqlIOHandlingError("Trying to read from non-thread-safe table pipe while not finishing writing yet")
+        if self.iterator is None:
+            self.iterator = TableIterator(self.table, self.writer.header)
+        return self.iterator
+
 
 
 ListTableInfo = namedtuple('ListTableInfo', ['table_id', 'table', 'column_names'])
