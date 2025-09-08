@@ -1027,6 +1027,28 @@
         "query_js": "select a1, a3, MIN(a2 * 10), MAX(a2), COUNT(*), COUNT(1), COUNT(a1), SUM(a3), AVG(a2), VARIANCE(a2), MEDIAN(a4) where a1 != \"cat\" group by a1"
     },
     {
+        "test_name": "Query chain with pipe syntax",
+        "input_table": [
+            ["car", "1", "100", "1"],
+            ["car", "2", "100", "1"],
+            ["dog", "3", "100", "2"],
+            ["car", "4", "100", "2"],
+            ["cat", "5", "100", "3"],
+            ["cat", "6", "100", "3"],
+            ["car", "7", "100", "100"],
+            ["car", "8", "100", "100"]
+        ],
+        "expected_output_table": [
+            ["car", "foo|barbaz", 5],
+            ["cat", "foo|barbaz", 2],
+            ["dog", "foo|barbaz", 1]
+        ],
+        "input_column_names": ["entity", "pos", "price", "range"],
+        "expected_output_header": ["entity", "constant", "cnt"],
+        "query_python": "select a.entity, count(*) as cnt group by a.entity | select a.entity, 'foo|bar' as constant, a.cnt order by a.cnt desc|>update set a2 = a2 + 'baz'",
+        "query_jz": "select a.entity, count(*) as cnt group by a.entity | select a.entity, 'foo|bar' as constant, a.cnt order by a.cnt desc|>update set a2 = a2 + 'baz'"
+    },
+    {
         "test_name": "test_NU_variable",
         "input_table": [
             ["5", "alpha   zeta", "beta"],
