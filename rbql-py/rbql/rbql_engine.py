@@ -1583,6 +1583,12 @@ def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
     return warn_msg
 
 
+def split_query_to_stages(query_text):
+    # RBQL will allow to use both nix-style pipe '|' and bigquery '|>' syntax because RBQL pipes create actual execution boundaries and "physical" pipes, while in bigquery pipe syntax is just syntatic sugar, query is transformed to a normal form anyway.
+    pattern = r'\|[>]?[ ]*(?=(?:select|update)[ ])'
+    return re.split(pattern, query_text, flags=re.IGNORECASE)
+
+
 def staged_query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code, user_namespace):
     query_context = RBQLContext(input_iterator, output_writer, user_init_code)
     shallow_parse_input_query(query_text, input_iterator, join_tables_registry, query_context)
@@ -1592,12 +1598,6 @@ def staged_query(query_text, input_iterator, output_writer, output_warnings, joi
     if query_context.join_map_impl is not None:
         output_warnings.extend(query_context.join_map_impl.get_warnings())
     output_warnings.extend(output_writer.get_warnings())
-
-
-def split_query_to_stages(query_text):
-    # RBQL will allow to use both nix-style pipe '|' and bigquery '|>' syntax because RBQL pipes create actual execution boundaries and "physical" pipes, while in bigquery pipe syntax is just syntatic sugar, query is transformed to a normal form anyway.
-    pattern = r'\|[>]?[ ]*(?=(?:select|update)[ ])'
-    return re.split(pattern, query_text, flags=re.IGNORECASE)
 
 
 def query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry=None, user_init_code='', user_namespace=None):
