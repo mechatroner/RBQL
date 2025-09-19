@@ -70,7 +70,7 @@ var query_context = null; // Needs to be global for MIN(), MAX(), etc functions.
 
 
 const wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside JavaScript expressions is not allowed, see the docs';
-const RBQL_VERSION = '0.27.0';
+const RBQL_VERSION = '0.28.0';
 
 
 function check_if_brackets_match(opening_bracket, closing_bracket) {
@@ -1954,8 +1954,7 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
 
 
 function split_query_to_stages(query_text) {
-    return query_text.split('|');
-    // FIXME improve the impl, this is just a POC.
+    return query_text.split(/\|[>]?[ ]*(?=(?:select|update)[ ])/i);
 }
 
 

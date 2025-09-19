@@ -1046,7 +1046,7 @@
         "input_column_names": ["entity", "pos", "price", "range"],
         "expected_output_header": ["entity", "constant", "cnt"],
         "query_python": "select a.entity, count(*) as cnt group by a.entity | select a.entity, 'foo|bar' as constant, a.cnt order by a.cnt desc|>update set a2 = a2 + 'baz'",
-        "query_jz": "select a.entity, count(*) as cnt group by a.entity | select a.entity, 'foo|bar' as constant, a.cnt order by a.cnt desc|>update set a2 = a2 + 'baz'"
+        "query_js": "select a.entity, count(*) as cnt group by a.entity | select a.entity, 'foo|bar' as constant, a.cnt order by a.cnt desc|>update set a2 = a2 + 'baz'"
     },
     {
         "test_name": "test_NU_variable",
