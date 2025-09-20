@@ -121,6 +121,13 @@ But it is also possible to override this selection directly in the query by addi
 Example: `select top 5 NR, * with (header)`
 
 
+### Pipe syntax for query chaining
+You can chain consecutive queries via pipe `|` syntax. Example:
+```
+SELECT a2 AS region, count(*) AS cnt GROUP BY a2 | SELECT * ORDER BY a.cnt DESC
+```
+
+
 ### User Defined Functions (UDF)
 
 RBQL supports User Defined Functions  
