@@ -77,7 +77,7 @@ def run_with_python_csv(args, is_interactive):
     warnings = []
     error_type, error_msg = None, None
     try:
-        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, with_headers, args.comment_prefix, user_init_code, args.color, strip_whitespaces=args.strip_spaces)
+        rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, with_headers, args.comment_prefix, user_init_code, args.color, strip_whitespaces=args.strip_spaces, comment_regex=args.comment_regex)
     except Exception as e:
         if args.debug_mode:
             raise
@@ -139,11 +139,11 @@ def is_delimited_table(sampled_lines, delim, policy):
     return True
 
 
-def sample_lines(src_path, encoding, delim, policy, comment_prefix=None):
+def sample_lines(src_path, encoding, delim, policy, comment_prefix, comment_regex):
     # TODO this should be a dependency-free function, remove sample line functionality from CSVRecordIterator
     result = []
     with open(src_path, 'rb') as source:
-        line_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, line_mode=True, comment_prefix=comment_prefix)
+        line_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, line_mode=True, comment_prefix=comment_prefix, comment_regex=comment_regex)
         for _i in range(10):
             line = line_iterator.polymorphic_get_row()
             if line is None:
@@ -152,8 +152,8 @@ def sample_lines(src_path, encoding, delim, policy, comment_prefix=None):
         return result
 
 
-def autodetect_delim_policy(input_path, encoding, comment_prefix=None):
-    sampled_lines = sample_lines(input_path, encoding, None, None, comment_prefix)
+def autodetect_delim_policy(input_path, encoding, comment_prefix, comment_regex):
+    sampled_lines = sample_lines(input_path, encoding, None, None, comment_prefix, comment_regex)
     autodetection_dialects = [('\t', 'simple'), (',', 'quoted'), (';', 'quoted'), ('|', 'simple')]
     for delim, policy in autodetection_dialects:
         if is_delimited_table(sampled_lines, delim, policy):
@@ -165,9 +165,9 @@ def autodetect_delim_policy(input_path, encoding, comment_prefix=None):
     return (None, None)
 
 
-def sample_records(input_path, delim, policy, encoding, comment_prefix, strip_whitespaces):
+def sample_records(input_path, delim, policy, encoding, comment_prefix, strip_whitespaces, comment_regex):
     with open(input_path, 'rb') as source:
-        record_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, comment_prefix=comment_prefix, strip_whitespaces=strip_whitespaces)
+        record_iterator = rbql_csv.CSVRecordIterator(source, encoding, delim=delim, policy=policy, comment_prefix=comment_prefix, strip_whitespaces=strip_whitespaces, comment_regex=comment_regex)
         sampled_records = record_iterator.get_all_records(num_rows=10);
         warnings = record_iterator.get_warnings()
         return (sampled_records, warnings)
@@ -234,7 +234,7 @@ def run_interactive_loop(mode, args):
             print('\nOutput table preview:')
             print('====================================')
             # Never strip whitespaces in the output preview.
-            records, _warnings = sample_records(args.output, args.output_delim, args.output_policy, args.encoding, comment_prefix=None, strip_whitespaces=False)
+            records, _warnings = sample_records(args.output, args.output_delim, args.output_policy, args.encoding, comment_prefix=None, strip_whitespaces=False, comment_regex=None)
             print_colorized(records, args.output_delim, args.encoding, show_column_names=False, with_headers=False)
             print('====================================')
             print('Success! Result table was saved to: ' + args.output)
@@ -314,13 +314,13 @@ def start_preview_mode_csv(args):
         delim = rbql_csv.normalize_delim(args.delim)
         policy = args.policy if args.policy is not None else get_default_policy(delim)
     else:
-        delim, policy = autodetect_delim_policy(input_path, args.encoding, args.comment_prefix)
+        delim, policy = autodetect_delim_policy(input_path, args.encoding, args.comment_prefix, args.comment_regex)
         if delim is None:
             show_error('generic', 'Unable to autodetect table delimiter. Provide column separator explicitly with "--delim" option', is_interactive=True)
             return
         args.delim = delim
         args.policy = policy
-    records, warnings = sample_records(input_path, delim, policy, args.encoding, args.comment_prefix, args.strip_spaces)
+    records, warnings = sample_records(input_path, delim, policy, args.encoding, args.comment_prefix, args.strip_spaces, args.comment_regex)
     print('Input table preview:')
     print('====================================')
     print_colorized(records, delim, args.encoding, show_column_names=True, with_headers=args.with_headers)
@@ -370,7 +370,8 @@ def csv_main():
     parser.add_argument('--delim', help='delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode')
     parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
     parser.add_argument('--with-headers', action='store_true', help='indicates that input (and join) table has header')
-    parser.add_argument('--comment-prefix', metavar='PREFIX', help='ignore lines in input and join tables that start with the comment PREFIX, e.g. "#" or ">>"')
+    parser.add_argument('--comment-prefix', metavar='PREFIX', help='ignore lines in input and join tables that start with the comment PREFIX, e.g. "#"')
+    parser.add_argument('--comment-regex', metavar='REGEX', help='ignore lines in input and join tables that match the comment REGEX')
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--out-format', help='output format', default='input', choices=out_format_names)
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])
