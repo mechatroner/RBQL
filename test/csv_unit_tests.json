@@ -612,6 +612,17 @@
         "query_js": "select top 5 NR, a2, b1, b3 join countries_with_extra_whitespaces.csv on a3 == b1 order by a2 desc"
     },
     {
+        "test_name": "comment_regex",
+        "input_table_path": "csv_files/countries.csv",
+        "expected_output_table_path": "csv_files/countries_result_comment_regex.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "with_headers": true,
+        "csv_encoding": "utf-8",
+        "comment_regex": ".*stan",
+        "query_python": "select * order by a.country limit 10"
+    },
+    {
         "test_name": "Bad header: empty strings and duplicate values in header",
         "input_table_path": "csv_files/countries_bad_header.csv",
         "expected_output_table_path": "csv_files/countries_bad_header_result1.csv",
