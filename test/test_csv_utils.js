@@ -507,6 +507,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let encoding = test_case['csv_encoding'];
     let trim_whitespaces = test_case['strip_whitespaces'] ? true : false;
     let comment_prefix = test_common.get_default(test_case, 'comment_prefix', null);
+    let comment_regex = test_common.get_default(test_case, 'comment_regex', null);
     let with_headers = test_common.get_default(test_case, 'with_headers', false);
     let output_format = test_common.get_default(test_case, 'output_format', 'input');
     let [output_delim, output_policy] = output_format == 'input' ? [delim, policy] : rbql_csv.interpret_named_csv_format(output_format);
@@ -525,7 +526,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
         actual_output_table_path = absolute_output_table_path;
 
     bulk_read = bulk_read || random_choice([true, false]);
-    let options = {'bulk_read': bulk_read, 'trim_whitespaces': trim_whitespaces};
+    let options = {'bulk_read': bulk_read, 'trim_whitespaces': trim_whitespaces, 'comment_regex': comment_regex};
 
     let warnings = [];
     try {

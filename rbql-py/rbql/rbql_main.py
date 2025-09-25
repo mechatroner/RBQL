@@ -371,7 +371,7 @@ def csv_main():
     parser.add_argument('--policy', help='CSV split policy, see the explanation below. Can be autodetected in interactive mode', choices=policy_names)
     parser.add_argument('--with-headers', action='store_true', help='indicates that input (and join) table has header')
     parser.add_argument('--comment-prefix', metavar='PREFIX', help='ignore lines in input and join tables that start with the comment PREFIX, e.g. "#"')
-    parser.add_argument('--comment-regex', metavar='REGEX', help='ignore lines in input and join tables that match the comment REGEX')
+    parser.add_argument('--comment-regex', metavar='REGEX', help='ignore lines in input and join tables that contain the comment REGEX')
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--out-format', help='output format', default='input', choices=out_format_names)
     parser.add_argument('--encoding', help='manually set csv encoding', default=rbql_csv.default_csv_encoding, choices=['latin-1', 'utf-8'])

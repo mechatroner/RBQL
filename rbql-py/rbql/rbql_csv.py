@@ -422,7 +422,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         # If the line is a comment - return it right away, even though it is a comment it is still a "full row", so we don't have to search where the logical row ends.
         if self.comment_prefix is not None and first_row.startswith(self.comment_prefix):
             return first_row
-        if self.comment_regex is not None and re.match(self.comment_regex, first_row) is not None:
+        if self.comment_regex is not None and re.search(self.comment_regex, first_row) is not None:
             return first_row
 
         if first_row.count('"') % 2 == 0:
@@ -450,7 +450,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
                 return None
             if self.comment_prefix is not None and line.startswith(self.comment_prefix):
                 continue
-            if self.comment_regex is not None and re.match(self.comment_regex, line) is not None:
+            if self.comment_regex is not None and re.search(self.comment_regex, line) is not None:
                 continue
             found_record = True
 

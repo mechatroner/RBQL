@@ -619,8 +619,9 @@
         "csv_policy": "quoted_rfc",
         "with_headers": true,
         "csv_encoding": "utf-8",
-        "comment_regex": ".*stan",
-        "query_python": "select * order by a.country limit 10"
+        "comment_regex": "stan",
+        "query_python": "select * order by a.country limit 10",
+        "query_js": "select * order by a.country limit 10"
     },
     {
         "test_name": "Bad header: empty strings and duplicate values in header",
