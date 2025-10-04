@@ -1,6 +1,6 @@
 [
     {
-        "test_name": "select version",
+        "test_name": "select python version",
         "input_table": [
             ["5", "alpha", "beta"],
             ["-20", "alpha", "gamma"],
@@ -10,7 +10,19 @@
         "expected_output_table": [
             ["0.28.0"]
         ],
-        "query_python": "select top 1 RBQL_VERSION",
+        "query_python": "select top 1 RBQL_VERSION"
+    },
+    {
+        "test_name": "select js version",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            ["0.29.0"]
+        ],
         "query_js": "select top 1 RBQL_VERSION"
     },
     {

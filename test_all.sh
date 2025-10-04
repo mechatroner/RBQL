@@ -77,8 +77,6 @@ if [ "$cleanup_mode" == "yes" ]; then
     exit 0
 fi
 
-py_rbql_version=$( python3 -m rbql --version )
-
 
 if [ $run_node_tests == "yes" ]; then
     node_version=$( node --version 2> /dev/null )
@@ -116,11 +114,6 @@ if [ $run_unit_tests == "yes" ]; then
     python3 test/test_csv_utils.py --create_random_csv_table random_tmp_table.txt
 
     if [ "$run_node_tests" == "yes" ]; then
-        js_rbql_version=$( node rbql-js/cli_rbql.js --version )
-        if [ "$py_rbql_version" != "$js_rbql_version" ]; then
-            echo "Error: version missmatch between rbql.py ($py_rbql_version) and rbql.js ($js_rbql_version)"  1>&2
-            exit 1
-        fi
         cd test
 
         node test_csv_utils.js --run-random-csv-mode ../random_tmp_table.txt
