@@ -8,7 +8,7 @@
             ["20", "alpha", ""]
         ],
         "expected_output_table": [
-            ["0.28.0"]
+            ["0.29.0"]
         ],
         "query_python": "select top 1 RBQL_VERSION"
     },
