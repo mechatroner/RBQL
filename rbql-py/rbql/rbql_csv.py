@@ -7,7 +7,6 @@ from errno import EPIPE
 from . import rbql_engine
 from . import csv_utils
 
-# FIXME add-hoc tests in cli + unit tests
 
 default_csv_encoding = 'utf-8'
 ansi_reset_color_code = '\u001b[0m'
@@ -153,7 +152,7 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
         self.broken_pipe = False
         self.close_stream_on_finish = close_stream_on_finish
         self.polymorphic_preprocess = None
-        self.polymorphic_join = self.join_by_delim 
+        self.polymorphic_join = self.join_by_delim
         self.check_separators_after_join = False
         self.colors = None
         if policy == 'simple' or policy == 'whitespace':
@@ -348,7 +347,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         if modifier in ['noheader', 'noheaders']:
             self.has_header = False
             self.first_record_should_be_emitted = True
-        
+
 
     def get_variables_map(self, query_text):
         variable_map = dict()
@@ -414,7 +413,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         except UnicodeDecodeError:
             raise rbql_engine.RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
 
-    
+
     def get_row_rfc(self):
         first_row = self.get_row_simple()
         if first_row is None:
