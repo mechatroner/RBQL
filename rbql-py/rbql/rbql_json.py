@@ -8,7 +8,11 @@ from . import rbql_engine
 from . import csv_utils
 from . import rbql_csv
 
+debug_mode = False
 
+def set_debug_mode():
+    global debug_mode
+    debug_mode = True
 
 class JsonWriter(rbql_engine.RBQLOutputWriter):
     def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n'):
@@ -20,7 +24,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 
     def write(self, fields):
         obj_to_write = fields
-        if len(fields) == 1 and (isinstance(fields[0], dict) or isinstance(fields[0], list)):
+        if len(fields) == 1:
             obj_to_write = fields[0]
 
         try:
@@ -146,7 +150,7 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         return result
 
 
-# FIXME we might want the output to optionally be CSV too. 
+# TODO we might want the output to optionally be CSV too. 
 def query_json(query_text, input_path, output_path, output_warnings, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
@@ -160,9 +164,12 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
             user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
         input_iterator = JsonLinesRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
         output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8')
+        if debug_mode:
+            rbql_engine.set_debug_mode()
         rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
     finally:
         if close_input_on_finish:
             input_stream.close()
         if close_output_on_finish:
             output_stream.close()
+
