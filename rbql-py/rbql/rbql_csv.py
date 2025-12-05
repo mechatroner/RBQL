@@ -258,6 +258,8 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
         for i in range(len(fields)):
             if isinstance(fields[i], str):
                 continue
+            elif isinstance(fields[i], (int, float, bool)):
+                fields[i] = str(fields[i])
             elif fields[i] is None:
                 fields[i] = ''
                 self.none_in_output = True

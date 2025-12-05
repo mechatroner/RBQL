@@ -538,7 +538,7 @@ def main():
         if sys.argv[1] == 'sqlite':
             del sys.argv[1]
             sqlite_main()
-        if sys.argv[1] == 'json':
+        elif sys.argv[1] == 'json':
             del sys.argv[1]
             json_main()
         elif sys.argv[1] == 'csv':

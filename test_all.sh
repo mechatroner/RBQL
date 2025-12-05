@@ -425,6 +425,8 @@ if [ "$run_python_tests" == "yes" ]; then
     fi
     if [ "$expected_warning" != "$test_warning" ]; then
         echo "rbql sqlite cli test fail: wrong warning!"  1>&2
+        echo "expected warning: $expected_warning"
+        echo "actual warning: $test_warning"
         exit 1
     fi
 fi
