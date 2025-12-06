@@ -99,6 +99,9 @@ if [ $run_unit_tests == "yes" ]; then
         python3 -m unittest test.test_rbql
         die_if_error $?
 
+        python3 -m unittest test.test_json_io
+        die_if_error $?
+
         python3 -m unittest test.test_rbql_sqlite
         die_if_error $?
 

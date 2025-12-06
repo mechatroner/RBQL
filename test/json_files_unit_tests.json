@@ -1,0 +1,16 @@
+[
+    {
+        "test_name": "select all",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10.jsonl",
+        "expected_output_table_path": "json_files/names10.jsonl",
+        "query_python": "select a1"
+    },
+    {
+        "test_name": "simple test",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10.jsonl",
+        "expected_output_table_path": "json_files/expected_result_1.jsonl",
+        "query_python": "select a['name'], a['age'], NR"
+    }
+]

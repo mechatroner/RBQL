@@ -263,6 +263,12 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
             elif fields[i] is None:
                 fields[i] = ''
                 self.none_in_output = True
+            # TODO consider using json, something like this:
+            #else:
+            #    try:
+            #        fields[i] = json.dumps(fields[i])
+            #    except TypeError:
+            #        fields[i] = str(fields[i])
             elif isinstance(fields[i], list):
                 self.normalize_fields(fields[i])
                 fields[i] = self.sub_array_delim.join(fields[i])
