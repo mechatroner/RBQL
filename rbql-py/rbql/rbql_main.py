@@ -338,7 +338,7 @@ def start_preview_mode_csv(args):
 
 
 csv_tool_description = '''
-Run RBQL queries against CSV files, sqlite databases
+Run RBQL queries against CSV files, JSON files and sqlite databases
 
 rbql supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
 
@@ -349,8 +349,11 @@ Non-interactive mode supports reading input tables from stdin and writing output
   $ rbql --query "select a1, a2 order by a1" --delim , < input.csv
 
 By default rbql works with CSV input files.
-To learn how to use rbql to query an sqlite database, run this command:
 
+For json mode run this command:
+  $ rbql json --help
+
+For sqlite mode run this command:
   $ rbql sqlite --help
 
 '''
