@@ -8,19 +8,6 @@ RBQL is distributed with CLI apps, text editor plugins, IPython/Jupyter magic co
 
 [Official Site](https://rbql.org/)
 
-#### Supported formats
-
-Matrix of data formats that RBQL supports out of the box. R=Read, W=Write  
-
-|Data Format            | Python   | JS      |
-|-----------------------|----------|---------|
-|CSV, TSV, etc          | **RW**   | **RW**  |
-|Native 2D arrays/lists | **RW**   | **RW**  |
-|Pandas dataframe       | **RW**   |         |
-|Sqlite databases       | **R**    |         |
-
-If you use RBQL as a library it is possible to support additional formats with some customizations.  
-
 ### Main Features
 
 * Use Python or JavaScript expressions inside _SELECT_, _UPDATE_, _WHERE_ and _ORDER BY_ statements
@@ -37,6 +24,20 @@ If you use RBQL as a library it is possible to support additional formats with s
 
 * RBQL doesn't support nested queries, but they can be emulated with consecutive queries
 * Number of tables in all JOIN queries is always 2 (input table and join table), use consecutive queries to join 3 or more tables
+
+#### Supported formats
+
+Matrix of data formats that RBQL supports out of the box.
+
+|Data Format      | Python      | JS         |
+|-----------------|-------------|------------|
+|CSV, TSV, etc    | Read/Write  | Read/Write |
+|Native 2D arrays | Read/Write  | Read/Write |
+|JSON lines       | Read/Write  |            |
+|Pandas dataframe | Read/Write  |            |
+|Sqlite databases | Read Only   |            |
+
+Note: If you use RBQL as a library it is possible to support additional formats with some customizations.  
 
 ### Supported SQL Keywords (Keywords are case insensitive)
 
