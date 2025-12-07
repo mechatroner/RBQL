@@ -633,5 +633,19 @@
         "csv_encoding": "utf-8",
         "query_python": "select top 100 a.Dup_header, a[''], * where NR < 20",
         "query_js": "select top 100 a.Dup_header, a[''], * where NR < 20"
+    },
+    {
+        "test_name": "Multitable join",
+        "input_table_path": "csv_files/university_ranking.csv",
+        "expected_output_table_path": "csv_files/expected_result_multitable_1.csv",
+        "csv_separator": ",",
+        "csv_policy": "quoted_rfc",
+        "with_headers": true,
+        "csv_encoding": "utf-8",
+        "query_python": "select a.university_name, a.country, a.total_score, b.Region, b.Population where a.university_name.startswith('University') join countries.csv on a.country == b.country | select a.*, b.capital, b['Number of universities'] join country_capitals.csv on a.country == b.country where int(b['Number of universities']) < 100",
+        "expected_warnings": [
+            "The first record in JOIN file countries.csv was also treated as header (and skipped)",
+            "The first record in JOIN file country_capitals.csv was also treated as header (and skipped)"
+        ]
     }
 ]
