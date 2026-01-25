@@ -1009,6 +1009,7 @@ def parse_join_expression(src):
 
 
 def resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals):
+    # FIXME this won't work for json join
     lhs_variables = []
     rhs_indices = []
     valid_join_syntax_msg = 'Valid JOIN syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]'
@@ -1354,6 +1355,7 @@ def translate_except_expression(except_expression, input_variables_map, string_l
 
 class HashJoinMap:
     # Other possible flavors: BinarySearchJoinMap, MergeJoinMap
+    # TODO: for JSON we need key_paths instead of key_indices. This is a problem though, do we need to run eval to get the keys?
     def __init__(self, record_iterator, key_indices):
         self.max_record_len = 0
         self.hash_map = defaultdict(list)

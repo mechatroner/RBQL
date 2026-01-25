@@ -183,6 +183,12 @@ class TestRBQLQueryParsing(unittest.TestCase):
         join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 '
         self.assertEqual(('file.tsv', [('b[20]', 'a.name'), ('a1', 'b3')]), rbql_engine.parse_join_expression(join_part))
 
+        join_part = ' file.json on b["foo"][\'bar\'] == a[2]["foobar"]'
+        self.assertEqual(('file.json', [('b["foo"][\'bar\']', 'a[2]["foobar"]')]), rbql_engine.parse_join_expression(join_part))
+
+        join_part = ' file.json on b.foo.bar == a[2].foobar'
+        self.assertEqual(('file.json', [('b.foo.bar', 'a[2].foobar')]), rbql_engine.parse_join_expression(join_part))
+
         join_part = ' file.tsv on b[20]== a.name and   a1  ==b3 and '
         with self.assertRaises(Exception) as cm:
             rbql_engine.parse_join_expression(join_part)
