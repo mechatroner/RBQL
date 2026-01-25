@@ -26,5 +26,12 @@
         "input_table_path": "json_files/nested_names_10.jsonl",
         "expected_output_table_path": "json_files/expected_result_2.jsonl",
         "query_python": "select a['address']"
+    },
+    {
+        "test_name": "select from nested multicomponent",
+        "debug_mode": true,
+        "input_table_path": "json_files/nested_names_10.jsonl",
+        "expected_output_table_path": "json_files/expected_result_3.jsonl",
+        "query_python": "select a['address']['street'], a[\"address\"][\"city\"]"
     }
 ]
