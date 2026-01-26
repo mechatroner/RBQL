@@ -21,11 +21,17 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
         self.line_separator = line_separator
         self.close_stream_on_finish = close_stream_on_finish
         self.broken_pipe = False
+        self.header = []
 
     def write(self, fields):
-        obj_to_write = fields
+        obj_to_write = None
         if len(fields) == 1:
             obj_to_write = fields[0]
+        else:
+            obj_to_write = dict()
+            for i in range(len(fields)):
+                key_name = self.header[i] if i < len(self.header) else 'col{}'.format(i)
+                obj_to_write[key_name] = fields[i]
 
         try:
             json_str = json.dumps(obj_to_write, ensure_ascii=False, default=str)
@@ -53,6 +59,12 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
                     sys.stdout.close()
                 except Exception:
                     pass
+
+    # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
+    # FIXME make sure it works with multistep paths
+    def set_header(self, header):
+        if header is not None:
+            self.header = header
 
     def get_warnings(self):
         return []
