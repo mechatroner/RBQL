@@ -54,6 +54,8 @@ class RbqlParsingError(Exception):
 class RbqlIOHandlingError(Exception):
     pass
 
+class KeyComponentsError(Exception):
+    pass
 
 class InternalBadFieldError(Exception):
     def __init__(self, bad_idx):
@@ -98,7 +100,7 @@ class RBQLContext:
         self.variables_init_code = None
 
 
-QueryColumnInfo = namedtuple('QueryColumnInfo', ['table_name', 'column_index', 'column_name', 'is_star', 'alias_name'])
+QueryColumnInfo = namedtuple('QueryColumnInfo', ['table_name', 'column_index', 'column_name', 'is_star', 'alias_name', 'key_components'])
 
 
 def get_field(root, field_name):
@@ -132,79 +134,100 @@ def search_for_as_alias_pseudo_function(root):
     return None
 
 
+def get_key_components(current_node):
+    result = []
+    while True:
+        if isinstance(current_node, ast.Name):
+            var_name = get_field(current_node, 'id')
+            if var_name is None:
+                raise KeyComponentsError()
+            result.append(var_name)
+            break
+        elif isinstance(current_node, ast.Attribute):
+            column_name = get_field(current_node, 'attr')
+            if not column_name:
+                raise KeyComponentsError()
+            if not isinstance(column_name, str):
+                raise KeyComponentsError()
+            result.append(column_name)
+            current_node = get_field(current_node, 'value')
+        elif isinstance(current_node, ast.Subscript):
+            slice_root = get_field(current_node, 'slice')
+            if slice_root is None:
+                raise KeyComponentsError()
+            if hasattr(ast, 'Index') and isinstance(slice_root, ast.Index):
+                # Important: Since version 3.8 ast.Constant is used instead of ast.Index.
+                # Furthermore ast.Index might be removed from ast in future releases.
+                slice_val_root = get_field(slice_root, 'value')
+                if isinstance(slice_val_root, ast.Str):
+                    result.append(get_field(slice_val_root, 's'))
+                elif isinstance(slice_val_root, ast.Num):
+                    result.append(get_field(slice_val_root, 'n'))
+                else:
+                    raise KeyComponentsError()
+            elif hasattr(ast, 'Constant') and isinstance(slice_root, ast.Constant):
+                # Note: `ast.Constant` replaced `ast.Index` since version 3.8
+                slice_val_root = get_field(slice_root, 'value')
+                if isinstance(slice_val_root, str) or isinstance(slice_val_root, int):
+                    result.append(slice_val_root)
+                else:
+                    raise KeyComponentsError()
+            else:
+                raise KeyComponentsError()
+            current_node = get_field(current_node, 'value')
+        else:
+            raise KeyComponentsError()
+    result.reverse()
+    return result
+
+
+
 def column_info_from_node(root):
     rbql_star_marker = '__RBQL_INTERNAL_STAR'
-    if isinstance(root, ast.Name):
-        var_name = get_field(root, 'id')
-        if var_name is None:
-            return None
-        if var_name == rbql_star_marker:
-            return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=True, alias_name=None)
+
+    key_components = None
+    try:
+        key_components = get_key_components(root)
+    except KeyComponentsError:
+        key_components = []
+
+    if len(key_components) == 0:
+        column_alias_name = search_for_as_alias_pseudo_function(root)
+        if column_alias_name:
+            return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=False, alias_name=column_alias_name, key_components=None)
+        return None
+
+    if len(key_components) == 1:
+        column_id = key_components[0]
+        if column_id == rbql_star_marker:
+            return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=True, alias_name=None, key_components=None)
         good_column_name_rgx = '^([ab])([0-9][0-9]*)$'
-        match_obj = re.match(good_column_name_rgx, var_name)
+        match_obj = re.match(good_column_name_rgx, column_id)
         if match_obj is not None:
             table_name = match_obj.group(1)
             column_index = int(match_obj.group(2)) - 1
-            return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False, alias_name=None)
+            return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False, alias_name=None, key_components=None)
         # Some examples for this branch: NR, NF
-        return QueryColumnInfo(table_name=None, column_index=None, column_name=var_name, is_star=False, alias_name=None)
-    if isinstance(root, ast.Attribute):
-        column_name = get_field(root, 'attr')
-        if not column_name:
-            return None
-        if not isinstance(column_name, str):
-            return None
-        var_root = get_field(root, 'value')
-        if not isinstance(var_root, ast.Name):
-            return None
-        table_name = get_field(var_root, 'id')
-        if table_name is None or table_name not in ['a', 'b']:
-            return None
-        if column_name == rbql_star_marker:
-            return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True, alias_name=None)
-        return QueryColumnInfo(table_name=None, column_index=None, column_name=column_name, is_star=False, alias_name=None)
-    if isinstance(root, ast.Subscript):
-        var_root = get_field(root, 'value')
-        if not isinstance(var_root, ast.Name):
-            return None
-        table_name = get_field(var_root, 'id')
-        if table_name is None or table_name not in ['a', 'b']:
-            return None
-        slice_root = get_field(root, 'slice')
-        if slice_root is None:
-            return None
-        column_index = None
-        column_name = None
-        if hasattr(ast, 'Index') and isinstance(slice_root, ast.Index):
-            # Important: Since version 3.8 ast.Constant is used instead of ast.Index.
-            # Furthermore ast.Index might be removed from ast in future releases.
-            slice_val_root = get_field(slice_root, 'value')
-            column_index = None
-            column_name = None
-            if isinstance(slice_val_root, ast.Str):
-                column_name = get_field(slice_val_root, 's')
-                table_name = None # We don't need table name for named fields. Updated: But Why???
-            elif isinstance(slice_val_root, ast.Num):
-                column_index = get_field(slice_val_root, 'n') - 1
-            else:
-                return None
-        elif hasattr(ast, 'Constant') and isinstance(slice_root, ast.Constant):
-            # Note: `ast.Constant` replaced `ast.Index` since version 3.8
-            slice_val_root = get_field(slice_root, 'value')
-            if isinstance(slice_val_root, str):
-                column_name = slice_val_root
-                table_name = None # We don't need table name for named fields. Updated: But Why???
-            elif isinstance(slice_val_root, int):
-                column_index = slice_val_root - 1
-            else:
-                return None
+        return QueryColumnInfo(table_name=None, column_index=None, column_name=column_id, is_star=False, alias_name=None, key_components=None)
+
+    table_name = key_components[0]
+    if table_name not in ['a', 'b']: # TODO allow a1 for json somehow
+        return None
+
+    if len(key_components) == 2:
+        column_id = key_components[1]
+        if column_id == rbql_star_marker:
+            return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True, alias_name=None, key_components=None)
+        if isinstance(column_id, int):
+            column_index = column_id - 1
+            return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False, alias_name=None, key_components=None)
+        elif isinstance(column_id, str):
+            return QueryColumnInfo(table_name=table_name, column_index=None, column_name=column_id, is_star=False, alias_name=None, key_components=None)
         else:
-            return None
-        return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=column_name, is_star=False, alias_name=None)
-    column_alias_name = search_for_as_alias_pseudo_function(root)
-    if column_alias_name:
-        return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=False, alias_name=column_alias_name)
-    return None
+            return None # Should never happen
+
+    assert len(key_components) > 2
+    return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=False, alias_name=None, key_components=key_components[1:])
 
 
 def ast_parse_select_expression_to_column_infos(select_expression):
@@ -219,6 +242,7 @@ def ast_parse_select_expression_to_column_infos(select_expression):
     if len(children) != 1:
         raise RbqlParsingError('Unable to parse SELECT expression (error code #119): "{}"'.format(select_expression)) # This can be triggered with `SELECT a = 100`
     root = children[0]
+    # Can be tested e.g. via `list(ast.iter_child_nodes(list(ast.iter_child_nodes(ast.parse('a.foo.bar["hello"]')))[0]))[0]`
     if isinstance(root, ast.Tuple):
         column_expression_trees = root.elts
         column_infos = [column_info_from_node(ct) for ct in column_expression_trees]
