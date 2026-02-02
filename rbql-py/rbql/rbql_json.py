@@ -3,6 +3,7 @@ import sys
 import os
 import io
 import re
+from collections import defaultdict
 
 from . import rbql_engine
 from . import csv_utils
@@ -29,9 +30,14 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
             obj_to_write = fields[0]
         else:
             obj_to_write = dict()
+            seen = list()
             for i in range(len(fields)):
                 key_name = self.header[i] if i < len(self.header) else 'col{}'.format(i)
-                obj_to_write[key_name] = fields[i]
+                key_name_disambiguated = key_name
+                while key_name_disambiguated in seen:
+                    key_name_disambiguated = '{}.next'.format(key_name_disambiguated)
+                seen.append(key_name_disambiguated)
+                obj_to_write[key_name_disambiguated] = fields[i]
 
         try:
             json_str = json.dumps(obj_to_write, ensure_ascii=False, default=str)
@@ -160,6 +166,9 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         if self.utf8_bom_removed:
             result.append('UTF-8 Byte Order Mark (BOM) was found and skipped in {} table'.format(self.table_name))
         return result
+
+    def get_header(self):
+        return [self.variable_prefix + '1']
 
 
 # TODO we might want the output to optionally be CSV too. 
