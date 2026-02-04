@@ -21,6 +21,13 @@
         "query_python": "select a['name'], a['age'], NR"
     },
     {
+        "test_name": "single output column",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10.jsonl",
+        "expected_output_table_path": "json_files/expected_single_output_column.jsonl",
+        "query_python": "select a['name']"
+    },
+    {
         "test_name": "select nested",
         "debug_mode": true,
         "input_table_path": "json_files/nested_names_10.jsonl",
