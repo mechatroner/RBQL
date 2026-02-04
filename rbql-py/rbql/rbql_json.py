@@ -66,8 +66,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
                 except Exception:
                     pass
 
-    # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
-    # FIXME make sure it works with multistep paths
+    # FIXME make sure it works with multicomponent key paths
     def set_header(self, header):
         if header is not None:
             self.header = header
@@ -168,7 +167,7 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         return result
 
     def get_header(self):
-        return [self.variable_prefix + '1']
+        return [self.variable_prefix]
 
 
 # TODO we might want the output to optionally be CSV too. 
