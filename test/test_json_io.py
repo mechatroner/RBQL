@@ -85,7 +85,7 @@ class TestRBQLWithJSON(unittest.TestCase):
             self.assertTrue(error_msg.find(expected_error) != -1, 'Inside json test: "{}", Expected error: "{}", Actual error: "{}"'.format(test_name, expected_error, error_msg))
         else:
             actual_md5 = calc_file_md5(actual_output_table_path)
-            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch in test "{}". Expected table: {}, Actual table: {}'.format(test_name, expected_output_table_path, actual_output_table_path))
+            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch in test "{}". Expected table: {}, Actual table: {}\nCompare:\nvimdiff {} {} \nTo normalize, run:\ncp {} {}'.format(test_name, expected_output_table_path, actual_output_table_path, expected_output_table_path, actual_output_table_path, actual_output_table_path, expected_output_table_path))
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)

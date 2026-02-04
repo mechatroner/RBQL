@@ -28,6 +28,13 @@
         "query_python": "select a['address']"
     },
     {
+        "test_name": "select 2 stars",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10.jsonl",
+        "expected_output_table_path": "json_files/expected_select_2_stars.jsonl",
+        "query_python": "select *, *"
+    },
+    {
         "test_name": "select from nested multicomponent",
         "debug_mode": true,
         "input_table_path": "json_files/nested_names_10.jsonl",
