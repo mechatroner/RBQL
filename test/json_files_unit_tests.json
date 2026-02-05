@@ -49,10 +49,17 @@
         "query_python": "select a['name'], a['name']"
     },
     {
+        "test_name": "select multicomponent key path",
+        "debug_mode": true,
+        "input_table_path": "json_files/nested_names_10.jsonl",
+        "expected_output_table_path": "json_files/expected_result_multicomponent_key_path.jsonl",
+        "query_python": "select a['name'], a['address']['street']"
+    },
+    {
         "test_name": "select from nested multicomponent",
         "debug_mode": true,
         "input_table_path": "json_files/nested_names_10.jsonl",
         "expected_output_table_path": "json_files/expected_result_3.jsonl",
-        "query_python": "select a['address']['street'], a[\"address\"][\"city\"]"
+        "query_python": "select a['address']['street'], a[\"address\"][\"city\"].upper()"
     }
 ]

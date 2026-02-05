@@ -1484,6 +1484,8 @@ def select_output_header(input_header, join_header, query_column_infos):
                 output_header.append(join_header[qci.column_index])
             else:
                 output_header.append('col{}'.format(len(output_header) + 1))
+        elif qci.key_components is not None:
+            output_header.append('.'.join([str(v) for v in qci.key_components]))
         else: # Should never happen
             output_header.append('col{}'.format(len(output_header) + 1))
     return output_header

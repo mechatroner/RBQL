@@ -1,10 +1,10 @@
-{"col1": "123 Maple Dr", "col2": "Springfield"}
-{"col1": "45 Oak Ave", "col2": "Shelbyville"}
-{"col1": "7 Pine Ln", "col2": "Capital City"}
-{"col1": "88 Cedar Blvd", "col2": "North Haverbrook"}
-{"col1": "101 Elm St", "col2": "New New York"}
-{"col1": "23 Birch Ct", "col2": "Westview"}
-{"col1": "55 Poplar Way", "col2": "Harmony Town"}
-{"col1": "99 Willow Dr", "col2": "Oakhaven"}
-{"col1": "14 Hazel Ave", "col2": "Riverdale"}
-{"col1": "67 Spruce Pl", "col2": "Fairview"}
+{"address.street": "123 Maple Dr", "col2": "SPRINGFIELD"}
+{"address.street": "45 Oak Ave", "col2": "SHELBYVILLE"}
+{"address.street": "7 Pine Ln", "col2": "CAPITAL CITY"}
+{"address.street": "88 Cedar Blvd", "col2": "NORTH HAVERBROOK"}
+{"address.street": "101 Elm St", "col2": "NEW NEW YORK"}
+{"address.street": "23 Birch Ct", "col2": "WESTVIEW"}
+{"address.street": "55 Poplar Way", "col2": "HARMONY TOWN"}
+{"address.street": "99 Willow Dr", "col2": "OAKHAVEN"}
+{"address.street": "14 Hazel Ave", "col2": "RIVERDALE"}
+{"address.street": "67 Spruce Pl", "col2": "FAIRVIEW"}
