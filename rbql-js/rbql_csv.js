@@ -14,9 +14,6 @@ class RbqlIOHandlingError extends Error {}
 class AssertionError extends Error {}
 
 
-// TODO performance improvement: replace smart_split() with polymorphic_split()
-
-
 function assert(condition, message=null) {
     if (!condition) {
         if (!message) {
@@ -215,6 +212,8 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         this.produced_records_queue = new RecordQueue();
 
         this.process_line_polymorphic = policy == 'quoted_rfc' ? this.process_partial_rfc_record_line : this.process_record_line_simple;
+
+        this.polymorphic_split = csv_utils.get_polymorphic_split_function(this.delim, this.policy, false);
     }
 
 
@@ -353,7 +352,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
 
     process_record_line(line) {
         this.NR += 1;
-        var [record, warning] = csv_utils.smart_split(line, this.delim, this.policy, false);
+        var [record, warning] = this.polymorphic_split(line);
         if (this.trim_whitespaces) {
             record = record.map((v) => v.trim());
         }

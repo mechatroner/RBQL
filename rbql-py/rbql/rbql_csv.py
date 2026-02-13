@@ -344,7 +344,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
 
 
         if not line_mode:
-            self.smart_splitter = csv_utils.SmartSplitter(delim, policy, preserve_quotes_and_whitespaces=False)
+            self.polymorphic_split = csv_utils.get_polymorphic_split_function(delim, policy, preserve_quotes_and_whitespaces=False)
             self.first_record = None
             self.first_record = self.get_record()
             self.first_record_should_be_emitted = not has_header
@@ -465,7 +465,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
             found_record = True
 
         self.NR += 1
-        record, warning = self.smart_splitter.split(line)
+        record, warning = self.polymorphic_split(line)
         if self.strip_whitespaces:
             record = [v.strip() for v in record]
         if warning:
