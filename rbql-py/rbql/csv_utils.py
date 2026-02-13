@@ -62,6 +62,7 @@ def split_whitespace_separated_str(src, preserve_whitespaces=False):
 
 
 def smart_split(src, dlm, policy, preserve_quotes_and_whitespaces):
+    # Prefer to use SmartSplitter class instead of this function for better performance if you need to split many strings with the same policy.
     if policy == 'simple':
         return (src.split(dlm), False)
     if policy == 'whitespace':
@@ -69,6 +70,26 @@ def smart_split(src, dlm, policy, preserve_quotes_and_whitespaces):
     if policy == 'monocolumn':
         return ([src], False)
     return split_quoted_str(src, dlm, preserve_quotes_and_whitespaces)
+
+
+class SmartSplitter:
+    def __init__(self, dlm, policy, preserve_quotes_and_whitespaces):
+        self.dlm = dlm
+        self.preserve_quotes_and_whitespaces = preserve_quotes_and_whitespaces
+        self.split_func = None
+        if policy == 'simple':
+            self.split_func = lambda src: (src.split(dlm), False)
+        elif policy == 'whitespace':
+            self.split_func = lambda src: (split_whitespace_separated_str(src, self.preserve_quotes_and_whitespaces), False)
+        elif policy == 'monocolumn':
+            self.split_func = lambda src: ([src], False)
+        elif policy == 'quoted' or policy == 'quoted_rfc':
+            self.split_func = lambda src: split_quoted_str(src, self.dlm, self.preserve_quotes_and_whitespaces)
+        else:
+            raise ValueError('Unsupported splitting policy: {}'.format(policy))
+
+    def split(self, src):
+        return self.split_func(src)
 
 
 def extract_line_from_data(data):

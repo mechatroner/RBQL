@@ -342,7 +342,9 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.has_header = has_header
         self.first_record_should_be_emitted = False
 
+
         if not line_mode:
+            self.smart_splitter = csv_utils.SmartSplitter(delim, policy, preserve_quotes_and_whitespaces=False)
             self.first_record = None
             self.first_record = self.get_record()
             self.first_record_should_be_emitted = not has_header
@@ -463,7 +465,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
             found_record = True
 
         self.NR += 1
-        record, warning = csv_utils.smart_split(line, self.delim, self.policy, preserve_quotes_and_whitespaces=False)
+        record, warning = self.smart_splitter.split(line)
         if self.strip_whitespaces:
             record = [v.strip() for v in record]
         if warning:
