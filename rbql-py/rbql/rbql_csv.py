@@ -363,6 +363,7 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
         rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.has_header and self.first_record is not None:
+            # TODO consider getting rid of this hack.
             rbql_engine.parse_attribute_variables(query_text, self.variable_prefix, self.first_record, 'CSV header line', variable_map)
             rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.first_record, variable_map)
         return variable_map

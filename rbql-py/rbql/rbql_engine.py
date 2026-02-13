@@ -40,6 +40,7 @@ ambiguous_error_msg = 'Ambiguous variable name: "{}" is present both in input an
 invalid_keyword_in_aggregate_query_error_msg = '"ORDER BY", "UPDATE" and "DISTINCT" keywords are not allowed in aggregate queries'
 wrong_aggregation_usage_error = 'Usage of RBQL aggregation functions inside Python expressions is not allowed, see the docs'
 numeric_conversion_error = 'Unable to convert value "{}" to int or float. MIN, MAX, SUM, AVG, MEDIAN and VARIANCE aggregate functions convert their string arguments to numeric values'
+join_syntax_hint = 'JOIN <table B path|id> on a... == b... [and a... == b... [and ... ]]'
 
 RBQL_VERSION = __version__
 
@@ -100,7 +101,15 @@ class RBQLContext:
         self.variables_init_code = None
 
 
-QueryColumnInfo = namedtuple('QueryColumnInfo', ['table_name', 'column_index', 'column_name', 'is_star', 'alias_name', 'key_components'])
+#QueryColumnInfo = namedtuple('QueryColumnInfo', ['table_name', 'column_index', 'column_name', 'is_star', 'alias_name', 'key_components'])
+class QueryColumnInfo:
+    def __init__(self, table_name, column_index, column_name, is_star, alias_name, key_components):
+        self.table_name = table_name
+        self.column_index = column_index
+        self.column_name = column_name
+        self.is_star = is_star
+        self.alias_name = alias_name
+        self.key_components = key_components
 
 
 def get_field(root, field_name):
@@ -183,6 +192,7 @@ def get_key_components(current_node):
 
 
 def column_info_from_node(root):
+    # This is a generic function that extracts column info from an AST node, including compatibility both withcommon json/csv use cases. csv and json cases.
     rbql_star_marker = '__RBQL_INTERNAL_STAR'
 
     key_components = None
@@ -196,6 +206,8 @@ def column_info_from_node(root):
         if column_alias_name:
             return QueryColumnInfo(table_name=None, column_index=None, column_name=None, is_star=False, alias_name=column_alias_name, key_components=None)
         return None
+
+    # FIXME consider handling 'NR' columns here
 
     if len(key_components) == 1:
         column_id = key_components[0]
@@ -221,7 +233,7 @@ def column_info_from_node(root):
         if isinstance(column_id, int):
             column_index = column_id - 1
             return QueryColumnInfo(table_name=table_name, column_index=column_index, column_name=None, is_star=False, alias_name=None, key_components=None)
-        elif isinstance(column_id, str):
+        elif isinstance(column_id, str): # This could be a.NR or b.foo
             return QueryColumnInfo(table_name=table_name, column_index=None, column_name=column_id, is_star=False, alias_name=None, key_components=None)
         else:
             return None # Should never happen
@@ -1009,7 +1021,7 @@ def combine_string_literals(backend_expression, string_literals):
 
 def parse_join_expression(src):
     src = src.strip()
-    invalid_join_syntax_error = 'Invalid join syntax. Valid syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]'
+    invalid_join_syntax_error = 'Invalid join syntax. Valid syntax: {}'.format(join_syntax_hint)
     match = re.search(r'^([^ ]+) +on +', src, re.IGNORECASE)
     if match is None:
         raise RbqlParsingError(invalid_join_syntax_error)
@@ -1017,6 +1029,7 @@ def parse_join_expression(src):
     src = src[match.end():]
     variable_pairs = []
     while True:
+        # TODO Consider parsing this with `ast` instead.
         match = re.search('^([^ =]+) *==? *([^ =]+)', src)
         if match is None:
             raise RbqlParsingError(invalid_join_syntax_error)
@@ -1032,36 +1045,76 @@ def parse_join_expression(src):
     return (table_id, variable_pairs)
 
 
+def get_query_column_info_for_join(variable_name, input_variables_map, join_variables_map):
+    # The problem for jsons is that we use 'a' both as table name and column_name.
+    # One option to simplify this is to always require full column name for json joins e.g. a.a['foo'] instead of a['foo'] in JOIN expressions only and for jsons only.
+    # Users would still be able to use a['foo'] in SELECT and WHERE expressions.
+    # This would allow us to avoid ambiguity between column name and table name and get rid of the weird logic below.
+    # TODO consider runtime evaluation for the join map, same way as we do for the input map, this should allow arbitrary expressions in the JOIN clause.
+
+    # Another thing that make this function complicated it that csvs and jsons have different column access patterns: Index based VS key-path based. 
+    # Also JSONs are guaranteed to have column names, so the whole resolution for jsons is confusing and redundant.
+
+    # FIXME add extensive unit tests for each condition, including a.NR and a.a.foo both with and without 'foo' key.
+    try:
+        query_column_infos = ast_parse_select_expression_to_column_infos(variable_name)
+    except RbqlParsingError as e:
+        raise RbqlParsingError('Unable to parse JOIN expression, invalid variable: {}. Use the following syntax:\n{}'.format(variable_name, valid_join_syntax_msg))
+    if len(query_column_infos) != 1 or query_column_infos[0] is None:
+        raise RbqlParsingError('Invalid JOIN expression: "{}" is not a valid variable'.format(variable_name))
+    query_column_info = query_column_infos[0]
+    in_input = variable_name in input_variables_map
+    in_join = variable_name in join_variables_map
+    table_name = None
+    column_idx = None
+    if in_input and in_join:
+        raise RbqlParsingError(ambiguous_error_msg.format(variable_name))
+    if query_column_info.column_name == 'NR':
+        if query_column_info.table_name is None:
+            table_name = 'a' # For NR in table B b.NR should be used - that would automatically set table name to "b".
+        column_idx = -1
+    if in_input and not in_join:
+        table_name = 'a'
+        column_idx = input_variables_map[variable_name].index
+    if in_join and not in_input:
+        table_name = 'b'
+        column_idx = join_variables_map[variable_name].index
+    if query_column_info.table_name is None:
+        query_column_info.table_name = table_name
+    if query_column_info.table_name not in ['a', 'b']:
+        raise RbqlParsingError('Unable to resolve table name for variable "{}" used in JOIN expression'.format(variable_name))
+    variables_map = {'a': input_variables_map, 'b': join_variables_map}[query_column_info.table_name]
+    column_name_aliases_table_name = query_column_info.table_name in variables_map
+    if column_idx is None and column_name_aliases_table_name:
+        column_idx = variables_map[query_column_info.table_name].index
+    if query_column_info.column_index is None:
+        query_column_info.column_index = column_idx
+    if query_column_info.column_index is None:
+        raise RbqlParsingError('Unable to resolve column index for variable "{}" used in JOIN expression'.format(variable_name))
+    return query_column_info
+
+
 def resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals):
-    # FIXME this won't work for json join
-    lhs_variables = []
-    rhs_indices = []
-    valid_join_syntax_msg = 'Valid JOIN syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]'
+    lhs_expression_components = []
+    rhs_variables_components = []
+    valid_join_syntax_msg = 'Valid JOIN syntax: {}'.format(join_syntax_hint)
     for join_var_1, join_var_2 in variable_pairs:
-        join_var_1 = combine_string_literals(join_var_1, string_literals)
-        join_var_2 = combine_string_literals(join_var_2, string_literals)
-        if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
-            raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
-        if join_var_2 in input_variables_map and join_var_2 in join_variables_map:
-            raise RbqlParsingError(ambiguous_error_msg.format(join_var_2))
-        if join_var_2 in input_variables_map:
-            join_var_1, join_var_2 = join_var_2, join_var_1
-        if join_var_1 in ['NR', 'a.NR', 'aNR']:
-            lhs_key_index = -1
-        elif join_var_1 in input_variables_map:
-            lhs_key_index = input_variables_map.get(join_var_1).index
-        else:
-            raise RbqlParsingError('Unable to parse JOIN expression: Input table does not have field "{}"\n{}'.format(join_var_1, valid_join_syntax_msg)) # UT JSON
-        if join_var_2 in ['bNR', 'b.NR']:
-            rhs_key_index = -1
-        elif join_var_2 in join_variables_map:
-            rhs_key_index = join_variables_map.get(join_var_2).index
-        else:
-            raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"\n{}'.format(join_var_2, valid_join_syntax_msg)) # UT JSON
-        lhs_join_var_expression = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
-        rhs_indices.append(rhs_key_index)
-        lhs_variables.append(lhs_join_var_expression)
-    return (lhs_variables, rhs_indices)
+        literal_var_1 = combine_string_literals(join_var_1, string_literals)
+        literal_var_2 = combine_string_literals(join_var_2, string_literals)
+        qci1 = get_query_column_info_for_join(literal_var_1)
+        qci2 = get_query_column_info_for_join(literal_var_2)
+        if qci2.table_name == 'a':
+            qci1, qci2 = qci2, qci1
+        if qci1.table_name != 'a' or qci2.table_name != 'b':
+            raise RbqlParsingError('Unable to resolve table names in JOIN expression for variables "{}" and "{}".\n{}'.format(qci1.column_name, qci2.column_name, valid_join_syntax_msg))
+        rhs_variable_component.append([qci2.column_index] if qci2.column_index is not None else qci2.key_components)
+        #lhs_expression_components.append(lhs_join_var_expression)
+        #lhs_join_var_expression = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
+        #rhs_variables_components.append(rhs_key_index)
+    # FIXME should return lhs_join_expression instead!
+    #query_context.lhs_join_var_expression = lhs_expression_components[0] if len(lhs_expression_components) == 1 else '({})'.format(', '.join(lhs_expression_components))
+    lhs_join_expression = lhs_expression_components[0] if len(lhs_expression_components) == 1 else '({})'.format(', '.join(lhs_expression_components))
+    return (lhs_join_expression, rhs_variables_components)
 
 
 def parse_basic_variables(query_text, prefix, dst_variables_map):
@@ -1395,6 +1448,7 @@ class HashJoinMap:
 
 
     def get_single_key(self, nr, fields):
+        # We don't use `safe_join_get` here and in `get_multi_key` to avoid catching the exception only to re-raise it with more context.
         if self.key_index >= len(fields):
             raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
         return nr if self.key_index == -1 else fields[self.key_index]
@@ -1548,9 +1602,11 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             raise RbqlIOHandlingError('Inconsistent modes: Input table has a header while the Join table doesn\'t have a header')
 
         # TODO check ambiguous column names here instead of external check.
-        lhs_variables, rhs_indices = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals)
+        #lhs_variables, rhs_indices = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals)
+        lhs_join_expression, rhs_indices = resolve_join_variables(input_variables_map, join_variables_map, variable_pairs, string_literals)
         joiner_type = {JOIN: InnerJoiner, INNER_JOIN: InnerJoiner, LEFT_OUTER_JOIN: LeftJoiner, LEFT_JOIN: LeftJoiner, STRICT_LEFT_JOIN: StrictLeftJoiner}[rb_actions[JOIN]['join_subtype']]
-        query_context.lhs_join_var_expression = lhs_variables[0] if len(lhs_variables) == 1 else '({})'.format(', '.join(lhs_variables))
+        #query_context.lhs_join_var_expression = lhs_variables[0] if len(lhs_variables) == 1 else '({})'.format(', '.join(lhs_variables))
+        query_context.lhs_join_var_expression = lhs_join_expression
         query_context.join_map_impl = HashJoinMap(join_record_iterator, rhs_indices)
         query_context.join_map_impl.build()
         query_context.join_map = joiner_type(query_context.join_map_impl)

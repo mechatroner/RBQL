@@ -92,8 +92,8 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
 
     def get_variables_map(self, query_text):
         return {
-            self.variable_prefix + '1': rbql_engine.VariableInfo(initialize=True, index=0),
-            self.variable_prefix: rbql_engine.VariableInfo(initialize=True, index=0)
+            self.variable_prefix + '1': rbql_engine.VariableInfo(initialize=False, index=0),
+            self.variable_prefix: rbql_engine.VariableInfo(initialize=False, index=0)
         } 
 
     def _get_row_from_buffer(self):
@@ -156,6 +156,7 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
             try:
                 json_obj = json.loads(line)
                 self.NR += 1
+                # FIXME consider not wrapping into list, in that case you need to adjust variable initialization too.
                 return [json_obj]
             except json.JSONDecodeError as e:
                 raise rbql_engine.RbqlIOHandlingError('Error decoding JSON in {} table at record {}, line {}: {}'.format(self.table_name, self.NR + 1, self.NL, str(e)))
