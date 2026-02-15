@@ -410,6 +410,16 @@ class TestTableRun(unittest.TestCase):
         self.assertEqual(expected_output_table, output_table)
 
 
+    def test_get_version(self):
+        input_table = [('Roosevelt', 1858), ('Napoleon', 1769), ('Confucius', -551)]
+        query = 'select top 1 RBQL_VERSION'
+        output_table = []
+        warnings = []
+        rbql.query_table(query, input_table, output_table, warnings)
+        self.assertEqual(warnings, [])
+        self.assertEqual(rbql.__version__, output_table[0][0])
+
+
     def test_table_run_simple_join(self):
         input_table = [('Roosevelt', 1858, 'USA'), ('Napoleon', 1769, 'France'), ('Confucius', -551, 'China')]
         join_table = [('China', 1386), ('France', 67), ('USA', 327), ('Russia', 140)]
