@@ -3,8 +3,8 @@
 import re
 from setuptools import setup
  
- 
-version = '0.29.0'
+
+exec(open('rbql/_version.py').read())
  
  
 with open("README.md", "rb") as f:
@@ -17,7 +17,7 @@ setup(
     entry_points = {
         "console_scripts": ['rbql-py = rbql.rbql_main:main', 'rbql = rbql.rbql_main:main']
         },
-    version = version,
+    version = __version__,
     description = "Rainbow Query Language",
     long_description = long_descr,
     long_description_content_type = 'text/markdown',
