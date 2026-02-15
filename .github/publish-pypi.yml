@@ -1,0 +1,39 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      # 1. Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Python (Official GitHub Action)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # 3. Install build and publish tools
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install setuptools wheel twine
+
+      # 4. Build and Upload
+      # We change directory to rbql-py before running the commands
+      - name: Build and Publish
+        working-directory: ./rbql-py
+        env:
+          # Twine uses these environment variables for authentication
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python3 setup.py sdist bdist_wheel
+          twine upload dist/*
