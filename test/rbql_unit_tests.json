@@ -1,18 +1,5 @@
 [
     {
-        "test_name": "select js version",
-        "input_table": [
-            ["5", "alpha", "beta"],
-            ["-20", "alpha", "gamma"],
-            ["50", "alpha", "delta"],
-            ["20", "alpha", ""]
-        ],
-        "expected_output_table": [
-            ["0.29.0"]
-        ],
-        "query_js": "select top 1 RBQL_VERSION"
-    },
-    {
         "test_name": "valid FROM",
         "skip_others": false,
         "input_table": [

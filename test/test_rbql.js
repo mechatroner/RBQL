@@ -314,6 +314,17 @@ async function test_direct_table_queries() {
     test_common.assert_arrays_are_equal(expected_table, output_table);
 }
 
+async function test_version() {
+    const package_json = JSON.parse(fs.readFileSync('../rbql-js/package.json', 'utf-8'));
+    test_common.assert_equal(package_json['version'], rbql.version);
+
+    let output_table = [];
+    let warnings = [];
+    await rbql.query_table('select top 1 RBQL_VERSION', [[1, 'foo'], [2, 'bar'], [3, 'hello']], output_table, warnings);
+    test_common.assert(warnings.length == 0);
+    test_common.assert_equal(package_json['version'], output_table[0][0]);
+}
+
 
 function prepare_and_parse_select_expression_to_column_infos(select_part) {
     let [select_expression, string_literals] = rbql.separate_string_literals(select_part);
@@ -406,6 +417,7 @@ async function test_everything() {
     test_column_name_parsing_from_file();
     test_inconsistent_record_sampling();
     await test_direct_table_queries();
+    await test_version();
     await test_json_tables();
 }
 
