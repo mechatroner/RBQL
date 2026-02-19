@@ -2,12 +2,14 @@ import sys
 import os
 import io
 import re
+import json
 from errno import EPIPE
 from collections import namedtuple
 
 from . import rbql_engine
 from . import csv_utils
 
+# FIXME add unit tests with csv json.
 
 default_csv_encoding = 'utf-8'
 ansi_reset_color_code = '\u001b[0m'
@@ -146,6 +148,7 @@ def init_ansi_terminal_colors():
 class CSVWriter(rbql_engine.RBQLOutputWriter):
     def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n', colorize_output=False):
         assert encoding in ['utf-8', 'latin-1', None]
+        self.encoding = encoding
         self.stream = encode_output_stream(stream, encoding)
         self.line_separator = line_separator
         self.delim = delim
@@ -165,6 +168,8 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
             self.polymorphic_preprocess = self.quote_fields
         elif policy == 'quoted_rfc':
             self.polymorphic_preprocess = self.quote_fields_rfc
+        elif policy == 'json_strings':
+            self.polymorphic_preprocess = self.quote_fields_json
         elif policy == 'monocolumn':
             colorize_output = False
             self.polymorphic_preprocess = self.ensure_single_field
@@ -244,6 +249,13 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
         for i in range(len(fields)):
             fields[i] = csv_utils.quote_field(fields[i], self.delim)
 
+    def quote_fields_json(self, fields):
+        for i in range(len(fields)):
+            # If encoding is not utf-8, json.dumps will convert unicode characters to ascii with \uXXXX notation.
+            quoted_field = json.dumps(fields[i], ensure_ascii=(self.encoding != 'utf-8'))
+            # If the resulting string only differs by starting and ending double quotes - just leave it as is.
+            if len(quoted_field) != len(fields[i]) + 2 or fields[i].find(self.delim) != -1:
+                fields[i] = quoted_field
 
     def quote_fields_rfc(self, fields):
         for i in range(len(fields)):
@@ -556,8 +568,8 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
 
-        if input_delim == '"' and input_policy == 'quoted':
-            raise rbql_engine.RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy')
+        if input_delim == '"' and input_policy in ['quoted', 'quoted_rfc', 'json_strings']:
+            raise rbql_engine.RbqlIOHandlingError('Double quote delimiter is incompatible with "{}" policy'.format(input_policy))
         if input_delim != ' ' and input_policy == 'whitespace':
             raise rbql_engine.RbqlIOHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
 

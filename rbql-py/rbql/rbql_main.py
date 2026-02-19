@@ -27,7 +27,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
-policy_names = ['quoted', 'simple', 'whitespace', 'quoted_rfc', 'monocolumn']
+policy_names = ['simple', 'quoted', 'quoted_rfc', 'json_strings', 'whitespace', 'monocolumn']
 out_format_names = ['csv', 'tsv', 'input']
 
 
@@ -360,11 +360,12 @@ For sqlite mode run this command:
 
 csv_epilog = '''
 Description of the available CSV split policies:
-  * "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
-  * "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
-  * "quoted_rfc" - Same as "quoted", but also allows newlines inside double-quoted fields, see RFC-4180: https://tools.ietf.org/html/rfc4180
-  * "whitespace" - Works only with whitespace separator, multiple consecutive whitespaces are treated as a single whitespace
-  * "monocolumn" - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" column variables are available
+  * "simple"       - RBQL uses simple split() function and doesn't perform special handling of double quote characters
+  * "quoted"       - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
+  * "quoted_rfc"   - Same as "quoted", but also allows newlines inside double-quoted fields, see RFC-4180: https://tools.ietf.org/html/rfc4180
+  * "json_strings" - Supports quoted fields in JSON format (with backslash escaping), e.g. field1,"field2 with \\"escaped quotes\\" and \\n newline"
+  * "whitespace"   - Works only with whitespace separator, multiple consecutive whitespaces are treated as a single whitespace
+  * "monocolumn"   - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" column variables are available
 '''
 
 

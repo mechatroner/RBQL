@@ -1,4 +1,5 @@
 import re
+import json
 
 
 newline_rgx = re.compile('(?:\r\n)|\r|\n')
@@ -31,7 +32,34 @@ def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external
 
 
 
-def split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=False):
+json_str_field_regular_expression = r'"(?:[^"\\]|\\.)*"'
+json_str_field_rgx = re.compile(json_str_field_regular_expression)
+json_str_field_rgx_external_whitespaces = re.compile(' *' + json_str_field_regular_expression + ' *')
+
+def extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result):
+    warning = False
+    rgx = json_str_field_rgx_external_whitespaces if allow_external_whitespaces else json_str_field_rgx
+    match_obj = rgx.match(src, cidx)
+    if match_obj is not None:
+        match_end = match_obj.span()[1]
+        if match_end == len(src) or src[match_end] == dlm:
+            if preserve_quotes_and_whitespaces:
+                result.append(match_obj.group(0))
+            else:
+                result.append(json.loads(match_obj.group(0)))
+            return (match_end + 1, False)
+        warning = True
+    uidx = src.find(dlm, cidx)
+    if uidx == -1:
+        uidx = len(src)
+    field = src[cidx:uidx]
+    warning = warning or field.find('"') != -1
+    result.append(field)
+    return (uidx + 1, warning)
+
+
+
+def split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=False, use_json_string_format=False):
     # This function is newline-agnostic i.e. it can also split records with multiline fields.
     assert dlm != '"'
     if src.find('"') == -1: # Optimization for most common case
@@ -41,7 +69,10 @@ def split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=False):
     warning = False
     allow_external_whitespaces = dlm != ' '
     while cidx < len(src):
-        extraction_report = extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result)
+        if use_json_string_format:
+            extraction_report = extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result)
+        else:
+            extraction_report = extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result)
         cidx = extraction_report[0]
         warning = warning or extraction_report[1]
 
@@ -72,6 +103,8 @@ def get_polymorphic_split_function(dlm, policy, preserve_quotes_and_whitespaces)
         return lambda src: ([src], False)
     elif policy == 'quoted' or policy == 'quoted_rfc':
         return lambda src: split_quoted_str(src, dlm, preserve_quotes_and_whitespaces)
+    elif policy == 'json_strings':
+        return lambda src: split_quoted_str(src, dlm, preserve_quotes_and_whitespaces, use_json_string_format=True)
     else:
         raise ValueError('Unsupported splitting policy: {}'.format(policy))
 
