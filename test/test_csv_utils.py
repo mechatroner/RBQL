@@ -40,6 +40,10 @@ vinf = rbql_engine.VariableInfo
 python_minor_version = int(sys.version_info[1])
 
 
+quoted_policies = ['quoted', 'quoted_rfc', 'json_strings']
+all_standard_policies = ['simple'] + quoted_policies # TODO conside adding 'whitespace' policy too
+
+
 def normalize_warnings(warnings):
     # TODO can we get rid of this function? Why do we need to normalize warnings?
     # TODO move into a common test lib module e.g. "tests_common.py"
@@ -109,6 +113,16 @@ def randomly_join_quoted(fields, delim):
     return delim.join(efields)
 
 
+def randomly_join_json_strings(fields, delim):
+    efields = list()
+    for field in fields:
+        spaces_before = ' ' * random.randint(0, 2) if delim != ' ' else ''
+        spaces_after = ' ' * random.randint(0, 2) if delim != ' ' else ''
+        efields.append('{}{}{}'.format(spaces_before, json.dumps(field), spaces_after))
+    assert [json.loads(f) for f in efields] == fields
+    return delim.join(efields)
+
+
 def random_smart_join(fields, delim, policy):
     if policy == 'simple':
         return simple_join(fields, delim)
@@ -118,6 +132,9 @@ def random_smart_join(fields, delim, policy):
     elif policy in ['quoted', 'quoted_rfc']:
         assert delim != '"'
         return randomly_join_quoted(fields, delim)
+    elif policy in ['json_strings']:
+        assert delim != '"'
+        return randomly_join_json_strings(fields, delim)
     elif policy == 'monocolumn':
         assert len(fields) == 1
         return fields[0]
@@ -466,7 +483,7 @@ class TestRecordIterator(unittest.TestCase):
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
             table_has_delim = find_in_table(table, delim)
-            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
+            policy = random.choice(quoted_policies) if table_has_delim else random.choice(all_standard_policies)
             csv_data = table_to_csv_string_random(table, delim, policy)
             stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
@@ -485,7 +502,7 @@ class TestRecordIterator(unittest.TestCase):
             delims = ['\t', ',', ';', '|', 'Д', 'Ф', '\u2063']
             delim = random.choice(delims)
             table_has_delim = find_in_table(table, delim)
-            policy = 'quoted' if table_has_delim else random.choice(['quoted', 'simple'])
+            policy = random.choice(quoted_policies) if table_has_delim else random.choice(all_standard_policies)
             csv_data = table_to_csv_string_random(table, delim, policy)
             encoding = 'utf-8'
             stream = io.BytesIO(csv_data.encode(encoding))
