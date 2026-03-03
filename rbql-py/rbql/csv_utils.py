@@ -32,14 +32,10 @@ def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external
 
 
 
-json_str_field_regular_expression = r'"(?:[^"\\]|\\.)*"'
-json_str_field_rgx = re.compile(json_str_field_regular_expression)
-json_str_field_rgx_external_whitespaces = re.compile(' *' + json_str_field_regular_expression + ' *')
-
-def extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result):
+json_str_field_rgx = re.compile(r' *"(?:[^"\\]|\\.)*" *')
+def extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, cidx, result):
     warning = False
-    rgx = json_str_field_rgx_external_whitespaces if allow_external_whitespaces else json_str_field_rgx
-    match_obj = rgx.match(src, cidx)
+    match_obj = json_str_field_rgx.match(src, cidx)
     if match_obj is not None:
         match_end = match_obj.span()[1]
         if match_end == len(src) or src[match_end] == dlm:
@@ -62,6 +58,9 @@ def extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, allow_ext
 def split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=False, use_json_string_format=False):
     # This function is newline-agnostic i.e. it can also split records with multiline fields.
     assert dlm != '"'
+    # FIXME don't allow whitespace delim for quoted policy at all for simplicity and performance.
+    if use_json_string_format:
+        assert dlm != ' '
     if src.find('"') == -1: # Optimization for most common case
         return (src.split(dlm), False)
     result = list()
@@ -70,7 +69,7 @@ def split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=False, use_json_s
     allow_external_whitespaces = dlm != ' '
     while cidx < len(src):
         if use_json_string_format:
-            extraction_report = extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result)
+            extraction_report = extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, cidx, result)
         else:
             extraction_report = extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result)
         cidx = extraction_report[0]

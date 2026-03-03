@@ -9,8 +9,6 @@ from collections import namedtuple
 from . import rbql_engine
 from . import csv_utils
 
-# FIXME add unit tests with csv json.
-
 default_csv_encoding = 'utf-8'
 ansi_reset_color_code = '\u001b[0m'
 
