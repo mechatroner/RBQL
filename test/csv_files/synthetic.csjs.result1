@@ -1,0 +1,6 @@
+Text,num_newlines
+"\"Quotes\", commas, and more\n...\n",2
+"Two \n strange \n newlines",2
+Nothing to see here,0
+"Many tabs \t many questions \t and some",0
+"Not without some AI, as was the style\nOr was it?",1

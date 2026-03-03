@@ -1,0 +1,6 @@
+ID,Text,Author
+foo,"\"Quotes\", commas, and more\n...\n","Jones, Bob"
+asdf,"Two \n strange \n newlines",Separating Mark
+fno,Nothing to see here,Plain Mary
+asdf,"Many tabs \t many questions \t and some","Frank the Big Tabulator Tabby"
+abdff,"Not without some AI, as was the style\nOr was it?",Dmitry the Author
