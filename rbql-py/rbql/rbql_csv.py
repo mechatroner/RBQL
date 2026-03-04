@@ -566,10 +566,12 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
 
+        # FIXME don't allow whitespace delim for quoted policy at all for simplicity and performance.
+        # FIXME don't allow multicharacter delims for quoted policies because they assume that it is a single char in the parsing logic.
         if input_delim == '"' and input_policy in ['quoted', 'quoted_rfc', 'json_strings']:
             raise rbql_engine.RbqlIOHandlingError('Double quote delimiter is incompatible with "{}" policy'.format(input_policy))
-        if input_delim != ' ' and input_policy == 'whitespace':
-            raise rbql_engine.RbqlIOHandlingError('Only whitespace " " delim is supported with "whitespace" policy')
+        if input_policy == 'whitespace' and input_delim != ' ':
+            raise rbql_engine.RbqlIOHandlingError('Only the whitespace " " delimiter is supported with "whitespace" policy')
 
         if not is_ascii(query_text) and csv_encoding == 'latin-1':
             raise rbql_engine.RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')
