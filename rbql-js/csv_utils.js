@@ -2,6 +2,8 @@ let field_regular_expression = '"((?:[^"]*"")*[^"]*)"';
 let field_rgx = new RegExp('^' + field_regular_expression);
 let field_rgx_external_whitespaces = new RegExp('^ *' + field_regular_expression + ' *');
 
+// FIXME add unit tests with csv json.
+
 
 // TODO consider making this file (and rbql.js) both node and browser compatible: https://caolan.org/posts/writing_for_node_and_the_browser.html
 
@@ -10,6 +12,11 @@ function split_lines(text) {
     return text.split(/\r\n|\r|\n/);
 }
 
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(`Assertion failed: ${message}`);
+    }
+}
 
 function extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result) {
     var warning = false;
@@ -38,8 +45,43 @@ function extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_ext
 }
 
 
-function split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=false) {
+
+// The 'y' sticky flag at the end of the regex ensures matches only occur exactly at .lastIndex
+const json_str_field_regular_expression = / *"(?:[^"\\]|\\.)*" */y;
+
+function extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, cidx, result) {
+    var warning = false;
+    json_str_field_regular_expression.lastIndex = cidx;
+    let match_obj = json_str_field_regular_expression.exec(src);
+    if (match_obj !== null) {
+        let match_end = cidx + match_obj[0].length;
+        if (match_end == src.length || src[match_end] == dlm) {
+            if (preserve_quotes_and_whitespaces) {
+                result.push(match_obj[0]);
+            } else {
+                result.push(JSON.parse(match_obj[0]));
+            }
+            return [match_end + 1, false];
+        }
+        warning = true;
+    }
+    var uidx = src.indexOf(dlm, cidx);
+    if (uidx == -1)
+        uidx = src.length;
+    var field = src.substring(cidx, uidx);
+    warning = warning || field.indexOf('"') != -1;
+    result.push(field);
+    return [uidx + 1, warning];
+}
+
+
+function split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=false, use_json_string_format=false) {
     // This function is newline-agnostic i.e. it can also split records with multiline fields.
+    assert(dlm != '"', 'Delimiter must not be a double quote');
+    if (use_json_string_format) {
+        // FIXME don't support for any quoted policies to simplify and improve performance.
+        assert(dlm != ' ', 'Whitespace delimiter is not supported in json string splitting policy');
+    }
     if (src.indexOf('"') == -1) // Optimization for most common case
         return [src.split(dlm), false];
     var result = [];
@@ -47,7 +89,12 @@ function split_quoted_str(src, dlm, preserve_quotes_and_whitespaces=false) {
     var warning = false;
     let allow_external_whitespaces = dlm != ' ';
     while (cidx < src.length) {
-        var extraction_report = extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result);
+        var extraction_report;
+        if (use_json_string_format) {
+            extraction_report = extract_next_field_json(src, dlm, preserve_quotes_and_whitespaces, cidx, result);
+        } else {
+            extraction_report = extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result);
+        }
         cidx = extraction_report[0];
         warning = warning || extraction_report[1];
     }
@@ -116,6 +163,8 @@ function get_polymorphic_split_function(dlm, policy, preserve_quotes_and_whitesp
         return (src) => [[src], false];
     } else if (policy === 'quoted' || policy === 'quoted_rfc') {
         return (src) => split_quoted_str(src, dlm, preserve_quotes_and_whitespaces);
+    } else if (policy === 'json_strings') {
+        return (src) => split_quoted_str(src, dlm, preserve_quotes_and_whitespaces, /*use_json_string_format=*/true);
     } else {
         throw new Error(`Unsupported splitting policy: ${policy}`);
     }

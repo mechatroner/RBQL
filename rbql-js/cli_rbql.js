@@ -14,7 +14,6 @@ var error_format = 'hr';
 var interactive_mode = false;
 
 
-// TODO implement colored output like in Python version
 // TODO implement query history like in Python version. "readline" modules allows to do that, see "completer" parameter.
 // TODO switch to built-in node util parseArgs module (added in 2022)
 
@@ -322,6 +321,7 @@ Description of the available CSV split policies:
   * "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
   * "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
   * "quoted_rfc" - Same as "quoted", but also allows newlines inside double-quoted fields, see RFC-4180: https://tools.ietf.org/html/rfc4180
+  * "json_strings" - Supports quoted fields in JSON format (with backslash escaping), e.g. field1,"field2 with \\"escaped quotes\\" and \\n newline"
   * "whitespace" - Works only with whitespace separator, multiple consecutive whitespaces are treated as a single whitespace
   * "monocolumn" - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" are available
 `;
@@ -367,7 +367,7 @@ function main() {
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
         '--delim': {'help': 'Delimiter character or multicharacter string, e.g. "," or "###". Can be autodetected in interactive mode', 'metavar': 'DELIM'},
-        '--policy': {'help': 'Split policy, see the explanation below. Supported values: "simple", "quoted", "quoted_rfc", "whitespace", "monocolumn". Can be autodetected in interactive mode', 'metavar': 'POLICY'},
+        '--policy': {'help': 'Split policy, see the explanation below. Supported values: "simple", "quoted", "quoted_rfc", "json_strings", "whitespace", "monocolumn". Can be autodetected in interactive mode', 'metavar': 'POLICY'},
         '--with-headers': {'boolean': true, 'help': 'Indicates that input (and join) table has header'},
         '--comment-prefix': {'help': 'Ignore lines in input and join tables that start with the comment PREFIX, e.g. "#"', 'metavar': 'PREFIX'},
         '--comment-regex': {'help': 'Ignore lines in input and join tables that contain the comment REGEX.', 'metavar': 'REGEX'},

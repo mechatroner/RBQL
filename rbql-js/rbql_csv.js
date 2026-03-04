@@ -531,6 +531,8 @@ class CSVWriter extends rbql.RBQLOutputWriter {
             this.polymorphic_join = this.quoted_join;
         } else if (policy == 'quoted_rfc') {
             this.polymorphic_join = this.quoted_join_rfc;
+        } else if (policy == 'json_strings') {
+            this.polymorphic_join = this.quoted_join_json_strings;
         } else if (policy == 'monocolumn') {
             this.polymorphic_join = this.mono_join;
         } else if (policy == 'whitespace') {
@@ -565,6 +567,27 @@ class CSVWriter extends rbql.RBQLOutputWriter {
     quoted_join_rfc(fields) {
         let delim = this.delim;
         var quoted_fields = fields.map(function(v) { return csv_utils.rfc_quote_field(String(v), delim); });
+        return quoted_fields.join(this.delim);
+    };
+
+
+    quoted_join_json_strings(fields) {
+        let quoted_fields = []; 
+        let delim = this.delim;
+        for (let field of fields) {
+            let string_field = String(field);
+            let quoted_field = JSON.stringify(string_field);
+            // FIXME add ascii csv test both for python and js version, also add utf-8 (unicode) line to the existing test case.
+            if (this.encoding != 'utf-8') {
+                // Copied from here: https://stackoverflow.com/a/31652607/2898283
+                quoted_field = quoted_field.replace(/[\u007F-\uFFFF]/g, function(chr) { return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4) })
+            }
+            if (quoted_field.length != string_field.length + 2 || quoted_field.indexOf(delim) != -1) {
+                quoted_fields.push(quoted_field);
+            } else {
+                quoted_fields.push(string_field);
+            }
+        }
         return quoted_fields.join(this.delim);
     };
 
@@ -707,8 +730,8 @@ async function query_csv(query_text, input_path, input_delim, input_policy, outp
     let trim_whitespaces = options && options['trim_whitespaces'] ? true : false;
     let comment_regex = options && options.hasOwnProperty('comment_regex') ? options['comment_regex'] : null;
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
-    if (input_delim == '"' && input_policy == 'quoted')
-        throw new RbqlIOHandlingError('Double quote delimiter is incompatible with "quoted" policy');
+    if (input_delim == '"' && (input_policy == 'quoted' || input_policy == 'quoted_rfc' || input_policy == 'json_strings'))
+        throw new RbqlIOHandlingError(`Double quote delimiter is incompatible with ${input_policy} policy`);
     if (csv_encoding == 'latin-1')
         csv_encoding = 'binary';
     if (!is_ascii(query_text) && csv_encoding == 'binary')
