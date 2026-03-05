@@ -3,6 +3,7 @@ foo,"\"Quotes\", commas, and more\n...\n","Jones, Bob"
 asdf,"Two \n strange \n newlines",Separating Mark
 fno,Nothing to see here,Plain Mary
 fnodd,"Nothing to see here - quoted",Plain Mary
+unicode_id,"\u043f\u0440\u0438\u0432\u0435\u0442",Unicodium Rex
 abc,Через тернии к звёздам,Автор
 abcde,"Текст в кавычках",Автор
 abcd,"Текст в кавычках\nмного\nстрок",Автор

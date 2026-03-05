@@ -8,6 +8,7 @@ field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
 field_rgx = re.compile(field_regular_expression)
 field_rgx_external_whitespaces = re.compile(' *' + field_regular_expression + ' *')
 
+# FIXME add unit tests with unicode escaped chars in the input.
 
 def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result):
     warning = False
