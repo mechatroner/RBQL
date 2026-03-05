@@ -645,6 +645,16 @@
         "query_python": "select a2, a2.count('\\n') as num_newlines"
     },
     {
+        "test_name": "Simple Json strings ascii test",
+        "input_table_path": "csv_files/synthetic.csjs",
+        "expected_output_table_path": "csv_files/synthetic.csjs.result2",
+        "csv_separator": ",",
+        "csv_policy": "json_strings",
+        "with_headers": true,
+        "csv_encoding": "latin-1",
+        "query_python": "select a2, a2.count('\\n') as num_newlines"
+    },
+    {
         "test_name": "Multitable join",
         "input_table_path": "csv_files/university_ranking.csv",
         "expected_output_table_path": "csv_files/expected_result_multitable_1.csv",
