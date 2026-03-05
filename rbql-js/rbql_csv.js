@@ -173,6 +173,10 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         this.comment_regex = comment_regex;
         this.trim_whitespaces = trim_whitespaces;
 
+        if (this.policy == 'json_strings' && this.encoding != 'utf-8') {
+            throw new RbqlIOHandlingError('json_strings policy can only be used with UTF-8 encoding');
+        }
+
         this.decoder = null;
         if (encoding == 'utf-8' && this.csv_path === null) {
             // Unfortunately util.TextDecoder has serious flaws:
@@ -532,6 +536,9 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         } else if (policy == 'quoted_rfc') {
             this.polymorphic_join = this.quoted_join_rfc;
         } else if (policy == 'json_strings') {
+            if (this.encoding != 'utf-8') {
+                throw new RbqlIOHandlingError('json_strings requires utf-8 encoding');
+            }
             this.polymorphic_join = this.quoted_join_json_strings;
         } else if (policy == 'monocolumn') {
             this.polymorphic_join = this.mono_join;
@@ -577,11 +584,6 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         for (let field of fields) {
             let string_field = String(field);
             let quoted_field = JSON.stringify(string_field);
-            // FIXME add ascii csv test both for python and js version, also add utf-8 (unicode) line to the existing test case.
-            if (this.encoding != 'utf-8') {
-                // Copied from here: https://stackoverflow.com/a/31652607/2898283
-                quoted_field = quoted_field.replace(/[\u007F-\uFFFF]/g, function(chr) { return "\\u" + ("0000" + chr.charCodeAt(0).toString(16)).substr(-4) })
-            }
             if (quoted_field.length != string_field.length + 2 || quoted_field.indexOf(delim) != -1) {
                 quoted_fields.push(quoted_field);
             } else {
@@ -732,6 +734,8 @@ async function query_csv(query_text, input_path, input_delim, input_policy, outp
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
     if (input_delim == '"' && (input_policy == 'quoted' || input_policy == 'quoted_rfc' || input_policy == 'json_strings'))
         throw new RbqlIOHandlingError(`Double quote delimiter is incompatible with ${input_policy} policy`);
+    if ((input_policy == 'json_strings' || output_policy == 'json_strings') && csv_encoding != 'utf-8')
+        throw new RbqlIOHandlingError('JSON strings policy can only be used with UTF-8 encoding according to RFC-8259');
     if (csv_encoding == 'latin-1')
         csv_encoding = 'binary';
     if (!is_ascii(query_text) && csv_encoding == 'binary')

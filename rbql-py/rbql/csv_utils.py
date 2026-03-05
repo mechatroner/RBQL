@@ -8,7 +8,6 @@ field_regular_expression = '"((?:[^"]*"")*[^"]*)"'
 field_rgx = re.compile(field_regular_expression)
 field_rgx_external_whitespaces = re.compile(' *' + field_regular_expression + ' *')
 
-# FIXME add unit tests with unicode escaped chars in the input.
 
 def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external_whitespaces, cidx, result):
     warning = False
@@ -30,7 +29,6 @@ def extract_next_field(src, dlm, preserve_quotes_and_whitespaces, allow_external
     warning = warning or field.find('"') != -1
     result.append(field)
     return (uidx + 1, warning)
-
 
 
 json_str_field_rgx = re.compile(r' *"(?:[^"\\]|\\.)*" *')

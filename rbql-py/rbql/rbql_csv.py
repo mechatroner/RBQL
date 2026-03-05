@@ -167,6 +167,8 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
         elif policy == 'quoted_rfc':
             self.polymorphic_preprocess = self.quote_fields_rfc
         elif policy == 'json_strings':
+            if self.encoding != 'utf-8':
+                raise rbql_engine.RbqlIOHandlingError('json_strings requires utf-8 encoding')
             self.polymorphic_preprocess = self.quote_fields_json
         elif policy == 'monocolumn':
             colorize_output = False
@@ -248,9 +250,10 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
             fields[i] = csv_utils.quote_field(fields[i], self.delim)
 
     def quote_fields_json(self, fields):
+        # This function assumes that output encoding is UTF-8 because JSON standard requires that.
         for i in range(len(fields)):
-            # If encoding is not utf-8, json.dumps will convert unicode characters to ascii with \uXXXX notation.
-            quoted_field = json.dumps(fields[i], ensure_ascii=(self.encoding != 'utf-8'))
+            # Note: it is really weird that Python uses ensure_ascii=True by default, because in JavaScript JSON.stringify non-ascii characters are not escaped by default.
+            quoted_field = json.dumps(fields[i], ensure_ascii=False)
             # If the resulting string only differs by starting and ending double quotes - just leave it as is.
             if len(quoted_field) != len(fields[i]) + 2 or fields[i].find(self.delim) != -1:
                 fields[i] = quoted_field
@@ -352,6 +355,8 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.has_header = has_header
         self.first_record_should_be_emitted = False
 
+        if self.policy == 'json_strings' and self.encoding != 'utf-8':
+            raise rbql_engine.RbqlIOHandlingError('json_strings policy can only be used with UTF-8 encoding')
 
         if not line_mode:
             self.polymorphic_split = csv_utils.get_polymorphic_split_function(delim, policy, preserve_quotes_and_whitespaces=False)
@@ -572,6 +577,11 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
             raise rbql_engine.RbqlIOHandlingError('Double quote delimiter is incompatible with "{}" policy'.format(input_policy))
         if input_policy == 'whitespace' and input_delim != ' ':
             raise rbql_engine.RbqlIOHandlingError('Only the whitespace " " delimiter is supported with "whitespace" policy')
+
+        if (input_policy == 'json_strings' or output_policy == 'json_strings') and csv_encoding != 'utf-8':
+            # Note: We can actually handle output with ascii "encoding" via \uXXXX notation, but we would then also need separate input and output encoding params.
+            # But this would still be weird because it is not actually "encoding" per se.
+            raise rbql_engine.RbqlIOHandlingError('JSON strings policy can only be used with UTF-8 encoding according to RFC-8259')
 
         if not is_ascii(query_text) and csv_encoding == 'latin-1':
             raise rbql_engine.RbqlIOHandlingError('To use non-ascii characters in query enable UTF-8 encoding instead of latin-1/binary')

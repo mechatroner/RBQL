@@ -485,7 +485,12 @@ class TestRecordIterator(unittest.TestCase):
             table_has_delim = find_in_table(table, delim)
             policy = random.choice(quoted_policies) if table_has_delim else random.choice(all_standard_policies)
             csv_data = table_to_csv_string_random(table, delim, policy)
-            stream, encoding = string_to_randomly_encoded_stream(csv_data)
+            if policy == 'json_strings':
+                # We only support utf-8 for json per the standard.
+                encoding = 'utf-8'
+                stream = io.BytesIO(csv_data.encode(encoding))
+            else:
+                stream, encoding = string_to_randomly_encoded_stream(csv_data)
 
             record_iterator = rbql_csv.CSVRecordIterator(stream, encoding, delim=delim, policy=policy)
             parsed_table = record_iterator.get_all_records()

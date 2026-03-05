@@ -641,17 +641,8 @@
         "csv_separator": ",",
         "csv_policy": "json_strings",
         "with_headers": true,
+        "debug_mode": true,
         "csv_encoding": "utf-8",
-        "query_python": "select a.ID, a2, a2.count('\\n') as num_newlines"
-    },
-    {
-        "test_name": "Simple Json strings ascii test",
-        "input_table_path": "csv_files/synthetic.csjs",
-        "expected_output_table_path": "csv_files/synthetic.csjs.result2",
-        "csv_separator": ",",
-        "csv_policy": "json_strings",
-        "with_headers": true,
-        "csv_encoding": "latin-1",
         "query_python": "select a.ID, a2, a2.count('\\n') as num_newlines"
     },
     {
