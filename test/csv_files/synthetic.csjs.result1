@@ -1,11 +1,14 @@
-Text,num_newlines
-"\"Quotes\", commas, and more\n...\n",2
-"Two \n strange \n newlines",2
-Nothing to see here,0
-Nothing to see here - quoted,0
-привет,0
-Через тернии к звёздам,0
-Текст в кавычках,0
-"Текст в кавычках\nмного\nстрок",2
-"Many tabs \t many questions \t and some",0
-"Not without some AI, as was the style\nOr was it?",1
+ID,Text,num_newlines
+foo,"\"Quotes\", commas, and more\n...\n",2
+asdf,"Two \n strange \n newlines",2
+fno,Nothing to see here,0
+fnodd,Nothing to see here - quoted,0
+unicode_id,привет,0
+unicode_id_another,привет,0
+utfid,привет,0
+utfid_quoted,привет,0
+abc,Через тернии к звёздам,0
+abcde,Текст в кавычках,0
+abcd,"Текст в кавычках\nмного\nстрок",2
+asdf,"Many tabs \t many questions \t and some",0
+abdff,"Not without some AI, as was the style\nOr was it?",1
