@@ -142,6 +142,14 @@ def init_ansi_terminal_colors():
     return result
 
 
+def quote_field_json_if_needed(field, delim):
+    # Note: it is really weird that Python uses ensure_ascii=True by default, because in JavaScript JSON.stringify non-ascii characters are not escaped by default.
+    quoted_field = json.dumps(field, ensure_ascii=False)
+    if len(quoted_field) == len(field) + 2 and field.find(delim) == -1:
+        # If the resulting string only differs by starting and ending double quotes and doesn't contain the delim - just leave it as is.
+        return field
+    return quoted_field
+
 
 class CSVWriter(rbql_engine.RBQLOutputWriter):
     def __init__(self, stream, close_stream_on_finish, encoding, delim, policy, line_separator='\n', colorize_output=False):
@@ -250,13 +258,8 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
             fields[i] = csv_utils.quote_field(fields[i], self.delim)
 
     def quote_fields_json(self, fields):
-        # This function assumes that output encoding is UTF-8 because JSON standard requires that.
         for i in range(len(fields)):
-            # Note: it is really weird that Python uses ensure_ascii=True by default, because in JavaScript JSON.stringify non-ascii characters are not escaped by default.
-            quoted_field = json.dumps(fields[i], ensure_ascii=False)
-            # If the resulting string only differs by starting and ending double quotes - just leave it as is.
-            if len(quoted_field) != len(fields[i]) + 2 or fields[i].find(self.delim) != -1:
-                fields[i] = quoted_field
+            fields[i] = quote_field_json_if_needed(fields[i], self.delim)
 
     def quote_fields_rfc(self, fields):
         for i in range(len(fields)):

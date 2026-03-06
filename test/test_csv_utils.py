@@ -118,8 +118,21 @@ def randomly_join_json_strings(fields, delim):
     for field in fields:
         spaces_before = ' ' * random.randint(0, 2) if delim != ' ' else ''
         spaces_after = ' ' * random.randint(0, 2) if delim != ' ' else ''
-        efields.append('{}{}{}'.format(spaces_before, json.dumps(field), spaces_after))
-    assert [json.loads(f) for f in efields] == fields
+        ensure_ascii = False if random.randint(0, 1) else True
+        quoted = json.dumps(field, ensure_ascii=ensure_ascii)
+        quote_anyway_for_test = random.randint(0, 1) == 0
+        need_quoting = quoted.find(delim) != -1 or len(quoted) != len(field) + 2
+        if not ensure_ascii:
+            if need_quoting:
+                assert quoted == rbql_csv.quote_field_json_if_needed(field, delim)
+            else:
+                assert field == rbql_csv.quote_field_json_if_needed(field, delim)
+        if not need_quoting and not quote_anyway_for_test:
+            quoted = field
+        else:
+            quoted = '{}{}{}'.format(spaces_before, quoted, spaces_after)
+            assert json.loads(quoted) == field
+        efields.append(quoted)
     return delim.join(efields)
 
 
@@ -478,7 +491,7 @@ class TestLineSplit(unittest.TestCase):
 
 class TestRecordIterator(unittest.TestCase):
     def test_iterator(self):
-        for _test_num in range(100):
+        for _test_num in range(200):
             table = generate_random_decoded_binary_table(10, 10, ['\r', '\n'])
             delims = ['\t', ',', ';', '|']
             delim = random.choice(delims)
@@ -502,7 +515,7 @@ class TestRecordIterator(unittest.TestCase):
 
 
     def test_iterator_unicode(self):
-        for _test_num in range(100):
+        for _test_num in range(200):
             table = generate_random_unicode_table(10, 10, ['\r', '\n'])
             delims = ['\t', ',', ';', '|', 'Д', 'Ф', '\u2063']
             delim = random.choice(delims)
