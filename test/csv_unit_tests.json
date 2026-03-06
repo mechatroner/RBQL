@@ -643,7 +643,8 @@
         "with_headers": true,
         "debug_mode": true,
         "csv_encoding": "utf-8",
-        "query_python": "select a.ID, a2, a2.count('\\n') as num_newlines"
+        "query_python": "select a.ID, a2, a2.count('\\n') as num_newlines",
+        "query_js": "select a.ID, a2, a2.split('\\n').length - 1 as num_newlines"
     },
     {
         "test_name": "Multitable join",
