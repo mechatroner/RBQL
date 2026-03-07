@@ -11,6 +11,11 @@ import time # For usage inside user queries only.
 
 from ._version import __version__
 
+# Import json to use inside user queries.
+# This allows to emulate input json format with monocolumn csv format and chained queries like this:
+# Example: `SELECT json.loads(a1) | SELECT a1['name']`
+import json # for json parsing inside user queries
+
 # This module must be both python2 and python3 compatible.
 # This module works with records only. It is CSV-agnostic.
 # Do not add CSV-related logic or variables/functions/objects like "delim", "separator" etc.
