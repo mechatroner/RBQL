@@ -1326,7 +1326,9 @@ function translate_update_expression(update_expression, input_variables_map, str
     let first_assignment = str_strip(update_expression.split('=')[0]);
     let first_assignment_error = `Unable to parse "UPDATE" expression: the expression must start with assignment, but "${first_assignment}" does not look like an assignable field name`;
 
-    let assignment_looking_rgx = /(?:^|,) *(a[.#a-zA-Z0-9\[\]_]*) *=(?=[^=])/g;
+    // The below regex would still fail for query like `UPDATE a1 = foo(123, a2 = 20)` - but it is very uncommon to have a function argument like aN.
+    // Such failure should produce a syntax error during execution instead of producing wrong results.
+    let assignment_looking_rgx = /(?:^|,) *(a[0-9\[.][.#a-zA-Z0-9\[\]_]*) *=(?=[^=])/g;
     let update_expressions = [];
     let pos = 0;
     while (true) {

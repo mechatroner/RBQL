@@ -166,6 +166,14 @@ function test_update_translation() {
     expected_dst = expected_dst.join('\n');
     let test_dst = rbql.translate_update_expression(rbql_src, {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a4': vinf(true, 3), 'a8': vinf(true, 7), 'a30': vinf(true, 29)}, [], indent);
     test_common.assert_arrays_are_equal(expected_dst.split('\n'), test_dst.split('\n'));
+
+    rbql_src = 'a1 = foo(123, altitude = 20)';
+    indent = ' '.repeat(4);
+    expected_dst = [];
+    expected_dst.push('safe_set(up_fields, 0, foo(123, altitude = 20));');
+    expected_dst = expected_dst.join('\n');
+    test_dst = rbql.translate_update_expression(rbql_src, {'a1': vinf(true, 0), 'a2': vinf(true, 1), 'a4': vinf(true, 3), 'a8': vinf(true, 7), 'a30': vinf(true, 29)}, [], indent);
+    test_common.assert_arrays_are_equal(expected_dst.split('\n'), test_dst.split('\n'));
 }
 
 

@@ -1192,7 +1192,9 @@ def replace_star_vars_for_ast(rbql_expression):
 
 
 def translate_update_expression(update_expression, input_variables_map, string_literals):
-    assignment_looking_rgx = re.compile(r'(?:^|,) *(a[.#a-zA-Z0-9\[\]_]*) *=(?=[^=])')
+    # The below regex would still fail for query like `UPDATE a1 = foo(123, a2 = 20)` - but it is very uncommon to have a function argument like aN.
+    # Such failure should produce a syntax error during execution instead of producing wrong results.
+    assignment_looking_rgx = re.compile(r'(?:^|,) *(a[0-9\[.][.#a-zA-Z0-9\[\]_]*) *=(?=[^=])')
     update_expressions = []
     pos = 0
     first_assignment_error = 'Unable to parse "UPDATE" expression: the expression must start with assignment, but "{}" does not look like an assignable field name'.format(update_expression.split('=')[0].strip())

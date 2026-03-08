@@ -231,6 +231,12 @@ class TestRBQLQueryParsing(unittest.TestCase):
         expected_dst = '\n'.join(expected_dst)
         self.assertEqual(expected_dst, test_dst)
 
+        rbql_src = 'a1 = foo(123, altitude = 20)'
+        test_dst = rbql_engine.translate_update_expression(rbql_src, {'a1': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a30': vinf(1, 29)}, ['"100 200"'])
+        expected_dst = list()
+        expected_dst.append('safe_set(up_fields, 0, foo(123, altitude = 20))')
+        expected_dst = '\n'.join(expected_dst)
+        self.assertEqual(expected_dst, test_dst)
 
         rbql_src = '  a.name =  a2  + b3, a2=a4  if b3 == a2 else a8, a8=   ___RBQL_STRING_LITERAL0___, a[___RBQL_STRING_LITERAL1___]  =200/3 + 1  '
         test_dst = rbql_engine.translate_update_expression(rbql_src, {'a.name': vinf(1, 0), 'a2': vinf(1, 1), 'a4': vinf(1, 3), 'a8': vinf(1, 7), 'a["foo bar"]': vinf(1, 29), 'a["not used = should not fail"]': vinf(0, 32)}, ['"100 200"', '"foo bar"'])
