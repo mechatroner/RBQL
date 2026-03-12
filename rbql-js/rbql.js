@@ -1115,7 +1115,7 @@ function parse_dictionary_variables(query_text, prefix, column_names, dst_variab
 
     // FIXME to prevent typos in attribute names either use query-based variable parsing which can properly handle back-tick strings or wrap "a" and "b" variables with ES6 Proxies https://stackoverflow.com/a/25658975/2898283
     assert(prefix === 'a' || prefix === 'b');
-    let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\[`);
+    let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9.])${prefix}\\[`);
     if (query_text.search(dict_test_rgx) == -1)
         return;
     for (let i = 0; i < column_names.length; i++) {
@@ -1136,7 +1136,7 @@ function parse_attribute_variables(query_text, prefix, column_names, column_name
     // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
 
     assert(prefix === 'a' || prefix === 'b');
-    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)`, 'g');
+    let rgx = new RegExp(`(?:^|[^_a-zA-Z0-9.])${prefix}\\.([_a-zA-Z][_a-zA-Z0-9]*)`, 'g');
     let matches = get_all_matches(rgx, query_text);
     let column_names_from_query = matches.map(v => v[1]);
     for (let column_name of column_names_from_query) {

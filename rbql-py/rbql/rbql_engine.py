@@ -1086,7 +1086,7 @@ def parse_dictionary_variables(query_text, prefix, column_names, dst_variables_m
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
     # TODO implement algorithm for honest python f-string parsing
     assert prefix in ['a', 'b']
-    if re.search(r'(?:^|[^_a-zA-Z0-9]){}\['.format(prefix), query_text) is None:
+    if re.search(r'(?:^|[^_a-zA-Z0-9.]){}\['.format(prefix), query_text) is None:
         return
     for i in range(len(column_names)):
         column_name = column_names[i]
@@ -1103,7 +1103,7 @@ def parse_attribute_variables(query_text, prefix, column_names, column_names_sou
     # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
     assert prefix in ['a', 'b']
     column_names = {v: i for i, v in enumerate(column_names)}
-    rgx = r'(?:^|[^_a-zA-Z0-9]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
+    rgx = r'(?:^|[^_a-zA-Z0-9.]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
     matches = list(re.finditer(rgx, query_text))
     column_names_from_query = list(set([m.group(1) for m in matches]))
     for column_name in column_names_from_query:
@@ -1133,7 +1133,6 @@ def ensure_no_ambiguous_variables(query_text, input_column_names, join_column_na
 def generate_common_init_code(query_text, variable_prefix):
     assert variable_prefix in ['a', 'b']
     result = list()
-    # TODO [PERFORMANCE] do not initialize RBQLRecord if we don't have `a.` or `a[` prefix in the query
     result.append('{} = RBQLRecord()'.format(variable_prefix))
     base_var = 'NR' if variable_prefix == 'a' else 'bNR'
     attr_var = '{}.NR'.format(variable_prefix)
@@ -1674,6 +1673,8 @@ class TableIterator(RBQLInputIterator):
 
     def get_variables_map(self, query_text):
         variable_map = dict()
+        # FIXME we can likely get rid of this function. Instead we can pre-assign variables a1, a2 by directly parsing for a[0-9]+ and preassign 'a' object with accessors both by index and by column name if column names are present.
+        # Alternatively we can modify the query text by replacing variable accessors with safe_get(record_a, idx) instead of pre-initializing.
         parse_basic_variables(query_text, self.variable_prefix, variable_map)
         parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.column_names is not None:
