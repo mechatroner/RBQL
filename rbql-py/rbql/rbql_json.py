@@ -86,10 +86,10 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         self.utf8_bom_removed = False
 
     def get_variables_map(self, query_text):
-        return {
-            self.variable_prefix + '1': rbql_engine.VariableInfo(initialize=True, index=0),
-            self.variable_prefix: rbql_engine.VariableInfo(initialize=True, index=0)
-        } 
+        variable_map = dict()
+        rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
+        rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
+        return variable_map
 
     def _get_row_from_buffer(self):
         str_before, separator, str_after = csv_utils.extract_line_from_data(self.buffer)

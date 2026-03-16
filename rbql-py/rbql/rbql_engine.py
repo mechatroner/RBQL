@@ -1673,8 +1673,13 @@ class TableIterator(RBQLInputIterator):
 
     def get_variables_map(self, query_text):
         variable_map = dict()
+        # FIXME One of the reasons why we have this function I guess - is because some iterators provide only basic variables while other provide header -based variables. But we can just check get_header() externally. 
         # FIXME we can likely get rid of this function. Instead we can pre-assign variables a1, a2 by directly parsing for a[0-9]+ and preassign 'a' object with accessors both by index and by column name if column names are present.
         # Alternatively we can modify the query text by replacing variable accessors with safe_get(record_a, idx) instead of pre-initializing.
+        # For basic variable parsing we go from query to data i.e. extract requested column indexes from the query, because first record can have fewer columns than other records.
+        # For example header size is 5, but we can still have a8 in the query, so we just search all aN variables.
+        # For named variables situation is different because we know beforehand possible column names, and can check if the query has any one of them.
+        # We can probably go both ways and show an error if query references a['unknown_column'] that is not in column names list. Actually this seem to be a more reliable approach, since it gurantees that we just fail instead of producing incorrect results.
         parse_basic_variables(query_text, self.variable_prefix, variable_map)
         parse_array_variables(query_text, self.variable_prefix, variable_map)
         if self.column_names is not None:
