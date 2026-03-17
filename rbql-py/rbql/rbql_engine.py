@@ -1020,6 +1020,7 @@ def resolve_join_variables(input_variables_map, join_variables_map, variable_pai
     for join_var_1, join_var_2 in variable_pairs:
         join_var_1 = combine_string_literals(join_var_1, string_literals)
         join_var_2 = combine_string_literals(join_var_2, string_literals)
+        # TODO Can we really have ambiguity here? After getting rid of direct column names, a/b prefixes should uniquely identify the table. Consider removing this.
         if join_var_1 in input_variables_map and join_var_1 in join_variables_map:
             raise RbqlParsingError(ambiguous_error_msg.format(join_var_1))
         if join_var_2 in input_variables_map and join_var_2 in join_variables_map:

@@ -81,7 +81,6 @@ class TestJsonTables(unittest.TestCase):
         join_column_names = test_case.get('join_column_names', None)
         input_df = pandas.DataFrame(input_table, columns=input_column_names)
         join_df = None if join_table is None else pandas.DataFrame(join_table, columns=join_column_names)
-        normalize_column_names = test_case.get('normalize_column_names', True)
         user_init_code = test_case.get('python_init_code', '')
         expected_output_header = test_case.get('expected_output_header', None)
         expected_output_table = test_case.get('expected_output_table', None)
@@ -99,7 +98,7 @@ class TestJsonTables(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            output_df = rbql_pandas.query_dataframe(query, input_df, warnings, join_df, normalize_column_names, user_init_code)
+            output_df = rbql_pandas.query_dataframe(query, input_df, warnings, join_df, user_init_code)
         except Exception as e:
             if debug_mode:
                 raise

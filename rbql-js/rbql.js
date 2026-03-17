@@ -1150,26 +1150,6 @@ function parse_attribute_variables(query_text, prefix, column_names, column_name
 }
 
 
-function map_variables_directly(query_text, column_names, dst_variables_map) {
-    for (let i = 0; i < column_names.length; i++) {
-        let column_name = column_names[i];
-        if ( /^[_a-zA-Z][_a-zA-Z0-9]*$/.exec(column_name) === null)
-            throw new RbqlIOHandlingError(`Unable to use column name "${column_name}" as RBQL/JS variable`);
-        if (query_text.indexOf(column_name) != -1)
-            dst_variables_map[column_name] = {initialize: true, index: i};
-    }
-}
-
-
-function ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names) {
-    let join_column_names_set = new Set(join_column_names);
-    for (let column_name of input_column_names) {
-        if (join_column_names_set.has(column_name) && query_text.indexOf(column_name) != -1) // False positive is tolerable here
-            throw new RbqlParsingError(get_ambiguous_error_msg(column_name));
-    }
-}
-
-
 function parse_join_expression(src) {
     src = str_strip(src);
     const invalid_join_syntax_error = 'Invalid join syntax. Valid syntax: <JOIN> /path/to/B/table on a... == b... [and a... == b... [and ... ]]';
@@ -1733,15 +1713,17 @@ class RBQLTableRegistry {
 
 
 class TableIterator extends RBQLInputIterator {
-    constructor(table, column_names=null, normalize_column_names=true, variable_prefix='a') {
+    constructor(table, column_names=null, variable_prefix='a') {
         super();
         this.table = table;
         this.column_names = column_names;
-        this.normalize_column_names = normalize_column_names;
         this.variable_prefix = variable_prefix;
         this.nr = 0;
         this.fields_info = new Map();
         this.stopped = false;
+
+        if (this.table.length && this.column_names !== null && this.column_names.length != this.table[0].length)
+            throw new RbqlIOHandlingError('List of column names and table records have different lengths');
     }
 
 
@@ -1755,14 +1737,8 @@ class TableIterator extends RBQLInputIterator {
         parse_basic_variables(query_text, this.variable_prefix, variable_map);
         parse_array_variables(query_text, this.variable_prefix, variable_map);
         if (this.column_names !== null) {
-            if (this.table.length && this.column_names.length != this.table[0].length)
-                throw new RbqlIOHandlingError('List of column names and table records have different lengths');
-            if (this.normalize_column_names) {
-                parse_dictionary_variables(query_text, this.variable_prefix, this.column_names, variable_map);
-                parse_attribute_variables(query_text, this.variable_prefix, this.column_names, 'column names list', variable_map);
-            } else {
-                map_variables_directly(query_text, this.column_names, variable_map);
-            }
+            parse_dictionary_variables(query_text, this.variable_prefix, this.column_names, variable_map);
+            parse_attribute_variables(query_text, this.variable_prefix, this.column_names, 'column names list', variable_map);
         }
         return variable_map;
     };
@@ -1840,18 +1816,17 @@ class TablePipe {
 
 
 class SingleTableRegistry extends RBQLTableRegistry {
-    constructor(table, column_names=null, normalize_column_names=true, table_id='b') {
+    constructor(table, column_names=null, table_id='b') {
         super();
         this.table = table;
         this.table_id = table_id;
         this.column_names = column_names;
-        this.normalize_column_names = normalize_column_names;
     }
 
     get_iterator_by_table_id(table_id) {
         if (table_id.toLowerCase() !== this.table_id)
             throw new RbqlIOHandlingError(`Unable to find join table: "${table_id}"`);
-        return new TableIterator(this.table, this.column_names, this.normalize_column_names, 'b');
+        return new TableIterator(this.table, this.column_names, 'b');
     };
 }
 
@@ -1986,12 +1961,10 @@ async function query(query_text, input_iterator, output_writer, output_warnings,
 }
 
 
-async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, output_column_names=null, normalize_column_names=true, user_init_code='') {
-    if (!normalize_column_names && input_column_names !== null && join_column_names !== null)
-        ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names);
-    let input_iterator = new TableIterator(input_table, input_column_names, normalize_column_names);
+async function query_table(query_text, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, output_column_names=null, user_init_code='') {
+    let input_iterator = new TableIterator(input_table, input_column_names);
     let output_writer = new TableWriter(output_table);
-    let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table, join_column_names, normalize_column_names);
+    let join_tables_registry = join_table === null ? null : new SingleTableRegistry(join_table, join_column_names);
     await query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
     if (output_column_names !== null) {
         assert(output_column_names.length == 0, '`output_column_names` param must be an empty list or null');

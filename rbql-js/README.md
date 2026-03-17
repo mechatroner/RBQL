@@ -32,7 +32,7 @@ The following two functions are avilable in the browser version:
 Run user query against input array of records and put the result set in the output array:  
 
 ```
-async function query_table(user_query, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, output_column_names=null, normalize_column_names=true)
+async function query_table(user_query, input_table, output_table, output_warnings, join_table=null, input_column_names=null, join_column_names=null, output_column_names=null)
 ```
 
 #### Parameters:  
@@ -53,9 +53,6 @@ async function query_table(user_query, input_table, output_table, output_warning
   Names of _join_table_ columns which users of the app can use in their queries
 * _output_column_names_: **array**  
   Output column names will be stored in this array after the query completion.
-* _normalize_column_names_: **boolean**  
-  If set to true - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
-  If set to false - column names can be used in user queries "as is".  
 
 
 ### rbql.query(...)

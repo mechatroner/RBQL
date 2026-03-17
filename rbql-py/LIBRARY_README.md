@@ -24,7 +24,7 @@ Run user query against a list of records and put the result set in the output li
 
 #### Signature:  
   
-`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True, user_init_code='')`
+`rbql.query_table(user_query, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, user_init_code='')`
 
 #### Parameters: 
 * _user_query_: **string**  
@@ -43,9 +43,6 @@ Run user query against a list of records and put the result set in the output li
   Names of _join_table_ columns which users of the app can use in their queries
 * _output_column_names_: **list**  
   Empty list or None: Output column names will be stored in this list after the query completion.
-* _normalize_column_names_: **boolean**  
-  If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
-  If set to False - column names can be used in user queries "as is".  
 * _user_init_code_: **string**  
   Optional user-provided code that will be evaluated at the beginning of the query.
 
@@ -127,7 +124,7 @@ Run user query against pandas dataframe and return a new dataframe with the resu
 
 #### Signature:  
   
-`rbql.query_pandas_dataframe(user_query, input_dataframe, output_warnings=None, join_dataframe=None, normalize_column_names=True)`  
+`rbql.query_pandas_dataframe(user_query, input_dataframe, output_warnings=None, join_dataframe=None)`  
   
 #### Parameters:
 * _user_query_: **string**  
@@ -138,9 +135,6 @@ Run user query against pandas dataframe and return a new dataframe with the resu
   warnings will be stored here after the query completion. If no warnings - the list would be empty
 * _join_dataframe_: **pandas.DataFrame**  
   dataframe with join table
-* _normalize_column_names_: **boolean**  
-  If set to True - column names provided with _input_column_names_ and _join_column_names_ will be normalized to "a" and "b" prefix forms e.g. "Age" -> "a.Age", "Sale price" -> "b['Sale price']".  
-  If set to False - column names can be used in user queries "as is".  
 
 #### Usage example
 
