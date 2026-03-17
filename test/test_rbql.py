@@ -350,7 +350,7 @@ class TestFromQueries(unittest.TestCase):
 
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None), rbql_engine.ListTableInfo('unused_table', [], None)], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None), rbql_engine.ListTableInfo('unused_table', [], None)])
 
         rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         self.assertEqual(warnings, [])
@@ -366,7 +366,7 @@ class TestFromQueries(unittest.TestCase):
     
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None)], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None)])
         with self.assertRaises(Exception) as cm:
             rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         e = cm.exception
@@ -381,7 +381,7 @@ class TestFromQueries(unittest.TestCase):
 
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None)], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('input_table', input_table, None)])
         with self.assertRaises(Exception) as cm:
             rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         e = cm.exception
@@ -397,7 +397,7 @@ class TestFromQueries(unittest.TestCase):
 
         input_iterator = None
         output_writer = rbql_engine.TableWriter(output_table)
-        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('my_input_table', input_table, None), rbql_engine.ListTableInfo('my_join_table', join_table, None), rbql_engine.ListTableInfo('unused_table', [], None)], normalize_column_names=True)
+        tables_registry = rbql_engine.ListTableRegistry([rbql_engine.ListTableInfo('my_input_table', input_table, None), rbql_engine.ListTableInfo('my_join_table', join_table, None), rbql_engine.ListTableInfo('unused_table', [], None)])
 
         rbql.query(query_text, input_iterator, output_writer, warnings, tables_registry, user_init_code='')
         self.assertEqual(warnings, [])
@@ -461,7 +461,6 @@ class TestJsonTables(unittest.TestCase):
         join_table = test_case.get('join_table', None)
         input_column_names = test_case.get('input_column_names', None)
         join_column_names = test_case.get('join_column_names', None)
-        normalize_column_names = test_case.get('normalize_column_names', True)
         user_init_code = test_case.get('python_init_code', '')
         expected_output_header = test_case.get('expected_output_header', list())
         expected_output_table = test_case.get('expected_output_table', None)
@@ -480,7 +479,7 @@ class TestJsonTables(unittest.TestCase):
         output_column_names = []
         error_type, error_msg = None, None
         try:
-            rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, normalize_column_names, user_init_code)
+            rbql.query_table(query, input_table, output_table, warnings, join_table, input_column_names, join_column_names, output_column_names, user_init_code)
         except Exception as e:
             if debug_mode:
                 raise

@@ -1114,22 +1114,6 @@ def parse_attribute_variables(query_text, prefix, column_names, column_names_sou
             raise RbqlParsingError('Unable to find column "{}" in {} {}'.format(column_name, {'a': 'input', 'b': 'join'}[prefix], column_names_source))
 
 
-def map_variables_directly(query_text, column_names, dst_variables_map):
-    for idx, column_name in enumerate(column_names):
-        if re.match(r'^[_a-zA-Z][_a-zA-Z0-9]*$', column_name) is None:
-            raise RbqlIOHandlingError('Unable to use column name "{}" as RBQL/Python variable'.format(column_name))
-        if query_text.find(column_name) != -1:
-            dst_variables_map[column_name] = VariableInfo(initialize=True, index=idx)
-
-
-def ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names):
-    join_column_names_set = set(join_column_names)
-    for column_name in input_column_names:
-        if column_name in join_column_names_set and query_text.find(column_name) != -1: # False positive is tolerable here
-            raise RbqlParsingError(ambiguous_error_msg.format(column_name))
-
-
-
 def generate_common_init_code(query_text, variable_prefix):
     assert variable_prefix in ['a', 'b']
     result = list()
@@ -1663,13 +1647,15 @@ class RBQLTableRegistry:
 
 
 class TableIterator(RBQLInputIterator):
-    def __init__(self, table, column_names=None, normalize_column_names=True, variable_prefix='a'):
+    def __init__(self, table, column_names=None, variable_prefix='a'):
         self.table = table
         self.column_names = column_names
-        self.normalize_column_names = normalize_column_names
         self.variable_prefix = variable_prefix
         self.NR = 0
         self.fields_info = dict()
+
+        if len(self.table) and self.column_names is not None and len(self.column_names) != len(self.table[0]):
+            raise RbqlIOHandlingError('List of column names and table records have different lengths')
 
     def get_variables_map(self, query_text):
         variable_map = dict()
@@ -1682,14 +1668,9 @@ class TableIterator(RBQLInputIterator):
         # We can probably go both ways and show an error if query references a['unknown_column'] that is not in column names list. Actually this seem to be a more reliable approach, since it gurantees that we just fail instead of producing incorrect results.
         parse_basic_variables(query_text, self.variable_prefix, variable_map)
         parse_array_variables(query_text, self.variable_prefix, variable_map)
-        if self.column_names is not None:
-            if len(self.table) and len(self.column_names) != len(self.table[0]):
-                raise RbqlIOHandlingError('List of column names and table records have different lengths')
-            if self.normalize_column_names:
-                parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)
-                parse_attribute_variables(query_text, self.variable_prefix, self.column_names, 'column names list', variable_map)
-            else:
-                map_variables_directly(query_text, self.column_names, variable_map)
+        if self.get_header() is not None:
+            parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)
+            parse_attribute_variables(query_text, self.variable_prefix, self.column_names, 'column names list', variable_map)
         return variable_map
 
     def get_record(self):
@@ -1754,24 +1735,21 @@ ListTableInfo = namedtuple('ListTableInfo', ['table_id', 'table', 'column_names'
 
 class ListTableRegistry(RBQLTableRegistry):
     # Here table_infos is a list of ListTableInfo
-    def __init__(self, table_infos, normalize_column_names=True):
+    def __init__(self, table_infos):
         self.table_infos = table_infos
-        self.normalize_column_names = normalize_column_names
 
     def get_iterator_by_table_id(self, table_id, single_char_alias):
         for table_info in self.table_infos: 
             if table_info.table_id == table_id:
-                return TableIterator(table_info.table, table_info.column_names, self.normalize_column_names, single_char_alias)
+                return TableIterator(table_info.table, table_info.column_names, single_char_alias)
         return None
 
 
 # FIXME modify to support multipe join tables - accept ListTableRegistry. You can use multiple join tables per query via chain operator.
-def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, normalize_column_names=True, user_init_code=''):
-    if not normalize_column_names and input_column_names is not None and join_column_names is not None:
-        ensure_no_ambiguous_variables(query_text, input_column_names, join_column_names)
-    input_iterator = TableIterator(input_table, input_column_names, normalize_column_names)
+def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, user_init_code=''):
+    input_iterator = TableIterator(input_table, input_column_names)
     output_writer = TableWriter(output_table)
-    join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names), ListTableInfo('B', join_table, join_column_names)], normalize_column_names)
+    join_tables_registry = None if join_table is None else ListTableRegistry([ListTableInfo('b', join_table, join_column_names), ListTableInfo('B', join_table, join_column_names)])
     query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code=user_init_code)
     if output_column_names is not None:
         assert len(output_column_names) == 0, '`output_column_names` param must be an empty list or None'
