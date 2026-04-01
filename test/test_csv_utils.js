@@ -752,7 +752,7 @@ function test_attribute_variables_parsing() {
     let header_columns_names = ['epsilon', 'foo bar', '_name', "Surname", "income", "...", "2", "200"];
     let expected_variables_map = {'a.epsilon': vinf(true, 0), 'a._name': vinf(true, 2), "a.Surname": vinf(true, 3)};
     let actual_variables_map = {};
-    rbql.parse_attribute_variables(query, 'a', header_columns_names, 'CSV header line', actual_variables_map);
+    rbql.parse_attribute_variables(query, 'a', header_columns_names, actual_variables_map);
     test_common.assert_objects_are_equal(expected_variables_map, actual_variables_map);
 }
 

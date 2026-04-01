@@ -1132,7 +1132,7 @@ function parse_dictionary_variables(query_text, prefix, column_names, dst_variab
 }
 
 
-function parse_attribute_variables(query_text, prefix, column_names, column_names_source, dst_variables_map) {
+function parse_attribute_variables(query_text, prefix, column_names, dst_variables_map) {
     // The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
 
     assert(prefix === 'a' || prefix === 'b');
@@ -1144,7 +1144,7 @@ function parse_attribute_variables(query_text, prefix, column_names, column_name
         if (zero_based_idx != -1) {
             dst_variables_map[`${prefix}.${column_name}`] = {initialize: true, index: zero_based_idx};
         } else {
-            throw new RbqlParsingError(`Unable to find column "${column_name}" in ${prefix == 'a' ? 'input' : 'join'} ${column_names_source}`);
+            throw new RbqlParsingError(`Unable to find column "${column_name}" in ${prefix == 'a' ? 'input' : 'join'} header`);
         }
     }
 }
@@ -1660,9 +1660,6 @@ class RBQLInputIterator {
     stop() {
         throw new Error("Unable to call the interface method");
     }
-    async get_variables_map(query_text) {
-        throw new Error("Unable to call the interface method");
-    }
     async get_record() {
         throw new Error("Unable to call the interface method");
     }
@@ -1712,6 +1709,18 @@ class RBQLTableRegistry {
 }
 
 
+function get_variables_map(query_text, table_variable_prefix, table_header) {
+    let variable_map = new Object();
+    parse_basic_variables(query_text, table_variable_prefix, variable_map);
+    parse_array_variables(query_text, table_variable_prefix, variable_map);
+    if (table_header !== null) {
+        parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map);
+        parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map);
+    }
+    return variable_map;
+};
+
+
 class TableIterator extends RBQLInputIterator {
     constructor(table, column_names=null, variable_prefix='a') {
         super();
@@ -1729,18 +1738,6 @@ class TableIterator extends RBQLInputIterator {
 
     stop() {
         this.stopped = true;
-    };
-
-
-    async get_variables_map(query_text) {
-        let variable_map = new Object();
-        parse_basic_variables(query_text, this.variable_prefix, variable_map);
-        parse_array_variables(query_text, this.variable_prefix, variable_map);
-        if (this.column_names !== null) {
-            parse_dictionary_variables(query_text, this.variable_prefix, this.column_names, variable_map);
-            parse_attribute_variables(query_text, this.variable_prefix, this.column_names, 'column names list', variable_map);
-        }
-        return variable_map;
     };
 
 
@@ -1840,7 +1837,8 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     if (rb_actions.hasOwnProperty(WITH)) {
         input_iterator.handle_query_modifier(rb_actions[WITH]);
     }
-    var input_variables_map = await input_iterator.get_variables_map(query_text);
+    let input_header = await input_iterator.get_header();
+    var input_variables_map = get_variables_map(query_text, 'a', input_header);
 
     if (rb_actions.hasOwnProperty(ORDER_BY) && rb_actions.hasOwnProperty(UPDATE))
         throw new RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries');
@@ -1853,7 +1851,6 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     }
 
 
-    let input_header = await input_iterator.get_header();
     let join_variables_map = null;
     let join_header = null;
     if (rb_actions.hasOwnProperty(JOIN)) {
@@ -1866,8 +1863,8 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         if (rb_actions.hasOwnProperty(WITH)) {
             join_record_iterator.handle_query_modifier(rb_actions[WITH]);
         }
-        join_variables_map = await join_record_iterator.get_variables_map(query_text);
         join_header = await join_record_iterator.get_header();
+        join_variables_map = get_variables_map(query_text, 'b', join_header);
         if (input_header === null && join_header !== null) {
             throw new RbqlIOHandlingError('Inconsistent modes: Input table doesn\'t have a header while the Join table has a header');
         }
