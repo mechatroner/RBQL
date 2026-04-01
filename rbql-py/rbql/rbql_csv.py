@@ -360,17 +360,9 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
             self.first_record_should_be_emitted = True
 
 
-    def get_variables_map(self, query_text):
-        variable_map = dict()
-        rbql_engine.parse_basic_variables(query_text, self.variable_prefix, variable_map)
-        rbql_engine.parse_array_variables(query_text, self.variable_prefix, variable_map)
-        if self.get_header() is not None:
-            rbql_engine.parse_attribute_variables(query_text, self.variable_prefix, self.first_record, 'CSV header line', variable_map)
-            rbql_engine.parse_dictionary_variables(query_text, self.variable_prefix, self.first_record, variable_map)
-        return variable_map
-
     def get_header(self):
         return self.first_record if self.has_header else None
+
 
     def _get_row_from_buffer(self):
         str_before, separator, str_after = csv_utils.extract_line_from_data(self.buffer)

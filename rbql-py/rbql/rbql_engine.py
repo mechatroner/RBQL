@@ -1096,7 +1096,7 @@ def parse_dictionary_variables(query_text, prefix, column_names, dst_variables_m
             dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = VariableInfo(initialize=False, index=i)
 
 
-def parse_attribute_variables(query_text, prefix, column_names, column_names_source, dst_variables_map):
+def parse_attribute_variables(query_text, prefix, column_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
 
     # TODO ideally we should either:
@@ -1112,7 +1112,7 @@ def parse_attribute_variables(query_text, prefix, column_names, column_names_sou
         if zero_based_idx is not None:
             dst_variables_map['{}.{}'.format(prefix, column_name)] = VariableInfo(initialize=True, index=zero_based_idx)
         else:
-            raise RbqlParsingError('Unable to find column "{}" in {} {}'.format(column_name, {'a': 'input', 'b': 'join'}[prefix], column_names_source))
+            raise RbqlParsingError('Unable to find column "{}" in {} header'.format(column_name, {'a': 'input', 'b': 'join'}[prefix]))
 
 
 def generate_common_init_code(query_text, variable_prefix):
@@ -1479,7 +1479,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
 
     if WITH in rb_actions:
         input_iterator.handle_query_modifier(rb_actions[WITH])
-    input_variables_map = input_iterator.get_variables_map(query_text)
+    input_variables_map = get_variables_map(query_text, 'a', input_iterator.get_header())
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
         raise RbqlParsingError('"ORDER BY" is not allowed in "UPDATE" queries') # UT JSON
@@ -1503,7 +1503,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
         if WITH in rb_actions:
             join_record_iterator.handle_query_modifier(rb_actions[WITH])
-        join_variables_map = join_record_iterator.get_variables_map(query_text)
+        join_variables_map = get_variables_map(query_text, 'b', join_record_iterator.get_header())
         join_header = join_record_iterator.get_header()
         if input_header is None and join_header is not None:
             raise RbqlIOHandlingError('Inconsistent modes: Input table doesn\'t have a header while the Join table has a header')
@@ -1603,9 +1603,6 @@ def query(query_text, input_iterator, output_writer, output_warnings, join_table
 
 
 class RBQLInputIterator:
-    def get_variables_map(self, query_text):
-        raise NotImplementedError('Unable to call the interface method')
-
     def get_record(self):
         raise NotImplementedError('Unable to call the interface method')
 
@@ -1647,6 +1644,22 @@ class RBQLTableRegistry:
         return [] # Reimplement if your class can produce warnings
 
 
+def get_variables_map(query_text, table_variable_prefix, table_header):
+    # This function used to be a method of RBQLInputIterator but was refactored to be standalone.
+    # One thing to consider it that this function can be implemented in 2 ways:
+    # 1. Go from query to data - parse query for variable names and then initialize only those variables that are present in the query.
+    # 2. Go from header to query - iterate over column names (and check if they are present in the query for optimization) and initalize the corresponding variables (or just all variables from the header, named and unnamed).
+    # Approach #1 seem to be a more reliable because it gurantees that we just fail if we see a['unknown_column'] in the query instead of producing incorrect results. 
+    # If we go from header to query we just wouldn't initialize variable a['unknown_column'] and it would be None during execution, which can lead to incorrect results instead of an error.
+    variable_map = dict()
+    parse_basic_variables(query_text, table_variable_prefix, variable_map)
+    parse_array_variables(query_text, table_variable_prefix, variable_map)
+    if table_header is not None:
+        parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map)
+        parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map)
+    return variable_map
+
+
 class TableIterator(RBQLInputIterator):
     def __init__(self, table, column_names=None, variable_prefix='a'):
         self.table = table
@@ -1657,22 +1670,6 @@ class TableIterator(RBQLInputIterator):
 
         if len(self.table) and self.column_names is not None and len(self.column_names) != len(self.table[0]):
             raise RbqlIOHandlingError('List of column names and table records have different lengths')
-
-    def get_variables_map(self, query_text):
-        variable_map = dict()
-        # FIXME One of the reasons why we have this function I guess - is because some iterators provide only basic variables while other provide header -based variables. But we can just check get_header() externally. 
-        # FIXME we can likely get rid of this function. Instead we can pre-assign variables a1, a2 by directly parsing for a[0-9]+ and preassign 'a' object with accessors both by index and by column name if column names are present.
-        # Alternatively we can modify the query text by replacing variable accessors with safe_get(record_a, idx) instead of pre-initializing.
-        # For basic variable parsing we go from query to data i.e. extract requested column indexes from the query, because first record can have fewer columns than other records.
-        # For example header size is 5, but we can still have a8 in the query, so we just search all aN variables.
-        # For named variables situation is different because we know beforehand possible column names, and can check if the query has any one of them.
-        # We can probably go both ways and show an error if query references a['unknown_column'] that is not in column names list. Actually this seem to be a more reliable approach, since it gurantees that we just fail instead of producing incorrect results.
-        parse_basic_variables(query_text, self.variable_prefix, variable_map)
-        parse_array_variables(query_text, self.variable_prefix, variable_map)
-        if self.get_header() is not None:
-            parse_dictionary_variables(query_text, self.variable_prefix, self.column_names, variable_map)
-            parse_attribute_variables(query_text, self.variable_prefix, self.column_names, 'column names list', variable_map)
-        return variable_map
 
     def get_record(self):
         if self.NR >= len(self.table):

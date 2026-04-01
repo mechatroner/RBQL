@@ -423,7 +423,7 @@
     {
         "test_name": "bad field name",
         "input_table_path": "csv_files/countries.csv",
-        "expected_error": "Unable to find column \"foobar\" in input CSV header line",
+        "expected_error": "Unable to find column \"foobar\" in input header",
         "expected_error_exact": true,
         "csv_separator": ",",
         "with_headers": true,

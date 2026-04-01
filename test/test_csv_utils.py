@@ -332,7 +332,7 @@ class TestHeaderParsing(unittest.TestCase):
         header_columns_names = ['epsilon', 'foo bar', '_name', "Surname", "income", "...", "2", "200"]
         expected_variables_map = {'a.epsilon': vinf(True, 0), 'a._name': vinf(True, 2), "a.Surname": vinf(True, 3)}
         actual_variables_map = {}
-        rbql_engine.parse_attribute_variables(query, 'a', header_columns_names, 'CSV header line', actual_variables_map)
+        rbql_engine.parse_attribute_variables(query, 'a', header_columns_names, actual_variables_map)
         self.assertEqual(expected_variables_map, actual_variables_map)
 
 
