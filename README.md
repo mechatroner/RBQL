@@ -105,7 +105,7 @@ Limitation: _JOIN_ statements can't contain Python/JS expressions and must have 
 
 To join more than 2 table in one query use chaining pipe `|` operator. Example:
 ```
-`SELECT a.country, a.population, b.capital JOIN capitals.csv ON a.country == b.country | SELECT a.*, b.museum JOIN museums.csv on a.capital == b.city`
+SELECT a.country, a.population, b.capital JOIN capitals.csv ON a.country == b.country | SELECT a.*, b.museum JOIN museums.csv ON a.capital == b.city
 ```
 
 ### SELECT EXCEPT statement
