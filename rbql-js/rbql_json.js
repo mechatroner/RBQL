@@ -4,7 +4,7 @@ const path = require('path');
 const util = require('util');
 
 const rbql = require('./rbql.js');
-//const csv_utils = require('./csv_utils.js');
+const csv_utils = require('./csv_utils.js');
 
 
 class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
@@ -40,10 +40,8 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         this.NR = 0; // Record number
         this.NL = 0; // Line number (NL != NR when the CSV file has comments or multiline fields)
 
-        this.line_aggregator = new csv_utils.MultilineRecordAggregator(comment_prefix, comment_regex);
-
-        //this.partially_decoded_line = '';
-        //this.partially_decoded_line_ends_with_cr = false;
+        this.partially_decoded_line = '';
+        this.partially_decoded_line_ends_with_cr = false;
 
         // Holds an external "resolve" function which is called when everything is fine.
         this.resolve_current_record = null;
@@ -53,10 +51,6 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         this.current_exception = null;
 
         this.produced_records_queue = new RecordQueue();
-
-        //this.process_line_polymorphic = policy == 'quoted_rfc' ? this.process_partial_rfc_record_line : this.process_record_line_simple;
-
-        //this.polymorphic_split = csv_utils.get_polymorphic_split_function(this.delim, this.policy, false);
     }
 
 
@@ -138,31 +132,9 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
     };
 
 
-    process_record_line_simple(line) {
-        if (this.comment_prefix && line.startsWith(this.comment_prefix))
-            return; // Just skip the line
-        if (this.comment_regex && line.search(this.comment_regex) != -1)
-            return; // Just skip the line
-        this.process_record_line(line);
-    }
-
-
     process_record_line(line) {
         this.NR += 1;
-        var [record, warning] = this.polymorphic_split(line);
-        if (this.trim_whitespaces) {
-            record = record.map((v) => v.trim());
-        }
-        if (warning) {
-            if (this.first_defective_line === null) {
-                this.first_defective_line = this.NL;
-                if (this.policy == 'quoted_rfc')
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(`Inconsistent double quote escaping in ${this.table_name} table at record ${this.NR}, line ${this.NL}`));
-            }
-        }
-        let num_fields = record.length;
-        if (!this.fields_info.has(num_fields))
-            this.fields_info.set(num_fields, this.NR);
+        let record = JSON.parse(line);
         this.produced_records_queue.enqueue(record);
         this.try_resolve_next_record();
     };
@@ -177,7 +149,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
                 this.utf8_bom_removed = true;
             }
         }
-        this.process_line_polymorphic(line);
+        this.process_record_line(line);
     };
 
 
@@ -227,9 +199,6 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         for (let i = 0; i < lines.length; i++) {
             this.process_line(lines[i]);
         }
-        if (this.line_aggregator.is_inside_multiline_record()) {
-            this.process_record_line(this.line_aggregator.get_full_line('\n'));
-        }
         this.input_exhausted = true;
         this.try_resolve_next_record(); // Should be a NOOP here?
     }
@@ -241,9 +210,6 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
             let last_line = this.partially_decoded_line;
             this.partially_decoded_line = '';
             this.process_line(last_line);
-        }
-        if (this.line_aggregator.is_inside_multiline_record()) {
-            this.process_record_line(this.line_aggregator.get_full_line('\n'));
         }
         this.try_resolve_next_record();
     };
@@ -280,12 +246,8 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
 
     get_warnings() {
         let result = [];
-        if (this.first_defective_line !== null)
-            result.push(`Inconsistent double quote escaping in ${this.table_name} table. E.g. at line ${this.first_defective_line}`);
         if (this.utf8_bom_removed)
             result.push(`UTF-8 Byte Order Mark (BOM) was found and skipped in ${this.table_name} table`);
-        if (this.fields_info.size > 1)
-            result.push(make_inconsistent_num_fields_warning(this.table_name, this.fields_info));
         return result;
     };
 }
