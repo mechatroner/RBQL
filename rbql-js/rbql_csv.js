@@ -603,9 +603,9 @@ class CSVWriter extends rbql.RBQLOutputWriter {
     };
 
 
-    _write_all(table) {
+    async _write_all(table) {
         for (let i = 0; i < table.length; i++) {
-            this.write(table[i]);
+            await this.write(table[i]);
         }
     };
 
