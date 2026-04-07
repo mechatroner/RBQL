@@ -7,6 +7,92 @@ const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
 
+class JsonWriter extends rbql.RBQLOutputWriter {
+    constructor(stream, close_stream_on_finish, encoding, line_separator='\n') {
+        super();
+        this.stream = stream;
+        this.encoding = encoding;
+        if (encoding)
+            this.stream.setDefaultEncoding(encoding);
+        this.stream.on('error', (error_obj) => { this.store_first_error(error_obj); })
+        this.line_separator = line_separator;
+
+        this.close_stream_on_finish = close_stream_on_finish;
+
+        this.header = [];
+        this.first_error = null;
+    }
+
+
+    store_first_error(error_obj) {
+        // Store only first error because it is typically more important than the subsequent ones.
+        if (this.first_error === null)
+            this.first_error = error_obj;
+    }
+
+    set_header(header) {
+        if (header !== null) {
+            this.header = header;
+        }
+    }
+
+    async write(fields) {
+        let obj_to_write = null;
+        if (fields.length == 1) {
+            obj_to_write = fields[0];
+        } else {
+            obj_to_write = {};
+            for (let i = 0; i < fields.length; i++) {
+                let key_name = i < this.header.length ? this.header[i] : `col${i}`;
+                obj_to_write[key_name] = fields[i];
+            }
+        }
+        let json_str = JSON.stringify(obj_to_write);
+        this.stream.write(json_str);
+        this.stream.write(this.line_separator);
+        let writer_error = this.first_error;
+        return new Promise(function(resolve, reject) {
+            if (writer_error !== null) {
+                reject(writer_error);
+            } else {
+                resolve(true);
+            }
+        });
+    }
+
+
+    async _write_all(table) {
+        for (let i = 0; i < table.length; i++) {
+            await this.write(table[i]);
+        }
+    }
+
+
+    async finish() {
+        let close_stream_on_finish = this.close_stream_on_finish;
+        let output_stream = this.stream;
+        let output_encoding = this.encoding;
+        let writer_error = this.first_error;
+        let finish_promise = new Promise(function(resolve, reject) {
+            if (writer_error !== null) {
+                reject(writer_error);
+            }
+            if (close_stream_on_finish) {
+                output_stream.end('', output_encoding, () => { resolve(); });
+            } else {
+                setTimeout(() => { resolve(); }, 0);
+            }
+        });
+        return finish_promise;
+    }
+
+
+    get_warnings() {
+        return [];
+    }
+}
+
+
 class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
     constructor(stream, json_path, encoding, table_name='input', variable_prefix='a') {
         super();
@@ -251,3 +337,4 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         return result;
     };
 }
+
