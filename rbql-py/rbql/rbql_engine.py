@@ -1085,12 +1085,17 @@ def query_probably_has_dictionary_variable(query_text, column_name):
 
 def parse_dictionary_variables(query_text, prefix, column_names, dst_variables_map):
     # The purpose of this algorithm is to minimize number of variables in varibale_map to improve performance, ideally it should be only variables from the query
+    # We can't go from query to header only like in parse_attribute_variables because the quoted column name string can contain backslash-escaped quotes and other special characters.
     # TODO implement algorithm for honest python f-string parsing
     assert prefix in ['a', 'b']
     if re.search(r'(?:^|[^_a-zA-Z0-9.]){}\['.format(prefix), query_text) is None:
         return
+    seen_column_names = set()
     for i in range(len(column_names)):
         column_name = column_names[i]
+        if column_name in seen_column_names:
+            continue # This ensures first seen priority - the same logic as in `parse_attribute_variables`.
+        seen_column_names.add(column_name)
         if query_probably_has_dictionary_variable(query_text, column_name):
             dst_variables_map['{}["{}"]'.format(prefix, python_string_escape_column_name(column_name, '"'))] = VariableInfo(initialize=True, index=i)
             dst_variables_map["{}['{}']".format(prefix, python_string_escape_column_name(column_name, "'"))] = VariableInfo(initialize=False, index=i)
@@ -1103,12 +1108,16 @@ def parse_attribute_variables(query_text, prefix, column_names, dst_variables_ma
     # * not search inside string literals (excluding brackets in f-strings) OR
     # * check if column_name is not among reserved python keywords like "None", "if", "else", etc
     assert prefix in ['a', 'b']
-    column_names = {v: i for i, v in enumerate(column_names)}
+    column_names_positions = dict()
+    for i in range(len(column_names)):
+        column_name = column_names[i]
+        if column_name not in column_names_positions: # Prioritize first seen.
+            column_names_positions[column_name] = i
     rgx = r'(?:^|[^_a-zA-Z0-9.]){}\.([_a-zA-Z][_a-zA-Z0-9]*)'.format(prefix)
     matches = list(re.finditer(rgx, query_text))
     column_names_from_query = list(set([m.group(1) for m in matches]))
     for column_name in column_names_from_query:
-        zero_based_idx = column_names.get(column_name)
+        zero_based_idx = column_names_positions.get(column_name)
         if zero_based_idx is not None:
             dst_variables_map['{}.{}'.format(prefix, column_name)] = VariableInfo(initialize=True, index=zero_based_idx)
         else:
@@ -1655,6 +1664,7 @@ def get_variables_map(query_text, table_variable_prefix, table_header):
     parse_basic_variables(query_text, table_variable_prefix, variable_map)
     parse_array_variables(query_text, table_variable_prefix, variable_map)
     if table_header is not None:
+        # FIXME check if table_header contains duplicate column names and add a warning if it does.
         parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map)
         parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map)
     return variable_map

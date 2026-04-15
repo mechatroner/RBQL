@@ -1118,8 +1118,14 @@ function parse_dictionary_variables(query_text, prefix, column_names, dst_variab
     let dict_test_rgx = new RegExp(`(?:^|[^_a-zA-Z0-9.])${prefix}\\[`);
     if (query_text.search(dict_test_rgx) == -1)
         return;
+    let seen_column_names = new Set();
     for (let i = 0; i < column_names.length; i++) {
         let column_name = column_names[i];
+        if (seen_column_names.has(column_name)) {
+            // TODO instead of skipping duplicates we ned to report a warning at least.
+            continue; // This ensures first seen priority - the same logic as in `parse_attribute_variables`.
+        }
+        seen_column_names.add(column_name);
         if (query_probably_has_dictionary_variable(query_text, column_name)) {
             let escaped_column_name = js_string_escape_column_name(column_name, '"');
             dst_variables_map[`${prefix}["${escaped_column_name}"]`] = {initialize: true, index: i};

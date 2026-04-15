@@ -627,6 +627,7 @@
         "test_name": "Bad header: empty strings and duplicate values in header",
         "input_table_path": "csv_files/countries_bad_header.csv",
         "expected_output_table_path": "csv_files/countries_bad_header_result1.csv",
+        "skip_others": false,
         "csv_separator": ",",
         "csv_policy": "quoted_rfc",
         "with_headers": true,
