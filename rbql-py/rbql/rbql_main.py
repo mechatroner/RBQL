@@ -456,7 +456,7 @@ Currently only JSON Lines format is supported (https://jsonlines.org/)
 '''
 
 def json_main():
-    parser = argparse.ArgumentParser(prog='rbql sqlite', formatter_class=argparse.RawDescriptionHelpFormatter, description=json_tool_description)
+    parser = argparse.ArgumentParser(prog='rbql json', formatter_class=argparse.RawDescriptionHelpFormatter, description=json_tool_description)
     parser.add_argument('--input', metavar='FILE', help='read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
