@@ -69,6 +69,30 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
     def get_warnings(self):
         return []
 
+
+class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
+    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=1024):
+        assert encoding in ['utf-8', 'latin-1', None]
+        self.encoding = encoding
+        self.stream = rbql_csv.encode_input_stream(stream, encoding)
+        self.table_name = table_name
+        self.variable_prefix = variable_prefix
+
+        self.NR = 0 # Record number
+        self.NL = 0 # Line number
+        # FIXME check for typical errors and improve error handling. we need to distinguish encoding and parsing errors here.
+        self.json_object = json.load(self.stream)
+        if not isinstance(self.json_object, list):
+            raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
+
+    def get_record(self):
+        if self.NR >= len(self.json_object):
+            return None
+        self.NR += 1
+        return self.json_object[self.NR - 1]
+
+
+
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
 class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=1024):
