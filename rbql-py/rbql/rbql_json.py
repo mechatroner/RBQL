@@ -20,7 +20,7 @@ def get_json_object_to_write(header, fields):
         return fields[0]
     result = dict()
     for i in range(len(fields)):
-        key_name = self.header[i] if i < len(self.header) else 'col{}'.format(i)
+        key_name = header[i] if i < len(header) else 'col{}'.format(i)
         result[key_name] = fields[i]
     return result
 
@@ -96,7 +96,7 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         if self.NR >= len(self.json_object):
             return None
         self.NR += 1
-        return self.json_object[self.NR - 1]
+        return [self.json_object[self.NR - 1]]
 
 
 class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
@@ -109,18 +109,19 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.header = []
         self.stream.write('[')
         self.stream.write(self.line_separator)
+        self.pretty_indent=pretty_indent
 
     def write(self, fields):
         object_to_write = get_json_object_to_write(self.header, fields)
         try:
             # Intentionally do not split json_str to add extra pretty indents because the root level is a flat array and shifting everything right just reduces density for the sake of dubious consistency. 
-            json_str = json.dumps(object_to_write, ensure_ascii=False, default=str, indent=pretty_indent)
+            json_str = json.dumps(object_to_write, ensure_ascii=False, default=str, indent=self.pretty_indent)
         except TypeError as e:
             raise rbql_engine.RbqlIOHandlingError('Error serializing object to JSON: {}'.format(e))
 
         try:
             self.stream.write(json_str)
-            self.stream.write(',')
+            self.stream.write(',') # FIXME we shouldn't write it after the last element
             self.stream.write(self.line_separator)
             return True
         except BrokenPipeError as exc:
@@ -130,7 +131,6 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
     def finish(self):
         if self.broken_pipe:
             return
-        self.stream.write(self.line_separator)
         self.stream.write(']')
         finalize_stream(self.stream, self.close_stream_on_finish)
 

@@ -428,7 +428,7 @@ def run_with_python_json(args):
     output_path = args.output
     input_json_lines = args.input_json_lines
     output_json_lines = args.output_json_lines
-    output_pretty_indent = args.pretty_output ? 4 : None
+    output_pretty_indent = 4 if args.pretty_output else None
     if args.json_lines:
         input_json_lines = True
         output_json_lines = True
