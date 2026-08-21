@@ -14,7 +14,31 @@ def set_debug_mode():
     global debug_mode
     debug_mode = True
 
-class JsonWriter(rbql_engine.RBQLOutputWriter):
+
+def get_json_object_to_write(header, fields):
+    if len(fields) == 1:
+        return fields[0]
+    result = dict()
+    for i in range(len(fields)):
+        key_name = self.header[i] if i < len(self.header) else 'col{}'.format(i)
+        result[key_name] = fields[i]
+    return result
+
+
+def finalize_stream(stream, close_stream_on_finish):
+    if close_stream_on_finish:
+        stream.close()
+        return
+    try:
+        stream.flush()
+    except BrokenPipeError as exc:
+        try:
+            sys.stdout.close()
+        except Exception:
+            pass
+
+
+class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
     def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n'):
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = rbql_csv.encode_output_stream(stream, encoding)
@@ -24,17 +48,9 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
         self.header = []
 
     def write(self, fields):
-        obj_to_write = None
-        if len(fields) == 1:
-            obj_to_write = fields[0]
-        else:
-            obj_to_write = dict()
-            for i in range(len(fields)):
-                key_name = self.header[i] if i < len(self.header) else 'col{}'.format(i)
-                obj_to_write[key_name] = fields[i]
-
+        object_to_write = get_json_object_to_write(self.header, fields)
         try:
-            json_str = json.dumps(obj_to_write, ensure_ascii=False, default=str)
+            json_str = json.dumps(object_to_write, ensure_ascii=False, default=str)
         except TypeError as e:
             raise rbql_engine.RbqlIOHandlingError('Error serializing object to JSON: {}'.format(e))
 
@@ -49,16 +65,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
     def finish(self):
         if self.broken_pipe:
             return
-        if self.close_stream_on_finish:
-            self.stream.close()
-        else:
-            try:
-                self.stream.flush()
-            except BrokenPipeError as exc:
-                try:
-                    sys.stdout.close()
-                except Exception:
-                    pass
+        finalize_stream(self.stream, self.close_stream_on_finish)
 
     # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
     # FIXME make sure it works with multistep paths
@@ -92,8 +99,6 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         return self.json_object[self.NR - 1]
 
 
-# FIXME add a wrapper method to use inside the main cli method.
-
 class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
     def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -106,18 +111,10 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.stream.write(self.line_separator)
 
     def write(self, fields):
-        obj_to_write = None
-        if len(fields) == 1:
-            obj_to_write = fields[0]
-        else:
-            obj_to_write = dict()
-            for i in range(len(fields)):
-                key_name = self.header[i] if i < len(self.header) else 'col{}'.format(i)
-                obj_to_write[key_name] = fields[i]
-
+        object_to_write = get_json_object_to_write(self.header, fields)
         try:
             # Intentionally do not split json_str to add extra pretty indents because the root level is a flat array and shifting everything right just reduces density for the sake of dubious consistency. 
-            json_str = json.dumps(obj_to_write, ensure_ascii=False, default=str, indent=pretty_indent)
+            json_str = json.dumps(object_to_write, ensure_ascii=False, default=str, indent=pretty_indent)
         except TypeError as e:
             raise rbql_engine.RbqlIOHandlingError('Error serializing object to JSON: {}'.format(e))
 
@@ -135,16 +132,7 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
             return
         self.stream.write(self.line_separator)
         self.stream.write(']')
-        if self.close_stream_on_finish:
-            self.stream.close()
-        else:
-            try:
-                self.stream.flush()
-            except BrokenPipeError as exc:
-                try:
-                    sys.stdout.close()
-                except Exception:
-                    pass
+        finalize_stream(self.stream, self.close_stream_on_finish)
 
     # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
     # FIXME make sure it works with multistep paths
@@ -244,7 +232,7 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
 
 
 # TODO we might want the output to optionally be CSV too. 
-def query_json(query_text, input_path, output_path, output_warnings, user_init_code=''):
+def query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=True, output_json_lines=True, pretty_indent=None):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -255,8 +243,15 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
-        input_iterator = JsonLinesRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
-        output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8')
+        input_iterator = None
+        if input_json_lines:
+            input_iterator = JsonLinesRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+        else:
+            input_iterator = JsonArrayObjectRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+        if output_json_lines:
+            output_writer = JsonLinesWriter(output_stream, close_output_on_finish, 'utf-8')
+        else:
+            output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent)
         if debug_mode:
             rbql_engine.set_debug_mode()
         rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
