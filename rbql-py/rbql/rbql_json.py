@@ -92,6 +92,69 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         return self.json_object[self.NR - 1]
 
 
+# FIXME add a wrapper method to use inside the main cli method.
+
+class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
+    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None):
+        assert encoding in ['utf-8', 'latin-1', None]
+        self.stream = rbql_csv.encode_output_stream(stream, encoding)
+        self.line_separator = line_separator
+        self.close_stream_on_finish = close_stream_on_finish
+        self.broken_pipe = False
+        self.header = []
+        self.stream.write('[')
+        self.stream.write(self.line_separator)
+
+    def write(self, fields):
+        obj_to_write = None
+        if len(fields) == 1:
+            obj_to_write = fields[0]
+        else:
+            obj_to_write = dict()
+            for i in range(len(fields)):
+                key_name = self.header[i] if i < len(self.header) else 'col{}'.format(i)
+                obj_to_write[key_name] = fields[i]
+
+        try:
+            # Intentionally do not split json_str to add extra pretty indents because the root level is a flat array and shifting everything right just reduces density for the sake of dubious consistency. 
+            json_str = json.dumps(obj_to_write, ensure_ascii=False, default=str, indent=pretty_indent)
+        except TypeError as e:
+            raise rbql_engine.RbqlIOHandlingError('Error serializing object to JSON: {}'.format(e))
+
+        try:
+            self.stream.write(json_str)
+            self.stream.write(',')
+            self.stream.write(self.line_separator)
+            return True
+        except BrokenPipeError as exc:
+            self.broken_pipe = True
+            return False
+
+    def finish(self):
+        if self.broken_pipe:
+            return
+        self.stream.write(self.line_separator)
+        self.stream.write(']')
+        if self.close_stream_on_finish:
+            self.stream.close()
+        else:
+            try:
+                self.stream.flush()
+            except BrokenPipeError as exc:
+                try:
+                    sys.stdout.close()
+                except Exception:
+                    pass
+
+    # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
+    # FIXME make sure it works with multistep paths
+    def set_header(self, header):
+        if header is not None:
+            self.header = header
+
+    def get_warnings(self):
+        return []
+
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
 class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
