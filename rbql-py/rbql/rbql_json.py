@@ -107,9 +107,8 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.close_stream_on_finish = close_stream_on_finish
         self.broken_pipe = False
         self.header = []
-        self.stream.write('[')
-        self.stream.write(self.line_separator)
         self.pretty_indent=pretty_indent
+        self.num_records_written = 0
 
     def write(self, fields):
         object_to_write = get_json_object_to_write(self.header, fields)
@@ -120,9 +119,14 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
             raise rbql_engine.RbqlIOHandlingError('Error serializing object to JSON: {}'.format(e))
 
         try:
+            if self.num_records_written == 0:
+                self.stream.write('[')
+                self.stream.write(self.line_separator)
+            else:
+                self.stream.write(',')
+                self.stream.write(self.line_separator)
             self.stream.write(json_str)
-            self.stream.write(',') # FIXME we shouldn't write it after the last element
-            self.stream.write(self.line_separator)
+            self.num_records_written += 1
             return True
         except BrokenPipeError as exc:
             self.broken_pipe = True
@@ -131,6 +135,10 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
     def finish(self):
         if self.broken_pipe:
             return
+        if self.num_records_written == 0:
+            # Output an empty array if no entries were produced
+            self.stream.write('[')
+        self.stream.write(self.line_separator)
         self.stream.write(']')
         finalize_stream(self.stream, self.close_stream_on_finish)
 
