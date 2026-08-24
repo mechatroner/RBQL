@@ -46,6 +46,19 @@ def calc_file_md5(fname):
 # FIXME add unit tests for the two record iterators
 
 class TestJsonArrayObjectRecordIterator(unittest.TestCase):
+    def test_one_record(self):
+        input_stream = io.StringIO('["foo"]')
+        encoding = None
+        input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+        self.assertEqual(input_iterator.get_record(), ["foo"])
+        self.assertEqual(input_iterator.get_record(), None)
+
+    def test_empty_table(self):
+        input_stream = io.StringIO('[]')
+        encoding = None
+        input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+        self.assertEqual(input_iterator.get_record(), None)
+
     def test_bad_non_json_input(self):
         input_stream = io.StringIO('')
         encoding = None
@@ -53,6 +66,15 @@ class TestJsonArrayObjectRecordIterator(unittest.TestCase):
             input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
         e = cm.exception
         self.assertTrue(str(e).find('Unable to parse input as JSON') != -1)
+
+    def test_non_array_object(self):
+        input_stream = io.StringIO('{"foo": 2}')
+        encoding = None
+        with self.assertRaises(Exception) as cm:
+            input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+        e = cm.exception
+        self.assertTrue(str(e).find('Input JSON root node must be array in array iteration mode') != -1)
+
 
 class TestJsonLinesWriter(unittest.TestCase):
     def test_empty_write(self):
