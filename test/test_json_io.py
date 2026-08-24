@@ -43,6 +43,17 @@ def calc_file_md5(fname):
     return hash_md5.hexdigest()
 
 
+# FIXME add unit tests for the two record iterators
+
+class TestJsonArrayObjectRecordIterator(unittest.TestCase):
+    def test_bad_non_json_input(self):
+        input_stream = io.StringIO('')
+        encoding = None
+        with self.assertRaises(Exception) as cm:
+            input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+        e = cm.exception
+        self.assertTrue(str(e).find('Unable to parse input as JSON') != -1)
+
 class TestJsonLinesWriter(unittest.TestCase):
     def test_empty_write(self):
         writer_stream = io.StringIO()
