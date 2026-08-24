@@ -43,6 +43,32 @@ def calc_file_md5(fname):
     return hash_md5.hexdigest()
 
 
+class TestJsonLinesWriter(unittest.TestCase):
+    def test_empty_write(self):
+        writer_stream = io.StringIO()
+        close_stream_on_finish = False
+        encoding = None
+        writer = rbql_json.JsonLinesWriter(writer_stream, close_stream_on_finish, encoding)
+        writer.finish()
+        writer_stream.seek(0)
+        actual_data = writer_stream.getvalue()
+        expected_data = ''
+        self.assertEqual(expected_data, actual_data)
+
+    def test_two_records_single_element(self):
+        writer_stream = io.StringIO()
+        close_stream_on_finish = False
+        encoding = None
+        writer = rbql_json.JsonLinesWriter(writer_stream, close_stream_on_finish, encoding)
+        writer.write([{'foo': 1}])
+        writer.write([{'foo': 2}])
+        writer.finish()
+        writer_stream.seek(0)
+        actual_data = writer_stream.getvalue()
+        expected_data = '{"foo": 1}\n{"foo": 2}\n'
+        self.assertEqual(expected_data, actual_data)
+
+
 class TestArrayObjectReadWrite(unittest.TestCase):
     def test_empty_write(self):
         writer_stream = io.StringIO()
@@ -92,9 +118,18 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         expected_data = '[\n{"col0": "foo", "col1": 1},\n{"col0": "bar", "col1": 2}\n]'
         self.assertEqual(expected_data, actual_data)
 
-    # FIXME add a test with header
-
-
+    def test_set_header(self):
+        writer_stream = io.StringIO()
+        close_stream_on_finish = False
+        encoding = None
+        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer.set_header(['name', 'count'])
+        writer.write(['foo', 1])
+        writer.finish()
+        writer_stream.seek(0)
+        actual_data = writer_stream.getvalue()
+        expected_data = '[\n{"name": "foo", "count": 1}\n]'
+        self.assertEqual(expected_data, actual_data)
 
 
 class TestRBQLWithJSON(unittest.TestCase):
