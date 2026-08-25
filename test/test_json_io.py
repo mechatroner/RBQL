@@ -111,7 +111,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
-        expected_data = '[\n]'
+        expected_data = '[\n]\n'
         self.assertEqual(expected_data, actual_data)
 
     def test_write_json_utf_8_stream_encode(self):
@@ -122,7 +122,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
-        expected_data = b'[\n]'
+        expected_data = b'[\n]\n'
         self.assertEqual(expected_data, actual_data)
 
     def test_two_records_single_element(self):
@@ -135,7 +135,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
-        expected_data = '[\n{"foo": 1},\n{"foo": 2}\n]'
+        expected_data = '[\n{"foo": 1},\n{"foo": 2}\n]\n'
         self.assertEqual(expected_data, actual_data)
 
     def test_two_records_two_elements(self):
@@ -148,7 +148,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
-        expected_data = '[\n{"col0": "foo", "col1": 1},\n{"col0": "bar", "col1": 2}\n]'
+        expected_data = '[\n{"col0": "foo", "col1": 1},\n{"col0": "bar", "col1": 2}\n]\n'
         self.assertEqual(expected_data, actual_data)
 
     def test_set_header(self):
@@ -161,7 +161,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
-        expected_data = '[\n{"name": "foo", "count": 1}\n]'
+        expected_data = '[\n{"name": "foo", "count": 1}\n]\n'
         self.assertEqual(expected_data, actual_data)
 
 
@@ -172,6 +172,8 @@ class TestRBQLWithJSON(unittest.TestCase):
         if query is None:
             return
         debug_mode = test_case.get('debug_mode', False)
+        input_json_lines = test_case.get('input_json_lines', True)
+        output_json_lines = test_case.get('output_json_lines', True)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
         input_table_path = os.path.join(script_dir, input_table_path)
@@ -195,7 +197,7 @@ class TestRBQLWithJSON(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings)
+            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, input_json_lines=input_json_lines, output_json_lines=output_json_lines)
         except Exception as e:
             if debug_mode:
                 raise
