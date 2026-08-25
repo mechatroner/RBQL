@@ -143,14 +143,14 @@ fi
 # Testing unicode separators
 md5sum_expected="bdb725416a7b17e64034e0a128c6bb96"
 if [ "$run_python_tests" == "yes" ]; then
-    md5sum_test=($(python3 -m rbql --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
+    md5sum_test=($(python3 -m rbql --query 'select a2, a1' --delim $(cat test/other_test_files/invisible_separator_only.txt) --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "python3 unicode separator test FAIL!"  1>&2
         exit 1
     fi
 fi
 if [ "$run_node_tests" == "yes" ]; then
-    md5sum_test=($( node ./rbql-js/cli_rbql.js --query 'select a2, a1' --delim $(echo -e "\u2063") --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
+    md5sum_test=($( node ./rbql-js/cli_rbql.js --query 'select a2, a1' --delim $(cat test/other_test_files/invisible_separator_only.txt) --policy simple --input test/csv_files/invisible_separator_u2063.txt --encoding utf-8 | md5sum))
     if [ "$md5sum_expected" != "$md5sum_test" ]; then
         echo "node unicode separator test FAIL!"  1>&2
         exit 1
