@@ -43,8 +43,6 @@ def calc_file_md5(fname):
     return hash_md5.hexdigest()
 
 
-# FIXME add unit tests for the two record iterators
-
 class TestJsonArrayObjectRecordIterator(unittest.TestCase):
     def test_one_record(self):
         input_stream = io.StringIO('["foo"]')
