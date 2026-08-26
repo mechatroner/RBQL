@@ -138,6 +138,7 @@ def search_for_as_alias_pseudo_function(root):
 
 
 def column_info_from_node(root):
+    # One-liner for testing/debugging: `root = list(ast.iter_child_nodes(list(ast.iter_child_nodes(ast.parse('extract_tum(call_something(1, 2, "bar") + 12)["foo"]')))[0]))[0]`
     rbql_star_marker = '__RBQL_INTERNAL_STAR'
     if isinstance(root, ast.Name):
         var_name = get_field(root, 'id')
@@ -164,17 +165,16 @@ def column_info_from_node(root):
             return None
         table_name = get_field(var_root, 'id')
         if table_name is None or table_name not in ['a', 'b']:
+            # TODO consider dropping the table_name in ['a', 'b'] restriction - if it is something else we can still use the final attribute as the column name. 
+            # For example for something like `get_gorm(1, 2, "bar").foo` - it is probably fine to name the column as "foo" no matter what `get_gorm` or whatever actually does.
+            # Headers are for convenience and for informational purposes anyway since it is impossible to convey the operation semantic through a single column name.
             return None
         if column_name == rbql_star_marker:
             return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True, alias_name=None)
         return QueryColumnInfo(table_name=None, column_index=None, column_name=column_name, is_star=False, alias_name=None)
     if isinstance(root, ast.Subscript):
         var_root = get_field(root, 'value')
-        if not isinstance(var_root, ast.Name):
-            return None
-        table_name = get_field(var_root, 'id')
-        if table_name is None or table_name not in ['a', 'b']:
-            return None
+        table_name = None
         slice_root = get_field(root, 'slice')
         if slice_root is None:
             return None
@@ -183,23 +183,38 @@ def column_info_from_node(root):
         if hasattr(ast, 'Index') and isinstance(slice_root, ast.Index):
             # Important: Since version 3.8 ast.Constant is used instead of ast.Index.
             # Furthermore ast.Index might be removed from ast in future releases.
+            # This branch is equivalent to the branch below.
             slice_val_root = get_field(slice_root, 'value')
             column_index = None
             column_name = None
             if isinstance(slice_val_root, ast.Str):
                 column_name = get_field(slice_val_root, 's')
-                table_name = None # We don't need table name for named fields. Updated: But Why???
+                # See the explanation below on why we don't need table name here
             elif isinstance(slice_val_root, ast.Num):
+                if not isinstance(var_root, ast.Name):
+                    return None
+                table_name = get_field(var_root, 'id')
+                if table_name is None or table_name not in ['a', 'b']:
+                    return None
                 column_index = get_field(slice_val_root, 'n') - 1
             else:
                 return None
         elif hasattr(ast, 'Constant') and isinstance(slice_root, ast.Constant):
             # Note: `ast.Constant` replaced `ast.Index` since version 3.8
+            # This branch is equivalent to the branch above.
+            # FIXME swap this branch with the previous - make this one go first.
             slice_val_root = get_field(slice_root, 'value')
             if isinstance(slice_val_root, str):
                 column_name = slice_val_root
-                table_name = None # We don't need table name for named fields. Updated: But Why???
+                # We don't need table name for named fields since we can just name the output column with the subscript.
+                # E.g. both `get_gorm(1, 2, "bar")["foo"]` and `a["foo"]` can be just named as "foo" in the output.
+                # When the exact alias is not provided it is fine to use the best guess for column naming as long as it is reasonable and consistent.
             elif isinstance(slice_val_root, int):
+                if not isinstance(var_root, ast.Name):
+                    return None
+                table_name = get_field(var_root, 'id')
+                if table_name is None or table_name not in ['a', 'b']:
+                    return None
                 column_index = slice_val_root - 1
             else:
                 return None
@@ -1556,6 +1571,9 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
             combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
             column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+            # FIXME consider adding a new flag - "write_header".
+            # It would decouple header guessing/generation from using it for output.
+            # CSV and JSON would have the same logic to generate the header without the input header flag for json
             output_header = select_output_header(input_header, join_header, column_infos)
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)

@@ -95,6 +95,11 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
             raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
         self.NL = 1 # The object has to start at the first line so we just keep NL at 1.
 
+    def get_header(self):
+        # FIXME consider if this is a hack or not. Test queries with stars like `SELECT a.*, a.*` or `SELECT *`.
+        # We might not need this (i.e. we can have it return None as the default impl) if we support the write_header flag, see the rbql_engine.py comments.
+        return [self.variable_prefix + '1']
+
     def get_record(self):
         if self.NR >= len(self.json_object):
             return None
@@ -171,6 +176,11 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         self.NL = 0 # Line number
         self.chunk_size = chunk_size
         self.utf8_bom_removed = False
+
+    def get_header(self):
+        # FIXME consider if this is a hack or not. Test queries with stars like `SELECT a.*, a.*` or `SELECT *`.
+        # We might not need this (i.e. we can have it return None as the default impl) if we support the write_header flag, see the rbql_engine.py comments.
+        return [self.variable_prefix + '1']
 
     def _get_row_from_buffer(self):
         str_before, separator, str_after = csv_utils.extract_line_from_data(self.buffer)
