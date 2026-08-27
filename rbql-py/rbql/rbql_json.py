@@ -85,8 +85,6 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
             return
         finalize_stream(self.stream, self.close_stream_on_finish)
 
-    # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
-    # FIXME make sure it works with multistep paths
     def set_header(self, header):
         if header is None:
             return
@@ -99,10 +97,6 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
             sorted_keys = sorted(['"{}"'.format(v) for v in list(self.deduplicated_keys)])
             warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
         return warnings
-
-
-# FIXME add a unit test with 2 columns with the same name - json should skip them.
-# FIXME since json skips columns with the same name consider implementing column deduplication in the output header to avoid silently dropping them.
 
 
 class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
@@ -180,8 +174,6 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.stream.write(self.line_separator) # POSIX requires a newline at the end of text files.
         finalize_stream(self.stream, self.close_stream_on_finish)
 
-    # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
-    # FIXME make sure it works with multistep paths
     def set_header(self, header):
         if header is None:
             return
@@ -213,8 +205,6 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         self.utf8_bom_removed = False
 
     def get_header(self):
-        # FIXME consider if this is a hack or not. Test queries with stars like `SELECT a.*, a.*` or `SELECT *`.
-        # We might not need this (i.e. we can have it return None as the default impl) if we support the write_header flag, see the rbql_engine.py comments.
         return [self.variable_prefix + '1']
 
     def _get_row_from_buffer(self):
