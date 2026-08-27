@@ -38,6 +38,24 @@ def finalize_stream(stream, close_stream_on_finish):
             pass
 
 
+def deduplicate_header_keys(header):
+    # This algorithm is O(N^2) but we don't expect to have a lot of keys.
+    # FIXME unit-test this function
+    unique_keys = list()
+    deduplicated_keys = set()
+    for h in header:
+        unique_key = h
+        dedup_counter = 1
+        while unique_key in unique_keys:
+            dedup_counter += 1
+            unique_key = '{}_{}'.format(h, dedup_counter)
+        assert unique_key not in unique_keys
+        unique_keys.append(unique_key)
+        if dedup_counter != 1:
+            deduplicated_keys.add(h)
+    return (unique_keys, deduplicated_keys)
+
+
 class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
     def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n'):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -70,11 +88,21 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
     # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
     # FIXME make sure it works with multistep paths
     def set_header(self, header):
-        if header is not None:
-            self.header = header
+        if header is None:
+            return
+        # Json objects don't allow duplicate keys so we have to dedup them to make sure they are unique to avoid accidental data loss.
+        self.header, self.deduplicated_keys = deduplicate_header_keys(header)
 
     def get_warnings(self):
-        return []
+        warnings = []
+        if len(self.deduplicated_keys) != 0:
+            sorted_keys = sorted(['"{}"'.format(v) for v in list(self.deduplicated_keys)])
+            warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
+        return warnings
+
+
+# FIXME add a unit test with 2 columns with the same name - json should skip them.
+# FIXME since json skips columns with the same name consider implementing column deduplication in the output header to avoid silently dropping them.
 
 
 class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
@@ -117,6 +145,7 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.header = []
         self.pretty_indent=pretty_indent
         self.num_records_written = 0
+        self.deduplicated_keys = set()
 
     def write(self, fields):
         object_to_write = get_json_object_to_write(self.header, fields)
@@ -154,11 +183,17 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
     # FIXME apparently this not always gets called, we should mark all json files to have headers like csv `with headers` flag.
     # FIXME make sure it works with multistep paths
     def set_header(self, header):
-        if header is not None:
-            self.header = header
+        if header is None:
+            return
+        # Json objects don't allow duplicate keys so we have to dedup them to make sure they are unique to avoid accidental data loss.
+        self.header, self.deduplicated_keys = deduplicate_header_keys(header)
 
     def get_warnings(self):
-        return []
+        warnings = []
+        if len(self.deduplicated_keys) != 0:
+            sorted_keys = sorted(['"{}"'.format(v) for v in list(self.deduplicated_keys)])
+            warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
+        return warnings
 
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.

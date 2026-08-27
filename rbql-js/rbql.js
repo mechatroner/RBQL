@@ -78,6 +78,8 @@ function check_if_brackets_match(opening_bracket, closing_bracket) {
 }
 
 
+// FIXME: consider using acorn as an alternative to Python's ast. Looks like acorn doesn't have any third-party deps.
+// Or just use trailing subscript [<foo>] as the best guess for the output column name. We can always allow explicit override by the user.
 function parse_root_bracket_level_text_spans(select_expression) {
     let text_spans = []; // parts of text separated by commas at the root parenthesis level
     let last_pos = 0;
