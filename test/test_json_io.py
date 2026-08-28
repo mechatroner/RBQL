@@ -42,6 +42,36 @@ def calc_file_md5(fname):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
+class TestDeduplicateHeadersKeys(unittest.TestCase):
+    def test_deduplication_simple(self):
+        input_keys = ['a', 'b']
+        actual_output_keys, actual_deduplicated_keys = rbql_json.deduplicate_header_keys(input_keys)
+        expected_output_keys = ['a', 'b']
+        expected_deduplicated_keys = []
+        self.assertEqual(expected_output_keys, actual_output_keys)
+        self.assertEqual(expected_deduplicated_keys, actual_deduplicated_keys)
+
+        input_keys = ['a', 'a']
+        actual_output_keys, actual_deduplicated_keys = rbql_json.deduplicate_header_keys(input_keys)
+        expected_output_keys = ['a', 'a_2']
+        expected_deduplicated_keys = ['a']
+        self.assertEqual(expected_output_keys, actual_output_keys)
+        self.assertEqual(expected_deduplicated_keys, actual_deduplicated_keys)
+
+        input_keys = ['a', 'a', 'a_2']
+        actual_output_keys, actual_deduplicated_keys = rbql_json.deduplicate_header_keys(input_keys)
+        expected_output_keys = ['a', 'a_2', 'a_2_2']
+        expected_deduplicated_keys = ['a', 'a_2']
+        self.assertEqual(expected_output_keys, actual_output_keys)
+        self.assertEqual(expected_deduplicated_keys, actual_deduplicated_keys)
+
+        input_keys = []
+        actual_output_keys, actual_deduplicated_keys = rbql_json.deduplicate_header_keys(input_keys)
+        expected_output_keys = []
+        expected_deduplicated_keys = []
+        self.assertEqual(expected_output_keys, actual_output_keys)
+        self.assertEqual(expected_deduplicated_keys, actual_deduplicated_keys)
+
 
 class TestJsonArrayObjectRecordIterator(unittest.TestCase):
     def test_one_record(self):

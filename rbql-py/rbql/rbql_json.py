@@ -40,7 +40,6 @@ def finalize_stream(stream, close_stream_on_finish):
 
 def deduplicate_header_keys(header):
     # This algorithm is O(N^2) but we don't expect to have a lot of keys.
-    # FIXME unit-test this function
     unique_keys = list()
     deduplicated_keys = set()
     for h in header:
@@ -53,7 +52,7 @@ def deduplicate_header_keys(header):
         unique_keys.append(unique_key)
         if dedup_counter != 1:
             deduplicated_keys.add(h)
-    return (unique_keys, deduplicated_keys)
+    return (unique_keys, sorted(list(deduplicated_keys)))
 
 
 class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
@@ -64,6 +63,7 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
         self.close_stream_on_finish = close_stream_on_finish
         self.broken_pipe = False
         self.header = []
+        self.deduplicated_keys = []
 
     def write(self, fields):
         object_to_write = get_json_object_to_write(self.header, fields)
@@ -93,8 +93,9 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
 
     def get_warnings(self):
         warnings = []
+        # FIXME add unit tests with the warnings
         if len(self.deduplicated_keys) != 0:
-            sorted_keys = sorted(['"{}"'.format(v) for v in list(self.deduplicated_keys)])
+            sorted_keys = sorted(['"{}"'.format(v) for v in self.deduplicated_keys])
             warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
         return warnings
 
@@ -136,10 +137,10 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.line_separator = line_separator
         self.close_stream_on_finish = close_stream_on_finish
         self.broken_pipe = False
-        self.header = []
         self.pretty_indent=pretty_indent
         self.num_records_written = 0
-        self.deduplicated_keys = set()
+        self.header = []
+        self.deduplicated_keys = []
 
     def write(self, fields):
         object_to_write = get_json_object_to_write(self.header, fields)
@@ -181,9 +182,10 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.header, self.deduplicated_keys = deduplicate_header_keys(header)
 
     def get_warnings(self):
+        # FIXME add unit tests with the warnings
         warnings = []
         if len(self.deduplicated_keys) != 0:
-            sorted_keys = sorted(['"{}"'.format(v) for v in list(self.deduplicated_keys)])
+            sorted_keys = sorted(['"{}"'.format(v) for v in self.deduplicated_keys])
             warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
         return warnings
 
