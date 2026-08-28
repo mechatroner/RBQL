@@ -228,9 +228,6 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
             self.stream.write(self.line_separator)
             return True
         except BrokenPipeError as exc:
-            if BrokenPipeError == IOError: # FIXME perhaps we don't need this? Maybe it was needed for Python 2 only?
-                if exc.errno != EPIPE:
-                    raise
             self.broken_pipe = True
             return False
 
@@ -294,9 +291,6 @@ class CSVWriter(rbql_engine.RBQLOutputWriter):
                 # Basically this fails if output is small and this is the first flush after the pipe was broken e.g. second flush if piped to head -n 1
                 # Here head -n 1 finished after the first flush, and the final explict flush here just killing it
             except BrokenPipeError as exc:
-                if BrokenPipeError == IOError: # FIXME perhaps we don't need this? Maybe it was needed for Python 2 only?
-                    if exc.errno != EPIPE:
-                        raise
                 # In order to avoid BrokenPipeError from being printed as a warning to stderr, we need to perform this magic below. See:
                 # Explanation 1: https://stackoverflow.com/a/35761190/2898283
                 # Explanation 2: https://bugs.python.org/issue11380
