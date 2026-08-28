@@ -180,29 +180,7 @@ def column_info_from_node(root):
             return None
         column_index = None
         column_name = None
-        if hasattr(ast, 'Index') and isinstance(slice_root, ast.Index):
-            # Important: Since version 3.8 ast.Constant is used instead of ast.Index.
-            # Furthermore ast.Index might be removed from ast in future releases.
-            # This branch is equivalent to the branch below.
-            slice_val_root = get_field(slice_root, 'value')
-            column_index = None
-            column_name = None
-            if isinstance(slice_val_root, ast.Str):
-                column_name = get_field(slice_val_root, 's')
-                # See the explanation below on why we don't need table name here
-            elif isinstance(slice_val_root, ast.Num):
-                if not isinstance(var_root, ast.Name):
-                    return None
-                table_name = get_field(var_root, 'id')
-                if table_name is None or table_name not in ['a', 'b']:
-                    return None
-                column_index = get_field(slice_val_root, 'n') - 1
-            else:
-                return None
-        elif hasattr(ast, 'Constant') and isinstance(slice_root, ast.Constant):
-            # Note: `ast.Constant` replaced `ast.Index` since version 3.8
-            # This branch is equivalent to the branch above.
-            # FIXME swap this branch with the previous - make this one go first.
+        if hasattr(ast, 'Constant') and isinstance(slice_root, ast.Constant): # For python versions >= 3.8
             slice_val_root = get_field(slice_root, 'value')
             if isinstance(slice_val_root, str):
                 column_name = slice_val_root
@@ -216,6 +194,25 @@ def column_info_from_node(root):
                 if table_name is None or table_name not in ['a', 'b']:
                     return None
                 column_index = slice_val_root - 1
+            else:
+                return None
+        elif hasattr(ast, 'Index') and isinstance(slice_root, ast.Index): # For python versions < 3.8
+            # Important: Since version 3.8 ast.Constant is used instead of ast.Index.
+            # Furthermore ast.Index might be removed from ast in future releases.
+            # This branch is equivalent to the branch above.
+            slice_val_root = get_field(slice_root, 'value')
+            column_index = None
+            column_name = None
+            if isinstance(slice_val_root, ast.Str):
+                column_name = get_field(slice_val_root, 's')
+                # See the explanation above on why we don't need table name here
+            elif isinstance(slice_val_root, ast.Num):
+                if not isinstance(var_root, ast.Name):
+                    return None
+                table_name = get_field(var_root, 'id')
+                if table_name is None or table_name not in ['a', 'b']:
+                    return None
+                column_index = get_field(slice_val_root, 'n') - 1
             else:
                 return None
         else:
@@ -1682,7 +1679,7 @@ def get_variables_map(query_text, table_variable_prefix, table_header):
     parse_basic_variables(query_text, table_variable_prefix, variable_map)
     parse_array_variables(query_text, table_variable_prefix, variable_map)
     if table_header is not None:
-        # FIXME check if table_header contains duplicate column names and add a warning if it does.
+        # TODO check if table_header contains duplicate column names and add a warning if it does.
         parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map)
         parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map)
     return variable_map
@@ -1771,7 +1768,7 @@ class ListTableRegistry(RBQLTableRegistry):
         return None
 
 
-# FIXME modify to support multipe join tables - accept ListTableRegistry. You can use multiple join tables per query via chain operator.
+# TODO modify to support multipe join tables - accept ListTableRegistry. You can use multiple join tables per query via chain operator.
 def query_table(query_text, input_table, output_table, output_warnings, join_table=None, input_column_names=None, join_column_names=None, output_column_names=None, user_init_code=''):
     input_iterator = TableIterator(input_table, input_column_names)
     output_writer = TableWriter(output_table)
