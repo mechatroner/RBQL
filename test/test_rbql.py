@@ -40,7 +40,7 @@ def prepare_and_parse_select_expression_to_column_infos(select_part):
     select_expression, string_literals = rbql_engine.separate_string_literals(select_part)
     select_expression_for_ast = rbql_engine.translate_select_expression(select_expression)[1]
     combined_select_expression_for_ast = rbql_engine.combine_string_literals(select_expression_for_ast, string_literals)
-    column_infos = rbql_engine.ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+    column_infos = rbql_engine.ast_parse_select_expression_to_column_infos_best_effort(combined_select_expression_for_ast)
     return column_infos
 
 
@@ -108,7 +108,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
                    ]
         self.assertEqual(expected, column_infos) 
 
-        output_header = rbql_engine.select_output_header(['a_foo_1', 'a_foo_2'], ['b_foo_1'], expected);
+        output_header = rbql_engine.select_output_header_best_effort(['a_foo_1', 'a_foo_2'], ['b_foo_1'], expected);
         expected_header = ['a_foo_1', 'a_foo_2', 'hello', 'world', 'NR', 'NF', 'something', 'col8', 'col9', 'col10', 'col11', 'my_hello', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'MY_NR', 'a_foo_1', 'a_foo_2', 'b_foo_1', 'col20'];
         self.assertEqual(expected_header, output_header);
 

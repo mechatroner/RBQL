@@ -72,6 +72,34 @@ class TestDeduplicateHeadersKeys(unittest.TestCase):
         self.assertEqual(expected_output_keys, actual_output_keys)
         self.assertEqual(expected_deduplicated_keys, actual_deduplicated_keys)
 
+class TestJsonObjectByHeader(unittest.TestCase):
+    def test_simple(self):
+        header = ['bar']
+        fields = ['foo']
+        actual_object = rbql_json.get_json_object_to_write(header, fields)
+        expected_object = 'foo'
+        self.assertEqual(expected_object, actual_object)
+
+        header = ['bar']
+        fields = ['foo', 'bar']
+        with self.assertRaises(Exception) as cm:
+            actual_object = rbql_json.get_json_object_to_write(header, fields)
+        e = cm.exception
+        self.assertEqual(str(e), 'Inconsistent number of columns in output header and the current record: 1 != 2')
+
+        header = ['h1', 'h2']
+        fields = ['foo', 'bar']
+        actual_object = rbql_json.get_json_object_to_write(header, fields)
+        expected_object = {'h1': 'foo', 'h2': 'bar'}
+        self.assertEqual(expected_object, actual_object)
+
+        header = []
+        fields = ['foo', 'bar']
+        actual_object = rbql_json.get_json_object_to_write(header, fields)
+        expected_object = {'col1': 'foo', 'col2': 'bar'}
+        self.assertEqual(expected_object, actual_object)
+        
+
 
 class TestGetDeduplicationWarnings(unittest.TestCase):
     def test_lines_writer(self):
@@ -198,7 +226,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
-        expected_data = '[\n{"col0": "foo", "col1": 1},\n{"col0": "bar", "col1": 2}\n]\n'
+        expected_data = '[\n{"col1": "foo", "col2": 1},\n{"col1": "bar", "col2": 2}\n]\n'
         self.assertEqual(expected_data, actual_data)
 
     def test_set_header(self):

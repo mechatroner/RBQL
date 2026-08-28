@@ -227,7 +227,7 @@ def column_info_from_node(root):
     return None
 
 
-def ast_parse_select_expression_to_column_infos(select_expression):
+def ast_parse_select_expression_to_column_infos_best_effort(select_expression):
     root = ast.parse(select_expression)
     children = list(ast.iter_child_nodes(root))
     if 'body' not in root._fields:
@@ -1432,7 +1432,7 @@ def remove_redundant_input_table_name(query_text):
     return query_text
 
 
-def select_output_header(input_header, join_header, query_column_infos):
+def select_output_header_best_effort(input_header, join_header, query_column_infos):
     if input_header is None:
         assert join_header is None
     query_has_star = False
@@ -1570,11 +1570,11 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             select_expression = combine_string_literals(select_expression, string_literals)
             # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
             combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
-            column_infos = ast_parse_select_expression_to_column_infos(combined_select_expression_for_ast)
+            column_infos = ast_parse_select_expression_to_column_infos_best_effort(combined_select_expression_for_ast)
             # FIXME consider adding a new flag - "write_header".
-            # It would decouple header guessing/generation from using it for output.
+            # It would decouple header guessing/generation from using it for output. we can actually apply it for csv only.
             # CSV and JSON would have the same logic to generate the header without the input header flag for json
-            output_header = select_output_header(input_header, join_header, column_infos)
+            output_header = select_output_header_best_effort(input_header, join_header, column_infos)
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)
 

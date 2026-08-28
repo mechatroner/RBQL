@@ -18,9 +18,11 @@ def set_debug_mode():
 def get_json_object_to_write(header, fields):
     if len(fields) == 1:
         return fields[0]
+    if len(header) and len(fields) != len(header):
+        raise rbql_engine.RbqlIOHandlingError('Inconsistent number of columns in output header and the current record: {} != {}'.format(len(header), len(fields)))
     result = dict()
     for i in range(len(fields)):
-        key_name = header[i] if i < len(header) else 'col{}'.format(i)
+        key_name = header[i] if i < len(header) else 'col{}'.format(i + 1)
         result[key_name] = fields[i]
     return result
 
