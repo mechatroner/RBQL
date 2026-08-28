@@ -73,6 +73,28 @@ class TestDeduplicateHeadersKeys(unittest.TestCase):
         self.assertEqual(expected_deduplicated_keys, actual_deduplicated_keys)
 
 
+class TestGetDeduplicationWarnings(unittest.TestCase):
+    def test_lines_writer(self):
+        writer_stream = io.StringIO()
+        close_stream_on_finish = False
+        encoding = None
+        writer = rbql_json.JsonLinesWriter(writer_stream, close_stream_on_finish, encoding)
+        writer.set_header(['a', 'a'])
+        actual_warnings = writer.get_warnings()
+        expected_warnings = ['Deduplicated output json keys to avoid data loss: "a"']
+        self.assertEqual(expected_warnings, actual_warnings)
+
+    def test_array_writer(self):
+        writer_stream = io.StringIO()
+        close_stream_on_finish = False
+        encoding = None
+        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer.set_header(['a', 'a'])
+        actual_warnings = writer.get_warnings()
+        expected_warnings = ['Deduplicated output json keys to avoid data loss: "a"']
+        self.assertEqual(expected_warnings, actual_warnings)
+
+
 class TestJsonArrayObjectRecordIterator(unittest.TestCase):
     def test_one_record(self):
         input_stream = io.StringIO('["foo"]')

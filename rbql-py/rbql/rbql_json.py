@@ -93,7 +93,6 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
 
     def get_warnings(self):
         warnings = []
-        # FIXME add unit tests with the warnings
         if len(self.deduplicated_keys) != 0:
             sorted_keys = sorted(['"{}"'.format(v) for v in self.deduplicated_keys])
             warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
@@ -182,7 +181,6 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.header, self.deduplicated_keys = deduplicate_header_keys(header)
 
     def get_warnings(self):
-        # FIXME add unit tests with the warnings
         warnings = []
         if len(self.deduplicated_keys) != 0:
             sorted_keys = sorted(['"{}"'.format(v) for v in self.deduplicated_keys])
