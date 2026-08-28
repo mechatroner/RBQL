@@ -1568,9 +1568,9 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             # We need to add string literals back in order to have relevant errors in case of exceptions during parsing
             combined_select_expression_for_ast = combine_string_literals(select_expression_for_ast, string_literals)
             column_infos = ast_parse_select_expression_to_column_infos_best_effort(combined_select_expression_for_ast)
-            # FIXME consider adding a new flag - "write_header".
+            # TODO consider adding a new flag - "write_header".
             # It would decouple header guessing/generation from using it for output. we can actually apply it for csv only.
-            # CSV and JSON would have the same logic to generate the header without the input header flag for json
+            # CSV and JSON would have the same logic to generate the header without the input header hack for json version.
             output_header = select_output_header_best_effort(input_header, join_header, column_infos)
         query_context.select_expression = select_expression
         query_context.writer.set_header(output_header)
