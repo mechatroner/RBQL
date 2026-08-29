@@ -593,7 +593,7 @@ class CSVWriter extends rbql.RBQLOutputWriter {
             if (writer_error !== null) {
                 reject(writer_error);
             } else {
-                resolve(true);
+                resolve();
             }
         });
     }
@@ -603,12 +603,15 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         if (this.header !== null && fields.length != this.header.length)
             throw new RbqlIOHandlingError(`Inconsistent number of columns in output header and the current record: ${this.header.length} != ${fields.length}`);
         if (this.header !== null && !this.header_written) {
+            await this.do_write(this.header)
             this.header_written = true;
-            if (!await this.do_write(this.header))
-                return false;
         }
         this.normalize_fields(fields);
-        return await this.do_write(fields);
+        await this.do_write(fields);
+        // The return value is needed for the stacked writers architecture in rbql.js.
+        // So far the only writer that can return `false` is the TopWriter which uses it as a flag to request stop when the limit is reached.
+        // This csv writer always succeeds (unless there is an exception).
+        return true;
     };
 
 
