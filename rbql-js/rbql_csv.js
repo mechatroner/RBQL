@@ -509,7 +509,8 @@ class CSVWriter extends rbql.RBQLOutputWriter {
 
         this.null_in_output = false;
         this.delim_in_simple_output = false;
-        this.header_len = null;
+        this.header = null;
+        this.header_written = false;
         this.first_error = null;
 
         if (policy == 'simple') {
@@ -536,8 +537,7 @@ class CSVWriter extends rbql.RBQLOutputWriter {
 
     set_header(header) {
         if (header !== null) {
-            this.header_len = header.length;
-            this.write(header);
+            this.header = header;
         }
     }
 
@@ -585,11 +585,7 @@ class CSVWriter extends rbql.RBQLOutputWriter {
         }
     };
 
-
-    async write(fields) {
-        if (this.header_len !== null && fields.length != this.header_len)
-            throw new RbqlIOHandlingError(`Inconsistent number of columns in output header and the current record: ${this.header_len} != ${fields.length}`);
-        this.normalize_fields(fields);
+    async do_write(fields) {
         this.stream.write(this.polymorphic_join(fields));
         this.stream.write(this.line_separator);
         let writer_error = this.first_error;
@@ -600,12 +596,25 @@ class CSVWriter extends rbql.RBQLOutputWriter {
                 resolve(true);
             }
         });
+    }
+
+
+    async write(fields) {
+        if (this.header !== null && fields.length != this.header.length)
+            throw new RbqlIOHandlingError(`Inconsistent number of columns in output header and the current record: ${this.header.length} != ${fields.length}`);
+        if (this.header !== null && !this.header_written) {
+            this.header_written = true;
+            if (!await this.do_write(this.header))
+                return false;
+        }
+        this.normalize_fields(fields);
+        return await this.do_write(fields);
     };
 
 
-    _write_all(table) {
+    async _write_all(table) {
         for (let i = 0; i < table.length; i++) {
-            this.write(table[i]);
+            await this.write(table[i]);
         }
     };
 

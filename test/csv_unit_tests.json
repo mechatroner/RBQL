@@ -370,6 +370,7 @@
         "csv_policy": "quoted_rfc",
         "with_headers": true,
         "csv_encoding": "utf-8",
+        "skip_others": false,
         "query_python": "update a.country = a.country.upper(), a.num_students = a.num_students.replace(',', '')",
         "query_js": "update a.country = a.country.toUpperCase(), a.num_students = a.num_students.replace(/,/g, '')"
     },

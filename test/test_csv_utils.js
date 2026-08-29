@@ -300,7 +300,7 @@ async function write_and_parse_back(table, encoding, delim, policy) {
     let writer_stream = new PseudoWritable();
     let line_separator = random_choice(line_separators);
     let writer = new rbql_csv.CSVWriter(writer_stream, false, encoding, delim, policy, line_separator);
-    writer._write_all(table);
+    await writer._write_all(table);
     await writer.finish();
     assert(writer.get_warnings().length === 0);
     let data_buffer = writer_stream.get_data();
