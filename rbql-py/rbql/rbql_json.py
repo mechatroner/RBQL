@@ -50,7 +50,6 @@ def deduplicate_header_keys(header):
         while unique_key in unique_keys:
             dedup_counter += 1
             unique_key = '{}_{}'.format(h, dedup_counter)
-        assert unique_key not in unique_keys
         unique_keys.append(unique_key)
         if dedup_counter != 1:
             deduplicated_keys.add(h)
@@ -83,15 +82,13 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
             return False
 
     def finish(self):
-        if self.broken_pipe:
-            return
-        finalize_stream(self.stream, self.close_stream_on_finish)
+        if not self.broken_pipe:
+            finalize_stream(self.stream, self.close_stream_on_finish)
 
     def set_header(self, header):
-        if header is None:
-            return
-        # Json objects don't allow duplicate keys so we have to dedup them to make sure they are unique to avoid accidental data loss.
-        self.header, self.deduplicated_keys = deduplicate_header_keys(header)
+        if header is not None:
+            # Json objects don't allow duplicate keys so we have to dedup them to make sure they are unique to avoid accidental data loss.
+            self.header, self.deduplicated_keys = deduplicate_header_keys(header)
 
     def get_warnings(self):
         warnings = []
