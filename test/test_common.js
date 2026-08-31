@@ -43,7 +43,7 @@ function assert(condition, message=null, exit_at_error=true, silent=false) {
 
 function assert_equal(a, b, exit_at_error=true, silent=false) {
     if (a != b)
-        return fail(`Assertion error: assert_equal has failed: a = "${a}", b = "${b}"`, exit_at_error, silent);
+        return fail(`Assertion error: assert_equal has failed: expected = "${a}", actual = "${b}"`, exit_at_error, silent);
     return true;
 }
 
@@ -127,6 +127,33 @@ function get_default(obj, key, default_value) {
 }
 
 
+// TODO: convert to a class
+function PseudoWritable() {
+    this.data_chunks = [];
+    this.encoding = 'utf-8';
+
+    this.setDefaultEncoding = function(encoding) {
+        this.encoding = encoding;
+    };
+
+    this.write = function(data) {
+        this.data_chunks.push(data);
+    };
+
+    this.get_data = function() {
+        return Buffer.from(this.data_chunks.join(''), this.encoding);
+    };
+
+    this.get_text = function() {
+        return this.data_chunks.join('');
+    }
+
+    this.on = function(msg_type, callback) {
+        assert(msg_type === 'error');
+    }
+}
+
+
 module.exports.get_default = get_default;
 module.exports.normalize_warnings = normalize_warnings;
 module.exports.assert_objects_are_equal = assert_objects_are_equal;
@@ -135,3 +162,4 @@ module.exports.assert_arrays_are_equal = assert_arrays_are_equal;
 module.exports.assert_equal = assert_equal;
 module.exports.round_floats = round_floats;
 module.exports.set_debug_mode = set_debug_mode;
+module.exports.PseudoWritable = PseudoWritable;

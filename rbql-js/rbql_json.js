@@ -6,6 +6,7 @@ const util = require('util');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
+class RbqlIOHandlingError extends Error {}
 
 function deduplicate_header_keys(header) {
     // This algorithm is O(N^2) but we don't expect to have a lot of keys.
@@ -31,7 +32,7 @@ function get_json_object_to_write(header, fields) {
     // FIXME add unit tests.
     if (fields.length == 1)
         return fields[0];
-    if (header !== null && fields.length != header.length)
+    if (header.length && fields.length != header.length)
         throw new RbqlIOHandlingError(`Inconsistent number of columns in output header and the current record: ${header.length} != ${fields.length}`);
     let result = {};
     for (let i = 0; i < fields.length; i++) {
@@ -126,3 +127,4 @@ class JsonLinesWriter extends rbql.RBQLOutputWriter {
 }
 
 
+module.exports.JsonLinesWriter = JsonLinesWriter;

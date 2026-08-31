@@ -263,28 +263,6 @@ function table_to_csv_string_random(table, delim, policy, comment_prefix=null) {
 }
 
 
-function PseudoWritable() {
-    this.data_chunks = [];
-    this.encoding = 'utf-8';
-
-    this.setDefaultEncoding = function(encoding) {
-        this.encoding = encoding;
-    };
-
-    this.write = function(data) {
-        this.data_chunks.push(data);
-    };
-
-    this.get_data = function() {
-        return Buffer.from(this.data_chunks.join(''), this.encoding);
-    };
-
-    this.on = function(msg_type, callback) {
-        assert(msg_type === 'error');
-    }
-}
-
-
 function string_to_randomly_encoded_stream(src_str) {
     let encoding = random_choice(['utf-8', 'binary']);
     let input_stream = new stream.Readable();
@@ -297,7 +275,7 @@ function string_to_randomly_encoded_stream(src_str) {
 async function write_and_parse_back(table, encoding, delim, policy) {
     if (encoding === null)
         encoding = 'utf-8'; // Writing js string in utf-8 then reading back should be a lossless operation? Or not?
-    let writer_stream = new PseudoWritable();
+    let writer_stream = new test_common.PseudoWritable();
     let line_separator = random_choice(line_separators);
     let writer = new rbql_csv.CSVWriter(writer_stream, false, encoding, delim, policy, line_separator);
     await writer._write_all(table);

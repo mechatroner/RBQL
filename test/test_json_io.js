@@ -5,7 +5,6 @@ const readline = require('readline');
 const crypto = require('crypto');
 const stream = require('stream');
 
-//const csv_utils = require('../rbql-js/csv_utils.js');
 const cli_parser = require('../rbql-js/cli_parser.js');
 const test_common = require('./test_common.js');
 
@@ -16,13 +15,19 @@ const script_dir = __dirname;
 
 var debug_mode = false;
 
-async function test_json_array_writer() {
-    test_common.assert(false, 'testing the harness');
+async function test_json_lines_writer() {
+    let writer_stream = new test_common.PseudoWritable();
+    let close_stream_on_finish = false;
+    let writer = new rbql_json.JsonLinesWriter(writer_stream, close_stream_on_finish, 'utf-8');
+    await writer.write(['foo', 'bar']);
+    await writer.finish();
+    let data_text = writer_stream.get_text();
+    test_common.assert_equal('{"col_1":"foo","col_2":"bar"}\n', data_text);
 }
 
 
 async function test_everything() {
-    await test_json_array_writer();
+    await test_json_lines_writer();
 }
 
 function main() {

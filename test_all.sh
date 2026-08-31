@@ -128,6 +128,9 @@ if [ $run_unit_tests == "yes" ]; then
         node test_csv_utils.js
         die_if_error $?
 
+        node test_json_io.js
+        die_if_error $?
+
         cd ..
     fi
 fi
