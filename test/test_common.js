@@ -1,3 +1,9 @@
+var debug_mode = false;
+
+function set_debug_mode(dbg_mode_val) {
+    debug_mode = dbg_mode_val;
+}
+
 function die(error_msg) {
     console.error('Error: ' + error_msg);
     process.exit(1);
@@ -6,6 +12,9 @@ function die(error_msg) {
 function fail(error_msg, exit_at_error, silent) {
     if (!error_msg)
         error_msg = 'Assertion failed';
+    if (debug_mode) {
+        console.trace();
+    }
     if (exit_at_error)
         die(error_msg);
     if (!silent)
@@ -125,3 +134,4 @@ module.exports.assert = assert;
 module.exports.assert_arrays_are_equal = assert_arrays_are_equal;
 module.exports.assert_equal = assert_equal;
 module.exports.round_floats = round_floats;
+module.exports.set_debug_mode = set_debug_mode;
