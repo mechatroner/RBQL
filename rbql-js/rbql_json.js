@@ -44,7 +44,6 @@ function get_json_object_to_write(header, fields) {
 
 
 class JsonLinesWriter extends rbql.RBQLOutputWriter {
-    // FIXME add unit tests.
     constructor(stream, close_stream_on_finish, encoding, line_separator='\n') {
         super();
         this.stream = stream;

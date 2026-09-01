@@ -131,6 +131,7 @@ function get_default(obj, key, default_value) {
 function PseudoWritable() {
     this.data_chunks = [];
     this.encoding = 'utf-8';
+    this.error_callback = null;
 
     this.setDefaultEncoding = function(encoding) {
         this.encoding = encoding;
@@ -150,6 +151,11 @@ function PseudoWritable() {
 
     this.on = function(msg_type, callback) {
         assert(msg_type === 'error');
+        this.error_callback = callback;
+    }
+
+    this.emulate_error = function(error_obj) {
+        this.error_callback(error_obj);
     }
 }
 

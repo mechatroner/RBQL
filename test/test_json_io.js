@@ -26,8 +26,37 @@ async function test_json_lines_writer() {
 }
 
 
+async function test_json_lines_writer_write_error() {
+    let writer_stream = new test_common.PseudoWritable();
+    let close_stream_on_finish = false;
+    let writer = new rbql_json.JsonLinesWriter(writer_stream, close_stream_on_finish, 'utf-8');
+    await writer.write(['foo', 'bar']);
+    writer_stream.emulate_error(new Error('fake barbaz write error'));
+    try {
+        await writer.write(['foo', 'bar']);
+    } catch (e) {
+        test_common.assert_equal('fake barbaz write error', e.message);
+        return;
+    }
+    test_common.assert(false, 'Expected write exception not thrown');
+}
+
+
+async function test_json_lines_writer_header_dups() {
+    let writer_stream = new test_common.PseudoWritable();
+    let close_stream_on_finish = false;
+    let writer = new rbql_json.JsonLinesWriter(writer_stream, close_stream_on_finish, 'utf-8');
+    writer.set_header(['foo', 'bar', 'foo']);
+    let warnings = writer.get_warnings();
+    test_common.assert_arrays_are_equal(['Deduplicated output json keys to avoid data loss: "foo"'], warnings);
+}
+
+
+
 async function test_everything() {
     await test_json_lines_writer();
+    await test_json_lines_writer_write_error();
+    await test_json_lines_writer_header_dups();
 }
 
 function main() {
