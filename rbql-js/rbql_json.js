@@ -120,10 +120,179 @@ class JsonLinesWriter extends rbql.RBQLOutputWriter {
         await this.do_write(object_to_write);
         // The return value is needed for the stacked writers architecture in rbql.js.
         // So far the only writer that can return `false` is the TopWriter which uses it as a flag to request stop when the limit is reached.
-        // This csv writer always succeeds (unless there is an exception).
+        // This writer always succeeds (unless there is an exception).
         return true;
     };
 }
 
 
+class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
+    // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
+    // FIXME adjust
+    // FIXME add unit tests
+    constructor(stream, encoding, table_name='input', variable_prefix='a') {
+        super();
+        this.stream = stream;
+        this.encoding = encoding;
+        this.table_name = table_name;
+        this.variable_prefix = variable_prefix;
+
+
+        this.decoder = null;
+        if (encoding == 'utf-8') {
+            // This was copied from the csv impl, see comments there.
+            this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
+        }
+
+        this.input_exhausted = false;
+        this.started = false;
+
+        this.NR = 0; // Record number
+        this.NL = 0; // Line number
+
+        this.partially_decoded_line = '';
+        this.partially_decoded_line_ends_with_cr = false;
+
+        // Holds an external "resolve" function which is called when everything is fine.
+        this.resolve_current_record = null;
+        // Holds an external "reject" function which is called when error has occured.
+        this.reject_current_record = null;
+        // Holds last exception if we don't have any reject callbacks from clients yet.
+        this.current_exception = null;
+
+        this.produced_records_queue = new RecordQueue();
+    }
+
+
+    reset_external_callbacks() {
+        // Drop external callbacks simultaneously since promises can only resolve once, see: https://stackoverflow.com/a/18218542/2898283
+        this.reject_current_record = null;
+        this.resolve_current_record = null;
+    }
+
+    try_propagate_exception() {
+        if (this.current_exception && this.reject_current_record) {
+            let reject = this.reject_current_record;
+            let exception = this.current_exception;
+            this.reset_external_callbacks();
+            this.current_exception = null;
+            reject(exception);
+        }
+    }
+
+
+    store_or_propagate_exception(exception) {
+        if (this.current_exception === null)
+            // Ignore subsequent exceptions if we already have an unreported error. This way we prioritize earlier errors over the more recent ones.
+            this.current_exception = exception;
+        this.try_propagate_exception();
+    }
+
+
+    try_resolve_next_record() {
+        this.try_propagate_exception();
+        if (this.resolve_current_record === null)
+            return;
+
+        let record = this.produced_records_queue.dequeue();
+        if (record === null && !this.input_exhausted)
+            return;
+        let resolve = this.resolve_current_record;
+        this.reset_external_callbacks();
+        resolve(record);
+    };
+
+
+    async get_record() {
+        if (!this.started)
+            await this.start();
+        if (this.stream && this.stream.isPaused())
+            this.stream.resume();
+
+        let parent_iterator = this;
+        let current_record_promise = new Promise(function(resolve, reject) {
+            parent_iterator.resolve_current_record = resolve;
+            parent_iterator.reject_current_record = reject;
+        });
+        this.try_resolve_next_record();
+        return current_record_promise;
+    };
+
+
+    process_record_line(line) {
+        this.NR += 1;
+        this.produced_records_queue.enqueue(JSON.parse(line);
+        this.try_resolve_next_record();
+    };
+
+
+    process_line(line) {
+        this.NL += 1;
+        this.process_record_line(line);
+    };
+
+
+    process_data_stream_chunk(data_chunk) {
+        let decoded_string = null;
+        if (this.decoder) {
+            try {
+                decoded_string = this.decoder.decode(data_chunk);
+            } catch (e) {
+                if (e instanceof TypeError) {
+                    this.store_or_propagate_exception(new RbqlIOHandlingError(utf_decoding_error));
+                } else {
+                    this.store_or_propagate_exception(e);
+                }
+                return;
+            }
+        } else {
+            decoded_string = data_chunk.toString(this.encoding);
+        }
+        let line_starts_with_lf = decoded_string.length && decoded_string[0] == '\n';
+        let first_line_index = line_starts_with_lf && this.partially_decoded_line_ends_with_cr ? 1 : 0;
+        this.partially_decoded_line_ends_with_cr = decoded_string.length && decoded_string[decoded_string.length - 1] == '\r';
+        let lines = csv_utils.split_lines(decoded_string);
+        lines[0] = this.partially_decoded_line + lines[0];
+        assert(first_line_index == 0 || lines[0].length == 0);
+        this.partially_decoded_line = lines.pop();
+        for (let i = first_line_index; i < lines.length; i++) {
+            this.process_line(lines[i]);
+        }
+    };
+
+
+    process_data_stream_end() {
+        this.input_exhausted = true;
+        if (this.partially_decoded_line.length) {
+            let last_line = this.partially_decoded_line;
+            this.partially_decoded_line = '';
+            this.process_line(last_line);
+        }
+        this.try_resolve_next_record();
+    };
+
+
+    stop() {
+        if (this.stream)
+            this.stream.destroy(); // TODO consider using pause() instead
+    };
+
+
+    async start() {
+        if (this.started)
+            return;
+        this.started = true;
+        this.stream.on('data', (data_chunk) => { this.process_data_stream_chunk(data_chunk); });
+        this.stream.on('end', () => { this.process_data_stream_end(); });
+    };
+
+
+    get_warnings() {
+        let result = [];
+        return result;
+    };
+}
+
+
 module.exports.JsonLinesWriter = JsonLinesWriter;
+module.exports.JsonLinesRecordIterator = JsonLinesRecordIterator;

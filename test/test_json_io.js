@@ -52,12 +52,12 @@ async function test_json_lines_writer_header_dups() {
 }
 
 
-
 async function test_everything() {
     await test_json_lines_writer();
     await test_json_lines_writer_write_error();
     await test_json_lines_writer_header_dups();
 }
+
 
 function main() {
     console.log('Starting JS JSON unit tests');

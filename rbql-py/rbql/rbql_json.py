@@ -99,6 +99,7 @@ class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
 
 
 class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
+    # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a'):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
