@@ -49,5 +49,12 @@
         "input_json_lines": false,
         "output_json_lines": false,
         "query_python": "select a1['name'], a1['age'], NR"
+    },
+    {
+        "test_name": "select utf8",
+        "debug_mode": true,
+        "input_table_path": "json_files/names_utf8.jsonl",
+        "expected_output_table_path": "json_files/expected_result_1_utf8.jsonl",
+        "query_python": "select a1['name'], a1['профессия']"
     }
 ]
