@@ -167,6 +167,30 @@ class MultilineRecordAggregator {
 }
 
 
+class RecordQueue {
+    // TODO compare performance with a linked list
+    constructor() {
+        this.push_stack = [];
+        this.pull_stack = [];
+    }
+
+    enqueue(record) {
+        this.push_stack.push(record);
+    }
+
+    dequeue() {
+        if (!this.pull_stack.length) {
+            if (!this.push_stack.length)
+                return null;
+            this.pull_stack = this.push_stack;
+            this.pull_stack.reverse();
+            this.push_stack = [];
+        }
+        return this.pull_stack.pop();
+    }
+}
+
+
 module.exports.split_quoted_str = split_quoted_str;
 module.exports.split_whitespace_separated_str = split_whitespace_separated_str;
 module.exports.smart_split = smart_split;
@@ -177,3 +201,4 @@ module.exports.unquote_field = unquote_field;
 module.exports.unquote_fields = unquote_fields;
 module.exports.split_lines = split_lines;
 module.exports.MultilineRecordAggregator = MultilineRecordAggregator;
+module.exports.RecordQueue = RecordQueue;

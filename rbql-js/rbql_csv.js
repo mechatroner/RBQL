@@ -125,30 +125,6 @@ function find_table_path(main_table_dir, table_id) {
 }
 
 
-class RecordQueue {
-    // TODO compare performance with a linked list
-    constructor() {
-        this.push_stack = [];
-        this.pull_stack = [];
-    }
-
-    enqueue(record) {
-        this.push_stack.push(record);
-    }
-
-    dequeue() {
-        if (!this.pull_stack.length) {
-            if (!this.push_stack.length)
-                return null;
-            this.pull_stack = this.push_stack;
-            this.pull_stack.reverse();
-            this.push_stack = [];
-        }
-        return this.pull_stack.pop();
-    }
-}
-
-
 class CSVRecordIterator extends rbql.RBQLInputIterator {
     // CSVRecordIterator implements a typical async producer-consumer model with an internal buffer:
     // get_record() - consumer
@@ -209,7 +185,7 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         // Holds last exception if we don't have any reject callbacks from clients yet.
         this.current_exception = null;
 
-        this.produced_records_queue = new RecordQueue();
+        this.produced_records_queue = new csv_utils.RecordQueue();
 
         this.process_line_polymorphic = policy == 'quoted_rfc' ? this.process_partial_rfc_record_line : this.process_record_line_simple;
 
@@ -736,5 +712,4 @@ module.exports.FileSystemCSVRegistry = FileSystemCSVRegistry;
 module.exports.interpret_named_csv_format = interpret_named_csv_format;
 module.exports.read_user_init_code = read_user_init_code;
 module.exports.query_csv = query_csv;
-module.exports.RecordQueue = RecordQueue;
 module.exports.exception_to_error_info = rbql.exception_to_error_info;

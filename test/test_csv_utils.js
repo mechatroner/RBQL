@@ -691,7 +691,7 @@ async function test_monocolumn_separated_parsing() {
 
 
 function test_record_queue() {
-    let record_queue = new rbql_csv.RecordQueue();
+    let record_queue = new csv_utils.RecordQueue();
     record_queue.enqueue(10);
     record_queue.enqueue(20);
     test_common.assert_equal(10, record_queue.dequeue());

@@ -8,6 +8,19 @@ const csv_utils = require('./csv_utils.js');
 
 class RbqlIOHandlingError extends Error {}
 
+
+// FIXME add json file test with unicode chars. For py and js versions. Use both input stream and input path modes.
+
+function assert(condition, message=null) {
+    if (!condition) {
+        if (!message) {
+            message = 'Assertion error';
+        }
+        throw new AssertionError(message);
+    }
+}
+
+
 function deduplicate_header_keys(header) {
     // This algorithm is O(N^2) but we don't expect to have a lot of keys.
     // FIXME add unit tests for this.
@@ -44,7 +57,7 @@ function get_json_object_to_write(header, fields) {
 
 
 class JsonLinesWriter extends rbql.RBQLOutputWriter {
-    constructor(stream, close_stream_on_finish, encoding, line_separator='\n') {
+    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n') {
         super();
         this.stream = stream;
         this.encoding = encoding;
@@ -130,7 +143,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
     // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     // FIXME adjust
     // FIXME add unit tests
-    constructor(stream, encoding, table_name='input', variable_prefix='a') {
+    constructor(stream, encoding='utf-8', table_name='input', variable_prefix='a') {
         super();
         this.stream = stream;
         this.encoding = encoding;
@@ -160,7 +173,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         // Holds last exception if we don't have any reject callbacks from clients yet.
         this.current_exception = null;
 
-        this.produced_records_queue = new RecordQueue();
+        this.produced_records_queue = new csv_utils.RecordQueue();
     }
 
 
@@ -221,7 +234,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
 
     process_record_line(line) {
         this.NR += 1;
-        this.produced_records_queue.enqueue(JSON.parse(line);
+        this.produced_records_queue.enqueue([JSON.parse(line)]);
         this.try_resolve_next_record();
     };
 
@@ -293,6 +306,22 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
     };
 }
 
+async function query_json(query_text, input_path, output_path, output_warnings, user_init_code='') {
+    let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
+    let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
+
+    let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
+    if (user_init_code == '' && fs.existsSync(default_init_source_path)) {
+        user_init_code = read_user_init_code(default_init_source_path);
+    }
+    let input_file_dir = input_path ? path.dirname(input_path) : null;
+    let join_tables_registry = null;
+    let input_iterator = new JsonLinesRecordIterator(input_stream);
+    let output_writer = new JsonLinesWriter(output_stream, close_output_on_finish);
+    await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
+}
+
 
 module.exports.JsonLinesWriter = JsonLinesWriter;
 module.exports.JsonLinesRecordIterator = JsonLinesRecordIterator;
+module.exports.query_json = query_json;

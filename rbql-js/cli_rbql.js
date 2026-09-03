@@ -5,6 +5,7 @@ const readline = require('readline');
 
 const rbql = require('./rbql.js');
 const rbql_csv = require('./rbql_csv.js');
+const rbql_json = require('./rbql_json.js');
 const csv_utils = require('./csv_utils.js');
 const cli_parser = require('./cli_parser.js');
 
@@ -200,7 +201,7 @@ async function handle_query_success(warnings, output_path, encoding, delim, poli
 }
 
 
-async function run_with_js(args) {
+async function run_with_js_csv_mode(args) {
     var delim = normalize_delim(args['delim']);
     var policy = args['policy'] ? args['policy'] : get_default_policy(delim);
     var query = args['query'];
@@ -296,7 +297,7 @@ async function run_interactive_loop(args) {
         while (true) {
             let query = await read_user_query(user_input_reader);
             args.query = query;
-            let success = await run_with_js(args);
+            let success = await run_with_js_csv_mode(args);
             if (success)
                 break;
         }
@@ -306,9 +307,13 @@ async function run_interactive_loop(args) {
 }
 
 
-let tool_description = `rbql-js
 
-Run RBQL queries against CSV files and data streams
+let csv_tool_description = `rbql-js
+
+Run RBQL queries against CSV and JSON files and data streams
+
+For JSON run:
+$ rbql-js json --help
 
 rbql-js supports two modes: non-interactive (with "--query" option) and interactive (without "--query" option)
 Interactive mode shows source table preview which makes query editing much easier. Usage example:
@@ -317,7 +322,7 @@ Non-interactive mode supports source tables in stdin. Usage example:
   $ rbql-js --query "select a1, a2 order by a1" --delim , < input.csv
 `;
 
-let epilog = `
+let csv_epilog = `
 Description of the available CSV split policies:
   * "simple" - RBQL uses simple split() function and doesn't perform special handling of double quote characters
   * "quoted" - Separator can be escaped inside double-quoted fields. Double quotes inside double-quoted fields must be doubled
@@ -326,8 +331,15 @@ Description of the available CSV split policies:
   * "monocolumn" - RBQL doesn't perform any split at all, each line is a single-element record, i.e. only "a1" and "NR" are available
 `;
 
+let json_tool_description = `rbql-js json
 
-async function do_main(args) {
+Run RBQL queries against JSON files and data streams
+`;
+
+let json_epilog = '';
+
+
+async function do_csv_main(args) {
 
     if (args['version']) {
         console.log(rbql.version);
@@ -350,7 +362,7 @@ async function do_main(args) {
         if (!args.hasOwnProperty('delim')) {
             throw new GenericError('Separator must be provided with "--delim" option in non-interactive mode');
         }
-        await run_with_js(args);
+        await run_with_js_csv_mode(args);
     } else {
         interactive_mode = true;
         if (error_format == 'json') {
@@ -361,7 +373,40 @@ async function do_main(args) {
 }
 
 
-function main() {
+async function run_with_js_json_mode(args) {
+    var query = args['query'];
+    if (!query)
+        throw new RbqlParsingError('RBQL query is empty');
+    var input_path = get_default(args, 'input', null);
+    var output_path = get_default(args, 'output', null);
+    let init_source_file = get_default(args, 'init-source-file', null);
+    // TODO consider adding error-mode arg
+    let user_init_code = '';
+    if (init_source_file !== null)
+        user_init_code = rbql_csv.read_user_init_code(init_source_file);
+    try {
+        let warnings = [];
+        await rbql_json.query_json(query, input_path, output_path, warnings, user_init_code);
+        if (warnings !== null) {
+            for (let i = 0; i < warnings.length; i++) {
+                show_warning(warnings[i]);
+            }
+        }
+        return true;
+    } catch (e) {
+        if (!interactive_mode)
+            throw e;
+        show_exception(e);
+        return false;
+    }
+}
+
+async function do_json_main(args) {
+    // TODO: implement interactive mode for rbql json.
+    await run_with_js_json_mode(args);
+}
+
+function run_csv_mode() {
     var scheme = {
         '--input': {'help': 'Read csv table from FILE instead of stdin. Required in interactive mode', 'metavar': 'FILE'},
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
@@ -380,8 +425,31 @@ function main() {
         '--version': {'boolean': true, 'help': 'Print RBQL version and exit'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };
-    let args = cli_parser.parse_cmd_args(process.argv, scheme, tool_description, epilog);
-    do_main(args).then(() => {}).catch(error_info => { show_exception(error_info); process.exit(1); });
+    let parsed_args = cli_parser.parse_cmd_args(process.argv, scheme, csv_tool_description, csv_epilog);
+    do_csv_main(parsed_args).then(() => {}).catch(error_info => { show_exception(error_info); process.exit(1); });
+}
+
+
+function run_json_mode(args) {
+    var scheme = {
+        '--input': {'help': 'Read csv table from FILE instead of stdin. Required in interactive mode', 'metavar': 'FILE'},
+        '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
+        '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
+        '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
+    };
+    let parsed_args = cli_parser.parse_cmd_args(args, scheme, json_tool_description, json_epilog);
+    do_json_main(parsed_args).then(() => {}).catch(error_info => { show_exception(error_info); process.exit(1); });
+}
+
+
+function main() {
+    if (process.argv[2] == 'json') {
+        // TODO consider if this is a reliable way to remove the `json` element.
+        let args_without_json = process.argv.slice(0, 2).concat(process.argv.slice(3));
+        run_json_mode(args_without_json);
+        return;
+    }
+    run_csv_mode();
 }
 
 
