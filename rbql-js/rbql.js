@@ -78,7 +78,7 @@ function check_if_brackets_match(opening_bracket, closing_bracket) {
 }
 
 
-// FIXME: consider using acorn as an alternative to Python's ast. Looks like acorn doesn't have any third-party deps.
+// TODO: consider using acorn as an alternative to Python's ast. Looks like acorn doesn't have any third-party deps.
 // Or just use trailing subscript [<foo>] as the best guess for the output column name. We can always allow explicit override by the user.
 function parse_root_bracket_level_text_spans(select_expression) {
     let text_spans = []; // parts of text separated by commas at the root parenthesis level
@@ -124,12 +124,14 @@ function unquote_string(quoted_str) {
 
 function column_info_from_text_span(text_span, string_literals) {
     // This function is a rough equivalent of "column_info_from_node()" function in python version of RBQL
+    // The extraction is best effort, it might be "better" to sometimes incorrectly guess the output column name than assign it as `colN` which is also meaningless.
     text_span = text_span.trim();
     let rbql_star_marker = '__RBQL_INTERNAL_STAR';
     let simple_var_match = /^[_a-zA-Z][_a-zA-Z0-9]*$/.exec(text_span);
     let attribute_match = /^([ab])\.([_a-zA-Z][_a-zA-Z0-9]*)$/.exec(text_span);
     let subscript_int_match = /^([ab])\[([0-9]+)\]$/.exec(text_span);
-    let subscript_str_match = /^([ab])\[___RBQL_STRING_LITERAL([0-9]+)___\]$/.exec(text_span);
+    // FIXME add unit test for the new string match
+    let subscript_str_match = /^.*\[___RBQL_STRING_LITERAL([0-9]+)___\]$/.exec(text_span);
     let as_alias_match = /^(.*) (as|AS) +([a-zA-Z][a-zA-Z0-9_]*) *$/.exec(text_span);
     if (as_alias_match !== null) {
         return {table_name: null, column_index: null, column_name: null, is_star: false, alias_name: as_alias_match[3]};
@@ -157,8 +159,7 @@ function column_info_from_text_span(text_span, string_literals) {
         let column_index = parseInt(subscript_int_match[2]) - 1;
         return {table_name: table_name, column_index: column_index, column_name: null, is_star: false, alias_name: null};
     } else if (subscript_str_match != null) {
-        let table_name = subscript_str_match[1];
-        let replaced_string_literal_id = subscript_str_match[2];
+        let replaced_string_literal_id = subscript_str_match[1];
         if (replaced_string_literal_id < string_literals.length) {
             let quoted_column_name = string_literals[replaced_string_literal_id];
             let unquoted_column_name = unquote_string(quoted_column_name);

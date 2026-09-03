@@ -60,6 +60,7 @@ async function test_everything() {
 
 
 function main() {
+    // FIXME add file-based test cases unit tests.
     console.log('Starting JS JSON unit tests');
 
     var scheme = {

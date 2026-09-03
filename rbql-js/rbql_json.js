@@ -176,6 +176,11 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         this.produced_records_queue = new csv_utils.RecordQueue();
     }
 
+    get_header() {
+        // FIXME consider if this is a hack or not. Test queries with stars like `SELECT a.*, a.*` or `SELECT *`.
+        // We might not need this (i.e. we can have it return None as the default impl) if we support the write_header flag, see the rbql_engine.py comments.
+        return [`${this.variable_prefix}1`];
+    }
 
     reset_external_callbacks() {
         // Drop external callbacks simultaneously since promises can only resolve once, see: https://stackoverflow.com/a/18218542/2898283
