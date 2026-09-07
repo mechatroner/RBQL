@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
 var debug_mode = false;
 
 function set_debug_mode(dbg_mode_val) {
@@ -160,6 +164,32 @@ function PseudoWritable() {
 }
 
 
+function rmtree(root_path) {
+    if (fs.existsSync(root_path)) {
+        fs.readdirSync(root_path).forEach(function(file_name, _index) {
+            let child_path = path.join(root_path, file_name);
+            if (fs.lstatSync(child_path).isDirectory()) {
+                rmtree(child_path);
+            } else {
+                fs.unlinkSync(child_path);
+            }
+        });
+        fs.rmdirSync(root_path);
+    }
+};
+
+
+function calc_str_md5(str) {
+    return crypto.createHash('md5').update(str, 'utf-8').digest('hex');
+}
+
+
+function calc_file_md5(file_path) {
+    let data = fs.readFileSync(file_path, 'utf-8');
+    return calc_str_md5(data);
+}
+
+
 module.exports.get_default = get_default;
 module.exports.normalize_warnings = normalize_warnings;
 module.exports.assert_objects_are_equal = assert_objects_are_equal;
@@ -169,3 +199,5 @@ module.exports.assert_equal = assert_equal;
 module.exports.round_floats = round_floats;
 module.exports.set_debug_mode = set_debug_mode;
 module.exports.PseudoWritable = PseudoWritable;
+module.exports.rmtree = rmtree;
+module.exports.calc_file_md5 = calc_file_md5;

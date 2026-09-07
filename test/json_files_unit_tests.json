@@ -4,6 +4,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10.jsonl",
         "expected_output_table_path": "json_files/names10.jsonl",
+        "query_js": "select a1",
         "query_python": "select a1"
     },
     {

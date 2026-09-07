@@ -9,8 +9,6 @@ const csv_utils = require('./csv_utils.js');
 class RbqlIOHandlingError extends Error {}
 
 
-// FIXME add json file test with unicode chars. For py and js versions. Use both input stream and input path modes.
-
 function assert(condition, message=null) {
     if (!condition) {
         if (!message) {
