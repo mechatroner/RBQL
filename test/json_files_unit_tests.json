@@ -12,6 +12,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10.jsonl",
         "expected_output_table_path": "json_files/names10.jsonl",
+        "query_js": "select *",
         "query_python": "select *"
     },
     {
@@ -19,6 +20,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10.jsonl",
         "expected_output_table_path": "json_files/expected_result_1.jsonl",
+        "query_js": "select a1['name'], a1['age'], NR",
         "query_python": "select a1['name'], a1['age'], NR"
     },
     {
@@ -26,6 +28,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10.jsonl",
         "expected_output_table_path": "json_files/expected_result_1.jsonl",
+        "query_js": "select a1['name'], a1['age'], NR | select a1, a2, a3 | select *",
         "query_python": "select a1['name'], a1['age'], NR | select a1, a2, a3 | select *"
     },
     {
@@ -33,6 +36,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/nested_names_10.jsonl",
         "expected_output_table_path": "json_files/expected_result_2.jsonl",
+        "query_js": "select a1['address']",
         "query_python": "select a1['address']"
     },
     {
@@ -40,6 +44,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/nested_names_10.jsonl",
         "expected_output_table_path": "json_files/expected_result_3.jsonl",
+        "query_js": "select a1['address']['street'], a1[\"address\"][\"city\"]",
         "query_python": "select a1['address']['street'], a1[\"address\"][\"city\"]"
     },
     {
@@ -56,6 +61,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names_utf8.jsonl",
         "expected_output_table_path": "json_files/expected_result_1_utf8.jsonl",
+        "query_js": "select a1['name'], a1['профессия']",
         "query_python": "select a1['name'], a1['профессия']"
     }
 ]

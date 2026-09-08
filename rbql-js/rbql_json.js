@@ -54,6 +54,14 @@ function get_json_object_to_write(header, fields) {
 }
 
 
+function stringify_json_python_style(obj) {
+    // FIXME add unit tests (e.g. test objects with newlines in data)
+    // The default JSON.stringify() unfortunatelly doesn't produce pretty json lines like in json lines examples here: https://jsonlines.org/examples/
+    // Python by default stringifies with extra readability whitespaces e.g. `{'foo':1,'bar':2}` becomes `{"foo": 1, "bar": 2}`.
+    // The third `spaces` arg in `JSON.stringify` makes it pretty print the whole thing with newlines, so we post-format it via this hack.
+    return JSON.stringify(obj, null, 1).replace(/^ +/gm, "").replace(/,\n/g, ", \n").replace(/\n/g, "");
+}
+
 class JsonLinesWriter extends rbql.RBQLOutputWriter {
     constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n') {
         super();
@@ -113,7 +121,7 @@ class JsonLinesWriter extends rbql.RBQLOutputWriter {
 
 
     async do_write(object_to_write) {
-        this.stream.write(JSON.stringify(object_to_write));
+        this.stream.write(stringify_json_python_style(object_to_write));
         this.stream.write(this.line_separator);
         let writer_error = this.first_error;
         return new Promise(function(resolve, reject) {

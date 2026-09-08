@@ -24,7 +24,7 @@ async function test_json_lines_writer() {
     await writer.write(['foo', 'bar']);
     await writer.finish();
     let data_text = writer_stream.get_text();
-    test_common.assert_equal('{"col_1":"foo","col_2":"bar"}\n', data_text);
+    test_common.assert_equal('{"col_1": "foo", "col_2": "bar"}\n', data_text);
 }
 
 
@@ -141,7 +141,6 @@ async function test_everything() {
 
 
 function main() {
-    // FIXME add file-based test cases unit tests.
     console.log('Starting JS JSON unit tests');
 
     var scheme = {
