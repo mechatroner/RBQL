@@ -15,6 +15,9 @@ def set_debug_mode():
     debug_mode = True
 
 
+# FIXME consider supporting "a" along with "a1" column name.
+
+
 def get_json_object_to_write(header, fields):
     if len(fields) == 1:
         return fields[0]
@@ -106,15 +109,13 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
         self.table_name = table_name
         self.variable_prefix = variable_prefix
-
-        self.NR = 0 # Record number
-        self.NL = 0 # Line number
         try:
             self.json_object = json.load(self.stream)
         except json.decoder.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         if not isinstance(self.json_object, list):
             raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
+        self.NR = 0 # Record number
         self.NL = 1 # The object has to start at the first line so we just keep NL at 1.
 
     def get_header(self):
@@ -167,7 +168,7 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         if self.broken_pipe:
             return
         if self.num_records_written == 0:
-            # Output an empty array if no entries were produced
+            # Output an empty array if no entries were produced.
             self.stream.write('[')
         self.stream.write(self.line_separator)
         self.stream.write(']')
