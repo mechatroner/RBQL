@@ -64,5 +64,13 @@
         "expected_output_table_path": "json_files/expected_result_1_utf8.jsonl",
         "query_js": "select a1['name'], a1['профессия']",
         "query_python": "select a1['name'], a1['профессия']"
+    },
+    {
+        "test_name": "corrupted json lines",
+        "input_table_path": "json_files/names_corrupted.jsonl",
+        "expected_error_py": "Error decoding JSON in input table at record 5, line 5: Expecting property name enclosed in double quotes",
+        "expected_error_js": "Error in line: 5 Unable to parse \"{bad record! as JSON",
+        "query_js": "select *",
+        "query_python": "select *"
     }
 ]

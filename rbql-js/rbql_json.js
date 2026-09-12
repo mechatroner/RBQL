@@ -501,8 +501,16 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
 
     process_record_line(line) {
         this.NR += 1;
-        // FIXME handle JSON.parse failures here - we probably need to update the current_exception or something.
-        this.produced_records_queue.enqueue([JSON.parse(line)]);
+        try {
+            this.produced_records_queue.enqueue([JSON.parse(line)]);
+        } catch (e) {
+            if (e instanceof SyntaxError) {
+                this.store_or_propagate_exception(new RbqlIOHandlingError(`Error in line: ${this.NL} Unable to parse "${line} as JSON: ${e.message}"`));
+            } else {
+                this.store_or_propagate_exception(e);
+            }
+            return;
+        }
         this.try_resolve_next_record();
     };
 
