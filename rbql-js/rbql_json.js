@@ -9,11 +9,11 @@ const csv_utils = require('./csv_utils.js');
 class RbqlIOHandlingError extends Error {}
 
 
-// FIXME add file-based unit tests for python and json with corrupted format both json arrays and json lines.
-
 // FIXME add bash-level unit tests for the cli tool that would use json format.
 
 // FIXME figure out how to preserve output column name for attributes e.g. `a1.name` currently only `a1['name']` works. Cosider doing this for python too.
+
+// FIXME add file-based unit tests with empty file and empty array object (csv already has an empty file test). Consider if an empty file is a valid input for json lines.
 
 function assert(condition, message=null) {
     if (!condition) {
@@ -367,10 +367,19 @@ class JsonArrayObjectRecordIterator extends rbql.RBQLInputIterator {
     process_data_stream_end() {
         this.input_exhausted = true;
         let input_data_string = this.input_data_chunks.join('');
-        // FIXME add error handling
-        let json_object = JSON.parse(input_data_string);
+        let json_object = null;
+        try {
+            json_object = JSON.parse(input_data_string);
+        } catch (e) {
+            if (e instanceof SyntaxError) {
+                this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to parse input stream as JSON: ${e.message}`));
+            } else {
+                this.store_or_propagate_exception(e);
+            }
+            return;
+        }
         if (!Array.isArray(json_object)) {
-            // FIXME add unit tests
+            // FIXME add unit tests both for js and python.
             this.store_or_propagate_exception(new RbqlIOHandlingError("Input JSON root node must be array in array iteration mode"));
             return;
         }
