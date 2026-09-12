@@ -13,6 +13,8 @@ class RbqlIOHandlingError extends Error {}
 
 // FIXME add bash-level unit tests for the cli tool that would use json format.
 
+// FIXME figure out how to preserve output column name for attributes e.g. `a1.name` currently only `a1['name']` works. Cosider doing this for python too.
+
 function assert(condition, message=null) {
     if (!condition) {
         if (!message) {
@@ -373,7 +375,7 @@ class JsonArrayObjectRecordIterator extends rbql.RBQLInputIterator {
             return;
         }
         for (let record of json_object) {
-            this.produced_records_queue.enqueue(record);
+            this.produced_records_queue.enqueue([record]);
         }
         this.try_resolve_next_record();
     };
@@ -572,7 +574,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
     };
 }
 
-async function query_json(query_text, input_path, output_path, output_warnings, user_init_code='') {
+async function query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=true, output_json_lines=true) {
     let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
 
@@ -582,8 +584,8 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     }
     let input_file_dir = input_path ? path.dirname(input_path) : null;
     let join_tables_registry = null;
-    let input_iterator = new JsonLinesRecordIterator(input_stream);
-    let output_writer = new JsonLinesWriter(output_stream, close_output_on_finish);
+    let input_iterator = input_json_lines ? new JsonLinesRecordIterator(input_stream) : new JsonArrayObjectRecordIterator(input_stream);
+    let output_writer = output_json_lines ? new JsonLinesWriter(output_stream, close_output_on_finish) : new JsonArrayObjectWriter(output_stream, close_output_on_finish);
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }
 
