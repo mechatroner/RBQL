@@ -54,6 +54,7 @@
         "expected_output_table_path": "json_files/expected_result_1.arrayobj.json",
         "input_json_lines": false,
         "output_json_lines": false,
+        "query_js": "select a1['name'], a1['age'], NR",
         "query_python": "select a1['name'], a1['age'], NR"
     },
     {

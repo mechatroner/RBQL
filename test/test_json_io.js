@@ -68,6 +68,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
     // FIXME add a test with error
     // FIXME add a test with warning
+    // FIXME add test with input json lines and output not and vice versa
     let expected_error = test_common.get_default(test_case, 'expected_error', null) || test_common.get_default(test_case, 'expected_error_js', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
@@ -89,7 +90,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let warnings = [];
     try {
-        await rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings);
+        await rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, '', input_json_lines, output_json_lines);
     } catch (e) {
         if (local_debug_mode)
             throw(e);

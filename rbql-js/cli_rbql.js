@@ -373,6 +373,7 @@ async function do_csv_main(args) {
 }
 
 
+// FIXME make sure that error handling is OK especially when you query json lines as array object and vice versa.
 async function run_with_js_json_mode(args) {
     var query = args['query'];
     if (!query)
