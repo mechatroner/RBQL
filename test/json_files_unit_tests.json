@@ -82,5 +82,15 @@
         "expected_error_js": "Unable to parse input stream as JSON: Unexpected token",
         "query_js": "select *",
         "query_python": "select *"
+    },
+    {
+        "test_name": "root node is object not array",
+        "input_table_path": "json_files/root_object_not_array.json",
+        "input_json_lines": false,
+        "output_json_lines": false,
+        "expected_error_py": "Input JSON root node must be array",
+        "expected_error_js": "Input JSON root node must be array",
+        "query_js": "select *",
+        "query_python": "select *"
     }
 ]

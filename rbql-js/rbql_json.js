@@ -378,7 +378,6 @@ class JsonArrayObjectRecordIterator extends rbql.RBQLInputIterator {
             return;
         }
         if (!Array.isArray(json_object)) {
-            // FIXME add unit tests both for js and python.
             this.store_or_propagate_exception(new RbqlIOHandlingError("Input JSON root node must be array in array iteration mode"));
             return;
         }
