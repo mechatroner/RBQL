@@ -325,8 +325,8 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.buffer = ''
         self.detected_line_separator = '\n'
         self.exhausted = False
-        self.NR = 0 # Record number
-        self.NL = 0 # Line number (NL != NR when the CSV file has comments or multiline fields)
+        self.record_number = 0 # Record number
+        self.line_number = 0 # Line number (line_number != record_number when the CSV file has comments or multiline fields)
         self.chunk_size = chunk_size
         self.fields_info = dict()
 
@@ -400,8 +400,8 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
                         return None
                     row = self.buffer
                     self.buffer = ''
-            self.NL += 1
-            if self.NL == 1:
+            self.line_number += 1
+            if self.line_number == 1:
                 clean_line = remove_utf8_bom(row, self.encoding)
                 if clean_line != row:
                     row = clean_line
@@ -450,18 +450,18 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
                 continue
             found_record = True
 
-        self.NR += 1
+        self.record_number += 1
         record, warning = self.polymorphic_split(line)
         if self.strip_whitespaces:
             record = [v.strip() for v in record]
         if warning:
             if self.first_defective_line is None:
-                self.first_defective_line = self.NL
+                self.first_defective_line = self.line_number
                 if self.policy == 'quoted_rfc':
-                    raise rbql_engine.RbqlIOHandlingError('Inconsistent double quote escaping in {} table at record {}, line {}'.format(self.table_name, self.NR, self.NL))
+                    raise rbql_engine.RbqlIOHandlingError('Inconsistent double quote escaping in {} table at record {}, line {}'.format(self.table_name, self.record_number, self.line_number))
         num_fields = len(record)
         if num_fields not in self.fields_info:
-            self.fields_info[num_fields] = self.NR
+            self.fields_info[num_fields] = self.record_number
         return record
 
 

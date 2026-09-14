@@ -115,8 +115,8 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         if not isinstance(self.json_object, list):
             raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
-        self.NR = 0 # Record number
-        self.NL = 1 # The object has to start at the first line so we just keep NL at 1.
+        self.record_number = 0 # Record number
+        self.line_number = 1 # The object has to start at the first line so we just keep NL at 1.
 
     def get_header(self):
         # FIXME consider if this is a hack or not. Test queries with stars like `SELECT a.*, a.*` or `SELECT *`.
@@ -124,10 +124,10 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         return [self.variable_prefix + '1']
 
     def get_record(self):
-        if self.NR >= len(self.json_object):
+        if self.record_number >= len(self.json_object):
             return None
-        self.NR += 1
-        return [self.json_object[self.NR - 1]]
+        self.record_number += 1
+        return [self.json_object[self.record_number - 1]]
 
 
 class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
@@ -200,8 +200,8 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
 
         self.buffer = ''
         self.exhausted = False
-        self.NR = 0 # Record number
-        self.NL = 0 # Line number
+        self.record_number = 0 # Record number
+        self.line_number = 0 # Line number
         self.chunk_size = chunk_size
         self.utf8_bom_removed = False
 
@@ -247,8 +247,8 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
                         return None
                     row = self.buffer
                     self.buffer = ''
-            self.NL += 1
-            if self.NL == 1:
+            self.line_number += 1
+            if self.line_number == 1:
                 clean_line = rbql_csv.remove_utf8_bom(row, self.encoding)
                 if clean_line != row:
                     row = clean_line
@@ -267,10 +267,10 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
                 continue
             try:
                 json_obj = json.loads(line)
-                self.NR += 1
+                self.record_number += 1
                 return [json_obj]
             except json.JSONDecodeError as e:
-                raise rbql_engine.RbqlIOHandlingError('Error decoding JSON in {} table at record {}, line {}: {}'.format(self.table_name, self.NR + 1, self.NL, str(e)))
+                raise rbql_engine.RbqlIOHandlingError('Error decoding JSON in {} table at record {}, line {}: {}'.format(self.table_name, self.record_number + 1, self.line_number, str(e)))
 
     def get_warnings(self):
         result = []

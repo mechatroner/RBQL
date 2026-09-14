@@ -12,7 +12,7 @@ class DataframeIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, table, variable_prefix='a'):
         self.table = table
         self.variable_prefix = variable_prefix
-        self.NR = 0
+        self.record_number = 0
         # TODO include `Index` into the list of addressable variable names.
         self.column_names = get_dataframe_column_names_for_rbql(table)
         self.table_itertuples = self.table.itertuples(index=False)
@@ -22,7 +22,7 @@ class DataframeIterator(rbql_engine.RBQLInputIterator):
             record = next(self.table_itertuples)
         except StopIteration:
             return None
-        self.NR += 1
+        self.record_number += 1
         # Convert to list because `record` has `Pandas` type.
         return list(record)
 
