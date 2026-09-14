@@ -279,8 +279,7 @@ class JsonArrayObjectRecordIterator extends rbql.RBQLInputIterator {
         this.current_exception = null;
 
         this.produced_records_queue = new csv_utils.RecordQueue();
-        this.NR = 0; // Record number
-        this.NL = 1; // The object has to start at the first line so we just keep NL at 1.
+        this.record_number = 0;
         this.input_data_chunks = [];
     }
 
@@ -323,7 +322,7 @@ class JsonArrayObjectRecordIterator extends rbql.RBQLInputIterator {
             return;
         let resolve = this.resolve_current_record;
         this.reset_external_callbacks();
-        this.NR += 1;
+        this.record_number += 1;
         resolve(record);
     };
 
@@ -432,8 +431,8 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         this.input_exhausted = false;
         this.started = false;
 
-        this.NR = 0; // Record number
-        this.NL = 0; // Line number
+        this.record_number = 0;
+        this.line_number = 0;
 
         this.partially_decoded_line = '';
         this.partially_decoded_line_ends_with_cr = false;
@@ -485,7 +484,6 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
         let record = this.produced_records_queue.dequeue();
         if (record === null && !this.input_exhausted)
             return;
-        // FIXME shouldn't we increment this.NR here and not in the place where we enqueue? This should probably be fixed in the csv version too. 
         let resolve = this.resolve_current_record;
         this.reset_external_callbacks();
         resolve(record);
@@ -509,12 +507,12 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
 
 
     process_record_line(line) {
-        this.NR += 1;
+        this.record_number += 1;
         try {
             this.produced_records_queue.enqueue([JSON.parse(line)]);
         } catch (e) {
             if (e instanceof SyntaxError) {
-                this.store_or_propagate_exception(new RbqlIOHandlingError(`Error in line: ${this.NL} Unable to parse "${line} as JSON: ${e.message}"`));
+                this.store_or_propagate_exception(new RbqlIOHandlingError(`Error in line: ${this.line_number} Unable to parse "${line} as JSON: ${e.message}"`));
             } else {
                 this.store_or_propagate_exception(e);
             }
@@ -525,7 +523,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
 
 
     process_line(line) {
-        this.NL += 1;
+        this.line_number += 1;
         this.process_record_line(line);
     };
 

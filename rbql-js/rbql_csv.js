@@ -170,8 +170,8 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
         this.first_defective_line = null;
 
         this.fields_info = new Map();
-        this.NR = 0; // Record number
-        this.NL = 0; // Line number (NL != NR when the CSV file has comments or multiline fields)
+        this.record_number = 0;
+        this.line_number = 0; // Line number != record number when the CSV file has comments or multiline fields.
 
         this.line_aggregator = new csv_utils.MultilineRecordAggregator(comment_prefix, comment_regex);
 
@@ -314,21 +314,21 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
 
 
     process_record_line(line) {
-        this.NR += 1;
+        this.record_number += 1;
         var [record, warning] = this.polymorphic_split(line);
         if (this.trim_whitespaces) {
             record = record.map((v) => v.trim());
         }
         if (warning) {
             if (this.first_defective_line === null) {
-                this.first_defective_line = this.NL;
+                this.first_defective_line = this.line_number;
                 if (this.policy == 'quoted_rfc')
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(`Inconsistent double quote escaping in ${this.table_name} table at record ${this.NR}, line ${this.NL}`));
+                    this.store_or_propagate_exception(new RbqlIOHandlingError(`Inconsistent double quote escaping in ${this.table_name} table at record ${this.record_number}, line ${this.line_number}`));
             }
         }
         let num_fields = record.length;
         if (!this.fields_info.has(num_fields))
-            this.fields_info.set(num_fields, this.NR);
+            this.fields_info.set(num_fields, this.record_number);
         this.produced_records_queue.enqueue(record);
         this.try_resolve_next_record();
     };
@@ -346,8 +346,8 @@ class CSVRecordIterator extends rbql.RBQLInputIterator {
 
 
     process_line(line) {
-        this.NL += 1;
-        if (this.NL === 1) {
+        this.line_number += 1;
+        if (this.line_number === 1) {
             var clean_line = remove_utf8_bom(line, this.encoding);
             if (clean_line != line) {
                 line = clean_line;

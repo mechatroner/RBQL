@@ -325,8 +325,8 @@ class CSVRecordIterator(rbql_engine.RBQLInputIterator):
         self.buffer = ''
         self.detected_line_separator = '\n'
         self.exhausted = False
-        self.record_number = 0 # Record number
-        self.line_number = 0 # Line number (line_number != record_number when the CSV file has comments or multiline fields)
+        self.record_number = 0
+        self.line_number = 0 # Line number != record number when the CSV file has comments or multiline fields.
         self.chunk_size = chunk_size
         self.fields_info = dict()
 
