@@ -284,7 +284,8 @@ class JsonArrayObjectRecordIterator extends rbql.RBQLInputIterator {
     }
 
     get_header() {
-        return [`${this.variable_prefix}1`];
+        // Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
+        return [this.variable_prefix];
     }
 
     reset_external_callbacks() {
@@ -447,7 +448,8 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
     }
 
     get_header() {
-        return [`${this.variable_prefix}1`];
+        // Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
+        return [this.variable_prefix];
     }
 
     reset_external_callbacks() {

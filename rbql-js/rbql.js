@@ -1728,10 +1728,15 @@ function get_variables_map(query_text, table_variable_prefix, table_header) {
     parse_basic_variables(query_text, table_variable_prefix, variable_map);
     parse_array_variables(query_text, table_variable_prefix, variable_map);
     if (table_header !== null) {
-        parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map);
-        parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map);
+        if (table_header.length == 1 && table_header[0] == table_variable_prefix) {
+            // FIXME add unit tests.
+            // Handle monocolumn (or json which is also monocolumn) case.
+            variable_map[table_variable_prefix] = {initialize: true, index: 0};
+        } else {
+            parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map);
+            parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map);
+        }
     }
-    // FIXME we can add a special case for monocolumn variable when the column name in the header matches the table name.
     return variable_map;
 };
 

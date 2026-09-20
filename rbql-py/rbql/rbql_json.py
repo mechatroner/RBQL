@@ -122,7 +122,6 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         # FIXME consider if this is a hack or not. Test queries with stars like `SELECT a.*, a.*` or `SELECT *`.
         # We might not need this (i.e. we can have it return None as the default impl) if we support the write_header flag, see the rbql_engine.py comments.
         # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
-        #return [self.variable_prefix + '1']
         return [self.variable_prefix]
 
     def get_record(self):
@@ -209,7 +208,6 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
 
     def get_header(self):
         # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
-        #return [self.variable_prefix + '1']
         return [self.variable_prefix]
 
     def _get_row_from_buffer(self):
