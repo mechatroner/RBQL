@@ -1729,7 +1729,6 @@ function get_variables_map(query_text, table_variable_prefix, table_header) {
     parse_array_variables(query_text, table_variable_prefix, variable_map);
     if (table_header !== null) {
         if (table_header.length == 1 && table_header[0] == table_variable_prefix) {
-            // FIXME add unit tests.
             // Handle monocolumn (or json which is also monocolumn) case.
             variable_map[table_variable_prefix] = {initialize: true, index: 0};
         } else {
@@ -2045,5 +2044,6 @@ exports.replace_star_count = replace_star_count;
 exports.replace_star_vars_for_header_parsing = replace_star_vars_for_header_parsing;
 exports.select_output_header = select_output_header;
 exports.sample_first_two_inconsistent_records = sample_first_two_inconsistent_records;
+exports.get_variables_map = get_variables_map;
 
 }(typeof exports === 'undefined' ? this.rbql = {} : exports));

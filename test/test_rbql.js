@@ -128,6 +128,21 @@ function expect_throws(f, expected_exception_substring) {
 }
 
 
+function test_get_variables_map() {
+    let query = 'Select NR';
+    let table_header = ['a'];
+    let variables_map = rbql.get_variables_map(query, 'a', table_header);
+    let expected_variables_map = {'a': {initialize: true, index: 0}};
+    test_common.assert_objects_are_equal(variables_map, expected_variables_map);
+
+    query = 'Select NR, a1';
+    table_header = ['a'];
+    variables_map = rbql.get_variables_map(query, 'a', table_header);
+    expected_variables_map = {'a': {initialize: true, index: 0}, 'a1': {initialize: true, index: 0}};
+    test_common.assert_objects_are_equal(variables_map, expected_variables_map);
+}
+
+
 function test_join_parsing() {
     let join_part = '/path/to/the/file.tsv on a1 == b3';
     test_common.assert_arrays_are_equal(['/path/to/the/file.tsv', [['a1', 'b3']]], rbql.parse_join_expression(join_part));
@@ -416,6 +431,7 @@ async function test_everything() {
     test_replace_star_count();
     test_string_literals_separation();
     test_separate_actions();
+    test_get_variables_map();
     test_join_parsing();
     test_update_translation();
     test_except_parsing();

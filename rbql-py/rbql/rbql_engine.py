@@ -1680,7 +1680,6 @@ def get_variables_map(query_text, table_variable_prefix, table_header):
     parse_array_variables(query_text, table_variable_prefix, variable_map)
     if table_header is not None:
         if len(table_header) == 1 and table_header[0] == table_variable_prefix:
-            # FIXME add unit tests.
             # Handle monocolumn (or json which is also monocolumn) case.
             variable_map[table_variable_prefix] = VariableInfo(initialize=True, index=0)
         else:

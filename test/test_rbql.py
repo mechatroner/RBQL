@@ -44,6 +44,22 @@ def prepare_and_parse_select_expression_to_column_infos(select_part):
     return column_infos
 
 
+
+class TestGetVariablesMap(unittest.TestCase):
+    def test_monocolumn_simple(self):
+        query_text = 'select NR'
+        table_header = ['a']
+        variables_map = rbql_engine.get_variables_map(query_text, 'a', table_header)
+        expected_variables_map = {'a' : rbql_engine.VariableInfo(True, 0)}
+        self.assertEqual(variables_map, expected_variables_map)
+
+        query_text = 'select NR, a1'
+        table_header = ['a']
+        variables_map = rbql_engine.get_variables_map(query_text, 'a', table_header)
+        expected_variables_map = {'a' : rbql_engine.VariableInfo(True, 0), 'a1' : rbql_engine.VariableInfo(True, 0)}
+        self.assertEqual(variables_map, expected_variables_map)
+
+
 class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_comment_strip(self):
