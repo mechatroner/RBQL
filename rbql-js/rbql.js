@@ -1719,6 +1719,11 @@ class RBQLTableRegistry {
 
 
 function get_variables_map(query_text, table_variable_prefix, table_header) {
+    // One thing to consider it that this function can be implemented in 2 ways:
+    // 1. Go from query to data - parse query for variable names and then initialize only those variables that are present in the query.
+    // 2. Go from header to query - iterate over column names (and check if they are present in the query for optimization) and initalize the corresponding variables (or just all variables from the header, named and unnamed).
+    // Approach #1 seem to be a more reliable because it gurantees that we just fail if we see a['unknown_column'] in the query instead of producing incorrect results. 
+    // If we go from header to query we just wouldn't initialize variable a['unknown_column'] and it would be None during execution, which can lead to incorrect results instead of an error.
     let variable_map = new Object();
     parse_basic_variables(query_text, table_variable_prefix, variable_map);
     parse_array_variables(query_text, table_variable_prefix, variable_map);
@@ -1726,6 +1731,7 @@ function get_variables_map(query_text, table_variable_prefix, table_header) {
         parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map);
         parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map);
     }
+    // FIXME we can add a special case for monocolumn variable when the column name in the header matches the table name.
     return variable_map;
 };
 
@@ -1863,9 +1869,9 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     let join_variables_map = null;
     let join_header = null;
     if (rb_actions.hasOwnProperty(JOIN)) {
-        var [rhs_table_id, variable_pairs] = parse_join_expression(rb_actions[JOIN]['text']);
         if (join_tables_registry === null)
             throw new RbqlParsingError('JOIN operations are not supported by the application');
+        var [rhs_table_id, variable_pairs] = parse_join_expression(rb_actions[JOIN]['text']);
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);

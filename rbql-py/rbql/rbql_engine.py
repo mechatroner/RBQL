@@ -1516,9 +1516,9 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
     join_variables_map = None
     join_header = None
     if JOIN in rb_actions:
-        rhs_table_id, variable_pairs = parse_join_expression(rb_actions[JOIN]['text'])
         if tables_registry is None:
             raise RbqlParsingError('JOIN operations are not supported by the application') # UT JSON
+        rhs_table_id, variable_pairs = parse_join_expression(rb_actions[JOIN]['text'])
         join_record_iterator = tables_registry.get_iterator_by_table_id(rhs_table_id, 'b')
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
@@ -1679,9 +1679,14 @@ def get_variables_map(query_text, table_variable_prefix, table_header):
     parse_basic_variables(query_text, table_variable_prefix, variable_map)
     parse_array_variables(query_text, table_variable_prefix, variable_map)
     if table_header is not None:
-        # TODO check if table_header contains duplicate column names and add a warning if it does.
-        parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map)
-        parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map)
+        if len(table_header) == 1 and table_header[0] == table_variable_prefix:
+            # FIXME add unit tests.
+            # Handle monocolumn (or json which is also monocolumn) case.
+            variable_map[table_variable_prefix] = VariableInfo(initialize=True, index=0)
+        else:
+            # TODO check if table_header contains duplicate column names and add a warning if it does.
+            parse_dictionary_variables(query_text, table_variable_prefix, table_header, variable_map)
+            parse_attribute_variables(query_text, table_variable_prefix, table_header, variable_map)
     return variable_map
 
 
