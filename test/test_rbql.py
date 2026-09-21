@@ -141,6 +141,16 @@ class TestRBQLQueryParsing(unittest.TestCase):
             # Explanation: "aas" should not parse.
             prepare_and_parse_select_expression_to_column_infos(select_part)
 
+        select_part = 'a.foo.bar'
+        column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
+        expected = [rbql_engine.QueryColumnInfo(None, None, 'bar', False, None)]
+        self.assertEqual(expected, column_infos) 
+
+        select_part = 'a.*'
+        column_infos = prepare_and_parse_select_expression_to_column_infos(select_part)
+        expected = [rbql_engine.QueryColumnInfo('a', None, None, True, None)]
+        self.assertEqual(expected, column_infos) 
+
     def test_string_literals_separation(self):
         #TODO generate some random examples: Generate some strings randomly and then parse them
         test_cases = list()

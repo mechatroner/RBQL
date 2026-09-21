@@ -161,16 +161,10 @@ def column_info_from_node(root):
         if not isinstance(column_name, str):
             return None
         var_root = get_field(root, 'value')
-        if not isinstance(var_root, ast.Name):
-            return None
-        table_name = get_field(var_root, 'id')
-        if table_name is None or table_name not in ['a', 'b']:
-            # TODO consider dropping the table_name in ['a', 'b'] restriction - if it is something else we can still use the final attribute as the column name. 
-            # For example for something like `get_gorm(1, 2, "bar").foo` - it is probably fine to name the column as "foo" no matter what `get_gorm` or whatever actually does.
-            # Headers are for convenience and for informational purposes anyway since it is impossible to convey the operation semantic through a single column name.
-            return None
-        if column_name == rbql_star_marker:
-            return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True, alias_name=None)
+        if isinstance(var_root, ast.Name):
+            table_name = get_field(var_root, 'id')
+            if table_name in ['a', 'b'] and column_name == rbql_star_marker:
+                return QueryColumnInfo(table_name=table_name, column_index=None, column_name=None, is_star=True, alias_name=None)
         return QueryColumnInfo(table_name=None, column_index=None, column_name=column_name, is_star=False, alias_name=None)
     if isinstance(root, ast.Subscript):
         var_root = get_field(root, 'value')

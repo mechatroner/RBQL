@@ -139,6 +139,7 @@ if [ $run_unit_tests == "yes" ] && [ "$run_python_tests" == "yes" ] && [ "$run_n
     if ! cmp -s "test/js_column_infos.txt" "test/python_column_infos.txt"; then
         echo "Test Failed: column name parsing differs between python and js version." 1>&2
         echo "Compare: diff test/js_column_infos.txt test/python_column_infos.txt" 1>&2
+        exit 1
     fi
 fi
 

@@ -1524,7 +1524,7 @@
         "query_js": "update a2 = a2 + \" beta\", a1 = 100 where parseInt(a1) > 10"
     },
     {
-        "test_name": "test column names normalized",
+        "test_name": "test column names normalized python",
         "input_table": [
             ["5", "alpha", "beta"],
             ["-20", "alpha", "gamma"],
@@ -1538,7 +1538,23 @@
         "input_column_names": ["value", "letter left", "letter right"],
         "expected_output_header": ["NR", "value", "col3"],
         "debug_mode": false,
-        "query_python": "select NR, a.value, len(a['letter right']) where int(a.value) > 5",
+        "query_python": "select NR, a.value, len(a['letter right']) where int(a.value) > 5"
+    },
+    {
+        "test_name": "test column names normalized js",
+        "input_table": [
+            ["5", "alpha", "beta"],
+            ["-20", "alpha", "gamma"],
+            ["50", "alpha", "delta"],
+            ["20", "alpha", ""]
+        ],
+        "expected_output_table": [
+            [3, "50", 5],
+            [4, "20", 0]
+        ],
+        "input_column_names": ["value", "letter left", "letter right"],
+        "expected_output_header": ["NR", "value", "length"],
+        "debug_mode": false,
         "query_js": "select NR, a.value, a['letter right'].length where a.value > 5"
     },
     {

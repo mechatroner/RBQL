@@ -128,7 +128,8 @@ function column_info_from_text_span(text_span, string_literals) {
     text_span = text_span.trim();
     let rbql_star_marker = '__RBQL_INTERNAL_STAR';
     let simple_var_match = /^[_a-zA-Z][_a-zA-Z0-9]*$/.exec(text_span);
-    let attribute_match = /^([ab])\.([_a-zA-Z][_a-zA-Z0-9]*)$/.exec(text_span);
+    // Previously the regex required the first bart to be the column name i.e. [ab] but, this was relaxed to allow parsing things like a.foo.bar which is needed for json.
+    let attribute_match = /^(.*)\.([_a-zA-Z][_a-zA-Z0-9]*)$/.exec(text_span);
     let subscript_int_match = /^([ab])\[([0-9]+)\]$/.exec(text_span);
     let subscript_str_match = /^.*\[___RBQL_STRING_LITERAL([0-9]+)___\]$/.exec(text_span);
     let as_alias_match = /^(.*) (as|AS) +([a-zA-Z][a-zA-Z0-9_]*) *$/.exec(text_span);
@@ -147,10 +148,12 @@ function column_info_from_text_span(text_span, string_literals) {
         // Some examples for this branch: NR, NF
         return {table_name: null, column_index: null, column_name: text_span, is_star: false, alias_name: null};
     } else if (attribute_match !== null) {
-        let table_name = attribute_match[1];
         let column_name = attribute_match[2];
         if (column_name == rbql_star_marker) {
-            return {table_name: table_name, column_index: null, column_name: null, is_star: true, alias_name: null};
+            let table_name = attribute_match[1];
+            if (table_name == 'a' || table_name == 'b') {
+                return {table_name: table_name, column_index: null, column_name: null, is_star: true, alias_name: null};
+            }
         }
         return {table_name: null, column_index: null, column_name: column_name, is_star: false, alias_name: null};
     } else if (subscript_int_match != null) {

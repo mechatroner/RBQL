@@ -396,6 +396,27 @@ function test_column_name_parsing() {
         {"table_name":null,"column_index":null,"column_name":'world',"is_star":false, alias_name: null},
     ];
     test_common.assert_objects_are_equal(expected, column_infos);
+
+    select_part = 'foo(bar, baz)["world"]["hello"]';
+    column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
+    expected = [
+        {"table_name":null,"column_index":null,"column_name":'hello',"is_star":false, alias_name: null},
+    ];
+    test_common.assert_objects_are_equal(expected, column_infos);
+
+    select_part = 'a.foo';
+    column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
+    expected = [
+        {"table_name":null,"column_index":null,"column_name":'foo',"is_star":false, alias_name: null},
+    ];
+    test_common.assert_objects_are_equal(expected, column_infos);
+
+    select_part = 'a.foo.bar';
+    column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
+    expected = [
+        {"table_name":null,"column_index":null,"column_name":'bar',"is_star":false, alias_name: null},
+    ];
+    test_common.assert_objects_are_equal(expected, column_infos);
 }
 
 
