@@ -389,6 +389,13 @@ function test_column_name_parsing() {
 
     select_part = 'a1, a[2], a.hello, a["world"], NR, NF, something, foo(something, \'bar\'), "test", {3, 3 + 3, *, a.*, b.*';
     expect_throws(() => {prepare_and_parse_select_expression_to_column_infos(select_part);}, 'Unable to parse column headers in SELECT expression: No matching closing bracket for opening "{"');
+
+    select_part = 'foo(bar, baz)["world"]';
+    column_infos = prepare_and_parse_select_expression_to_column_infos(select_part);
+    expected = [
+        {"table_name":null,"column_index":null,"column_name":'world',"is_star":false, alias_name: null},
+    ];
+    test_common.assert_objects_are_equal(expected, column_infos);
 }
 
 

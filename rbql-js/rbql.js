@@ -130,7 +130,6 @@ function column_info_from_text_span(text_span, string_literals) {
     let simple_var_match = /^[_a-zA-Z][_a-zA-Z0-9]*$/.exec(text_span);
     let attribute_match = /^([ab])\.([_a-zA-Z][_a-zA-Z0-9]*)$/.exec(text_span);
     let subscript_int_match = /^([ab])\[([0-9]+)\]$/.exec(text_span);
-    // FIXME add unit test for the new string match
     let subscript_str_match = /^.*\[___RBQL_STRING_LITERAL([0-9]+)___\]$/.exec(text_span);
     let as_alias_match = /^(.*) (as|AS) +([a-zA-Z][a-zA-Z0-9_]*) *$/.exec(text_span);
     if (as_alias_match !== null) {
