@@ -111,7 +111,7 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         self.variable_prefix = variable_prefix
         try:
             self.json_object = json.load(self.stream)
-        except json.decoder.JSONDecodeError as e:
+        except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         if not isinstance(self.json_object, list):
             raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
@@ -131,8 +131,10 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         return [self.json_object[self.record_number - 1]]
 
 
+# FIXME test with wrap_in_json_array=False
 class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
-    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None):
+    # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
+    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=True):
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = rbql_csv.encode_output_stream(stream, encoding)
         self.line_separator = line_separator
@@ -142,6 +144,7 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
         self.num_records_written = 0
         self.header = []
         self.deduplicated_keys = []
+        self.wrap_in_json_array = wrap_in_json_array
 
     def write(self, fields):
         object_to_write = get_json_object_to_write(self.header, fields)
@@ -153,8 +156,9 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
 
         try:
             if self.num_records_written == 0:
-                self.stream.write('[')
-                self.stream.write(self.line_separator)
+                if self.wrap_in_json_array:
+                    self.stream.write('[')
+                    self.stream.write(self.line_separator)
             else:
                 self.stream.write(',')
                 self.stream.write(self.line_separator)
@@ -168,11 +172,12 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
     def finish(self):
         if self.broken_pipe:
             return
-        if self.num_records_written == 0:
-            # Output an empty array if no entries were produced.
-            self.stream.write('[')
-        self.stream.write(self.line_separator)
-        self.stream.write(']')
+        if self.wrap_in_json_array:
+            if self.num_records_written == 0:
+                # Output an empty array if no entries were produced.
+                self.stream.write('[')
+            self.stream.write(self.line_separator)
+            self.stream.write(']')
         self.stream.write(self.line_separator) # POSIX requires a newline at the end of text files.
         finalize_stream(self.stream, self.close_stream_on_finish)
 
@@ -251,6 +256,7 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
                     self.buffer = ''
             self.line_number += 1
             if self.line_number == 1:
+                # FIXME add json file with utf8 bom to integration tests and remove explicit removal logic and warning about it json parsing library should handle it on its own.
                 clean_line = rbql_csv.remove_utf8_bom(row, self.encoding)
                 if clean_line != row:
                     row = clean_line
@@ -281,8 +287,51 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         return result
 
 
+# FIXME add unit tests
+class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
+    # FIXME consider increasing chunk size here to 16K or something
+    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=12):
+        assert encoding in ['utf-8', 'latin-1', None]
+        self.encoding = encoding
+        self.stream = rbql_csv.encode_input_stream(stream, encoding)
+        self.table_name = table_name
+        self.variable_prefix = variable_prefix
+        self.decoder = json.JSONDecoder()
+
+        self.buffer = ''
+        self.exhausted = False
+        self.record_number = 0 # Record number
+        self.line_number = 0 # Line number
+        self.chunk_size = chunk_size
+
+    def get_header(self):
+        # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
+        return [self.variable_prefix]
+
+    def get_record(self):
+        if self.exhausted:
+            return None
+        while True:
+            try:
+                # Strip whitespaces because `raw_decode` fails when there are leading whitespaces/newlines and it doens't consume trailing spaces.
+                self.buffer = self.buffer.lstrip()
+                entry, index_after = self.decoder.raw_decode(self.buffer)
+                self.buffer = self.buffer[index_after:]
+                return [entry]
+            except json.JSONDecodeError:
+                pass
+            chunk = self.stream.read(self.chunk_size)
+            if not chunk:
+                self.exhausted = True
+                if len(self.buffer):
+                    raise rbql_engine.RbqlIOHandlingError('Unable to parse trailing data as json')
+                return None
+            self.buffer += chunk
+
+
+
 # TODO we might want the output to optionally be CSV too. 
-def query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=True, output_json_lines=True, pretty_indent=None):
+def query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=True, output_json_lines=True, pretty_indent=None, input_json_stream=False, output_json_stream=False):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -293,15 +342,23 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
+
         input_iterator = None
         if input_json_lines:
             input_iterator = JsonLinesRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+        elif input_json_stream:
+            input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
         else:
             input_iterator = JsonArrayObjectRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+
+        output_writer = None
         if output_json_lines:
             output_writer = JsonLinesWriter(output_stream, close_output_on_finish, 'utf-8')
+        elif output_json_stream:
+            output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=False)
         else:
             output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent)
+
         if debug_mode:
             rbql_engine.set_debug_mode()
         rbql_engine.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code)
