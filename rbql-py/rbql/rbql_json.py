@@ -15,9 +15,6 @@ def set_debug_mode():
     debug_mode = True
 
 
-# FIXME consider supporting "a" along with "a1" column name.
-
-
 def get_json_object_to_write(header, fields):
     if len(fields) == 1:
         return fields[0]
@@ -209,7 +206,6 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
         self.record_number = 0 # Record number
         self.line_number = 0 # Line number
         self.chunk_size = chunk_size
-        self.utf8_bom_removed = False
 
     def get_header(self):
         # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
@@ -255,12 +251,7 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
                     row = self.buffer
                     self.buffer = ''
             self.line_number += 1
-            if self.line_number == 1:
-                # FIXME add json file with utf8 bom to integration tests and remove explicit removal logic and warning about it json parsing library should handle it on its own.
-                clean_line = rbql_csv.remove_utf8_bom(row, self.encoding)
-                if clean_line != row:
-                    row = clean_line
-                    self.utf8_bom_removed = True
+            # Don't try to handle BOM here because is should be very rare for json files and it is fine to fail
             return row
         except UnicodeDecodeError:
             raise rbql_engine.RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
@@ -280,17 +271,10 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
             except json.JSONDecodeError as e:
                 raise rbql_engine.RbqlIOHandlingError('Error decoding JSON in {} table at record {}, line {}: {}'.format(self.table_name, self.record_number + 1, self.line_number, str(e)))
 
-    def get_warnings(self):
-        result = []
-        if self.utf8_bom_removed:
-            result.append('UTF-8 Byte Order Mark (BOM) was found and skipped in {} table'.format(self.table_name))
-        return result
 
-
-# FIXME add unit tests
+# FIXME add unit tests, including small chunks test
 class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
-    # FIXME consider increasing chunk size here to 16K or something
-    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=12):
+    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=16384):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
