@@ -60,7 +60,7 @@ function get_json_object_to_write(header, fields) {
 }
 
 
-function stringify_json_python_style(obj) {
+function stringify_json_line_python_style(obj) {
     // FIXME add unit tests (e.g. test objects with newlines in data)
     // The default JSON.stringify() unfortunatelly doesn't produce pretty json lines like in json lines examples here: https://jsonlines.org/examples/
     // Python by default stringifies with extra readability whitespaces e.g. `{'foo':1,'bar':2}` becomes `{"foo": 1, "bar": 2}`.
@@ -71,7 +71,7 @@ function stringify_json_python_style(obj) {
 
 class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
     //FIXME add unit tests
-    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n') {
+    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null) {
         super();
         this.stream = stream;
         this.encoding = encoding;
@@ -86,6 +86,7 @@ class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
         this.deduplicated_keys = [];
         this.first_error = null;
         this.num_records_written = 0;
+        this.pretty_indent = pretty_indent;
     }
 
     store_first_error(error_obj) {
@@ -143,9 +144,13 @@ class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
             this.stream.write(',');
             this.stream.write(this.line_separator);
         }
-        // FIXME add pretty mode
         // FIXME add unit tests for pretty mode
-        this.stream.write(stringify_json_python_style(object_to_write));
+        // FIXME add integration test for pretty mode, both js and python
+        if (this.pretty_indent === null) {
+            this.stream.write(stringify_json_line_python_style(object_to_write));
+        } else {
+            this.stream.write(JSON.stringify(object_to_write, null, this.pretty_indent));
+        }
         this.num_records_written += 1;
         let writer_error = this.first_error;
         return new Promise(function(resolve, reject) {
@@ -226,7 +231,7 @@ class JsonLinesWriter extends rbql.RBQLOutputWriter {
 
 
     async do_write(object_to_write) {
-        this.stream.write(stringify_json_python_style(object_to_write));
+        this.stream.write(stringify_json_line_python_style(object_to_write));
         this.stream.write(this.line_separator);
         let writer_error = this.first_error;
         return new Promise(function(resolve, reject) {
@@ -590,7 +595,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
     };
 }
 
-async function query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=true, output_json_lines=true) {
+async function query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=true, output_json_lines=true, pretty_indent=null) {
     let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
 
@@ -601,7 +606,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     let input_file_dir = input_path ? path.dirname(input_path) : null;
     let join_tables_registry = null;
     let input_iterator = input_json_lines ? new JsonLinesRecordIterator(input_stream) : new JsonArrayObjectRecordIterator(input_stream);
-    let output_writer = output_json_lines ? new JsonLinesWriter(output_stream, close_output_on_finish) : new JsonArrayObjectWriter(output_stream, close_output_on_finish);
+    let output_writer = output_json_lines ? new JsonLinesWriter(output_stream, close_output_on_finish) : new JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent);
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }
 
