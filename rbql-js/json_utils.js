@@ -1,5 +1,8 @@
 // JsonFinalizer is 100% AI-generated to my spec.
 
+// TODO this can probably be optimized if we use regexes to parse large stretches of text instead of handling them char-by-char inside of strings.
+// TODO similar to strings we can skip large strethes of non-control character strethes altogether probably, including strings e.g. large float/integer arrays.
+
 class JsonFinalizer {
   constructor() {
     this.buffer = "";
@@ -16,9 +19,7 @@ class JsonFinalizer {
     this.hasInvalidPrefix = false;
   }
 
-  /**
-   * Adds string data to the internal buffer and updates the parser state.
-   */
+  // Adds string data to the internal buffer and updates the parser state.
   add_data(s) {
     if (typeof s !== 'string' || s.length === 0) return;
 
@@ -26,11 +27,7 @@ class JsonFinalizer {
     this._parseBuffer();
   }
 
-  /**
-   * Returns the first full JSON object/array from the buffer starting from index 0.
-   * Throws an error if the prefix cannot be a valid JSON start.
-   * Returns null if no complete object is ready yet.
-   */
+  // Returns the first full JSON object/array from the buffer starting from index 0.
   get_first_object() {
     if (this.hasInvalidPrefix) {
       throw new Error("Invalid prefix: Buffer does not start with a valid JSON object or array.");
@@ -43,25 +40,17 @@ class JsonFinalizer {
     return null;
   }
 
-  /**
-   * Deletes the first full object chunk from the internal buffer and resets/recalculates state.
-   */
+  // Deletes the first full object chunk from the internal buffer and resets/recalculates state.
   erase_first_object() {
     if (this.firstObjStartIndex === -1 || this.firstObjEndIndex === -1) {
       return; // No object ready to erase
     }
 
-    // Drop the parsed first object from buffer
     this.buffer = this.buffer.slice(this.firstObjEndIndex + 1);
-    
-    // Reset state and re-evaluate remaining buffer
     this._resetState();
     this._parseBuffer();
   }
 
-  /**
-   * Resets all internal parsing pointers and states.
-   */
   _resetState() {
     this.processedIndex = 0;
     this.stack = [];
@@ -72,9 +61,6 @@ class JsonFinalizer {
     this.hasInvalidPrefix = false;
   }
 
-  /**
-   * Incremental parser machine.
-   */
   _parseBuffer() {
     // If invalid prefix was previously found or object is already complete, pause processing.
     if (this.hasInvalidPrefix || this.firstObjEndIndex !== -1) {
@@ -101,7 +87,6 @@ class JsonFinalizer {
         }
       }
 
-      // --- Inside the JSON structure ---
       if (this.inString) {
         if (this.isEscaped) {
           this.isEscaped = false;
