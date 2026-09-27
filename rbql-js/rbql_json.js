@@ -5,6 +5,7 @@ const util = require('util');
 
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
+const json_utils = require('./json_utils.js');
 
 class RbqlIOHandlingError extends Error {}
 
