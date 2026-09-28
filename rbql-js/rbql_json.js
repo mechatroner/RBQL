@@ -112,7 +112,6 @@ class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
             this.stream.write(this.line_separator);
             this.stream.write(']');
         }
-        // FIXME this doesn't work for some reason - no trailing newline added
         this.stream.write(this.line_separator); // POSIX requires a newline at the end of text files.
         let close_stream_on_finish = this.close_stream_on_finish;
         let output_stream = this.stream;
@@ -737,6 +736,8 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
             // FIMXE unit test this.
             this.store_or_propagate_exception(new RbqlIOHandlingError(`Trailing data in ${this.table_name} stream that can't be parsed as JSON objects`));
         }
+        // This last call is needed so that null is dequeued from the queue which initiaties the query completion.
+        this.try_resolve_next_record();
     };
 
 
