@@ -1,5 +1,6 @@
 // JsonFinalizer is 100% AI-generated to my spec.
 
+// TODO avoid slicing buffer when we call erase_first_object() - just update the indexes. We can still erase sometimes but it should operate in amortized linear time.
 // TODO this can probably be optimized if we use regexes to parse large stretches of text instead of handling them char-by-char inside of strings.
 // TODO similar to strings we can skip large strethes of non-control character strethes altogether probably, including strings e.g. large float/integer arrays.
 
@@ -49,6 +50,10 @@ class JsonFinalizer {
     this.buffer = this.buffer.slice(this.firstObjEndIndex + 1);
     this._resetState();
     this._parseBuffer();
+  }
+
+  is_empty() {
+      return this.stack.length === 0 && !this.hasInvalidPrefix;
   }
 
   _resetState() {

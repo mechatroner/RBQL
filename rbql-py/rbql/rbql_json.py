@@ -284,8 +284,6 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
 
         self.buffer = ''
         self.exhausted = False
-        self.record_number = 0 # Record number
-        self.line_number = 0 # Line number
         self.chunk_size = chunk_size
 
     def get_header(self):

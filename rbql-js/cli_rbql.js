@@ -383,11 +383,18 @@ async function run_with_js_json_mode(args) {
     let init_source_file = get_default(args, 'init-source-file', null);
     let pretty_output = args['pretty-output'];
     let json_lines = args['json-lines'];
+    let json_stream = args['json-stream'];
     let input_json_lines = false;
     let output_json_lines = false;
+    let input_json_stream = false;
+    let output_json_stream = false;
     if (json_lines) {
         input_json_lines = true;
         output_json_lines = true;
+    }
+    if (json_stream) {
+        input_json_stream = true;
+        output_json_stream = true;
     }
     // TODO consider adding error-mode arg
     let user_init_code = '';
@@ -396,7 +403,7 @@ async function run_with_js_json_mode(args) {
     let pretty_indent = pretty_output ? 4 : null;
     try {
         let warnings = [];
-        await rbql_json.query_json(query, input_path, output_path, warnings, user_init_code, input_json_lines, output_json_lines, pretty_indent);
+        await rbql_json.query_json(query, input_path, output_path, warnings, user_init_code, input_json_lines, output_json_lines, pretty_indent, input_json_stream, output_json_stream);
         if (warnings !== null) {
             for (let i = 0; i < warnings.length; i++) {
                 show_warning(warnings[i]);
@@ -446,6 +453,7 @@ function run_json_mode(args) {
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
         '--json-lines': {'boolean': true, 'help': 'Use json lines format both for input and output'},
+        '--json-stream': {'boolean': true, 'help': 'Use json stream format both for input and output'},
         '--pretty-output': {'boolean': true, 'help': 'Pretty-print output. Incompatible with json lines output mode'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };
