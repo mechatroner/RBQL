@@ -103,13 +103,14 @@
     },
     {
         "test_name": "basic json streams",
+        "debug_mode": true,
         "input_table_path": "json_files/tarot_cards_stream.jsons",
         "expected_output_table_path": "json_files/expected_stream_result1.jsons",
         "input_json_lines": false,
         "output_json_lines": false,
         "input_json_stream": true,
         "output_json_stream": true,
-        "query_js": "select a.name, a['Questions to Ask']",
-        "query_python": "select a['name'], a['Questions to Ask']"
+        "query_js": "select a.name, a['Questions to Ask'] ? a['Questions to Ask'] : [] as questions_to_ask",
+        "query_python": "select a['name'], a['Questions to Ask'] if 'Questions to Ask' in a else [] as questions_to_ask"
     }
 ]

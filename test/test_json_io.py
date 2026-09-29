@@ -264,6 +264,8 @@ class TestRBQLWithJSON(unittest.TestCase):
         debug_mode = test_case.get('debug_mode', False)
         input_json_lines = test_case.get('input_json_lines', True)
         output_json_lines = test_case.get('output_json_lines', True)
+        input_json_stream = test_case.get('input_json_stream', False)
+        output_json_stream = test_case.get('output_json_stream', False)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
         input_table_path = os.path.join(script_dir, input_table_path)
@@ -287,7 +289,7 @@ class TestRBQLWithJSON(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, input_json_lines=input_json_lines, output_json_lines=output_json_lines)
+            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, input_json_lines=input_json_lines, output_json_lines=output_json_lines, input_json_stream=input_json_stream, output_json_stream=output_json_stream)
         except Exception as e:
             if debug_mode:
                 raise
