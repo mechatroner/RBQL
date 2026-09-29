@@ -100,5 +100,16 @@
         "expected_error_js": "Input JSON root node must be array",
         "query_js": "select *",
         "query_python": "select *"
+    },
+    {
+        "test_name": "basic json streams",
+        "input_table_path": "json_files/tarot_cards_stream.jsons",
+        "expected_output_table_path": "json_files/expected_stream_result1.jsons",
+        "input_json_lines": false,
+        "output_json_lines": false,
+        "input_json_stream": true,
+        "output_json_stream": true,
+        "query_js": "select a.name, a['Questions to Ask']",
+        "query_python": "select a['name'], a['Questions to Ask']"
     }
 ]

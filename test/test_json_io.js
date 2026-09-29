@@ -74,6 +74,9 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
     let input_json_lines = test_common.get_default(test_case, 'input_json_lines', true);
     let output_json_lines = test_common.get_default(test_case, 'output_json_lines', true);
+    let input_json_stream = test_common.get_default(test_case, 'input_json_stream', false);
+    let output_json_stream = test_common.get_default(test_case, 'output_json_stream', false);
+    let pretty_indent = test_common.get_default(test_case, 'pretty_indent', null);
     let expected_md5 = null;
     let actual_output_table_path = null;
     if (expected_output_table_path !== null) {
@@ -90,7 +93,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let warnings = [];
     try {
-        await rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, '', input_json_lines, output_json_lines);
+        await rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, '', input_json_lines, output_json_lines, pretty_indent, input_json_stream, output_json_stream);
     } catch (e) {
         if (local_debug_mode)
             throw(e);
