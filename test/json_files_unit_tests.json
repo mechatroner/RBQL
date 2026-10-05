@@ -112,6 +112,16 @@
         "query_python": "select [a['name'], a['age'], a['occupation']]"
     },
     {
+        "test_name": "2d array to array of objects transformation",
+        "debug_mode": true,
+        "input_table_path": "json_files/expected_result_1.2darray.json",
+        "expected_output_table_path": "json_files/names10.arrayobj.json",
+        "input_json_lines": false,
+        "output_json_lines": false,
+        "query_js": "select a[0] as name, a[1] as age, a[2] as occupation",
+        "query_python": "select a[0] as name, a[1] as age, a[2] as occupation"
+    },
+    {
         "test_name": "basic json streams",
         "debug_mode": true,
         "input_table_path": "json_files/tarot_cards_stream.jsons",
