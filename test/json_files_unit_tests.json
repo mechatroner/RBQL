@@ -132,5 +132,17 @@
         "output_json_stream": true,
         "query_js": "select a.name, a['Questions to Ask'] ? a['Questions to Ask'] : [] as questions_to_ask",
         "query_python": "select a['name'], a['Questions to Ask'] if 'Questions to Ask' in a else [] as questions_to_ask"
+    },
+    {
+        "test_name": "corrupted json streams - bad entry",
+        "input_table_path": "json_files/tarot_cards_stream.corrupted_entry.jsons.txt",
+        "input_json_lines": false,
+        "output_json_lines": false,
+        "input_json_stream": true,
+        "output_json_stream": true,
+        "expected_error_py": "Unable to parse input as JSON",
+        "expected_error_js": "Unable to parse data as JSON (record number 4): Invalid prefix: Buffer does not start with a valid JSON object or array",
+        "query_js": "select *",
+        "query_python": "select *"
     }
 ]

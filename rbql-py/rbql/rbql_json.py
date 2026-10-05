@@ -301,6 +301,8 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
                 self.buffer = self.buffer[index_after:]
                 return [entry]
             except json.JSONDecodeError:
+                # FIXME we actually have a problem here with this approach, because if it is broken in the middle we would keep retrying with the same broken prefix which is O(N^2)
+                # FIXME consider adopting the same mini-parser as JS uses.
                 pass
             chunk = self.stream.read(self.chunk_size)
             self.num_chunks_read_internal_stat += 1

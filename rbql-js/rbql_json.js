@@ -710,7 +710,7 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
                 object_text = this.json_finalizer.get_first_object();
             } catch (e) {
                 // FIXME unit test this.
-                this.store_or_propagate_exception(e);
+                this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to parse data as JSON (record number ${this.record_number}): ${e.message}"`));
             }
             if (object_text === null) {
                 // This means that there is no completed objects in the finalizer.
@@ -719,9 +719,11 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
             this.json_finalizer.erase_first_object();
             try {
                 this.produced_records_queue.enqueue([JSON.parse(object_text)]);
+                this.record_number += 1;
             } catch (e) {
                 if (e instanceof SyntaxError) {
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to parse data as JSON: ${e.message}"`));
+                    // FIXME ut this
+                    this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to parse data as JSON (record number ${this.record_number}): ${e.message}"`));
                 } else {
                     this.store_or_propagate_exception(e);
                 }
