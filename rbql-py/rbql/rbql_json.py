@@ -112,7 +112,7 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         if not isinstance(self.json_object, list):
             raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
-        self.record_number = 0 # Record number
+        self.record_number = 0
         self.line_number = 1 # The object has to start at the first line so we just keep NL at 1.
 
     def get_header(self):
@@ -202,8 +202,8 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
 
         self.buffer = ''
         self.exhausted = False
-        self.record_number = 0 # Record number
-        self.line_number = 0 # Line number
+        self.record_number = 0
+        self.line_number = 0
         self.chunk_size = chunk_size
 
     def get_header(self):
@@ -285,6 +285,7 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
         self.exhausted = False
         self.chunk_size = chunk_size
         self.num_chunks_read_internal_stat = 0 # This is for unit tests only
+        self.record_number = 0
 
     def get_header(self):
         # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
@@ -298,11 +299,12 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
                 # Strip whitespaces because `raw_decode` fails when there are leading whitespaces/newlines and it doens't consume trailing spaces.
                 self.buffer = self.buffer.lstrip()
                 entry, index_after = self.decoder.raw_decode(self.buffer)
+                self.record_number += 1
                 self.buffer = self.buffer[index_after:]
                 return [entry]
             except json.JSONDecodeError:
-                # FIXME we actually have a problem here with this approach, because if it is broken in the middle we would keep retrying with the same broken prefix which is O(N^2)
-                # FIXME consider adopting the same mini-parser as JS uses.
+                # TODO consider adopting JS approach with the ad-hoc finalizer parser to be able to abort processing in the middle once we have encountered a bad prefix.
+                # Currently we go until the very end which is not at all fast-fail, especially even when the file is not even json streams.
                 pass
             chunk = self.stream.read(self.chunk_size)
             self.num_chunks_read_internal_stat += 1
@@ -310,7 +312,7 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
                 self.exhausted = True
                 if len(self.buffer):
                     # FIXME unit test this
-                    raise rbql_engine.RbqlIOHandlingError('Unable to parse trailing data as json')
+                    raise rbql_engine.RbqlIOHandlingError('Unable to parse data as json stream - failed around record {}'.format(self.record_number))
                 return None
             self.buffer += chunk
 

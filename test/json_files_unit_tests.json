@@ -140,7 +140,7 @@
         "output_json_lines": false,
         "input_json_stream": true,
         "output_json_stream": true,
-        "expected_error_py": "Unable to parse input as JSON",
+        "expected_error_py": "Unable to parse data as json stream - failed around record 5",
         "expected_error_js": "Unable to parse data as JSON (record number 4): Invalid prefix: Buffer does not start with a valid JSON object or array",
         "query_js": "select *",
         "query_python": "select *"
