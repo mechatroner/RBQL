@@ -28,6 +28,34 @@ async function test_json_lines_writer() {
 }
 
 
+async function test_json_array_object_writer() {
+    let writer_stream = null;
+    let close_stream_on_finish = false;
+    let writer = null;
+    let data_text = null;
+    let pretty_indent = null;
+    let line_separator = '\n';
+    let wrap_in_json_array = true;
+
+    writer_stream = new test_common.PseudoWritable();
+    close_stream_on_finish = false;
+    writer = new rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, 'utf-8');
+    await writer.write(['foo', 'bar']);
+    await writer.finish();
+    data_text = writer_stream.get_text();
+    test_common.assert_equal('[\n{"col_1": "foo", "col_2": "bar"}\n]\n', data_text);
+
+    writer_stream = new test_common.PseudoWritable();
+    close_stream_on_finish = false;
+    wrap_in_json_array = false;
+    writer = new rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, 'utf-8', line_separator, pretty_indent, wrap_in_json_array);
+    await writer.write(['foo', 'bar']);
+    await writer.finish();
+    data_text = writer_stream.get_text();
+    test_common.assert_equal('{"col_1": "foo", "col_2": "bar"}\n', data_text);
+}
+
+
 async function test_json_lines_writer_write_error() {
     let writer_stream = new test_common.PseudoWritable();
     let close_stream_on_finish = false;
@@ -138,6 +166,7 @@ async function test_json_scenarios() {
 
 async function test_everything() {
     await test_json_lines_writer();
+    await test_json_array_object_writer();
     await test_json_lines_writer_write_error();
     await test_json_lines_writer_header_dups();
     await test_json_scenarios();

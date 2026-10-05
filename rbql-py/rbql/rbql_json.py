@@ -128,7 +128,6 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         return [self.json_object[self.record_number - 1]]
 
 
-# FIXME test with wrap_in_json_array=False
 class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
     # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
     def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=True):

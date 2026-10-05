@@ -790,6 +790,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 
 
 module.exports.JsonLinesWriter = JsonLinesWriter;
+module.exports.JsonArrayObjectWriter = JsonArrayObjectWriter;
 module.exports.JsonLinesRecordIterator = JsonLinesRecordIterator;
 module.exports.JsonStreamRecordIterator = JsonStreamRecordIterator;
 module.exports.query_json = query_json;

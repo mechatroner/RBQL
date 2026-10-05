@@ -216,6 +216,19 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         expected_data = '[\n{"foo": 1},\n{"foo": 2}\n]\n'
         self.assertEqual(expected_data, actual_data)
 
+    def test_no_array_wrap(self):
+        writer_stream = io.StringIO()
+        close_stream_on_finish = False
+        encoding = None
+        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding, wrap_in_json_array=False)
+        writer.write([{'foo': 1}])
+        writer.write([{'foo': 2}])
+        writer.finish()
+        writer_stream.seek(0)
+        actual_data = writer_stream.getvalue()
+        expected_data = '{"foo": 1},\n{"foo": 2}\n'
+        self.assertEqual(expected_data, actual_data)
+
     def test_pretty_indent(self):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
