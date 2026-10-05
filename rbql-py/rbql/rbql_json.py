@@ -271,7 +271,7 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
                 raise rbql_engine.RbqlIOHandlingError('Error decoding JSON in {} table at record {}, line {}: {}'.format(self.table_name, self.record_number + 1, self.line_number, str(e)))
 
 
-# FIXME add unit tests, including small chunks test
+# FIXME unit test broken data and trailing data at the end
 class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=16384):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -284,6 +284,7 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
         self.buffer = ''
         self.exhausted = False
         self.chunk_size = chunk_size
+        self.num_chunks_read_internal_stat = 0 # This is for unit tests only
 
     def get_header(self):
         # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
@@ -302,9 +303,11 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
             except json.JSONDecodeError:
                 pass
             chunk = self.stream.read(self.chunk_size)
+            self.num_chunks_read_internal_stat += 1
             if not chunk:
                 self.exhausted = True
                 if len(self.buffer):
+                    # FIXME unit test this
                     raise rbql_engine.RbqlIOHandlingError('Unable to parse trailing data as json')
                 return None
             self.buffer += chunk

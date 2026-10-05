@@ -123,6 +123,26 @@ class TestGetDeduplicationWarnings(unittest.TestCase):
         self.assertEqual(expected_warnings, actual_warnings)
 
 
+class TestJsonStreamRecordIterator(unittest.TestCase):
+    def test_many_chunks(self):
+        encoding = None
+        vals = list(range(20))
+        keys = ['key{}'.format(v) for v in vals]
+        json_str = json.dumps(dict(zip(keys, vals)))
+        data = '\n'.join([json_str] * 10)
+        chunk_size = 8
+        input_stream = io.StringIO(data)
+        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, chunk_size=chunk_size)
+        num_records = 0
+        while True:
+            r = input_iterator.get_record()
+            if r is None:
+                break
+            num_records += 1
+        self.assertEqual(num_records, 10)
+        self.assertGreaterEqual(input_iterator.num_chunks_read_internal_stat, len(data) / chunk_size)
+
+
 class TestJsonArrayObjectRecordIterator(unittest.TestCase):
     def test_one_record(self):
         input_stream = io.StringIO('["foo"]')

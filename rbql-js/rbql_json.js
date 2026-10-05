@@ -590,6 +590,7 @@ class JsonLinesRecordIterator extends rbql.RBQLInputIterator {
 }
 
 
+// FIXME unit test broken data and trailing data at the end
 class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
     // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     // FIXME add unit tests
@@ -712,6 +713,7 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
                 this.store_or_propagate_exception(e);
             }
             if (object_text === null) {
+                // This means that there is no completed objects in the finalizer.
                 break;
             }
             this.json_finalizer.erase_first_object();
