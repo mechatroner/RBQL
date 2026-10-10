@@ -82,6 +82,14 @@ async function test_json_lines_writer_header_dups() {
 }
 
 
+async function test_stringify_json_line_python_style() {
+    let input_object = {'foo':1,' leading space':'  multi,\nline,\ndata'};
+    let actual = rbql_json.stringify_json_line_python_style(input_object);
+    let expected = '{"foo": 1, " leading space": "  multi,\\nline,\\ndata"}';
+    test_common.assert_equal(expected, actual);
+}
+
+
 async function test_deduplicate_header_keys() {
     let input_keys = ['a', 'b'];
     let [actual_output_keys, actual_deduplicated_keys] = rbql_json.deduplicate_header_keys(input_keys);
@@ -144,8 +152,6 @@ async function process_test_case(tmp_tests_dir, test_case) {
     query = query.replace('###UT_TESTS_DIR###', script_dir);
 
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
-    // FIXME add a test with error
-    // FIXME add a test with warning
     // FIXME add test with input json lines and output not and vice versa
     let expected_error = test_common.get_default(test_case, 'expected_error', null) || test_common.get_default(test_case, 'expected_error_js', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
@@ -220,6 +226,7 @@ async function test_everything() {
     await test_json_lines_writer_write_error();
     await test_json_lines_writer_header_dups();
     await test_deduplicate_header_keys();
+    await test_stringify_json_line_python_style();
     await test_get_json_object_to_write();
     await test_json_scenarios();
 }

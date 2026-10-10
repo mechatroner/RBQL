@@ -58,7 +58,6 @@ function get_json_object_to_write(header, fields) {
 
 
 function stringify_json_line_python_style(obj) {
-    // FIXME add unit tests (e.g. test objects with newlines in data)
     // The default JSON.stringify() unfortunatelly doesn't produce pretty json lines like in json lines examples here: https://jsonlines.org/examples/
     // Python by default stringifies with extra readability whitespaces e.g. `{'foo':1,'bar':2}` becomes `{"foo": 1, "bar": 2}`.
     // The third `spaces` arg in `JSON.stringify` makes it pretty print the whole thing with newlines, so we post-format it via this hack.
@@ -731,7 +730,6 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
     process_data_stream_end() {
         this.input_exhausted = true;
         if (!this.json_finalizer.is_empty()) {
-            // FIMXE unit test this.
             this.store_or_propagate_exception(new RbqlIOHandlingError(`Trailing data in ${this.table_name} stream that can't be parsed as JSON objects`));
         }
         // This last call is needed so that null is dequeued from the queue which initiaties the query completion.
@@ -788,6 +786,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 
 
 module.exports.deduplicate_header_keys = deduplicate_header_keys;
+module.exports.stringify_json_line_python_style = stringify_json_line_python_style;
 module.exports.get_json_object_to_write = get_json_object_to_write;
 module.exports.JsonLinesWriter = JsonLinesWriter;
 module.exports.JsonArrayObjectWriter = JsonArrayObjectWriter;
