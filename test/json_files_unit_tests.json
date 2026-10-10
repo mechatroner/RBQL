@@ -4,6 +4,8 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10.jsonl",
         "expected_output_table_path": "json_files/names10.jsonl",
+        "input_json_lines": true,
+        "output_json_lines": true,
         "query_js": "select a1",
         "query_python": "select a1"
     },
@@ -158,7 +160,7 @@
         "query_python": "select *"
     },
     {
-        "test_name": "empty file",
+        "test_name": "empty file json streams",
         "input_table_path": "json_files/empty.txt",
         "expected_output_table_path": "json_files/empty.txt",
         "input_json_lines": false,
@@ -167,5 +169,14 @@
         "output_json_stream": true,
         "query_js": "select *",
         "query_python": "select *"
+    },
+    {
+        "test_name": "empty file json lines",
+        "input_table_path": "json_files/empty.txt",
+        "expected_output_table_path": "json_files/empty.txt",
+        "input_json_lines": true,
+        "output_json_lines": true,
+        "query_js": "select a.name",
+        "query_python": "select a['name']"
     }
 ]
