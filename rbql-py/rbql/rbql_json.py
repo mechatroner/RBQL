@@ -174,7 +174,10 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
                 self.stream.write('[')
             self.stream.write(self.line_separator)
             self.stream.write(']')
-        self.stream.write(self.line_separator) # POSIX requires a newline at the end of text files.
+            self.stream.write(self.line_separator) # POSIX requires a newline at the end of text files.
+        else:
+            if self.num_records_written > 0:
+                self.stream.write(self.line_separator) # POSIX requires a newline at the end of text files.
         finalize_stream(self.stream, self.close_stream_on_finish)
 
     def set_header(self, header):

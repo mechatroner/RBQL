@@ -106,8 +106,12 @@ class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
             }
             this.stream.write(this.line_separator);
             this.stream.write(']');
+            this.stream.write(this.line_separator); // POSIX requires a newline at the end of text files.
+        } else {
+            if (this.num_records_written > 0) {
+                this.stream.write(this.line_separator); // POSIX requires a newline at the end of text files.
+            }
         }
-        this.stream.write(this.line_separator); // POSIX requires a newline at the end of text files.
         let close_stream_on_finish = this.close_stream_on_finish;
         let output_stream = this.stream;
         let output_encoding = this.encoding;

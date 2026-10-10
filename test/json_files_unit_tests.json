@@ -156,5 +156,16 @@
         "expected_error_js": "Trailing data in input stream that can't be parsed as JSON objects",
         "query_js": "select *",
         "query_python": "select *"
+    },
+    {
+        "test_name": "empty file",
+        "input_table_path": "json_files/empty.txt",
+        "expected_output_table_path": "json_files/empty.txt",
+        "input_json_lines": false,
+        "output_json_lines": false,
+        "input_json_stream": true,
+        "output_json_stream": true,
+        "query_js": "select *",
+        "query_python": "select *"
     }
 ]
