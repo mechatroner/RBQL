@@ -34,7 +34,9 @@ Matrix of data formats that RBQL supports out of the box.
 |-----------------|-------------|------------|
 |CSV, TSV, etc    | Read/Write  | Read/Write |
 |Native 2D arrays | Read/Write  | Read/Write |
-|JSON lines       | Read/Write  |            |
+|JSON lines       | Read/Write  | Read/Write |
+|JSON arrays      | Read/Write  | Read/Write |
+|JSON streams     | Read/Write  | Read/Write |
 |Pandas dataframe | Read/Write  |            |
 |Sqlite databases | Read Only   |            |
 
