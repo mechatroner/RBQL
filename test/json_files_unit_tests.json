@@ -178,5 +178,15 @@
         "output_json_lines": true,
         "query_js": "select a.name",
         "query_python": "select a['name']"
+    },
+    {
+        "test_name": "select empty array object",
+        "debug_mode": true,
+        "input_table_path": "json_files/empty.arrayobj.json",
+        "expected_output_table_path": "json_files/empty.arrayobj.json",
+        "input_json_lines": false,
+        "output_json_lines": false,
+        "query_js": "select a1['name'], a['age'], NR",
+        "query_python": "select a1['name'], a['age'], NR"
     }
 ]

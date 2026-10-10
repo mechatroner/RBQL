@@ -12,8 +12,6 @@ class RbqlIOHandlingError extends Error {}
 
 // FIXME add bash-level unit tests for the cli tool that would use json format.
 
-// FIXME add file-based unit tests with empty file and empty array object (csv already has an empty file test). Consider if an empty file is a valid input for json lines.
-
 function assert(condition, message=null) {
     if (!condition) {
         if (!message) {
