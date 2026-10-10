@@ -12,8 +12,6 @@ class RbqlIOHandlingError extends Error {}
 
 // FIXME add bash-level unit tests for the cli tool that would use json format.
 
-// FIXME figure out how to preserve output column name for attributes e.g. `a1.name` currently only `a1['name']` works. Cosider doing this for python too.
-
 // FIXME add file-based unit tests with empty file and empty array object (csv already has an empty file test). Consider if an empty file is a valid input for json lines.
 
 function assert(condition, message=null) {
@@ -28,7 +26,6 @@ function assert(condition, message=null) {
 
 function deduplicate_header_keys(header) {
     // This algorithm is O(N^2) but we don't expect to have a lot of keys.
-    // FIXME add unit tests for this.
     let unique_keys = [];
     let deduplicated_keys = new Set();
     for (let h of header) {
@@ -47,7 +44,6 @@ function deduplicate_header_keys(header) {
 
 
 function get_json_object_to_write(header, fields) {
-    // FIXME add unit tests.
     if (fields.length == 1)
         return fields[0];
     if (header.length && fields.length != header.length)
@@ -791,6 +787,8 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 }
 
 
+module.exports.deduplicate_header_keys = deduplicate_header_keys;
+module.exports.get_json_object_to_write = get_json_object_to_write;
 module.exports.JsonLinesWriter = JsonLinesWriter;
 module.exports.JsonArrayObjectWriter = JsonArrayObjectWriter;
 module.exports.JsonLinesRecordIterator = JsonLinesRecordIterator;

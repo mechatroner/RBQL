@@ -82,6 +82,56 @@ async function test_json_lines_writer_header_dups() {
 }
 
 
+async function test_deduplicate_header_keys() {
+    let input_keys = ['a', 'b'];
+    let [actual_output_keys, actual_deduplicated_keys] = rbql_json.deduplicate_header_keys(input_keys);
+    test_common.assert_arrays_are_equal(['a', 'b'], actual_output_keys);
+    test_common.assert_arrays_are_equal([], actual_deduplicated_keys);
+
+    input_keys = ['a', 'a'];
+    [actual_output_keys, actual_deduplicated_keys] = rbql_json.deduplicate_header_keys(input_keys);
+    test_common.assert_arrays_are_equal(['a', 'a_2'], actual_output_keys);
+    test_common.assert_arrays_are_equal(['a'], actual_deduplicated_keys);
+
+    input_keys = ['a', 'a', 'a_2'];
+    [actual_output_keys, actual_deduplicated_keys] = rbql_json.deduplicate_header_keys(input_keys);
+    test_common.assert_arrays_are_equal(['a', 'a_2', 'a_2_2'], actual_output_keys);
+    test_common.assert_arrays_are_equal(['a', 'a_2'], actual_deduplicated_keys);
+
+    input_keys = [];
+    [actual_output_keys, actual_deduplicated_keys] = rbql_json.deduplicate_header_keys(input_keys);
+    test_common.assert_arrays_are_equal([], actual_output_keys);
+    test_common.assert_arrays_are_equal([], actual_deduplicated_keys);
+}
+
+
+async function test_get_json_object_to_write() {
+    let header = ['bar'];
+    let fields = ['foo'];
+    let actual_object = rbql_json.get_json_object_to_write(header, fields);
+    test_common.assert_objects_are_equal('foo', actual_object);
+
+    header = ['bar'];
+    fields = ['foo', 'bar'];
+    try {
+        rbql_json.get_json_object_to_write(header, fields);
+        test_common.assert(false, 'Expected get_json_object_to_write exception not thrown');
+    } catch (e) {
+        test_common.assert_equal('Inconsistent number of columns in output header and the current record: 1 != 2', e.message);
+    }
+
+    header = ['h1', 'h2'];
+    fields = ['v1', 'v2'];
+    actual_object = rbql_json.get_json_object_to_write(header, fields);
+    test_common.assert_objects_are_equal({ h1: 'v1', h2: 'v2' }, actual_object);
+
+    header = [];
+    fields = ['v1', 'v2'];
+    actual_object = rbql_json.get_json_object_to_write(header, fields);
+    test_common.assert_objects_are_equal({ col_1: 'v1', col_2: 'v2' }, actual_object);
+}
+
+
 async function process_test_case(tmp_tests_dir, test_case) {
     let test_name = test_case['test_name'];
     let query = test_case['query_js'];
@@ -169,6 +219,8 @@ async function test_everything() {
     await test_json_array_object_writer();
     await test_json_lines_writer_write_error();
     await test_json_lines_writer_header_dups();
+    await test_deduplicate_header_keys();
+    await test_get_json_object_to_write();
     await test_json_scenarios();
 }
 
