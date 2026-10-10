@@ -271,7 +271,6 @@ class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
                 raise rbql_engine.RbqlIOHandlingError('Error decoding JSON in {} table at record {}, line {}: {}'.format(self.table_name, self.record_number + 1, self.line_number, str(e)))
 
 
-# FIXME unit test broken data and trailing data at the end
 class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=16384):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -311,7 +310,6 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
             if not chunk:
                 self.exhausted = True
                 if len(self.buffer):
-                    # FIXME unit test this
                     raise rbql_engine.RbqlIOHandlingError('Unable to parse data as json stream - failed around record {}'.format(self.record_number))
                 return None
             self.buffer += chunk

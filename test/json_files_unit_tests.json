@@ -141,7 +141,19 @@
         "input_json_stream": true,
         "output_json_stream": true,
         "expected_error_py": "Unable to parse data as json stream - failed around record 5",
-        "expected_error_js": "Unable to parse data as JSON (record number 4): Invalid prefix: Buffer does not start with a valid JSON object or array",
+        "expected_error_js": "Unable to interpret data as JSON (record number 4): Invalid prefix: Buffer does not start with a valid JSON object or array",
+        "query_js": "select *",
+        "query_python": "select *"
+    },
+    {
+        "test_name": "corrupted json streams incomplete tail record",
+        "input_table_path": "json_files/tarot_cards_stream.incomplete_tail.jsons.txt",
+        "input_json_lines": false,
+        "output_json_lines": false,
+        "input_json_stream": true,
+        "output_json_stream": true,
+        "expected_error_py": "Unable to parse data as json stream - failed around record 77",
+        "expected_error_js": "Trailing data in input stream that can't be parsed as JSON objects",
         "query_js": "select *",
         "query_python": "select *"
     }
