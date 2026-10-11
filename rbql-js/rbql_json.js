@@ -11,6 +11,7 @@ class RbqlIOHandlingError extends Error {}
 
 
 // FIXME add bash-level unit tests for the cli tool that would use json format.
+// FIXME merge all iterators into a single one and all writers into one.
 
 function assert(condition, message=null) {
     if (!condition) {

@@ -14,6 +14,8 @@ def set_debug_mode():
     global debug_mode
     debug_mode = True
 
+# FIXME merge all iterators into a single one (use pre-parsing approach from js impl) and all writers into one.
+
 
 def get_json_object_to_write(header, fields):
     if len(fields) == 1:
