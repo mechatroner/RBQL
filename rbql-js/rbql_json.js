@@ -145,7 +145,9 @@ class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
                 this.stream.write(this.line_separator);
             }
         } else {
-            this.stream.write(',');
+            if (this.wrap_in_json_array) {
+                this.stream.write(',');
+            }
             this.stream.write(this.line_separator);
         }
         // FIXME add unit tests for pretty mode
@@ -165,88 +167,6 @@ class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
             }
         });
     }
-
-    async write(fields) {
-        let object_to_write = get_json_object_to_write(this.header, fields);
-        await this.do_write(object_to_write);
-        // The return value is needed for the stacked writers architecture in rbql.js.
-        // So far the only writer that can return `false` is the TopWriter which uses it as a flag to request stop when the limit is reached.
-        // This writer always succeeds (unless there is an exception).
-        return true;
-    };
-}
-
-class JsonLinesWriter extends rbql.RBQLOutputWriter {
-    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n') {
-        super();
-        this.stream = stream;
-        this.encoding = encoding;
-        if (encoding)
-            this.stream.setDefaultEncoding(encoding);
-        this.stream.on('error', (error_obj) => { this.store_first_error(error_obj); })
-        this.line_separator = line_separator;
-
-        this.close_stream_on_finish = close_stream_on_finish;
-
-        this.header = [];
-        this.deduplicated_keys = [];
-        this.first_error = null;
-    }
-
-    store_first_error(error_obj) {
-        // Store only first error because it is typically more important than the subsequent ones.
-        if (this.first_error === null)
-            this.first_error = error_obj;
-    }
-
-    set_header(header) {
-        if (header !== null) {
-            [this.header, this.deduplicated_keys] = deduplicate_header_keys(header);
-        }
-    }
-
-    async finish() {
-        let close_stream_on_finish = this.close_stream_on_finish;
-        let output_stream = this.stream;
-        let output_encoding = this.encoding;
-        let writer_error = this.first_error;
-        let finish_promise = new Promise(function(resolve, reject) {
-            if (writer_error !== null) {
-                reject(writer_error);
-            }
-            if (close_stream_on_finish) {
-                output_stream.end('', output_encoding, () => { resolve(); });
-            } else {
-                setTimeout(() => { resolve(); }, 0);
-            }
-        });
-        return finish_promise;
-    };
-
-
-    get_warnings() {
-        let result = [];
-        if (this.deduplicated_keys.length > 0) {
-            let keys_to_report = this.deduplicated_keys.map(key => `"${key}"`).join(', ');
-            result.push(`Deduplicated output json keys to avoid data loss: ${keys_to_report}`);
-        }
-        return result;
-    };
-
-
-    async do_write(object_to_write) {
-        this.stream.write(stringify_json_line_python_style(object_to_write));
-        this.stream.write(this.line_separator);
-        let writer_error = this.first_error;
-        return new Promise(function(resolve, reject) {
-            if (writer_error !== null) {
-                reject(writer_error);
-            } else {
-                resolve();
-            }
-        });
-    }
-
 
     async write(fields) {
         let object_to_write = get_json_object_to_write(this.header, fields);
@@ -777,7 +697,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 
     let output_writer = null;
     if (output_json_lines) {
-        output_writer = new JsonLinesWriter(output_stream, close_output_on_finish);
+        output_writer = new JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
     } else if (output_json_stream) {
         output_writer = new JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent, /*wrap_in_json_array=*/false);
     } else {
@@ -791,7 +711,6 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 module.exports.deduplicate_header_keys = deduplicate_header_keys;
 module.exports.stringify_json_line_python_style = stringify_json_line_python_style;
 module.exports.get_json_object_to_write = get_json_object_to_write;
-module.exports.JsonLinesWriter = JsonLinesWriter;
 module.exports.JsonArrayObjectWriter = JsonArrayObjectWriter;
 module.exports.JsonLinesRecordIterator = JsonLinesRecordIterator;
 module.exports.JsonStreamRecordIterator = JsonStreamRecordIterator;
