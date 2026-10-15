@@ -58,48 +58,6 @@ def deduplicate_header_keys(header):
     return (unique_keys, sorted(list(deduplicated_keys)))
 
 
-class JsonLinesWriter(rbql_engine.RBQLOutputWriter):
-    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n'):
-        assert encoding in ['utf-8', 'latin-1', None]
-        self.stream = rbql_csv.encode_output_stream(stream, encoding)
-        self.line_separator = line_separator
-        self.close_stream_on_finish = close_stream_on_finish
-        self.broken_pipe = False
-        self.header = []
-        self.deduplicated_keys = []
-
-    def write(self, fields):
-        object_to_write = get_json_object_to_write(self.header, fields)
-        try:
-            json_str = json.dumps(object_to_write, ensure_ascii=False, default=str)
-        except TypeError as e:
-            raise rbql_engine.RbqlIOHandlingError('Error serializing object to JSON: {}'.format(e))
-
-        try:
-            self.stream.write(json_str)
-            self.stream.write(self.line_separator)
-            return True
-        except BrokenPipeError as exc:
-            self.broken_pipe = True
-            return False
-
-    def finish(self):
-        if not self.broken_pipe:
-            finalize_stream(self.stream, self.close_stream_on_finish)
-
-    def set_header(self, header):
-        if header is not None:
-            # Json objects don't allow duplicate keys so we have to dedup them to make sure they are unique to avoid accidental data loss.
-            self.header, self.deduplicated_keys = deduplicate_header_keys(header)
-
-    def get_warnings(self):
-        warnings = []
-        if len(self.deduplicated_keys) != 0:
-            sorted_keys = sorted(['"{}"'.format(v) for v in self.deduplicated_keys])
-            warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
-        return warnings
-
-
 class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
     # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a'):
@@ -158,7 +116,8 @@ class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
                     self.stream.write('[')
                     self.stream.write(self.line_separator)
             else:
-                self.stream.write(',')
+                if self.wrap_in_json_array:
+                    self.stream.write(',')
                 self.stream.write(self.line_separator)
             self.stream.write(json_str)
             self.num_records_written += 1
@@ -344,7 +303,7 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
 
         output_writer = None
         if output_json_lines:
-            output_writer = JsonLinesWriter(output_stream, close_output_on_finish, 'utf-8')
+            output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=None, wrap_in_json_array=False)
         elif output_json_stream:
             output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=False)
         else:

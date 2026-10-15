@@ -246,7 +246,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
-        expected_data = '{"foo": 1},\n{"foo": 2}\n'
+        expected_data = '{"foo": 1}\n{"foo": 2}\n'
         self.assertEqual(expected_data, actual_data)
 
     def test_pretty_indent(self):
@@ -333,7 +333,7 @@ class TestRBQLWithJSON(unittest.TestCase):
             self.assertTrue(error_msg.find(expected_error) != -1, 'Inside json test: "{}", Expected error: "{}", Actual error: "{}"'.format(test_name, expected_error, error_msg))
         else:
             actual_md5 = calc_file_md5(actual_output_table_path)
-            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch in test "{}". Expected table: {}, Actual table: {}'.format(test_name, expected_output_table_path, actual_output_table_path))
+            self.assertTrue(expected_md5 == actual_md5, 'md5 missmatch in test "{}". Compare expected and actual:\nvimdiff {} {}'.format(test_name, expected_output_table_path, actual_output_table_path))
 
         warnings = sorted(normalize_warnings(warnings))
         expected_warnings = sorted(expected_warnings)
