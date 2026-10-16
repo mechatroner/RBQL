@@ -22,8 +22,6 @@ class JsonFinalizer {
 
   // Adds string data to the internal buffer and updates the parser state.
   add_data(s) {
-    if (typeof s !== 'string' || s.length === 0) return;
-
     this.buffer += s;
     this._parseBuffer();
   }

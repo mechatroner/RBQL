@@ -64,7 +64,7 @@ function stringify_json_line_python_style(obj) {
 }
 
 
-class JsonArrayObjectWriter extends rbql.RBQLOutputWriter {
+class JsonWriter extends rbql.RBQLOutputWriter {
     //FIXME add unit tests
     constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null, wrap_in_json_array=true) {
         super();
@@ -697,11 +697,11 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 
     let output_writer = null;
     if (output_json_lines) {
-        output_writer = new JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
+        output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
     } else if (output_json_stream) {
-        output_writer = new JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent, /*wrap_in_json_array=*/false);
+        output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent, /*wrap_in_json_array=*/false);
     } else {
-        output_writer = new JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent);
+        output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent);
     }
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
@@ -711,7 +711,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 module.exports.deduplicate_header_keys = deduplicate_header_keys;
 module.exports.stringify_json_line_python_style = stringify_json_line_python_style;
 module.exports.get_json_object_to_write = get_json_object_to_write;
-module.exports.JsonArrayObjectWriter = JsonArrayObjectWriter;
+module.exports.JsonWriter = JsonWriter;
 module.exports.JsonLinesRecordIterator = JsonLinesRecordIterator;
 module.exports.JsonStreamRecordIterator = JsonStreamRecordIterator;
 module.exports.query_json = query_json;
