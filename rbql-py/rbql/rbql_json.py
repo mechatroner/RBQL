@@ -4,6 +4,8 @@ import os
 import io
 import re
 
+from collections import deque
+
 from . import rbql_engine
 from . import csv_utils
 from . import rbql_csv
@@ -15,6 +17,85 @@ def set_debug_mode():
     debug_mode = True
 
 # FIXME merge all iterators into a single one (use pre-parsing approach from js impl) and all writers into one.
+
+backslash_char = '\\'
+
+class RbqlJsonParsingError(Exception):
+    pass
+
+class UnparsedJsonBlob:
+    def __init__(self, start_pos):
+        self.start_pos = start_pos
+        self.bracket_stack = []
+        self.inside_string = False
+        
+
+# We call it JsonFinalizer in js
+class JsonBalancingIterator:
+    def __init__(self, unnest_mode=False):
+        self.buf = ''
+        self.unnest_mode = unnest_mode
+        self.json_blobs = deque()
+        self.current = UnparsedJsonBlob(0)
+
+    def add_fragment(self, fragment):
+        seek_start_pos = len(self.buf)
+        self.buf += fragment
+        self._parse_forward(seek_start_pos)
+
+    def get_current_object(self):
+        return self.json_blobs[0]
+
+    def advance(self):
+        return self.json_blobs.popleft()
+
+    def is_empty(self):
+        return len(self.json_blobs) == 0
+
+    def has_trailing_data(self):
+        return len(self.buf)
+
+    def _parse_forward(self, seek_start_pos):
+        i = seek_start_pos
+        while i < len(self.buf):
+            object_can_end = False
+            if self.current.inside_string:
+                if self.buf[i] == '"':
+                    # It is safe to check buf[i - 1] because we somehow got into the string so we must have parsed something already.
+                    # And if self.buf[i - 1] == backslash_char it is also safe to read self.buf[i - 2] by the same logic.
+                    if self.buf[i - 1] != backslash_char or self.buf[i - 2] == backslash_char:
+                        self.current.inside_string = False
+                        # This is to handle a sequence of json strings like this `"str1""str2""str3"` - strings don't have to be separated with whitespaces.
+                        object_can_end = True
+            elif self.buf[i] == '"':
+                self.current.inside_string = True
+            elif self.buf[i] == '{' or self.buf[i] == '[':
+                self.current.bracket_stack.append(self.buf[i])
+            elif self.buf[i] == '}':
+                if len(self.current.bracket_stack) == 0 or self.current.bracket_stack.pop() != '{':
+                    raise RbqlJsonParsingError("Unbalanced closing curly bracket `}`")
+                object_can_end = True
+            elif self.buf[i] == ']':
+                if len(self.current.bracket_stack) == 0 or self.current.bracket_stack.pop() != '[':
+                    raise RbqlJsonParsingError("Unbalanced closing square bracket `]`")
+                object_can_end = True
+            elif self.buf[i] == ',' and self.unnest_mode:
+                object_can_end = True
+            elif self.buf[i].issspace():
+                object_can_end = True
+            i += 1
+            object_ended = object_can_end and len(self.current.bracket_stack) == 0
+            if not object_ended:
+                continue
+            fragment = self.buf[self.current.start_pos:i]
+            self.buf = self.buf[i:]
+            if self.unnest_mode and fragment[-1] == ',':
+                fragment = fragment[:-1]
+            fragment = fragment.strip()
+            if len(fragment):
+                json_blobs.append(fragment)
+                self.current = UnparsedJsonBlob(i) 
+
 
 
 def get_json_object_to_write(header, fields):
@@ -88,7 +169,7 @@ class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
         return [self.json_object[self.record_number - 1]]
 
 
-class JsonArrayObjectWriter(rbql_engine.RBQLOutputWriter):
+class JsonWriter(rbql_engine.RBQLOutputWriter):
     # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
     def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=True):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -281,6 +362,7 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
 
 
 # TODO we might want the output to optionally be CSV too. 
+# FIXME we need to adjust the interface - it should be unwrap_array: bool, wrap_into_array: bool, pretty_indent: int
 def query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=True, output_json_lines=True, pretty_indent=None, input_json_stream=False, output_json_stream=False):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
@@ -303,11 +385,11 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
 
         output_writer = None
         if output_json_lines:
-            output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=None, wrap_in_json_array=False)
+            output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=None, wrap_in_json_array=False)
         elif output_json_stream:
-            output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=False)
+            output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=False)
         else:
-            output_writer = JsonArrayObjectWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent)
+            output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent)
 
         if debug_mode:
             rbql_engine.set_debug_mode()
