@@ -106,7 +106,7 @@ class TestGetDeduplicationWarnings(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=None, wrap_in_json_array=False)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=None, wrap_in_json_array=False)
         writer.set_header(['a', 'a'])
         actual_warnings = writer.get_warnings()
         expected_warnings = ['Deduplicated output json keys to avoid data loss: "a"']
@@ -116,7 +116,7 @@ class TestGetDeduplicationWarnings(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding)
         writer.set_header(['a', 'a'])
         actual_warnings = writer.get_warnings()
         expected_warnings = ['Deduplicated output json keys to avoid data loss: "a"']
@@ -179,7 +179,7 @@ class TestJsonLinesWriter(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=None, wrap_in_json_array=False)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=None, wrap_in_json_array=False)
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
@@ -190,7 +190,7 @@ class TestJsonLinesWriter(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=None, wrap_in_json_array=False)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=None, wrap_in_json_array=False)
         writer.write([{'foo': 1}])
         writer.write([{'foo': 2}])
         writer.finish()
@@ -205,7 +205,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding)
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
@@ -216,7 +216,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer_stream = io.BytesIO()
         close_stream_on_finish = False
         encoding = 'utf-8'
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding)
         writer.finish()
         writer_stream.seek(0)
         actual_data = writer_stream.getvalue()
@@ -227,7 +227,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding)
         writer.write([{'foo': 1}])
         writer.write([{'foo': 2}])
         writer.finish()
@@ -240,7 +240,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding, wrap_in_json_array=False)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding, wrap_in_json_array=False)
         writer.write([{'foo': 1}])
         writer.write([{'foo': 2}])
         writer.finish()
@@ -253,7 +253,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=2)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding, pretty_indent=2)
         writer.write([{'foo': 1}])
         writer.finish()
         writer_stream.seek(0)
@@ -265,7 +265,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding)
         writer.write(['foo', 1])
         writer.write(['bar', 2])
         writer.finish()
@@ -278,7 +278,7 @@ class TestArrayObjectReadWrite(unittest.TestCase):
         writer_stream = io.StringIO()
         close_stream_on_finish = False
         encoding = None
-        writer = rbql_json.JsonArrayObjectWriter(writer_stream, close_stream_on_finish, encoding)
+        writer = rbql_json.JsonWriter(writer_stream, close_stream_on_finish, encoding)
         writer.set_header(['name', 'count'])
         writer.write(['foo', 1])
         writer.finish()
