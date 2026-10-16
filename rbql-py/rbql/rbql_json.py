@@ -31,7 +31,7 @@ class UnparsedJsonBlob:
         
 
 # We call it JsonFinalizer in js
-class JsonBalancingIterator:
+class BalancingIterator:
     def __init__(self, unnest_mode=False):
         self.buf = ''
         self.unnest_mode = unnest_mode
@@ -43,13 +43,13 @@ class JsonBalancingIterator:
         self.buf += fragment
         self._parse_forward(seek_start_pos)
 
-    def get_current_object(self):
+    def get_current_blob(self):
         return self.json_blobs[0]
 
     def advance(self):
         return self.json_blobs.popleft()
 
-    def is_empty(self):
+    def empty(self):
         return len(self.json_blobs) == 0
 
     def has_trailing_data(self):
@@ -81,7 +81,7 @@ class JsonBalancingIterator:
                 object_can_end = True
             elif self.buf[i] == ',' and self.unnest_mode:
                 object_can_end = True
-            elif self.buf[i].issspace():
+            elif self.buf[i].isspace():
                 object_can_end = True
             i += 1
             object_ended = object_can_end and len(self.current.bracket_stack) == 0
@@ -93,7 +93,7 @@ class JsonBalancingIterator:
                 fragment = fragment[:-1]
             fragment = fragment.strip()
             if len(fragment):
-                json_blobs.append(fragment)
+                self.json_blobs.append(fragment)
                 self.current = UnparsedJsonBlob(i) 
 
 

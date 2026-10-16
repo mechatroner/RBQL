@@ -42,6 +42,20 @@ def calc_file_md5(fname):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
+
+class TestBalancingIterator(unittest.TestCase):
+    def test_simple(self):
+        data = '{"hello": "world"}'
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(data)
+        self.assertFalse(it.empty())
+        blob = it.get_current_blob()
+        self.assertEqual(data, blob)
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
+
 class TestDeduplicateHeadersKeys(unittest.TestCase):
     def test_deduplication_simple(self):
         input_keys = ['a', 'b']
