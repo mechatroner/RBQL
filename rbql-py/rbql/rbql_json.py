@@ -54,7 +54,12 @@ class BalancingIterator:
     def has_trailing_data(self):
         return len(self.buf)
 
-    def consume_fragment(self, fragment):
+    def finish(self):
+        if not self.current.inside_string and len(self.current.bracket_stack) == 0:
+            self._consume_fragment(self.buf)
+            self.buf = ''
+
+    def _consume_fragment(self, fragment):
         # TODO This would make a sequence of commas a valid noop span, consider fixing it.
         if self.unnest_mode and fragment[-1] == ',':
             fragment = fragment[:-1]
@@ -62,11 +67,6 @@ class BalancingIterator:
         if len(fragment):
             self.json_blobs.append(fragment)
             self.current = UnparsedJsonBlob() 
-
-    def finish(self):
-        if not self.current.inside_string and len(self.current.bracket_stack) == 0:
-            self.consume_fragment(self.buf)
-            self.buf = ''
 
     def _parse_forward(self, seek_start_pos):
         # FIXME we also need to skip the first and the last square bracket in unnest_mode
@@ -102,7 +102,7 @@ class BalancingIterator:
                 fragment = self.buf[:i]
                 self.buf = self.buf[i:]
                 i = 0
-                self.consume_fragment(fragment)
+                self._consume_fragment(fragment)
 
 
 def get_json_object_to_write(header, fields):
@@ -330,41 +330,48 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
         self.table_name = table_name
         self.variable_prefix = variable_prefix
-        self.decoder = json.JSONDecoder()
 
-        self.buffer = ''
+        #self.decoder = json.JSONDecoder()
+        #self.buffer = ''
+
         self.exhausted = False
         self.chunk_size = chunk_size
         self.num_chunks_read_internal_stat = 0 # This is for unit tests only
         self.record_number = 0
+        self.balancing_iterator = BalancingIterator()
 
     def get_header(self):
         # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
         return [self.variable_prefix]
+    
+    def get_exhausted(self):
+        if self.balancing_iterator.has_trailing_data():
+            raise rbql_engine.RbqlIOHandlingError("Trailing data in {} stream that can't be parsed as JSON objects".format(self.table_name))
+        return None
+
+    def get_and_advance(self):
+        # FIXME add error handling - we need to add info to the message at what entry it has failed
+        blob = self.balancing_iterator.advance()
+        json_obj = json.loads(blob)
+        self.record_number += 1
+        return [json_obj]
 
     def get_record(self):
-        if self.exhausted:
-            return None
+        # FIXME add error handling - we need to add info to the message at what entry it has failed
         while True:
-            try:
-                # Strip whitespaces because `raw_decode` fails when there are leading whitespaces/newlines and it doens't consume trailing spaces.
-                self.buffer = self.buffer.lstrip()
-                entry, index_after = self.decoder.raw_decode(self.buffer)
-                self.record_number += 1
-                self.buffer = self.buffer[index_after:]
-                return [entry]
-            except json.JSONDecodeError:
-                # TODO consider adopting JS approach with the ad-hoc finalizer parser to be able to abort processing in the middle once we have encountered a bad prefix.
-                # Currently we go until the very end which is not at all fast-fail, especially even when the file is not even json streams.
-                pass
+            if self.exhausted:
+                return self.get_exhausted()
+            if not self.balancing_iterator.empty():
+                return self.get_and_advance()
             chunk = self.stream.read(self.chunk_size)
-            self.num_chunks_read_internal_stat += 1
             if not chunk:
                 self.exhausted = True
-                if len(self.buffer):
-                    raise rbql_engine.RbqlIOHandlingError('Unable to parse data as json stream - failed around record {}'.format(self.record_number))
-                return None
-            self.buffer += chunk
+                self.balancing_iterator.finish()
+                if not self.balancing_iterator.empty():
+                    return self.get_and_advance()
+            else:
+                self.balancing_iterator.add_fragment(chunk)
+                self.num_chunks_read_internal_stat += 1
 
 
 
