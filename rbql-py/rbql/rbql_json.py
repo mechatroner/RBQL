@@ -24,8 +24,7 @@ class RbqlJsonParsingError(Exception):
     pass
 
 class UnparsedJsonBlob:
-    def __init__(self, start_pos):
-        self.start_pos = start_pos
+    def __init__(self):
         self.bracket_stack = []
         self.inside_string = False
         
@@ -36,7 +35,7 @@ class BalancingIterator:
         self.buf = ''
         self.unnest_mode = unnest_mode
         self.json_blobs = deque()
-        self.current = UnparsedJsonBlob(0)
+        self.current = UnparsedJsonBlob()
 
     def add_fragment(self, fragment):
         seek_start_pos = len(self.buf)
@@ -55,7 +54,22 @@ class BalancingIterator:
     def has_trailing_data(self):
         return len(self.buf)
 
+    def consume_fragment(self, fragment):
+        # TODO This would make a sequence of commas a valid noop span, consider fixing it.
+        if self.unnest_mode and fragment[-1] == ',':
+            fragment = fragment[:-1]
+        fragment = fragment.strip()
+        if len(fragment):
+            self.json_blobs.append(fragment)
+            self.current = UnparsedJsonBlob() 
+
+    def finish(self):
+        if not self.current.inside_string and len(self.current.bracket_stack) == 0:
+            self.consume_fragment(self.buf)
+            self.buf = ''
+
     def _parse_forward(self, seek_start_pos):
+        # FIXME we also need to skip the first and the last square bracket in unnest_mode
         i = seek_start_pos
         while i < len(self.buf):
             object_can_end = False
@@ -84,18 +98,11 @@ class BalancingIterator:
             elif self.buf[i].isspace():
                 object_can_end = True
             i += 1
-            object_ended = object_can_end and len(self.current.bracket_stack) == 0
-            if not object_ended:
-                continue
-            fragment = self.buf[self.current.start_pos:i]
-            self.buf = self.buf[i:]
-            if self.unnest_mode and fragment[-1] == ',':
-                fragment = fragment[:-1]
-            fragment = fragment.strip()
-            if len(fragment):
-                self.json_blobs.append(fragment)
-                self.current = UnparsedJsonBlob(i) 
-
+            if object_can_end and len(self.current.bracket_stack) == 0:
+                fragment = self.buf[:i]
+                self.buf = self.buf[i:]
+                i = 0
+                self.consume_fragment(fragment)
 
 
 def get_json_object_to_write(header, fields):

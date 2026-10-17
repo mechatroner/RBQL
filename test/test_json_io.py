@@ -51,7 +51,93 @@ class TestBalancingIterator(unittest.TestCase):
         self.assertFalse(it.empty())
         blob = it.get_current_blob()
         self.assertEqual(data, blob)
+        # Test double read:
+        blob = it.get_current_blob()
+        self.assertEqual(data, blob)
         it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
+    def test_multi_add(self):
+        it = rbql_json.BalancingIterator()
+        it.add_fragment('{"hello": ')
+        self.assertTrue(it.empty())
+        self.assertTrue(it.has_trailing_data())
+        it.add_fragment('"world"}')
+        self.assertFalse(it.empty())
+        self.assertFalse(it.has_trailing_data())
+        blob = it.get_current_blob()
+        self.assertEqual('{"hello": "world"}', blob)
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
+    def test_trailing_spaces(self):
+        data = '{"hello": "world"} \n  \t '
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(data)
+        self.assertFalse(it.empty())
+        blob = it.get_current_blob()
+        self.assertEqual('{"hello": "world"}', blob)
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
+    def test_trailing_incomplete_object(self):
+        data = '{"hello": "world"} \n  \t '
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(data)
+        self.assertFalse(it.empty())
+        blob = it.get_current_blob()
+        self.assertEqual('{"hello": "world"}', blob)
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
+    def test_trailing_incomplete_object(self):
+        data = '{"hello": "world"} \n  \t {"hello": '
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(data)
+        self.assertFalse(it.empty())
+        blob = it.get_current_blob()
+        self.assertEqual('{"hello": "world"}', blob)
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertTrue(it.has_trailing_data())
+
+    def test_trailing_incomplete_string(self):
+        data = '{"hello": "world"} \n  \t "hello'
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(data)
+        self.assertFalse(it.empty())
+        blob = it.get_current_blob()
+        self.assertEqual('{"hello": "world"}', blob)
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertTrue(it.has_trailing_data())
+
+    def test_unbalanced_curly(self):
+        data = '{"hello": "world"} }'
+        it = rbql_json.BalancingIterator()
+        with self.assertRaises(Exception) as cm:
+            it.add_fragment(data)
+        e = cm.exception
+        self.assertEqual(str(e), 'Unbalanced closing curly bracket `}`')
+
+    def test_unbalanced_square(self):
+        data = '{"hello": "world"} ]'
+        it = rbql_json.BalancingIterator()
+        with self.assertRaises(Exception) as cm:
+            it.add_fragment(data)
+        e = cm.exception
+        self.assertEqual(str(e), 'Unbalanced closing square bracket `]`')
+
+    def test_integers(self):
+        it = rbql_json.BalancingIterator()
+        it.add_fragment('1 2 3 4 5\n')
+        for i in range(5):
+            self.assertEqual(int(it.get_current_blob()) - 1, i)
+            it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
 
