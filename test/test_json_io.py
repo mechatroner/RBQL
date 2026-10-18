@@ -272,7 +272,7 @@ class TestGetDeduplicationWarnings(unittest.TestCase):
         self.assertEqual(expected_warnings, actual_warnings)
 
 
-class TestJsonStreamRecordIterator(unittest.TestCase):
+class TestRegularStreaming(unittest.TestCase):
     def test_many_chunks(self):
         encoding = None
         vals = list(range(20))
@@ -281,7 +281,7 @@ class TestJsonStreamRecordIterator(unittest.TestCase):
         data = '\n'.join([json_str] * 10)
         chunk_size = 8
         input_stream = io.StringIO(data)
-        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, chunk_size=chunk_size)
+        input_iterator = rbql_json.JsonIterator(input_stream, encoding, chunk_size=chunk_size)
         num_records = 0
         while True:
             r = input_iterator.get_record()
@@ -296,20 +296,20 @@ class TestUnnestMode(unittest.TestCase):
     def test_one_record(self):
         input_stream = io.StringIO('["foo"]')
         encoding = None
-        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
+        input_iterator = rbql_json.JsonIterator(input_stream, encoding, unnest_mode=True)
         self.assertEqual(input_iterator.get_record(), ["foo"])
         self.assertEqual(input_iterator.get_record(), None)
 
     def test_empty_table(self):
         input_stream = io.StringIO('[]')
         encoding = None
-        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
+        input_iterator = rbql_json.JsonIterator(input_stream, encoding, unnest_mode=True)
         self.assertEqual(input_iterator.get_record(), None)
     
     def test_bad_non_json_input(self):
         input_stream = io.StringIO('')
         encoding = None
-        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
+        input_iterator = rbql_json.JsonIterator(input_stream, encoding, unnest_mode=True)
         with self.assertRaises(Exception) as cm:
             while True:
                 record = input_iterator.get_record()
@@ -321,7 +321,7 @@ class TestUnnestMode(unittest.TestCase):
     def test_non_array_object(self):
         input_stream = io.StringIO('{"foo": 2}')
         encoding = None
-        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
+        input_iterator = rbql_json.JsonIterator(input_stream, encoding, unnest_mode=True)
         with self.assertRaises(Exception) as cm:
             while True:
                 record = input_iterator.get_record()

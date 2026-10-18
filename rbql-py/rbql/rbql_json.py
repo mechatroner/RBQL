@@ -247,7 +247,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
-class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
+class JsonIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=16384, unnest_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
@@ -315,11 +315,11 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
 
         input_iterator = None
         if input_json_lines:
-            input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+            input_iterator = JsonIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
         elif input_json_stream:
-            input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+            input_iterator = JsonIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
         else:
-            input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a', unnest_mode=True)
+            input_iterator = JsonIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a', unnest_mode=True)
 
         output_writer = None
         if output_json_lines:
