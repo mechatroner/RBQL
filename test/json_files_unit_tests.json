@@ -88,7 +88,7 @@
         "input_table_path": "json_files/non_json.txt",
         "input_json_lines": false,
         "output_json_lines": false,
-        "expected_error_py": "Unable to parse input as JSON",
+        "expected_error_py": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `f` char",
         "expected_error_js": "Unable to parse input stream as JSON: Unexpected token",
         "query_js": "select *",
         "query_python": "select *"
@@ -98,7 +98,7 @@
         "input_table_path": "json_files/root_object_not_array.json",
         "input_json_lines": false,
         "output_json_lines": false,
-        "expected_error_py": "Input JSON root node must be array",
+        "expected_error_py": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{` char",
         "expected_error_js": "Input JSON root node must be array",
         "query_js": "select *",
         "query_python": "select *"

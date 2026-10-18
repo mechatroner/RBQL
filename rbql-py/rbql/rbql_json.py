@@ -36,6 +36,8 @@ class BalancingIterator:
         self.unnest_mode = unnest_mode
         self.json_blobs = deque()
         self.current = UnparsedJsonBlob()
+        self.open_bracket_skipped = False if self.unnest_mode else True
+        self.closing_bracket_skipped = False
 
     def add_fragment(self, fragment):
         seek_start_pos = len(self.buf)
@@ -55,24 +57,50 @@ class BalancingIterator:
         return len(self.buf)
 
     def finish(self):
+        if self.unnest_mode and not self.closing_bracket_skipped:
+            raise RbqlJsonParsingError("Closing square bracket `]` at the end is required in unnest mode")
         if not self.current.inside_string and len(self.current.bracket_stack) == 0:
             self._consume_fragment(self.buf)
             self.buf = ''
 
     def _consume_fragment(self, fragment):
-        # TODO This would make a sequence of commas a valid noop span, consider fixing it.
-        if self.unnest_mode and fragment[-1] == ',':
-            fragment = fragment[:-1]
         fragment = fragment.strip()
         if len(fragment):
             self.json_blobs.append(fragment)
             self.current = UnparsedJsonBlob() 
 
+    def skip_open_square_bracket(self, idx):
+        while idx < len(self.buf) and self.buf[idx].isspace():
+            idx += 1
+        if idx >= len(self.buf):
+            return idx
+        if self.buf[idx] != '[':
+            # FIXME ut this
+            raise RbqlJsonParsingError("Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{}` char".format(self.buf[idx]))
+        self.open_bracket_skipped = True
+        return idx + 1
+
+    def skip_trailing_spaces(self, idx):
+        while idx < len(self.buf):
+            if self.buf[idx].isspace():
+                idx += 1
+                continue
+            # FIXME ut this
+            raise RbqlJsonParsingError("Trailing data after the closing `]` bracket in unnest mode")
+        return idx
+
     def _parse_forward(self, seek_start_pos):
-        # FIXME we also need to skip the first and the last square bracket in unnest_mode
         i = seek_start_pos
+        if not self.open_bracket_skipped:
+            i = self.skip_open_square_bracket(i)
+            self.buf = self.buf[i:]
+            i = 0
         while i < len(self.buf):
+            if self.closing_bracket_skipped:
+                self.skip_trailing_spaces(i)
+                return
             object_can_end = False
+            end_offset = 0 # This is to be able to drop trailing `,` or `]` in the unnest mode.
             if self.current.inside_string:
                 if self.buf[i] == '"':
                     # It is safe to check buf[i - 1] because we somehow got into the string so we must have parsed something already.
@@ -90,16 +118,21 @@ class BalancingIterator:
                     raise RbqlJsonParsingError("Unbalanced closing curly bracket `}`")
                 object_can_end = True
             elif self.buf[i] == ']':
-                if len(self.current.bracket_stack) == 0 or self.current.bracket_stack.pop() != '[':
+                if self.unnest_mode and len(self.current.bracket_stack) == 0 and not self.closing_bracket_skipped:
+                    self.closing_bracket_skipped = True
+                    end_offset = 1
+                elif len(self.current.bracket_stack) == 0 or self.current.bracket_stack.pop() != '[':
                     raise RbqlJsonParsingError("Unbalanced closing square bracket `]`")
                 object_can_end = True
             elif self.buf[i] == ',' and self.unnest_mode:
+                # TODO This would make a sequence of commas a valid noop span, consider fixing it.
+                end_offset = 1
                 object_can_end = True
             elif self.buf[i].isspace():
                 object_can_end = True
             i += 1
             if object_can_end and len(self.current.bracket_stack) == 0:
-                fragment = self.buf[:i]
+                fragment = self.buf[:i - end_offset]
                 self.buf = self.buf[i:]
                 i = 0
                 self._consume_fragment(fragment)
@@ -144,36 +177,6 @@ def deduplicate_header_keys(header):
         if dedup_counter != 1:
             deduplicated_keys.add(h)
     return (unique_keys, sorted(list(deduplicated_keys)))
-
-
-class JsonArrayObjectRecordIterator(rbql_engine.RBQLInputIterator):
-    # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
-    def __init__(self, stream, encoding, table_name='input', variable_prefix='a'):
-        assert encoding in ['utf-8', 'latin-1', None]
-        self.encoding = encoding
-        self.stream = rbql_csv.encode_input_stream(stream, encoding)
-        self.table_name = table_name
-        self.variable_prefix = variable_prefix
-        try:
-            self.json_object = json.load(self.stream)
-        except json.JSONDecodeError as e:
-            raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
-        if not isinstance(self.json_object, list):
-            raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
-        self.record_number = 0
-        self.line_number = 1 # The object has to start at the first line so we just keep NL at 1.
-
-    def get_header(self):
-        # FIXME consider if this is a hack or not. Test queries with stars like `SELECT a.*, a.*` or `SELECT *`.
-        # We might not need this (i.e. we can have it return None as the default impl) if we support the write_header flag, see the rbql_engine.py comments.
-        # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
-        return [self.variable_prefix]
-
-    def get_record(self):
-        if self.record_number >= len(self.json_object):
-            return None
-        self.record_number += 1
-        return [self.json_object[self.record_number - 1]]
 
 
 class JsonWriter(rbql_engine.RBQLOutputWriter):
@@ -245,7 +248,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
 class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=16384):
+    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=16384, unnest_mode=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
@@ -256,10 +259,10 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
         self.chunk_size = chunk_size
         self.num_chunks_read_internal_stat = 0 # This is for unit tests only
         self.record_number = 0
-        self.balancing_iterator = BalancingIterator()
+        self.balancing_iterator = BalancingIterator(unnest_mode=unnest_mode)
 
     def get_header(self):
-        # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
+        # Returning "a1" as a column name instead of "a" would have a side effect because it would initialize a.a1 and a['a1'] values in rbql engine.
         return [self.variable_prefix]
     
     def get_exhausted(self):
@@ -316,7 +319,7 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
         elif input_json_stream:
             input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
         else:
-            input_iterator = JsonArrayObjectRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+            input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a', unnest_mode=True)
 
         output_writer = None
         if output_json_lines:

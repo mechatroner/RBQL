@@ -292,35 +292,43 @@ class TestJsonStreamRecordIterator(unittest.TestCase):
         self.assertGreaterEqual(input_iterator.num_chunks_read_internal_stat, len(data) / chunk_size)
 
 
-class TestJsonArrayObjectRecordIterator(unittest.TestCase):
+class TestUnnestMode(unittest.TestCase):
     def test_one_record(self):
         input_stream = io.StringIO('["foo"]')
         encoding = None
-        input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
         self.assertEqual(input_iterator.get_record(), ["foo"])
         self.assertEqual(input_iterator.get_record(), None)
 
     def test_empty_table(self):
         input_stream = io.StringIO('[]')
         encoding = None
-        input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
         self.assertEqual(input_iterator.get_record(), None)
-
+    
     def test_bad_non_json_input(self):
         input_stream = io.StringIO('')
         encoding = None
+        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
         with self.assertRaises(Exception) as cm:
-            input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+            while True:
+                record = input_iterator.get_record()
+                if record is None:
+                    break
         e = cm.exception
-        self.assertTrue(str(e).find('Unable to parse input as JSON') != -1)
-
+        self.assertEqual(str(e), 'Closing square bracket `]` at the end is required in unnest mode')
+    
     def test_non_array_object(self):
         input_stream = io.StringIO('{"foo": 2}')
         encoding = None
+        input_iterator = rbql_json.JsonStreamRecordIterator(input_stream, encoding, unnest_mode=True)
         with self.assertRaises(Exception) as cm:
-            input_iterator = rbql_json.JsonArrayObjectRecordIterator(input_stream, encoding)
+            while True:
+                record = input_iterator.get_record()
+                if record is None:
+                    break
         e = cm.exception
-        self.assertTrue(str(e).find('Input JSON root node must be array in array iteration mode') != -1)
+        self.assertEqual(str(e), 'Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{` char')
 
 
 class TestJsonLinesWriter(unittest.TestCase):
