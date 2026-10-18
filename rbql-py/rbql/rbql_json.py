@@ -244,85 +244,6 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
-class JsonLinesRecordIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=1024):
-        assert encoding in ['utf-8', 'latin-1', None]
-        self.encoding = encoding
-        self.stream = rbql_csv.encode_input_stream(stream, encoding)
-        self.table_name = table_name
-        self.variable_prefix = variable_prefix
-
-        self.buffer = ''
-        self.exhausted = False
-        self.record_number = 0
-        self.line_number = 0
-        self.chunk_size = chunk_size
-
-    def get_header(self):
-        # Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
-        return [self.variable_prefix]
-
-    def _get_row_from_buffer(self):
-        str_before, separator, str_after = csv_utils.extract_line_from_data(self.buffer)
-        if separator is None:
-            return None
-        if separator == '\r' and str_after == '':
-            one_more = self.stream.read(1)
-            if one_more == '\n':
-                separator = '\r\n'
-            else:
-                str_after = one_more
-        self.buffer = str_after
-        return str_before
-
-    def _read_until_found(self):
-        if self.exhausted:
-            return
-        chunks = []
-        while True:
-            chunk = self.stream.read(self.chunk_size)
-            if not chunk:
-                self.exhausted = True
-                break
-            chunks.append(chunk)
-            if csv_utils.newline_rgx.search(chunk) is not None:
-                break
-        self.buffer += ''.join(chunks)
-
-    def get_row(self):
-        try:
-            row = self._get_row_from_buffer()
-            if row is None:
-                self._read_until_found()
-                row = self._get_row_from_buffer()
-                if row is None:
-                    assert self.exhausted
-                    if not len(self.buffer):
-                        return None
-                    row = self.buffer
-                    self.buffer = ''
-            self.line_number += 1
-            # Don't try to handle BOM here because is should be very rare for json files and it is fine to fail
-            return row
-        except UnicodeDecodeError:
-            raise rbql_engine.RbqlIOHandlingError('Unable to decode input table as UTF-8. Use binary (latin-1) encoding instead')
-
-    def get_record(self):
-        while True:
-            line = self.get_row()
-            if line is None:
-                return None
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                json_obj = json.loads(line)
-                self.record_number += 1
-                return [json_obj]
-            except json.JSONDecodeError as e:
-                raise rbql_engine.RbqlIOHandlingError('Error decoding JSON in {} table at record {}, line {}: {}'.format(self.table_name, self.record_number + 1, self.line_number, str(e)))
-
-
 class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a', chunk_size=16384):
         assert encoding in ['utf-8', 'latin-1', None]
@@ -330,9 +251,6 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
         self.table_name = table_name
         self.variable_prefix = variable_prefix
-
-        #self.decoder = json.JSONDecoder()
-        #self.buffer = ''
 
         self.exhausted = False
         self.chunk_size = chunk_size
@@ -346,14 +264,17 @@ class JsonStreamRecordIterator(rbql_engine.RBQLInputIterator):
     
     def get_exhausted(self):
         if self.balancing_iterator.has_trailing_data():
-            raise rbql_engine.RbqlIOHandlingError("Trailing data in {} stream that can't be parsed as JSON objects".format(self.table_name))
+            raise rbql_engine.RbqlIOHandlingError("Trailing data in {} stream that can't be parsed as JSON objects after record {}".format(self.table_name, self.record_number))
         return None
 
     def get_and_advance(self):
-        # FIXME add error handling - we need to add info to the message at what entry it has failed
         blob = self.balancing_iterator.advance()
-        json_obj = json.loads(blob)
         self.record_number += 1
+        json_obj = None
+        try:
+            json_obj = json.loads(blob)
+        except json.JSONDecodeError as e:
+            raise rbql_engine.RbqlIOHandlingError('Unable to parse {} record {} as JSON: {}'.format(table_name, self.record_number, e))
         return [json_obj]
 
     def get_record(self):
@@ -391,7 +312,7 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
 
         input_iterator = None
         if input_json_lines:
-            input_iterator = JsonLinesRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
+            input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
         elif input_json_stream:
             input_iterator = JsonStreamRecordIterator(input_stream, 'utf-8', table_name='input', variable_prefix='a')
         else:
