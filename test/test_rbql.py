@@ -169,7 +169,7 @@ class TestRBQLQueryParsing(unittest.TestCase):
 
     def test_separate_actions(self):
         query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and int(b3) == 100 order by int(a7) desc '
-        expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': rbql_engine.INNER_JOIN}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and int(b3) == 100'}, 'ORDER BY': {'text': 'int(a7)', 'reverse': True}}
+        expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': rbql_engine.INNER_JOIN}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and int(b3) == 100'}, 'ORDER BY': {'text': 'int(a7)', 'reverse': True, 'order_by_columns': [('int(a7)', True)]}}
         test_res = rbql_engine.separate_actions(rbql_engine.default_statement_groups, query)
         assert test_res == expected_res
 
@@ -440,6 +440,29 @@ class TestTableRun(unittest.TestCase):
         rbql.query_table(query, input_table, output_table, warnings)
         self.assertEqual(warnings, [])
         self.assertEqual(expected_output_table, output_table)
+
+
+    def test_table_run_order_by_multiple_columns(self):
+        # https://github.com/mechatroner/RBQL/issues/35
+        input_table = [('a', 2), ('a', 1), ('b', 2), ('b', 1)]
+
+        output_table = []
+        warnings = []
+        rbql.query_table('select a1, a2 order by a1 asc, a2 desc', input_table, output_table, warnings)
+        self.assertEqual(warnings, [])
+        self.assertEqual([['a', 2], ['a', 1], ['b', 2], ['b', 1]], output_table)
+
+        output_table = []
+        warnings = []
+        rbql.query_table('select a1, a2 order by a1 desc, a2 asc', input_table, output_table, warnings)
+        self.assertEqual(warnings, [])
+        self.assertEqual([['b', 1], ['b', 2], ['a', 1], ['a', 2]], output_table)
+
+        output_table = []
+        warnings = []
+        rbql.query_table('select a1, a2 order by a1, a2 desc', input_table, output_table, warnings)
+        self.assertEqual(warnings, [])
+        self.assertEqual([['a', 2], ['a', 1], ['b', 2], ['b', 1]], output_table)
 
 
     def test_get_version(self):

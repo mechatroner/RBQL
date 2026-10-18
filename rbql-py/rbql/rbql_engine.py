@@ -715,7 +715,7 @@ if not query_context.writer.write(up_fields):
 
 # We need dummy_wrapper_for_exec function because otherwise "import" statements won't work as expected if used inside user-defined functions, see: https://github.com/mechatroner/sublime_rainbow_csv/issues/22
 MAIN_LOOP_BODY = '''
-def dummy_wrapper_for_exec(query_context, user_namespace, LIKE, UNNEST, ANY_VALUE, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested):
+def dummy_wrapper_for_exec(query_context, user_namespace, LIKE, UNNEST, ANY_VALUE, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested, RBQLReversedSortKey):
 
     try:
         pass
@@ -772,7 +772,7 @@ def dummy_wrapper_for_exec(query_context, user_namespace, LIKE, UNNEST, ANY_VALU
                 raise RbqlParsingError(wrong_aggregation_usage_error) # UT JSON
             raise RbqlRuntimeError('At record ' + str(NR) + ', Details: ' + str(e)) # UT JSON
 
-dummy_wrapper_for_exec(query_context, user_namespace, LIKE, UNNEST, ANY_VALUE, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested)
+dummy_wrapper_for_exec(query_context, user_namespace, LIKE, UNNEST, ANY_VALUE, MIN, MAX, COUNT, SUM, AVG, VARIANCE, MEDIAN, ARRAY_AGG, mad_max, mad_min, mad_sum, select_unnested, RBQLReversedSortKey)
 '''
 
 
@@ -835,6 +835,18 @@ builtin_sum = sum
 
 
 def compile_and_run(query_context, user_namespace, unit_test_mode=False):
+    class RBQLReversedSortKey:
+        # Wraps a sort key so that ordering comparisons are reversed, which
+        # lets mixed ASC/DESC column directions be expressed in a tuple sort key.
+        def __init__(self, value):
+            self.value = value
+
+        def __lt__(self, other):
+            return self.value > other.value
+
+        def __eq__(self, other):
+            return self.value == other.value
+
     def LIKE(text, pattern):
         matcher = query_context.like_regex_cache.get(pattern, None)
         if matcher is None:
@@ -1270,6 +1282,30 @@ def locate_statements(statement_groups, rbql_expression):
     return sorted(result)
 
 
+def split_top_level(text, delimiter=','):
+    """Split *text* on *delimiter*, ignoring delimiters nested in brackets.
+
+    Used to split a multi-column ORDER BY expression into individual sort
+    keys without splitting on commas that appear inside function calls or
+    subscript expressions.
+    """
+    parts = list()
+    depth = 0
+    current = list()
+    for ch in text:
+        if ch in '([':
+            depth += 1
+        elif ch in ')]':
+            depth -= 1
+        if ch == delimiter and depth == 0:
+            parts.append(''.join(current))
+            current = list()
+        else:
+            current.append(ch)
+    parts.append(''.join(current))
+    return parts
+
+
 def separate_actions(statement_groups, rbql_expression):
     # TODO add more checks:
     # make sure all rbql_expression was separated and SELECT or UPDATE is at the beginning
@@ -1302,13 +1338,22 @@ def separate_actions(statement_groups, rbql_expression):
             span = re.sub('(?i)^ *SET ', '', span)
 
         if statement == ORDER_BY:
-            span = re.sub('(?i) ASC *$', '', span)
-            new_span = re.sub('(?i) DESC *$', '', span)
-            if new_span != span:
-                span = new_span
-                statement_params['reverse'] = True
-            else:
-                statement_params['reverse'] = False
+            # Support multiple sort columns with per-column ASC/DESC.
+            columns = split_top_level(span)
+            order_by_columns = list()
+            for column in columns:
+                column = column.strip()
+                reverse = False
+                if re.search('(?i) ASC *$', column):
+                    column = re.sub('(?i) ASC *$', '', column).strip()
+                elif re.search('(?i) DESC *$', column):
+                    column = re.sub('(?i) DESC *$', '', column).strip()
+                    reverse = True
+                order_by_columns.append((column, reverse))
+            statement_params['order_by_columns'] = order_by_columns
+            # Keep the legacy single-column fields for backwards compatibility.
+            span = ', '.join(column for column, _ in order_by_columns)
+            statement_params['reverse'] = order_by_columns[-1][1] if len(order_by_columns) == 1 else False
 
         if statement == SELECT:
             if statement_start != 0:
@@ -1577,8 +1622,25 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
             query_context.writer = UniqWriter(query_context.writer)
 
     if ORDER_BY in rb_actions:
-        query_context.sort_key_expression = '({})'.format(combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals))
-        query_context.writer = SortedWriter(query_context.writer, reverse_sort=rb_actions[ORDER_BY]['reverse'])
+        order_by_columns = rb_actions[ORDER_BY].get('order_by_columns')
+        if order_by_columns and (len(order_by_columns) > 1 or order_by_columns[0][1]):
+            # Multiple columns (or a single DESC column) are expressed as a
+            # tuple sort key, wrapping DESC columns so their comparison order
+            # is reversed. This makes mixed ASC/DESC directions work with a
+            # single global ascending sort.
+            sort_parts = list()
+            for column, reverse in order_by_columns:
+                column = combine_string_literals(column, string_literals)
+                if reverse:
+                    sort_parts.append('RBQLReversedSortKey({})'.format(column))
+                else:
+                    sort_parts.append(column)
+            query_context.sort_key_expression = '({})'.format(', '.join(sort_parts))
+            reverse_sort = False
+        else:
+            query_context.sort_key_expression = '({})'.format(combine_string_literals(rb_actions[ORDER_BY]['text'], string_literals))
+            reverse_sort = rb_actions[ORDER_BY]['reverse']
+        query_context.writer = SortedWriter(query_context.writer, reverse_sort=reverse_sort)
 
 
 def make_inconsistent_num_fields_warning(table_name, inconsistent_records_info):
