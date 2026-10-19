@@ -28,7 +28,6 @@ class UnparsedJsonBlob:
         self.backslash_escape_flag = False
         
 
-# We call it JsonFinalizer in js
 class BalancingIterator:
     def __init__(self, unnest_mode=False):
         self.buf = ''

@@ -143,7 +143,7 @@
         "input_json_stream": true,
         "output_json_stream": true,
         "expected_error_py": "Unbalanced closing curly bracket `}`",
-        "expected_error_js": "Unable to interpret data as JSON (record number 4): Invalid prefix: Buffer does not start with a valid JSON object or array",
+        "expected_error_js": "Unbalanced closing curly bracket `}`",
         "query_js": "select *",
         "query_python": "select *"
     },

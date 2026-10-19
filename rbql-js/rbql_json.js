@@ -5,13 +5,179 @@ const util = require('util');
 
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
-const json_utils = require('./json_utils.js');
-
-class RbqlIOHandlingError extends Error {}
-
+//const json_utils = require('./json_utils.js');
 
 // FIXME add bash-level unit tests for the cli tool that would use json format.
 // FIXME merge all iterators into a single one and all writers into one.
+
+const backslashChar = '\\';
+
+class RbqlJsonParsingError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'RbqlJsonParsingError';
+    }
+}
+
+class UnparsedJsonBlob {
+    constructor() {
+        this.bracket_stack = [];
+        this.inside_string = false;
+        this.backslash_escape_flag = false;
+    }
+}
+
+class BalancingIterator {
+    constructor(unnest_mode = false) {
+        this.buf = '';
+        this.unnest_mode = unnest_mode;
+        this.json_blobs = []; // There is no deque in JS so we use an array. Therefore `advance()` takes O(N).
+        this.current = new UnparsedJsonBlob();
+        this.open_bracket_skipped = this.unnest_mode ? false : true;
+        this.closing_bracket_skipped = false;
+    }
+
+    add_fragment(fragment) {
+        const seek_start_pos = this.buf.length;
+        this.buf += fragment;
+        this._parse_forward(seek_start_pos);
+    }
+
+    get_current_blob() {
+        return this.json_blobs[0];
+    }
+
+    advance() {
+        return this.json_blobs.shift(); // Equivalent to popleft(), but O(N)
+    }
+
+    empty() {
+        return this.json_blobs.length === 0;
+    }
+
+    has_trailing_data() {
+        return this.buf.length > 0;
+    }
+
+    finish() {
+        if (this.unnest_mode && !this.closing_bracket_skipped) {
+            throw new RbqlJsonParsingError("Closing square bracket `]` at the end is required in unnest mode");
+        }
+        if (!this.current.inside_string && this.current.bracket_stack.length === 0) {
+            this._consume_fragment(this.buf);
+            this.buf = '';
+        }
+    }
+
+    _consume_fragment(fragment) {
+        fragment = fragment.trim();
+        if (fragment.length > 0) {
+            this.json_blobs.push(fragment);
+            this.current = new UnparsedJsonBlob();
+        }
+    }
+
+    skip_open_square_bracket(idx) {
+        while (idx < this.buf.length && isSpace(this.buf[idx])) {
+            idx += 1;
+        }
+        if (idx >= this.buf.length) {
+            return idx;
+        }
+        if (this.buf[idx] !== '[') {
+            // FIXME ut this
+            throw new RbqlJsonParsingError(`Input data must be wrapped in JSON array in unnest mode. Expected \`[\` got \`${this.buf[idx]}\` char`);
+        }
+        this.open_bracket_skipped = true;
+        return idx + 1;
+    }
+
+    skip_trailing_spaces(idx) {
+        while (idx < this.buf.length) {
+            if (isSpace(this.buf[idx])) {
+                idx += 1;
+                continue;
+            }
+            // FIXME ut this
+            throw new RbqlJsonParsingError("Trailing data after the closing `]` bracket in unnest mode");
+        }
+        return idx;
+    }
+
+    _parse_forward(seek_start_pos) {
+        let i = seek_start_pos;
+        if (!this.open_bracket_skipped) {
+            i = this.skip_open_square_bracket(i);
+            this.buf = this.buf.slice(i);
+            i = 0;
+        }
+        while (i < this.buf.length) {
+            if (this.closing_bracket_skipped) {
+                this.skip_trailing_spaces(i);
+                return;
+            }
+            let object_can_end = false;
+            let end_offset = 0; // This is to be able to drop trailing `,` or `]` in the unnest mode.
+            
+            if (this.current.inside_string) {
+                if (this.buf[i] === '"' && !this.current.backslash_escape_flag) {
+                    this.current.inside_string = false;
+                    // This is to handle a sequence of json strings like this `"str1""str2""str3"` - strings don't have to be separated with whitespaces.
+                    object_can_end = true;
+                }
+                if (this.buf[i] === backslashChar) {
+                    this.current.backslash_escape_flag = !this.current.backslash_escape_flag;
+                } else {
+                    // We don't check that the preceeding backslash cretes a valid escape sequence.
+                    // This allows invalid escape sequences inside strings e.g. "hello\ world" but it is fine since external parsing would catch it anyway.
+                    this.current.backslash_escape_flag = false;
+                }
+            } else if (this.buf[i] === '"') {
+                this.current.inside_string = true;
+                this.current.backslash_escape_flag = false; // Just in case although it is probably redundant since we would reset the flag anyway when finishing the previous string.
+            } else if (this.buf[i] === '{' || this.buf[i] === '[') {
+                this.current.bracket_stack.push(this.buf[i]);
+            } else if (this.buf[i] === '}') {
+                if (this.current.bracket_stack.length === 0 || this.current.bracket_stack.pop() !== '{') {
+                    throw new RbqlJsonParsingError("Unbalanced closing curly bracket `}`");
+                }
+                object_can_end = true;
+            } else if (this.buf[i] === ']') {
+                if (this.unnest_mode && this.current.bracket_stack.length === 0 && !this.closing_bracket_skipped) {
+                    this.closing_bracket_skipped = true;
+                    end_offset = 1;
+                } else if (this.current.bracket_stack.length === 0 || this.current.bracket_stack.pop() !== '[') {
+                    throw new RbqlJsonParsingError("Unbalanced closing square bracket `]`");
+                }
+                object_can_end = true;
+            } else if (this.buf[i] === ',' && this.unnest_mode) {
+                // TODO This would make a sequence of commas a valid noop span, consider fixing it.
+                end_offset = 1;
+                object_can_end = true;
+            } else if (isSpace(this.buf[i])) {
+                object_can_end = true;
+            }
+            
+            i += 1;
+            
+            if (object_can_end && this.current.bracket_stack.length === 0) {
+                const fragment = this.buf.slice(0, i - end_offset);
+                this.buf = this.buf.slice(i);
+                i = 0;
+                this._consume_fragment(fragment);
+            }
+        }
+    }
+}
+
+// Helper function mimicking Python's str.isspace() for single characters
+function isSpace(ch) {
+    return /\s/.test(ch);
+}
+
+
+class RbqlIOHandlingError extends Error {}
+
 
 function assert(condition, message=null) {
     if (!condition) {
@@ -541,7 +707,7 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
         // Holds last exception if we don't have any reject callbacks from clients yet.
         this.current_exception = null;
 
-        this.json_finalizer = new json_utils.JsonFinalizer();
+        this.balancing_iterator = new BalancingIterator();
         this.produced_records_queue = new csv_utils.RecordQueue();
     }
 
@@ -620,21 +786,15 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
         } else {
             decoded_string = data_chunk.toString(this.encoding);
         }
-        this.json_finalizer.add_data(decoded_string);
-        while (true) {
-            let object_text = null;
+        try {
+            this.balancing_iterator.add_fragment(decoded_string);
+        } catch (e) {
+            this.store_or_propagate_exception(e);
+        }
+        while (!this.balancing_iterator.empty()) {
             try {
-                object_text = this.json_finalizer.get_first_object();
-            } catch (e) {
-                this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to interpret data as JSON (record number ${this.record_number}): ${e.message}"`));
-            }
-            if (object_text === null) {
-                // This means that there is no completed objects in the finalizer.
-                break;
-            }
-            this.json_finalizer.erase_first_object();
-            try {
-                this.produced_records_queue.enqueue([JSON.parse(object_text)]);
+                this.produced_records_queue.enqueue([JSON.parse(this.balancing_iterator.get_current_blob())]);
+                this.balancing_iterator.advance();
                 this.record_number += 1;
             } catch (e) {
                 if (e instanceof SyntaxError) {
@@ -651,8 +811,10 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
 
 
     process_data_stream_end() {
+        // FIXME we need to check that it doesn't have trailing data somewhere
         this.input_exhausted = true;
-        if (!this.json_finalizer.is_empty()) {
+        this.balancing_iterator.finish();
+        if (this.balancing_iterator.has_trailing_data()) {
             this.store_or_propagate_exception(new RbqlIOHandlingError(`Trailing data in ${this.table_name} stream that can't be parsed as JSON objects`));
         }
         // This last call is needed so that null is dequeued from the queue which initiaties the query completion.
@@ -714,4 +876,5 @@ module.exports.get_json_object_to_write = get_json_object_to_write;
 module.exports.JsonWriter = JsonWriter;
 module.exports.JsonLinesRecordIterator = JsonLinesRecordIterator;
 module.exports.JsonStreamRecordIterator = JsonStreamRecordIterator;
+module.exports.BalancingIterator = BalancingIterator;
 module.exports.query_json = query_json;
