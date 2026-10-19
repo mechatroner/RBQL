@@ -53,7 +53,7 @@ class BalancingIterator:
         return len(self.json_blobs) == 0
 
     def has_trailing_data(self):
-        return len(self.buf)
+        return len(self.buf) != 0
 
     def finish(self):
         if self.unnest_mode and not self.closing_bracket_skipped:
