@@ -5,10 +5,9 @@ const util = require('util');
 
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
-//const json_utils = require('./json_utils.js');
 
 // FIXME add bash-level unit tests for the cli tool that would use json format.
-// FIXME merge all iterators into a single one and all writers into one.
+// FIXME merge all iterators into a single one.
 
 const backslashChar = '\\';
 
