@@ -16,8 +16,6 @@ def set_debug_mode():
     global debug_mode
     debug_mode = True
 
-# FIXME merge all iterators into a single one (use pre-parsing approach from js impl) and all writers into one.
-
 backslash_char = '\\'
 
 class RbqlJsonParsingError(Exception):
@@ -27,6 +25,7 @@ class UnparsedJsonBlob:
     def __init__(self):
         self.bracket_stack = []
         self.inside_string = False
+        self.backslash_escape_flag = False
         
 
 # We call it JsonFinalizer in js
@@ -102,15 +101,19 @@ class BalancingIterator:
             object_can_end = False
             end_offset = 0 # This is to be able to drop trailing `,` or `]` in the unnest mode.
             if self.current.inside_string:
-                if self.buf[i] == '"':
-                    # It is safe to check buf[i - 1] because we somehow got into the string so we must have parsed something already.
-                    # And if self.buf[i - 1] == backslash_char it is also safe to read self.buf[i - 2] by the same logic.
-                    if self.buf[i - 1] != backslash_char or self.buf[i - 2] == backslash_char:
-                        self.current.inside_string = False
-                        # This is to handle a sequence of json strings like this `"str1""str2""str3"` - strings don't have to be separated with whitespaces.
-                        object_can_end = True
+                if self.buf[i] == '"' and not self.current.backslash_escape_flag:
+                    self.current.inside_string = False
+                    # This is to handle a sequence of json strings like this `"str1""str2""str3"` - strings don't have to be separated with whitespaces.
+                    object_can_end = True
+                if self.buf[i] == backslash_char:
+                    self.current.backslash_escape_flag = not self.current.backslash_escape_flag
+                else: 
+                    # We don't check that the preceeding backslash cretes a valid escape sequence.
+                    # This allows invalid escape sequences inside strings e.g. "hello\ world" but it is fine since external parsing would catch it anyway.
+                    self.current.backslash_escape_flag = False
             elif self.buf[i] == '"':
                 self.current.inside_string = True
+                self.current.backslash_escape_flag = False # Just in case although it is probably redundant since we would reset the flag anyway when finishing the previous string.
             elif self.buf[i] == '{' or self.buf[i] == '[':
                 self.current.bracket_stack.append(self.buf[i])
             elif self.buf[i] == '}':

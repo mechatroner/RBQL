@@ -190,6 +190,30 @@ class TestBalancingIterator(unittest.TestCase):
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
 
+    def test_two_backslashes(self):
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(r'"hello world\\"')
+        self.assertEqual(it.get_current_blob(), r'"hello world\\"')
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
+    def test_three_backslashes(self):
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(r'"hello world\\\" bye!"')
+        self.assertEqual(it.get_current_blob(), r'"hello world\\\" bye!"')
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
+    def bad_backslash_still_works(self):
+        it = rbql_json.BalancingIterator()
+        it.add_fragment(r'"hello\ \"world"')
+        self.assertEqual(it.get_current_blob(), r'"hello\ \"world"')
+        it.advance()
+        self.assertTrue(it.empty())
+        self.assertFalse(it.has_trailing_data())
+
 
 class TestDeduplicateHeadersKeys(unittest.TestCase):
     def test_deduplication_simple(self):
