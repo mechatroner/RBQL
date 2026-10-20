@@ -255,15 +255,13 @@ async function process_test_case(tmp_tests_dir, test_case) {
     query = query.replace('###UT_TESTS_DIR###', script_dir);
 
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
-    // FIXME add test with input json lines and output not and vice versa
+    // FIXME add test with input unnest json array and output not wrapped and vice versa
     let expected_error = test_common.get_default(test_case, 'expected_error', null) || test_common.get_default(test_case, 'expected_error_js', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
-    let input_json_lines = test_common.get_default(test_case, 'input_json_lines', true);
-    let output_json_lines = test_common.get_default(test_case, 'output_json_lines', true);
-    let input_json_stream = test_common.get_default(test_case, 'input_json_stream', false);
-    let output_json_stream = test_common.get_default(test_case, 'output_json_stream', false);
+    let unnest_root_array = test_common.get_default(test_case, 'unnest_root_array', false);
     let pretty_indent = test_common.get_default(test_case, 'pretty_indent', null);
+    let params = {'pretty_indent': pretty_indent, 'unnest_root_array': unnest_root_array};
     let expected_md5 = null;
     let actual_output_table_path = null;
     if (expected_output_table_path !== null) {
@@ -280,7 +278,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
     let warnings = [];
     try {
-        await rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, '', input_json_lines, output_json_lines, pretty_indent, input_json_stream, output_json_stream);
+        await rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, params);
     } catch (e) {
         if (local_debug_mode)
             throw(e);

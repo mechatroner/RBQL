@@ -511,7 +511,11 @@ class JsonIterator extends rbql.RBQLInputIterator {
     };
 }
 
-async function query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=true, output_json_lines=true, pretty_indent=null, input_json_stream=false, output_json_stream=false) {
+async function query_json(query_text, input_path, output_path, output_warnings, params) {
+    let user_init_code = params.hasOwnProperty('user_init_code') ? params['user_init_code'] : '';
+    let pretty_indent = params.hasOwnProperty('pretty_indent') ? params['pretty_indent'] : null;
+    let unnest_root_array = params.hasOwnProperty('unnest_root_array') ? params['unnest_root_array'] : false;
+    let wrap_in_json_array = params.hasOwnProperty('wrap_output_as_array') ? params['wrap_output_as_array'] : unnest_root_array;
     let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
 
@@ -522,23 +526,8 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     let input_file_dir = input_path ? path.dirname(input_path) : null;
     let join_tables_registry = null;
 
-    let input_iterator = null;
-    if (input_json_lines) {
-        input_iterator = new JsonIterator(input_stream);
-    } else if (input_json_stream) {
-        input_iterator = new JsonIterator(input_stream);
-    } else {
-        input_iterator = new JsonIterator(input_stream, /*unnest_mode=*/true);
-    }
-
-    let output_writer = null;
-    if (output_json_lines) {
-        output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
-    } else if (output_json_stream) {
-        output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent, /*wrap_in_json_array=*/false);
-    } else {
-        output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', pretty_indent);
-    }
+    let input_iterator = new JsonIterator(input_stream, unnest_root_array);
+    let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_in_json_array=*/wrap_in_json_array);
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }
