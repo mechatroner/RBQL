@@ -28,12 +28,12 @@ class UnparsedJsonBlob {
 
 // FIXME keep track of pre-parsed objects to be able to identify position where parsing failed.
 class BalancingIterator {
-    constructor(unnest_mode = false) {
+    constructor(unwrap_mode = false) {
         this.buf = '';
-        this.unnest_mode = unnest_mode;
+        this.unwrap_mode = unwrap_mode;
         this.json_blobs = []; // There is no deque in JS so we use an array. Therefore `advance()` takes O(N).
         this.current = new UnparsedJsonBlob();
-        this.open_bracket_skipped = this.unnest_mode ? false : true;
+        this.open_bracket_skipped = this.unwrap_mode ? false : true;
         this.closing_bracket_skipped = false;
     }
 
@@ -60,8 +60,8 @@ class BalancingIterator {
     }
 
     finish() {
-        if (this.unnest_mode && !this.closing_bracket_skipped) {
-            throw new RbqlJsonParsingError("Closing square bracket `]` at the end is required in unnest mode");
+        if (this.unwrap_mode && !this.closing_bracket_skipped) {
+            throw new RbqlJsonParsingError("Closing square bracket `]` at the end is required in unwrap mode");
         }
         if (!this.current.inside_string && this.current.bracket_stack.length === 0) {
             this._consume_fragment(this.buf);
@@ -86,7 +86,7 @@ class BalancingIterator {
         }
         if (this.buf[idx] !== '[') {
             // FIXME ut this
-            throw new RbqlJsonParsingError(`Input data must be wrapped in JSON array in unnest mode. Expected \`[\` got \`${this.buf[idx]}\` char`);
+            throw new RbqlJsonParsingError(`Input data must be wrapped in JSON array in unwrap mode. Expected \`[\` got \`${this.buf[idx]}\` char`);
         }
         this.open_bracket_skipped = true;
         return idx + 1;
@@ -99,7 +99,7 @@ class BalancingIterator {
                 continue;
             }
             // FIXME ut this
-            throw new RbqlJsonParsingError("Trailing data after the closing `]` bracket in unnest mode");
+            throw new RbqlJsonParsingError("Trailing data after the closing `]` bracket in unwrap mode");
         }
         return idx;
     }
@@ -117,7 +117,7 @@ class BalancingIterator {
                 return;
             }
             let object_can_end = false;
-            let end_offset = 0; // This is to be able to drop trailing `,` or `]` in the unnest mode.
+            let end_offset = 0; // This is to be able to drop trailing `,` or `]` in the unwrap mode.
             
             if (this.current.inside_string) {
                 if (this.buf[i] === '"' && !this.current.backslash_escape_flag) {
@@ -143,14 +143,14 @@ class BalancingIterator {
                 }
                 object_can_end = true;
             } else if (this.buf[i] === ']') {
-                if (this.unnest_mode && this.current.bracket_stack.length === 0 && !this.closing_bracket_skipped) {
+                if (this.unwrap_mode && this.current.bracket_stack.length === 0 && !this.closing_bracket_skipped) {
                     this.closing_bracket_skipped = true;
                     end_offset = 1;
                 } else if (this.current.bracket_stack.length === 0 || this.current.bracket_stack.pop() !== '[') {
                     throw new RbqlJsonParsingError("Unbalanced closing square bracket `]`");
                 }
                 object_can_end = true;
-            } else if (this.buf[i] === ',' && this.unnest_mode) {
+            } else if (this.buf[i] === ',' && this.unwrap_mode) {
                 // TODO This would make a sequence of commas a valid noop span, consider fixing it.
                 end_offset = 1;
                 object_can_end = true;
@@ -348,7 +348,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 class JsonIterator extends rbql.RBQLInputIterator {
     // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     // FIXME add unit tests
-    constructor(stream, unnest_mode=false, encoding='utf-8', table_name='input', variable_prefix='a') {
+    constructor(stream, unwrap_mode=false, encoding='utf-8', table_name='input', variable_prefix='a') {
         super();
         this.stream = stream;
         this.encoding = encoding;
@@ -378,7 +378,7 @@ class JsonIterator extends rbql.RBQLInputIterator {
         // Holds last exception if we don't have any reject callbacks from clients yet.
         this.current_exception = null;
 
-        this.balancing_iterator = new BalancingIterator(unnest_mode);
+        this.balancing_iterator = new BalancingIterator(unwrap_mode);
         this.produced_records_queue = new csv_utils.RecordQueue();
     }
 
@@ -514,8 +514,8 @@ class JsonIterator extends rbql.RBQLInputIterator {
 async function query_json(query_text, input_path, output_path, output_warnings, params) {
     let user_init_code = params.hasOwnProperty('user_init_code') ? params['user_init_code'] : '';
     let pretty_indent = params.hasOwnProperty('pretty_indent') ? params['pretty_indent'] : null;
-    let unnest_root_array = params.hasOwnProperty('unnest_root_array') ? params['unnest_root_array'] : false;
-    let wrap_in_json_array = params.hasOwnProperty('wrap_output_as_array') ? params['wrap_output_as_array'] : unnest_root_array;
+    let unwrap_array = params.hasOwnProperty('unwrap_array') ? params['unwrap_array'] : false;
+    let wrap_in_json_array = params.hasOwnProperty('wrap_output_as_array') ? params['wrap_output_as_array'] : unwrap_array;
     let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
 
@@ -526,7 +526,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     let input_file_dir = input_path ? path.dirname(input_path) : null;
     let join_tables_registry = null;
 
-    let input_iterator = new JsonIterator(input_stream, unnest_root_array);
+    let input_iterator = new JsonIterator(input_stream, unwrap_array);
     let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_in_json_array=*/wrap_in_json_array);
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);

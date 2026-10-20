@@ -316,43 +316,43 @@ class TestRegularStreaming(unittest.TestCase):
         self.assertGreaterEqual(input_iterator.num_chunks_read_internal_stat, len(data) / chunk_size)
 
 
-class TestUnnestMode(unittest.TestCase):
+class TestUnwrapMode(unittest.TestCase):
     def test_one_record(self):
         input_stream = io.StringIO('["foo"]')
         encoding = None
-        input_iterator = rbql_json.JsonIterator(input_stream, unnest_mode=True, encoding=encoding)
+        input_iterator = rbql_json.JsonIterator(input_stream, unwrap_mode=True, encoding=encoding)
         self.assertEqual(input_iterator.get_record(), ["foo"])
         self.assertEqual(input_iterator.get_record(), None)
 
     def test_empty_table(self):
         input_stream = io.StringIO('[]')
         encoding = None
-        input_iterator = rbql_json.JsonIterator(input_stream, unnest_mode=True, encoding=encoding)
+        input_iterator = rbql_json.JsonIterator(input_stream, unwrap_mode=True, encoding=encoding)
         self.assertEqual(input_iterator.get_record(), None)
     
     def test_bad_non_json_input(self):
         input_stream = io.StringIO('')
         encoding = None
-        input_iterator = rbql_json.JsonIterator(input_stream, unnest_mode=True, encoding=encoding)
+        input_iterator = rbql_json.JsonIterator(input_stream, unwrap_mode=True, encoding=encoding)
         with self.assertRaises(Exception) as cm:
             while True:
                 record = input_iterator.get_record()
                 if record is None:
                     break
         e = cm.exception
-        self.assertEqual(str(e), 'Closing square bracket `]` at the end is required in unnest mode')
+        self.assertEqual(str(e), 'Closing square bracket `]` at the end is required in unwrap mode')
     
     def test_non_array_object(self):
         input_stream = io.StringIO('{"foo": 2}')
         encoding = None
-        input_iterator = rbql_json.JsonIterator(input_stream, unnest_mode=True, encoding=encoding)
+        input_iterator = rbql_json.JsonIterator(input_stream, unwrap_mode=True, encoding=encoding)
         with self.assertRaises(Exception) as cm:
             while True:
                 record = input_iterator.get_record()
                 if record is None:
                     break
         e = cm.exception
-        self.assertEqual(str(e), 'Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{` char')
+        self.assertEqual(str(e), 'Input data must be wrapped in JSON array in unwrap mode. Expected `[` got `{` char')
 
 
 class TestJsonLinesWriter(unittest.TestCase):
@@ -471,15 +471,14 @@ class TestArrayObjectReadWrite(unittest.TestCase):
 
 class TestRBQLWithJSON(unittest.TestCase):
     def process_test_case(self, tmp_tests_dir, test_case):
+        debug_mode = test_case.get('debug_mode', False)
         test_name = test_case['test_name']
         query = test_case.get('query_python', None)
         if query is None:
             return
-        debug_mode = test_case.get('debug_mode', False)
-        input_json_lines = test_case.get('input_json_lines', True)
-        output_json_lines = test_case.get('output_json_lines', True)
-        input_json_stream = test_case.get('input_json_stream', False)
-        output_json_stream = test_case.get('output_json_stream', False)
+        # FIXME add unit test with pretty print
+        unwrap_array = test_case.get('unwrap_array', False)
+        wrap_into_array = test_case.get('wrap_into_array', unwrap_array)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
         input_table_path = os.path.join(script_dir, input_table_path)
@@ -503,7 +502,7 @@ class TestRBQLWithJSON(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, input_json_lines=input_json_lines, output_json_lines=output_json_lines, input_json_stream=input_json_stream, output_json_stream=output_json_stream)
+            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, unwrap_array=unwrap_array, wrap_into_array=wrap_into_array)
         except Exception as e:
             if debug_mode:
                 raise

@@ -30,15 +30,13 @@ RBQL is distributed with CLI apps, text editor plugins, IPython/Jupyter magic co
 
 Matrix of data formats that RBQL supports out of the box.
 
-|Data Format      | Python      | JS         |
-|-----------------|-------------|------------|
-|CSV, TSV, etc    | Read/Write  | Read/Write |
-|Native 2D arrays | Read/Write  | Read/Write |
-|JSON lines       | Read/Write  | Read/Write |
-|JSON arrays      | Read/Write  | Read/Write |
-|JSON streams     | Read/Write  | Read/Write |
-|Pandas dataframe | Read/Write  |            |
-|Sqlite databases | Read Only   |            |
+| Data Format        | Python      | JS         |
+|--------------------|-------------|------------|
+| CSV, TSV, etc      | Read/Write  | Read/Write |
+| Native 2D arrays   | Read/Write  | Read/Write |
+| JSON lines/streams | Read/Write  | Read/Write |
+| Pandas dataframe   | Read/Write  |            |
+| Sqlite databases   | Read Only   |            |
 
 Note: If you use RBQL as a library it is possible to support additional formats with some customizations.  
 

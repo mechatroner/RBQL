@@ -382,7 +382,7 @@ async function run_with_js_json_mode(args) {
     var output_path = get_default(args, 'output', null);
     let init_source_file = get_default(args, 'init-source-file', null);
     let pretty_output = args['pretty-output'];
-    let unnest_root_array = args['unnest'] ? true : false;
+    let unwrap_array = args['unwrap'] ? true : false;
     // TODO consider adding error-mode arg
     let user_init_code = '';
     if (init_source_file !== null)
@@ -390,7 +390,7 @@ async function run_with_js_json_mode(args) {
     let pretty_indent = pretty_output ? 4 : null;
     try {
         let warnings = [];
-        let params = {'user_init_code': user_init_code, 'pretty_indent': pretty_indent, 'unnest_root_array': unnest_root_array};
+        let params = {'user_init_code': user_init_code, 'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array};
         await rbql_json.query_json(query, input_path, output_path, warnings, params);
         if (warnings !== null) {
             for (let i = 0; i < warnings.length; i++) {
@@ -440,7 +440,7 @@ function run_json_mode(args) {
         '--input': {'help': 'Read csv table from FILE instead of stdin. Required in interactive mode', 'metavar': 'FILE'},
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
-        '--unnest': {'boolean': true, 'help': 'Unnest root json array and use its elements as input records'},
+        '--unwrap': {'boolean': true, 'help': 'Unnest root json array and use its elements as input records'},
         '--pretty-output': {'boolean': true, 'help': 'Pretty-print output. Incompatible with json lines output mode'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };

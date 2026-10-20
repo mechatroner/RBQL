@@ -29,12 +29,12 @@ class UnparsedJsonBlob:
         
 
 class BalancingIterator:
-    def __init__(self, unnest_mode=False):
+    def __init__(self, unwrap_mode=False):
         self.buf = ''
-        self.unnest_mode = unnest_mode
+        self.unwrap_mode = unwrap_mode
         self.json_blobs = deque()
         self.current = UnparsedJsonBlob()
-        self.open_bracket_skipped = False if self.unnest_mode else True
+        self.open_bracket_skipped = False if self.unwrap_mode else True
         self.closing_bracket_skipped = False
 
     def add_fragment(self, fragment):
@@ -55,8 +55,8 @@ class BalancingIterator:
         return len(self.buf) != 0
 
     def finish(self):
-        if self.unnest_mode and not self.closing_bracket_skipped:
-            raise RbqlJsonParsingError("Closing square bracket `]` at the end is required in unnest mode")
+        if self.unwrap_mode and not self.closing_bracket_skipped:
+            raise RbqlJsonParsingError("Closing square bracket `]` at the end is required in unwrap mode")
         if not self.current.inside_string and len(self.current.bracket_stack) == 0:
             self._consume_fragment(self.buf)
             self.buf = ''
@@ -74,7 +74,7 @@ class BalancingIterator:
             return idx
         if self.buf[idx] != '[':
             # FIXME ut this
-            raise RbqlJsonParsingError("Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{}` char".format(self.buf[idx]))
+            raise RbqlJsonParsingError("Input data must be wrapped in JSON array in unwrap mode. Expected `[` got `{}` char".format(self.buf[idx]))
         self.open_bracket_skipped = True
         return idx + 1
 
@@ -84,7 +84,7 @@ class BalancingIterator:
                 idx += 1
                 continue
             # FIXME ut this
-            raise RbqlJsonParsingError("Trailing data after the closing `]` bracket in unnest mode")
+            raise RbqlJsonParsingError("Trailing data after the closing `]` bracket in unwrap mode")
         return idx
 
     def _parse_forward(self, seek_start_pos):
@@ -98,7 +98,7 @@ class BalancingIterator:
                 self.skip_trailing_spaces(i)
                 return
             object_can_end = False
-            end_offset = 0 # This is to be able to drop trailing `,` or `]` in the unnest mode.
+            end_offset = 0 # This is to be able to drop trailing `,` or `]` in the unwrap mode.
             if self.current.inside_string:
                 if self.buf[i] == '"' and not self.current.backslash_escape_flag:
                     self.current.inside_string = False
@@ -120,13 +120,13 @@ class BalancingIterator:
                     raise RbqlJsonParsingError("Unbalanced closing curly bracket `}`")
                 object_can_end = True
             elif self.buf[i] == ']':
-                if self.unnest_mode and len(self.current.bracket_stack) == 0 and not self.closing_bracket_skipped:
+                if self.unwrap_mode and len(self.current.bracket_stack) == 0 and not self.closing_bracket_skipped:
                     self.closing_bracket_skipped = True
                     end_offset = 1
                 elif len(self.current.bracket_stack) == 0 or self.current.bracket_stack.pop() != '[':
                     raise RbqlJsonParsingError("Unbalanced closing square bracket `]`")
                 object_can_end = True
-            elif self.buf[i] == ',' and self.unnest_mode:
+            elif self.buf[i] == ',' and self.unwrap_mode:
                 # TODO This would make a sequence of commas a valid noop span, consider fixing it.
                 end_offset = 1
                 object_can_end = True
@@ -250,7 +250,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
 class JsonIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, unnest_mode=False, encoding='utf-8', table_name='input', variable_prefix='a', chunk_size=16384):
+    def __init__(self, stream, unwrap_mode=False, encoding='utf-8', table_name='input', variable_prefix='a', chunk_size=16384):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
@@ -261,7 +261,7 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
         self.chunk_size = chunk_size
         self.num_chunks_read_internal_stat = 0 # This is for unit tests only
         self.record_number = 0
-        self.balancing_iterator = BalancingIterator(unnest_mode=unnest_mode)
+        self.balancing_iterator = BalancingIterator(unwrap_mode=unwrap_mode)
 
     def get_header(self):
         # Returning "a1" as a column name instead of "a" would have a side effect because it would initialize a.a1 and a['a1'] values in rbql engine.
@@ -303,7 +303,8 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
 
 # TODO we might want the output to optionally be CSV too. 
 # FIXME we need to adjust the interface - it should be unwrap_array: bool, wrap_into_array: bool, pretty_indent: int
-def query_json(query_text, input_path, output_path, output_warnings, user_init_code='', input_json_lines=True, output_json_lines=True, pretty_indent=None, input_json_stream=False, output_json_stream=False):
+# FIXME fix the cli tool!
+def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -312,24 +313,12 @@ def query_json(query_text, input_path, output_path, output_warnings, user_init_c
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
+        # FIXME reading from this file by default might be wrong especially for unit tests
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
 
-        input_iterator = None
-        if input_json_lines:
-            input_iterator = JsonIterator(input_stream, encoding='utf-8', table_name='input', variable_prefix='a')
-        elif input_json_stream:
-            input_iterator = JsonIterator(input_stream, encoding='utf-8', table_name='input', variable_prefix='a')
-        else:
-            input_iterator = JsonIterator(input_stream, unnest_mode=True, encoding='utf-8', table_name='input', variable_prefix='a')
-
-        output_writer = None
-        if output_json_lines:
-            output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=None, wrap_in_json_array=False)
-        elif output_json_stream:
-            output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=False)
-        else:
-            output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent)
+        input_iterator = JsonIterator(input_stream, unwrap_mode=unwrap_array, encoding='utf-8', table_name='input', variable_prefix='a')
+        output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:
             rbql_engine.set_debug_mode()

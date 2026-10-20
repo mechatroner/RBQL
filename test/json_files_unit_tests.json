@@ -60,7 +60,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10.arrayobj.json",
         "expected_output_table_path": "json_files/expected_result_1.arrayobj.json",
-        "unnest_root_array": true,
+        "unwrap_array": true,
         "query_js": "select a1['name'], a1['age'], NR",
         "query_python": "select a1['name'], a1['age'], NR"
     },
@@ -83,18 +83,18 @@
     {
         "test_name": "corrupted json array",
         "input_table_path": "json_files/non_json.txt",
-        "expected_error_py": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `f` char",
-        "expected_error_js": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `f` char",
-        "unnest_root_array": true,
+        "expected_error_py": "Input data must be wrapped in JSON array in unwrap mode. Expected `[` got `f` char",
+        "expected_error_js": "Input data must be wrapped in JSON array in unwrap mode. Expected `[` got `f` char",
+        "unwrap_array": true,
         "query_js": "select *",
         "query_python": "select *"
     },
     {
         "test_name": "root node is object not array",
         "input_table_path": "json_files/root_object_not_array.json",
-        "expected_error_py": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{` char",
-        "expected_error_js": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{` char",
-        "unnest_root_array": true,
+        "expected_error_py": "Input data must be wrapped in JSON array in unwrap mode. Expected `[` got `{` char",
+        "expected_error_js": "Input data must be wrapped in JSON array in unwrap mode. Expected `[` got `{` char",
+        "unwrap_array": true,
         "query_js": "select *",
         "query_python": "select *"
     },
@@ -103,7 +103,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10.arrayobj.json",
         "expected_output_table_path": "json_files/expected_result_1.2darray.json",
-        "unnest_root_array": true,
+        "unwrap_array": true,
         "query_js": "select [a['name'], a['age'], a['occupation']]",
         "query_python": "select [a['name'], a['age'], a['occupation']]"
     },
@@ -112,7 +112,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/expected_result_1.2darray.json",
         "expected_output_table_path": "json_files/names10.arrayobj.json",
-        "unnest_root_array": true,
+        "unwrap_array": true,
         "query_js": "select a[0] as name, a[1] as age, a[2] as occupation",
         "query_python": "select a[0] as name, a[1] as age, a[2] as occupation"
     },
@@ -159,7 +159,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/empty.arrayobj.json",
         "expected_output_table_path": "json_files/empty.arrayobj.json",
-        "unnest_root_array": true,
+        "unwrap_array": true,
         "query_js": "select a1['name'], a['age'], NR",
         "query_python": "select a1['name'], a['age'], NR"
     }
