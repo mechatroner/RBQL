@@ -345,165 +345,10 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 }
 
 
-class JsonArrayObjectRecordIterator extends rbql.RBQLInputIterator {
-    // TODO we can optimize this to process objects as they arrive if we have implementation for json-batches parser.
-    // Json array would be almost similar format except that we have array object at root which can be easily skipped.
-    // Another difference between this format and json batches would be commas at the end of each object but they can also be easily skipped.
-    constructor(stream, encoding='utf-8', table_name='input', variable_prefix='a') {
-        super();
-        this.stream = stream;
-        this.encoding = encoding;
-        this.table_name = table_name;
-        this.variable_prefix = variable_prefix;
-
-
-        this.decoder = null;
-        if (encoding == 'utf-8') {
-            // This was copied from the csv impl, see comments there.
-            this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
-        }
-
-        this.input_exhausted = false;
-        this.started = false;
-
-        // Holds an external "resolve" function which is called when everything is fine.
-        this.resolve_current_record = null;
-        // Holds an external "reject" function which is called when error has occured.
-        this.reject_current_record = null;
-        // Holds last exception if we don't have any reject callbacks from clients yet.
-        this.current_exception = null;
-
-        this.produced_records_queue = new csv_utils.RecordQueue();
-        this.record_number = 0;
-        this.input_data_chunks = [];
-    }
-
-    get_header() {
-        // Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
-        return [this.variable_prefix];
-    }
-
-    reset_external_callbacks() {
-        // Drop external callbacks simultaneously since promises can only resolve once, see: https://stackoverflow.com/a/18218542/2898283
-        this.reject_current_record = null;
-        this.resolve_current_record = null;
-    }
-
-    try_propagate_exception() {
-        if (this.current_exception && this.reject_current_record) {
-            let reject = this.reject_current_record;
-            let exception = this.current_exception;
-            this.reset_external_callbacks();
-            this.current_exception = null;
-            reject(exception);
-        }
-    }
-
-
-    store_or_propagate_exception(exception) {
-        if (this.current_exception === null)
-            // Ignore subsequent exceptions if we already have an unreported error. This way we prioritize earlier errors over the more recent ones.
-            this.current_exception = exception;
-        this.try_propagate_exception();
-    }
-
-
-    try_resolve_next_record() {
-        this.try_propagate_exception();
-        if (this.resolve_current_record === null)
-            return;
-
-        let record = this.produced_records_queue.dequeue();
-        if (record === null && !this.input_exhausted)
-            return;
-        let resolve = this.resolve_current_record;
-        this.reset_external_callbacks();
-        this.record_number += 1;
-        resolve(record);
-    };
-
-
-    async get_record() {
-        if (!this.started)
-            await this.start();
-        if (this.stream && this.stream.isPaused())
-            this.stream.resume();
-
-        let parent_iterator = this;
-        let current_record_promise = new Promise(function(resolve, reject) {
-            parent_iterator.resolve_current_record = resolve;
-            parent_iterator.reject_current_record = reject;
-        });
-        this.try_resolve_next_record();
-        return current_record_promise;
-    };
-
-
-    process_data_stream_chunk(data_chunk) {
-        let decoded_string = null;
-        if (this.decoder) {
-            try {
-                decoded_string = this.decoder.decode(data_chunk);
-            } catch (e) {
-                if (e instanceof TypeError) {
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(utf_decoding_error));
-                } else {
-                    this.store_or_propagate_exception(e);
-                }
-                return;
-            }
-        } else {
-            decoded_string = data_chunk.toString(this.encoding);
-        }
-        this.input_data_chunks.push(decoded_string);
-    };
-
-
-    process_data_stream_end() {
-        this.input_exhausted = true;
-        let input_data_string = this.input_data_chunks.join('');
-        let json_object = null;
-        try {
-            json_object = JSON.parse(input_data_string);
-        } catch (e) {
-            if (e instanceof SyntaxError) {
-                this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to parse input stream as JSON: ${e.message}`));
-            } else {
-                this.store_or_propagate_exception(e);
-            }
-            return;
-        }
-        if (!Array.isArray(json_object)) {
-            this.store_or_propagate_exception(new RbqlIOHandlingError("Input JSON root node must be array in array iteration mode"));
-            return;
-        }
-        for (let record of json_object) {
-            this.produced_records_queue.enqueue([record]);
-        }
-        this.try_resolve_next_record();
-    };
-
-
-    stop() {
-        if (this.stream)
-            this.stream.destroy(); // TODO consider using pause() instead
-    };
-
-
-    async start() {
-        if (this.started)
-            return;
-        this.started = true;
-        this.stream.on('data', (data_chunk) => { this.process_data_stream_chunk(data_chunk); });
-        this.stream.on('end', () => { this.process_data_stream_end(); });
-    };
-}
-
-
-class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
+class JsonIterator extends rbql.RBQLInputIterator {
     // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     // FIXME add unit tests
-    constructor(stream, encoding='utf-8', table_name='input', variable_prefix='a') {
+    constructor(stream, unnest_mode=false, encoding='utf-8', table_name='input', variable_prefix='a') {
         super();
         this.stream = stream;
         this.encoding = encoding;
@@ -533,7 +378,7 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
         // Holds last exception if we don't have any reject callbacks from clients yet.
         this.current_exception = null;
 
-        this.balancing_iterator = new BalancingIterator();
+        this.balancing_iterator = new BalancingIterator(unnest_mode);
         this.produced_records_queue = new csv_utils.RecordQueue();
     }
 
@@ -637,9 +482,12 @@ class JsonStreamRecordIterator extends rbql.RBQLInputIterator {
 
 
     process_data_stream_end() {
-        // FIXME we need to check that it doesn't have trailing data somewhere
         this.input_exhausted = true;
-        this.balancing_iterator.finish();
+        try {
+            this.balancing_iterator.finish();
+        } catch (e) {
+            this.store_or_propagate_exception(e);
+        }
         if (this.balancing_iterator.has_trailing_data()) {
             this.store_or_propagate_exception(new RbqlIOHandlingError(`Trailing data in ${this.table_name} stream that can't be parsed as JSON objects`));
         }
@@ -676,11 +524,11 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
 
     let input_iterator = null;
     if (input_json_lines) {
-        input_iterator = new JsonStreamRecordIterator(input_stream);
+        input_iterator = new JsonIterator(input_stream);
     } else if (input_json_stream) {
-        input_iterator = new JsonStreamRecordIterator(input_stream);
+        input_iterator = new JsonIterator(input_stream);
     } else {
-        input_iterator = new JsonArrayObjectRecordIterator(input_stream);
+        input_iterator = new JsonIterator(input_stream, /*unnest_mode=*/true);
     }
 
     let output_writer = null;
@@ -700,6 +548,6 @@ module.exports.deduplicate_header_keys = deduplicate_header_keys;
 module.exports.stringify_json_line_python_style = stringify_json_line_python_style;
 module.exports.get_json_object_to_write = get_json_object_to_write;
 module.exports.JsonWriter = JsonWriter;
-module.exports.JsonStreamRecordIterator = JsonStreamRecordIterator;
+module.exports.JsonIterator = JsonIterator;
 module.exports.BalancingIterator = BalancingIterator;
 module.exports.query_json = query_json;

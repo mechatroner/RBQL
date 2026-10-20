@@ -89,7 +89,7 @@
         "input_json_lines": false,
         "output_json_lines": false,
         "expected_error_py": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `f` char",
-        "expected_error_js": "Unable to parse input stream as JSON: Unexpected token",
+        "expected_error_js": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `f` char",
         "query_js": "select *",
         "query_python": "select *"
     },
@@ -99,7 +99,7 @@
         "input_json_lines": false,
         "output_json_lines": false,
         "expected_error_py": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{` char",
-        "expected_error_js": "Input JSON root node must be array",
+        "expected_error_js": "Input data must be wrapped in JSON array in unnest mode. Expected `[` got `{` char",
         "query_js": "select *",
         "query_python": "select *"
     },

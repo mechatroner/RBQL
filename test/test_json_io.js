@@ -242,6 +242,9 @@ async function test_get_json_object_to_write() {
 
 async function process_test_case(tmp_tests_dir, test_case) {
     let test_name = test_case['test_name'];
+    if (debug_mode) {
+        console.log("test_name:" + test_name);
+    }
     let query = test_case['query_js'];
     if (!query)
         return;
