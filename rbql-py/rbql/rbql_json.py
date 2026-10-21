@@ -77,8 +77,6 @@ class BalancingIterator:
         self.open_bracket_skipped = True
         return idx + 1
 
-    # FIXME add a unit test where we by mistake query 2d-array without unnest mode, it should still work but produce weird results e.g. `SELECT *, NR`
-
     def skip_trailing_spaces(self, idx):
         while idx < len(self.buf):
             if self.buf[idx].isspace():

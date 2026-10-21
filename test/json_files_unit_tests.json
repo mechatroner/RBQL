@@ -171,5 +171,14 @@
         "expected_error_js": "Trailing data after the closing square bracket `]` in unwrap mode",
         "query_js": "select *",
         "query_python": "select *"
+    },
+    {
+        "test_name": "Test user error: querying 2d array without unwrap still works. Sometimes. And not exactly as expected",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10.arrayobj.json",
+        "expected_output_table_path": "json_files/expected_nounwrap_user_error.json",
+        "pretty_indent": 4,
+        "query_js": "select *, NR",
+        "query_python": "select *, NR"
     }
 ]

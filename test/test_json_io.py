@@ -476,8 +476,8 @@ class TestRBQLWithJSON(unittest.TestCase):
         query = test_case.get('query_python', None)
         if query is None:
             return
-        # FIXME add unit test with pretty print
         unwrap_array = test_case.get('unwrap_array', False)
+        pretty_indent = test_case.get('pretty_indent', None)
         wrap_into_array = test_case.get('wrap_into_array', unwrap_array)
         input_table_path = test_case['input_table_path']
         query = query.replace('###UT_TESTS_DIR###', script_dir)
@@ -502,7 +502,7 @@ class TestRBQLWithJSON(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, unwrap_array=unwrap_array, wrap_into_array=wrap_into_array)
+            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, unwrap_array=unwrap_array, wrap_into_array=wrap_into_array, pretty_indent=pretty_indent)
         except Exception as e:
             if debug_mode:
                 raise
