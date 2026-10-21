@@ -248,6 +248,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
         return warnings
 
 
+# FIXME: implement with(unwrap)
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
 class JsonIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, unwrap_mode=False, encoding='utf-8', table_name='input', variable_prefix='a', chunk_size=16384):
@@ -302,8 +303,6 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
 
 
 # TODO we might want the output to optionally be CSV too. 
-# FIXME we need to adjust the interface - it should be unwrap_array: bool, wrap_into_array: bool, pretty_indent: int
-# FIXME fix the cli tool!
 def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code=''):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)

@@ -426,26 +426,9 @@ def run_with_python_json(args):
     query = args.query
     input_path = args.input
     output_path = args.output
-    input_json_lines = args.input_json_lines
-    output_json_lines = args.output_json_lines
+    unwrap = args.unwrap
+    wrap = args.wrap
     output_pretty_indent = 4 if args.pretty_output else None
-    if args.json_lines:
-        input_json_lines = True
-        output_json_lines = True
-
-    input_json_stream = args.input_json_stream
-    output_json_stream = args.output_json_stream
-    if args.json_stream:
-        input_json_stream = True
-        output_json_stream = True
-
-    if input_json_lines and input_json_stream:
-        show_error('generic', 'json lines and json stream input formats are mutually exclusive', is_interactive=False)
-        return False
-
-    if output_json_lines and output_json_stream:
-        show_error('generic', 'json lines and json stream output formats are mutually exclusive', is_interactive=False)
-        return False
 
     user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
     warnings = []
@@ -454,7 +437,7 @@ def run_with_python_json(args):
         show_error('generic', 'Interactive mode is not supported for JSON input', is_interactive=False)
         return False
     try:
-        rbql_json.query_json(query, input_path, output_path, warnings, user_init_code, input_json_lines=input_json_lines, output_json_lines=output_json_lines, pretty_indent=output_pretty_indent, input_json_stream=input_json_stream, output_json_stream=output_json_stream)
+        rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code)
     except Exception as e:
         if args.debug_mode:
             raise
@@ -479,13 +462,9 @@ def json_main():
     parser.add_argument('--input', metavar='FILE', help='read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
-    parser.add_argument('--json-lines', action='store_true', help='Use json lines format both for input and output')
-    parser.add_argument('--input-json-lines', action='store_true', help='Use json lines format for input')
-    parser.add_argument('--output-json-lines', action='store_true', help='Use json lines format for output')
-    parser.add_argument('--json-stream', action='store_true', help='Use json stream format both for input and output')
-    parser.add_argument('--input-json-stream', action='store_true', help='Use json stream format for input')
-    parser.add_argument('--output-json-stream', action='store_true', help='Use json stream format for output')
-    parser.add_argument('--pretty-output', action='store_true', help='Pretty-print output. Incompatible with json lines output mode')
+    parser.add_argument('--unwrap', action='store_true', help='Unwrap root json array and use its elements as input records')
+    parser.add_argument('--wrap', action='store_true', help='Wrap output objects into root array')
+    parser.add_argument('--pretty-output', action='store_true', help='Pretty-print output')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
     parser.add_argument('--debug-mode', action='store_true', help=argparse.SUPPRESS) # Run in debug mode
     args = parser.parse_args()

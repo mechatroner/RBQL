@@ -440,8 +440,8 @@ function run_json_mode(args) {
         '--input': {'help': 'Read csv table from FILE instead of stdin. Required in interactive mode', 'metavar': 'FILE'},
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
-        '--unwrap': {'boolean': true, 'help': 'Unnest root json array and use its elements as input records'},
-        '--pretty-output': {'boolean': true, 'help': 'Pretty-print output. Incompatible with json lines output mode'},
+        '--unwrap': {'boolean': true, 'help': 'Unwrap root json array and use its elements as input records'},
+        '--pretty-output': {'boolean': true, 'help': 'Pretty-print output'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}
     };
     let parsed_args = cli_parser.parse_cmd_args(args, scheme, json_tool_description, json_epilog);
