@@ -796,6 +796,7 @@ class TestRBQLSimple(unittest.TestCase):
         expected_table = list()
 
         header_row = list()
+        bad_names = ['as']
         for col in range (num_cols):
             while True:
                 if random.choice([True, False]):
@@ -806,7 +807,7 @@ class TestRBQLSimple(unittest.TestCase):
                     field_name = bytes(bytearray(field_name_bytes)).decode('ascii')
                 else:
                     field_name = random.choice(['_foo', 'bar', 'Bar', '__foo', 'a', 'b', 'A', 'B'])
-                if field_name not in header_row:
+                if field_name not in header_row and field_name not in bad_names:
                     header_row.append(field_name)
                     break
         input_table.append(header_row[:])
