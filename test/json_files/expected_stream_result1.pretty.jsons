@@ -1,0 +1,72 @@
+{
+    "name": "The Fool",
+    "questions_to_ask": []
+}
+{
+    "name": "The Magician",
+    "questions_to_ask": []
+}
+{
+    "name": "The High Priestess",
+    "questions_to_ask": [
+        "What might a rebel against tradition do?",
+        "What isn't being said or revealed?",
+        "What could be achieved by observing and reflecting?"
+    ]
+}
+{
+    "name": "The Empress",
+    "questions_to_ask": [
+        "What would a concerned and capable mother do?",
+        "What can I do that would emphasize growth?",
+        "How can I celebrate my own sensuality and sexuality?"
+    ]
+}
+{
+    "name": "The Emperor",
+    "questions_to_ask": [
+        "How does the issue of control or regulation impact this situation?",
+        "What would a compassionate but strict father do?",
+        "What needs more control?"
+    ]
+}
+{
+    "name": "The Hierophant",
+    "questions_to_ask": [
+        "What role might tradition or religion play in this situation?",
+        "Who authored the rules? Who enforces them? Why?",
+        "How might an experienced guide impact this situation?"
+    ]
+}
+{
+    "name": "The Lovers",
+    "questions_to_ask": [
+        "What guides my choices?",
+        "What is my heart leading me to do?",
+        "How might this decision transform me as a person?"
+    ]
+}
+{
+    "name": "The Chariot",
+    "questions_to_ask": [
+        "To what extent have I arrived? What will my next challenge be?",
+        "How can I use past achievements to their best advantage?",
+        "What would the criteria for real and meaningful success be?"
+    ]
+}
+{
+    "name": "Strength",
+    "questions_to_ask": [
+        "To what extent is your life (or work) balanced?",
+        "How can you achieve greater objectivity?",
+        "What course of action would be fair to everyone concerned?"
+    ]
+}
+{
+    "name": "The Hermit",
+    "questions_to_ask": [
+        "What would happen if I simply withdrew and took no action?",
+        "How can I get some perspective on the situation?",
+        "Who has walked this path before me? How can I enlist his or her help?"
+    ]
+}
