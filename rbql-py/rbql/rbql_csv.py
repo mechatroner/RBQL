@@ -553,6 +553,8 @@ def query_csv(query_text, input_path, input_delim, input_policy, output_path, ou
         if (not is_ascii(input_delim) or not is_ascii(output_delim)) and csv_encoding == 'latin-1':
             raise rbql_engine.RbqlIOHandlingError('To use non-ascii separators enable UTF-8 encoding instead of latin-1/binary')
 
+        # FIXME Consider moving the logic for readig from the default file into the client - cli app or the editor extension adapter layer. Both in JSON and CSV and in js version.
+        # This can also backfire for unit testing.
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = read_user_init_code(default_init_source_path)

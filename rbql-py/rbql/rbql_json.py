@@ -310,7 +310,6 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
-        # FIXME reading from this file by default might be wrong especially for unit tests
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
 
