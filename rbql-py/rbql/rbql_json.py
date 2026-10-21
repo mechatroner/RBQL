@@ -181,7 +181,7 @@ def deduplicate_header_keys(header):
 
 class JsonWriter(rbql_engine.RBQLOutputWriter):
     # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
-    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=True):
+    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=False):
         assert encoding in ['utf-8', 'latin-1', None]
         self.stream = rbql_csv.encode_output_stream(stream, encoding)
         self.line_separator = line_separator

@@ -231,7 +231,7 @@ function stringify_json_line_python_style(obj) {
 
 class JsonWriter extends rbql.RBQLOutputWriter {
     //FIXME add unit tests
-    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null, wrap_in_json_array=true) {
+    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null, wrap_into_array=false) {
         super();
         this.stream = stream;
         this.encoding = encoding;
@@ -247,7 +247,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
         this.first_error = null;
         this.num_records_written = 0;
         this.pretty_indent = pretty_indent;
-        this.wrap_in_json_array = wrap_in_json_array;
+        this.wrap_into_array = wrap_into_array;
     }
 
     store_first_error(error_obj) {
@@ -263,7 +263,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
     }
 
     async finish() {
-        if (this.wrap_in_json_array) {
+        if (this.wrap_into_array) {
             if (this.num_records_written == 0) {
                 // Output an empty array if no entries were produced.
                 this.stream.write('[');
@@ -305,12 +305,12 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 
     async do_write(object_to_write) {
         if (this.num_records_written == 0) {
-            if (this.wrap_in_json_array) {
+            if (this.wrap_into_array) {
                 this.stream.write('[');
                 this.stream.write(this.line_separator);
             }
         } else {
-            if (this.wrap_in_json_array) {
+            if (this.wrap_into_array) {
                 this.stream.write(',');
             }
             this.stream.write(this.line_separator);
@@ -514,7 +514,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     let user_init_code = params.hasOwnProperty('user_init_code') ? params['user_init_code'] : '';
     let pretty_indent = params.hasOwnProperty('pretty_indent') ? params['pretty_indent'] : null;
     let unwrap_array = params.hasOwnProperty('unwrap_array') ? params['unwrap_array'] : false;
-    let wrap_in_json_array = params.hasOwnProperty('wrap_output_as_array') ? params['wrap_output_as_array'] : unwrap_array;
+    let wrap_into_array = params.hasOwnProperty('wrap_into_array') ? params['wrap_into_array'] : false;
     let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
 
@@ -526,7 +526,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     let join_tables_registry = null;
 
     let input_iterator = new JsonIterator(input_stream, unwrap_array);
-    let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_in_json_array=*/wrap_in_json_array);
+    let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_into_array=*/wrap_into_array);
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }

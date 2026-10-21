@@ -139,7 +139,7 @@ async function test_json_array_object_writer() {
 
     writer_stream = new test_common.PseudoWritable();
     close_stream_on_finish = false;
-    writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, 'utf-8');
+    writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, 'utf-8', line_separator, /*pretty_indent=*/null, /*wrap_in_json_array=*/true);
     await writer.write(['foo', 'bar']);
     await writer.finish();
     data_text = writer_stream.get_text();
@@ -260,8 +260,9 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();
     let unwrap_array = test_common.get_default(test_case, 'unwrap_array', false);
+    let wrap_into_array = test_common.get_default(test_case, 'wrap_into_array', unwrap_array);
     let pretty_indent = test_common.get_default(test_case, 'pretty_indent', null);
-    let params = {'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array};
+    let params = {'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array, 'wrap_into_array': wrap_into_array};
     let expected_md5 = null;
     let actual_output_table_path = null;
     if (expected_output_table_path !== null) {
