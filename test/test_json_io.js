@@ -255,7 +255,6 @@ async function process_test_case(tmp_tests_dir, test_case) {
     query = query.replace('###UT_TESTS_DIR###', script_dir);
 
     let expected_output_table_path = test_common.get_default(test_case, 'expected_output_table_path', null);
-    // FIXME add test with input unwrap json array and output not wrapped and vice versa
     let expected_error = test_common.get_default(test_case, 'expected_error', null) || test_common.get_default(test_case, 'expected_error_js', null);
     let expected_error_exact = test_common.get_default(test_case, 'expected_error_exact', false);
     let expected_warnings = test_common.get_default(test_case, 'expected_warnings', []).sort();

@@ -189,5 +189,25 @@
         "pretty_indent": 4,
         "query_js": "select *, NR",
         "query_python": "select *, NR"
+    },
+    {
+        "test_name": "wrap only do not unwwrap",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10.jsonl",
+        "expected_output_table_path": "json_files/names10.arrayobj.json",
+        "unwrap_array": false,
+        "wrap_into_array": true,
+        "query_js": "select *",
+        "query_python": "select *"
+    },
+    {
+        "test_name": "unwrap only do not wwrap",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10.arrayobj.json",
+        "expected_output_table_path": "json_files/names10.jsonl",
+        "unwrap_array": true,
+        "wrap_into_array": false,
+        "query_js": "select *",
+        "query_python": "select *"
     }
 ]

@@ -7,7 +7,6 @@ const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
 // FIXME add bash-level unit tests for the cli tool that would use json format.
-// FIXME merge all iterators into a single one.
 
 const backslashChar = '\\';
 
@@ -85,7 +84,6 @@ class BalancingIterator {
             return idx;
         }
         if (this.buf[idx] !== '[') {
-            // FIXME ut this
             throw new RbqlJsonParsingError(`Input data must be wrapped in JSON array in unwrap mode. Expected \`[\` got \`${this.buf[idx]}\` char`);
         }
         this.open_bracket_skipped = true;
@@ -230,7 +228,6 @@ function stringify_json_line_python_style(obj) {
 
 
 class JsonWriter extends rbql.RBQLOutputWriter {
-    //FIXME add unit tests
     constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null, wrap_into_array=false) {
         super();
         this.stream = stream;
@@ -315,8 +312,6 @@ class JsonWriter extends rbql.RBQLOutputWriter {
             }
             this.stream.write(this.line_separator);
         }
-        // FIXME add unit tests for pretty mode
-        // FIXME add integration test for pretty mode, both js and python
         if (this.pretty_indent === null) {
             this.stream.write(stringify_json_line_python_style(object_to_write));
         } else {
@@ -346,7 +341,6 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 
 class JsonIterator extends rbql.RBQLInputIterator {
     // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
-    // FIXME add unit tests
     constructor(stream, unwrap_mode=false, encoding='utf-8', table_name='input', variable_prefix='a') {
         super();
         this.stream = stream;
