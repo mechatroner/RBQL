@@ -73,18 +73,18 @@ class BalancingIterator:
         if idx >= len(self.buf):
             return idx
         if self.buf[idx] != '[':
-            # FIXME ut this
             raise RbqlJsonParsingError("Input data must be wrapped in JSON array in unwrap mode. Expected `[` got `{}` char".format(self.buf[idx]))
         self.open_bracket_skipped = True
         return idx + 1
+
+    # FIXME add a unit test where we by mistake query 2d-array without unnest mode, it should still work but produce weird results e.g. `SELECT *, NR`
 
     def skip_trailing_spaces(self, idx):
         while idx < len(self.buf):
             if self.buf[idx].isspace():
                 idx += 1
                 continue
-            # FIXME ut this
-            raise RbqlJsonParsingError("Trailing data after the closing `]` bracket in unwrap mode")
+            raise RbqlJsonParsingError("Trailing data after the closing square bracket `]` in unwrap mode")
         return idx
 
     def _parse_forward(self, seek_start_pos):

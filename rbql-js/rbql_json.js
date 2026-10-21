@@ -98,8 +98,7 @@ class BalancingIterator {
                 idx += 1;
                 continue;
             }
-            // FIXME ut this
-            throw new RbqlJsonParsingError("Trailing data after the closing `]` bracket in unwrap mode");
+            throw new RbqlJsonParsingError("Trailing data after the closing square bracket `]` in unwrap mode");
         }
         return idx;
     }

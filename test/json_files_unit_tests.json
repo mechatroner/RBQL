@@ -162,5 +162,14 @@
         "unwrap_array": true,
         "query_js": "select a1['name'], a['age'], NR",
         "query_python": "select a1['name'], a['age'], NR"
+    },
+    {
+        "test_name": "trailing data in unwrap mode",
+        "input_table_path": "json_files/names2x5.jsons",
+        "unwrap_array": true,
+        "expected_error_py": "Trailing data after the closing square bracket `]` in unwrap mode",
+        "expected_error_js": "Trailing data after the closing square bracket `]` in unwrap mode",
+        "query_js": "select *",
+        "query_python": "select *"
     }
 ]
