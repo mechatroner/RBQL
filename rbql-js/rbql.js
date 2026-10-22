@@ -1415,10 +1415,12 @@ function locate_statements(rbql_expression) {
 function separate_actions(rbql_expression) {
     rbql_expression = str_strip(rbql_expression);
     var result = {};
-    let with_match = /^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z]{4,20})\) *$/.exec(rbql_expression);
+    let with_match = /^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z,]{4,20})\) *$/.exec(rbql_expression);
     if (with_match !== null) {
         rbql_expression = with_match[1];
-        result[WITH] = with_match[2];
+        result[WITH] = with_match[2].split(',');
+    } else {
+        result[WITH] = [];
     }
     var ordered_statements = locate_statements(rbql_expression);
     for (var i = 0; i < ordered_statements.length; i++) {
@@ -1855,8 +1857,9 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
     format_expression = remove_redundant_table_name(format_expression);
 
     var rb_actions = separate_actions(format_expression);
-    if (rb_actions.hasOwnProperty(WITH)) {
-        input_iterator.handle_query_modifier(rb_actions[WITH]);
+    for (let modifier of rb_actions[WITH]) {
+        input_iterator.handle_query_modifier(modifier);
+        query_context.writer.handle_query_modifier(modifier);
     }
     let input_header = await input_iterator.get_header();
     var input_variables_map = get_variables_map(query_text, 'a', input_header);
@@ -1881,8 +1884,8 @@ async function shallow_parse_input_query(query_text, input_iterator, join_tables
         let join_record_iterator = join_tables_registry.get_iterator_by_table_id(rhs_table_id);
         if (!join_record_iterator)
             throw new RbqlParsingError(`Unable to find join table: "${rhs_table_id}"`);
-        if (rb_actions.hasOwnProperty(WITH)) {
-            join_record_iterator.handle_query_modifier(rb_actions[WITH]);
+        for (let modifier of rb_actions[WITH]) {
+            join_record_iterator.handle_query_modifier(modifier);
         }
         join_header = await join_record_iterator.get_header();
         join_variables_map = get_variables_map(query_text, 'b', join_header);

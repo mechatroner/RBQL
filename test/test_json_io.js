@@ -295,7 +295,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
     warnings = test_common.normalize_warnings(warnings).sort();
     test_common.assert_arrays_are_equal(expected_warnings, warnings);
     let actual_md5 = test_common.calc_file_md5(actual_output_table_path);
-    test_common.assert(expected_md5 == actual_md5, `md5 mismatch in test "${test_name}". Expected table: ${expected_output_table_path}, Actual table: ${actual_output_table_path}`);
+    test_common.assert(expected_md5 == actual_md5, `md5 mismatch in test "${test_name}"\nvimdiff ${expected_output_table_path} ${actual_output_table_path}`);
 }
 
 

@@ -1494,6 +1494,7 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
         raise RbqlParsingError('Queries without context-based input table must contain "FROM" statement')
 
     for modifier in rb_actions[WITH]:
+        # TODO handle_query_modifier should return true if handled so that we can error/warning if a modifier wasn't handled by either input_iterator or writer.
         input_iterator.handle_query_modifier(modifier)
         query_context.writer.handle_query_modifier(modifier)
     input_variables_map = get_variables_map(query_text, 'a', input_iterator.get_header())

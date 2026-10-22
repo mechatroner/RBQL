@@ -336,6 +336,13 @@ class JsonWriter extends rbql.RBQLOutputWriter {
         // This writer always succeeds (unless there is an exception).
         return true;
     };
+
+    handle_query_modifier(modifier) {
+        if (modifier == 'wrap') {
+            assert(this.num_records_written == 0)
+            this.wrap_into_array = true;
+        }
+    }
 }
 
 
@@ -359,10 +366,6 @@ class JsonIterator extends rbql.RBQLInputIterator {
         this.started = false;
 
         this.record_number = 0;
-        this.line_number = 0;
-
-        this.partially_decoded_line = '';
-        this.partially_decoded_line_ends_with_cr = false;
 
         // Holds an external "resolve" function which is called when everything is fine.
         this.resolve_current_record = null;
@@ -502,6 +505,13 @@ class JsonIterator extends rbql.RBQLInputIterator {
         this.stream.on('data', (data_chunk) => { this.process_data_stream_chunk(data_chunk); });
         this.stream.on('end', () => { this.process_data_stream_end(); });
     };
+
+    handle_query_modifier(modifier) {
+        if (modifier == 'unwrap') {
+            assert(!this.started)
+            this.balancing_iterator = new BalancingIterator(/*unwrap_mode=*/true);
+        }
+    }
 }
 
 async function query_json(query_text, input_path, output_path, output_warnings, params) {
