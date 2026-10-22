@@ -245,8 +245,12 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
             warnings.append('Deduplicated output json keys to avoid data loss: {}'.format(', '.join(sorted_keys)))
         return warnings
 
+    def handle_query_modifier(self, modifier_name):
+        assert self.num_records_written == 0
+        if modifier_name == 'wrap':
+            self.wrap_in_json_array = True
 
-# FIXME: implement with(unwrap)
+
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
 class JsonIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, unwrap_mode=False, encoding='utf-8', table_name='input', variable_prefix='a', chunk_size=16384):
@@ -298,6 +302,10 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
                 self.balancing_iterator.add_fragment(chunk)
                 self.num_chunks_read_internal_stat += 1
 
+    def handle_query_modifier(self, modifier_name):
+        assert self.record_number == 0
+        if modifier_name == 'unwrap':
+            self.balancing_iterator = BalancingIterator(unwrap_mode=True)
 
 
 # TODO we might want the output to optionally be CSV too. 

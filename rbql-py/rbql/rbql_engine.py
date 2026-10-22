@@ -1275,11 +1275,12 @@ def separate_actions(statement_groups, rbql_expression):
     # make sure all rbql_expression was separated and SELECT or UPDATE is at the beginning
     rbql_expression = rbql_expression.strip(' ')
     result = dict()
-    # For now support no more than one query modifier per query
-    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z]{4,20})\) *$', rbql_expression)
+    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z,]{4,20})\) *$', rbql_expression)
     if mobj is not None:
         rbql_expression = mobj.group(1)
-        result[WITH] = mobj.group(2)
+        result[WITH] = mobj.group(2).split(',')
+    else:
+        result[WITH] = []
     ordered_statements = locate_statements(statement_groups, rbql_expression)
     for i in range(len(ordered_statements)):
         statement_start = ordered_statements[i][0]
@@ -1492,8 +1493,9 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
     if input_iterator is None:
         raise RbqlParsingError('Queries without context-based input table must contain "FROM" statement')
 
-    if WITH in rb_actions:
-        input_iterator.handle_query_modifier(rb_actions[WITH])
+    for modifier in rb_actions[WITH]:
+        input_iterator.handle_query_modifier(modifier)
+        query_context.writer.handle_query_modifier(modifier)
     input_variables_map = get_variables_map(query_text, 'a', input_iterator.get_header())
 
     if ORDER_BY in rb_actions and UPDATE in rb_actions:
@@ -1516,8 +1518,8 @@ def shallow_parse_input_query(query_text, input_iterator, tables_registry, query
         join_record_iterator = tables_registry.get_iterator_by_table_id(rhs_table_id, 'b')
         if join_record_iterator is None:
             raise RbqlParsingError('Unable to find join table: "{}"'.format(rhs_table_id)) # UT JSON CSV
-        if WITH in rb_actions:
-            join_record_iterator.handle_query_modifier(rb_actions[WITH])
+        for modifier in rb_actions[WITH]:
+            join_record_iterator.handle_query_modifier(modifier)
         join_variables_map = get_variables_map(query_text, 'b', join_record_iterator.get_header())
         join_header = join_record_iterator.get_header()
         if input_header is None and join_header is not None:
@@ -1647,6 +1649,10 @@ class RBQLOutputWriter:
 
     def set_header(self, header):
         pass # Reimplement if your class can handle output headers in a meaningful way
+
+    def handle_query_modifier(self, modifier_name):
+        # Reimplement if you need to handle a boolean query modifier that can be used like this: `SELECT * WITH (modifiername)`
+        pass
 
 
 class RBQLTableRegistry:
