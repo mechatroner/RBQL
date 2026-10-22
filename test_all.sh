@@ -144,6 +144,24 @@ if [ $run_unit_tests == "yes" ] && [ "$run_python_tests" == "yes" ] && [ "$run_n
 fi
 
 
+# Testing cli tool json mode
+md5sum_expected=($(md5sum test/json_files/expected_result_1.jsonl))
+if [ "$run_python_tests" == "yes" ]; then
+    md5sum_test=($(python3 -m rbql json --query 'select a1["name"], a1["age"], NR' --input test/json_files/names10.jsonl | md5sum))
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
+        echo "python3 json simple select test FAIL!"  1>&2
+        exit 1
+    fi
+fi
+if [ "$run_node_tests" == "yes" ]; then
+    md5sum_test=($( node ./rbql-js/cli_rbql.js json --query 'select a1["name"], a1["age"], NR' --input test/json_files/names10.jsonl | md5sum))
+    if [ "$md5sum_expected" != "$md5sum_test" ]; then
+        echo "node json simple select test FAIL!"  1>&2
+        exit 1
+    fi
+fi
+
+
 # Testing unicode separators
 md5sum_expected="bdb725416a7b17e64034e0a128c6bb96"
 if [ "$run_python_tests" == "yes" ]; then

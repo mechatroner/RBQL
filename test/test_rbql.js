@@ -79,8 +79,8 @@ function test_string_literals_separation() {
 
 
 function test_separate_actions() {
-        let query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and parseInt(b3) == 100 order by parseInt(a7) desc ';
-        let expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': 'INNER JOIN'}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and parseInt(b3) == 100'}, 'ORDER BY': {'text': 'parseInt(a7)', 'reverse': true}};
+        let query = 'select top   100 *, a2, a3 inner  join /path/to/the/file.tsv on a1 == b3 where a4 == "hello" and parseInt(b3) == 100 order by parseInt(a7) desc with(foo, bar)';
+        let expected_res = {'JOIN': {'text': '/path/to/the/file.tsv on a1 == b3', 'join_subtype': 'INNER JOIN'}, 'SELECT': {'text': '*, a2, a3', 'top': 100}, 'WHERE': {'text': 'a4 == "hello" and parseInt(b3) == 100'}, 'ORDER BY': {'text': 'parseInt(a7)', 'reverse': true}, 'WITH': ['foo', 'bar']};
         let test_res = rbql.separate_actions(query);
         test_common.assert_objects_are_equal(test_res, expected_res);
 }
@@ -475,6 +475,14 @@ async function test_everything() {
 
 function main() {
     console.log('Starting JS unit tests');
+    var scheme = {
+        '--dbg': {'boolean': true, 'help': 'Run tests in debug mode (require worker template from a tmp module file)'}
+    };
+    var args = cli_parser.parse_cmd_args(process.argv, scheme);
+
+    debug_mode = args['dbg'];
+    test_common.set_debug_mode(debug_mode);
+
     rbql = require('../rbql-js/rbql.js')
     test_everything().then(v => { console.log('Finished JS unit tests'); }).catch(error_info => { console.log('JS tests failed:' + JSON.stringify(error_info)); console.log(error_info.stack); });
 }

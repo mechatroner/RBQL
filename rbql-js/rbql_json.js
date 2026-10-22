@@ -6,7 +6,6 @@ const util = require('util');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
-// FIXME add bash-level unit tests for the cli tool that would use json format.
 
 const backslashChar = '\\';
 

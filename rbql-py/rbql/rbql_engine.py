@@ -1275,10 +1275,10 @@ def separate_actions(statement_groups, rbql_expression):
     # make sure all rbql_expression was separated and SELECT or UPDATE is at the beginning
     rbql_expression = rbql_expression.strip(' ')
     result = dict()
-    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z,]{4,20})\) *$', rbql_expression)
+    mobj = re.match('^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z, ]{4,20})\) *$', rbql_expression)
     if mobj is not None:
         rbql_expression = mobj.group(1)
-        result[WITH] = mobj.group(2).split(',')
+        result[WITH] = [v.strip() for v in mobj.group(2).split(',')]
     else:
         result[WITH] = []
     ordered_statements = locate_statements(statement_groups, rbql_expression)

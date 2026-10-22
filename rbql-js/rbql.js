@@ -1415,10 +1415,10 @@ function locate_statements(rbql_expression) {
 function separate_actions(rbql_expression) {
     rbql_expression = str_strip(rbql_expression);
     var result = {};
-    let with_match = /^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z,]{4,20})\) *$/.exec(rbql_expression);
+    let with_match = /^(.*)  *[Ww][Ii][Tt][Hh] *\(([a-z, ]{4,20})\) *$/.exec(rbql_expression);
     if (with_match !== null) {
         rbql_expression = with_match[1];
-        result[WITH] = with_match[2].split(',');
+        result[WITH] = with_match[2].split(',').map(v => v.trim());
     } else {
         result[WITH] = [];
     }
@@ -1705,6 +1705,10 @@ class RBQLOutputWriter {
 
     set_header() {
         return; // Reimplement if your class can handle output headers in a meaningful way
+    }
+
+    handle_query_modifier() {
+        return; // Reimplement if you need to handle a boolean query modifier that can be used like this: `SELECT * WITH (modifiername)`
     }
 }
 
