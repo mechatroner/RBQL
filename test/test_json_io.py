@@ -46,14 +46,15 @@ def calc_file_md5(fname):
 class TestBalancingIterator(unittest.TestCase):
     def test_simple(self):
         data = '{"hello": "world"}'
+        expected = json.loads(data)
         it = rbql_json.BalancingIterator()
         it.add_fragment(data)
         self.assertFalse(it.empty())
-        blob = it.get_current_blob()
-        self.assertEqual(data, blob)
+        json_obj = it.get_current_object()
+        self.assertEqual(expected, json_obj)
         # Test double read:
-        blob = it.get_current_blob()
-        self.assertEqual(data, blob)
+        json_obj = it.get_current_object()
+        self.assertEqual(expected, json_obj)
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -66,8 +67,8 @@ class TestBalancingIterator(unittest.TestCase):
         it.add_fragment('"world"}')
         self.assertFalse(it.empty())
         self.assertFalse(it.has_trailing_data())
-        blob = it.get_current_blob()
-        self.assertEqual('{"hello": "world"}', blob)
+        json_obj = it.get_current_object()
+        self.assertEqual({"hello": "world"}, json_obj)
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -77,8 +78,8 @@ class TestBalancingIterator(unittest.TestCase):
         it = rbql_json.BalancingIterator()
         it.add_fragment(data)
         self.assertFalse(it.empty())
-        blob = it.get_current_blob()
-        self.assertEqual('{"hello": "world"}', blob)
+        json_obj = it.get_current_object()
+        self.assertEqual({"hello": "world"}, json_obj)
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -88,8 +89,8 @@ class TestBalancingIterator(unittest.TestCase):
         it = rbql_json.BalancingIterator()
         it.add_fragment(data)
         self.assertFalse(it.empty())
-        blob = it.get_current_blob()
-        self.assertEqual('{"hello": "world"}', blob)
+        json_obj = it.get_current_object()
+        self.assertEqual({"hello": "world"}, json_obj)
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -99,8 +100,8 @@ class TestBalancingIterator(unittest.TestCase):
         it = rbql_json.BalancingIterator()
         it.add_fragment(data)
         self.assertFalse(it.empty())
-        blob = it.get_current_blob()
-        self.assertEqual('{"hello": "world"}', blob)
+        json_obj = it.get_current_object()
+        self.assertEqual({"hello": "world"}, json_obj)
         it.advance()
         self.assertTrue(it.empty())
         self.assertTrue(it.has_trailing_data())
@@ -110,8 +111,8 @@ class TestBalancingIterator(unittest.TestCase):
         it = rbql_json.BalancingIterator()
         it.add_fragment(data)
         self.assertFalse(it.empty())
-        blob = it.get_current_blob()
-        self.assertEqual('{"hello": "world"}', blob)
+        json_obj = it.get_current_object()
+        self.assertEqual({"hello": "world"}, json_obj)
         it.advance()
         self.assertTrue(it.empty())
         self.assertTrue(it.has_trailing_data())
@@ -122,7 +123,7 @@ class TestBalancingIterator(unittest.TestCase):
         with self.assertRaises(Exception) as cm:
             it.add_fragment(data)
         e = cm.exception
-        self.assertEqual(str(e), 'Unbalanced closing curly bracket `}`')
+        self.assertEqual(str(e), 'Found an unbalanced closing curly bracket `}` after parsing the first 1 records')
 
     def test_unbalanced_square(self):
         data = '{"hello": "world"} ]'
@@ -130,14 +131,14 @@ class TestBalancingIterator(unittest.TestCase):
         with self.assertRaises(Exception) as cm:
             it.add_fragment(data)
         e = cm.exception
-        self.assertEqual(str(e), 'Unbalanced closing square bracket `]`')
+        self.assertEqual(str(e), 'Found an unbalanced closing square bracket `]` after parsing the first 1 records')
 
     def test_integers_with_explicity_finish_without_trailing_space(self):
         it = rbql_json.BalancingIterator()
         it.add_fragment('1 2 3 4 5')
         it.finish()
         for i in range(5):
-            self.assertEqual(int(it.get_current_blob()) - 1, i)
+            self.assertEqual(it.get_current_object() - 1, i)
             it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -150,7 +151,7 @@ class TestBalancingIterator(unittest.TestCase):
         it.add_fragment('"world"')
         self.assertFalse(it.empty())
         self.assertFalse(it.has_trailing_data())
-        self.assertEqual('"hello\\"world"', it.get_current_blob())
+        self.assertEqual(r'hello"world', it.get_current_object())
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -163,7 +164,7 @@ class TestBalancingIterator(unittest.TestCase):
         it.add_fragment('\\"')
         self.assertFalse(it.empty())
         self.assertFalse(it.has_trailing_data())
-        self.assertEqual('"hello\\\\"', it.get_current_blob())
+        self.assertEqual('hello\\', it.get_current_object())
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -171,29 +172,24 @@ class TestBalancingIterator(unittest.TestCase):
     def test_strings(self):
         it = rbql_json.BalancingIterator()
         it.add_fragment('"hello""world"')
-        self.assertEqual(it.get_current_blob(), '"hello"')
+        self.assertEqual(it.get_current_object(), 'hello')
         it.advance()
-        self.assertEqual(it.get_current_blob(), '"world"')
+        self.assertEqual(it.get_current_object(), 'world')
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
 
-    def test_balanced_garbage(self):
+    def test_garbage_data(self):
         it = rbql_json.BalancingIterator()
-        it.add_fragment('balanced,   but:   {not - json - at all! } \n ')
-        self.assertEqual(it.get_current_blob(), 'balanced,')
-        it.advance()
-        self.assertEqual(it.get_current_blob(), 'but:')
-        it.advance()
-        self.assertEqual(it.get_current_blob(), '{not - json - at all! }')
-        it.advance()
-        self.assertTrue(it.empty())
-        self.assertFalse(it.has_trailing_data())
+        with self.assertRaises(Exception) as cm:
+            it.add_fragment('some garbage data')
+        e = cm.exception
+        self.assertEqual(str(e), 'Failed to deserialize a record after the first 0: Expecting value: line 1 column 1 (char 0)')
 
     def test_two_backslashes(self):
         it = rbql_json.BalancingIterator()
         it.add_fragment(r'"hello world\\"')
-        self.assertEqual(it.get_current_blob(), r'"hello world\\"')
+        self.assertEqual(it.get_current_object(), 'hello world\\')
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -201,7 +197,7 @@ class TestBalancingIterator(unittest.TestCase):
     def test_three_backslashes(self):
         it = rbql_json.BalancingIterator()
         it.add_fragment(r'"hello world\\\" bye!"')
-        self.assertEqual(it.get_current_blob(), r'"hello world\\\" bye!"')
+        self.assertEqual(it.get_current_object(), r'hello world\" bye!')
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())
@@ -209,7 +205,7 @@ class TestBalancingIterator(unittest.TestCase):
     def bad_backslash_still_works(self):
         it = rbql_json.BalancingIterator()
         it.add_fragment(r'"hello\ \"world"')
-        self.assertEqual(it.get_current_blob(), r'"hello\ \"world"')
+        self.assertEqual(it.get_current_object(), r'"hello\ \"world"')
         it.advance()
         self.assertTrue(it.empty())
         self.assertFalse(it.has_trailing_data())

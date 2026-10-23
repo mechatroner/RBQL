@@ -18,6 +18,9 @@ def set_debug_mode():
 
 backslash_char = '\\'
 
+
+# TODO Consider if we want json parsing to finish without errors if we select e.g. top 10 records from a corrupted file and corruption occures at line 11.
+
 class RbqlJsonParsingError(Exception):
     pass
 
@@ -27,29 +30,29 @@ class UnparsedJsonBlob:
         self.inside_string = False
         self.backslash_escape_flag = False
         
-
 class BalancingIterator:
     def __init__(self, unwrap_mode=False):
         self.buf = ''
         self.unwrap_mode = unwrap_mode
-        self.json_blobs = deque()
+        self.parsed_objects = deque()
         self.current = UnparsedJsonBlob()
         self.open_bracket_skipped = False if self.unwrap_mode else True
         self.closing_bracket_skipped = False
+        self.num_parsed = 0
 
     def add_fragment(self, fragment):
         seek_start_pos = len(self.buf)
         self.buf += fragment
         self._parse_forward(seek_start_pos)
 
-    def get_current_blob(self):
-        return self.json_blobs[0]
+    def get_current_object(self):
+        return self.parsed_objects[0]
 
     def advance(self):
-        return self.json_blobs.popleft()
+        return self.parsed_objects.popleft()
 
     def empty(self):
-        return len(self.json_blobs) == 0
+        return len(self.parsed_objects) == 0
 
     def has_trailing_data(self):
         return len(self.buf) != 0
@@ -64,7 +67,11 @@ class BalancingIterator:
     def _consume_fragment(self, fragment):
         fragment = fragment.strip()
         if len(fragment):
-            self.json_blobs.append(fragment)
+            try:
+                self.parsed_objects.append(json.loads(fragment))
+            except json.JSONDecodeError as e:
+                raise rbql_engine.RbqlIOHandlingError('Failed to deserialize a record after the first {}: {}'.format(self.num_parsed, e))
+            self.num_parsed += 1
             self.current = UnparsedJsonBlob() 
 
     def skip_open_square_bracket(self, idx):
@@ -115,14 +122,14 @@ class BalancingIterator:
                 self.current.bracket_stack.append(self.buf[i])
             elif self.buf[i] == '}':
                 if len(self.current.bracket_stack) == 0 or self.current.bracket_stack.pop() != '{':
-                    raise RbqlJsonParsingError("Unbalanced closing curly bracket `}`")
+                    raise RbqlJsonParsingError(f"Found an unbalanced closing curly bracket `}}` after parsing the first {self.num_parsed} records")
                 object_can_end = True
             elif self.buf[i] == ']':
                 if self.unwrap_mode and len(self.current.bracket_stack) == 0 and not self.closing_bracket_skipped:
                     self.closing_bracket_skipped = True
                     end_offset = 1
                 elif len(self.current.bracket_stack) == 0 or self.current.bracket_stack.pop() != '[':
-                    raise RbqlJsonParsingError("Unbalanced closing square bracket `]`")
+                    raise RbqlJsonParsingError(f"Found an unbalanced closing square bracket `]` after parsing the first {self.num_parsed} records")
                 object_can_end = True
             elif self.buf[i] == ',' and self.unwrap_mode:
                 # TODO This would make a sequence of commas a valid noop span, consider fixing it.
@@ -276,17 +283,11 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
         return None
 
     def get_and_advance(self):
-        blob = self.balancing_iterator.advance()
+        json_obj = self.balancing_iterator.advance()
         self.record_number += 1
-        json_obj = None
-        try:
-            json_obj = json.loads(blob)
-        except json.JSONDecodeError as e:
-            raise rbql_engine.RbqlIOHandlingError('Unable to parse {} record {} as JSON: {}'.format(table_name, self.record_number, e))
         return [json_obj]
 
     def get_record(self):
-        # FIXME add error handling - we need to add info to the message at what entry it has failed
         while True:
             if self.exhausted:
                 return self.get_exhausted()
