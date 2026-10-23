@@ -70,7 +70,7 @@ class BalancingIterator:
             try:
                 self.parsed_objects.append(json.loads(fragment))
             except json.JSONDecodeError as e:
-                raise rbql_engine.RbqlIOHandlingError('Failed to deserialize a record after the first {}: {}'.format(self.num_parsed, e))
+                raise rbql_engine.RbqlIOHandlingError('Failed to deserialize a record after the first {} records: {}'.format(self.num_parsed, e))
             self.num_parsed += 1
             self.current = UnparsedJsonBlob() 
 
@@ -270,7 +270,6 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
         self.exhausted = False
         self.chunk_size = chunk_size
         self.num_chunks_read_internal_stat = 0 # This is for unit tests only
-        self.record_number = 0
         self.balancing_iterator = BalancingIterator(unwrap_mode=unwrap_mode)
 
     def get_header(self):
@@ -279,12 +278,11 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
     
     def get_exhausted(self):
         if self.balancing_iterator.has_trailing_data():
-            raise rbql_engine.RbqlIOHandlingError("Trailing data in {} stream that can't be parsed as JSON objects after record {}".format(self.table_name, self.record_number))
+            raise rbql_engine.RbqlIOHandlingError("Trailing data in {} stream that can't be parsed as JSON objects after record {}".format(self.table_name, self.balancing_iterator.num_parsed))
         return None
 
     def get_and_advance(self):
         json_obj = self.balancing_iterator.advance()
-        self.record_number += 1
         return [json_obj]
 
     def get_record(self):
@@ -304,7 +302,7 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
                 self.num_chunks_read_internal_stat += 1
 
     def handle_query_modifier(self, modifier_name):
-        assert self.record_number == 0
+        assert self.balancing_iterator.num_parsed == 0
         if modifier_name == 'unwrap':
             self.balancing_iterator = BalancingIterator(unwrap_mode=True)
 

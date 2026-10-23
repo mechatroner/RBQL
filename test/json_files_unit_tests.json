@@ -136,8 +136,8 @@
     {
         "test_name": "corrupted json streams - bad entry",
         "input_table_path": "json_files/tarot_cards_stream.corrupted_entry.jsons.txt",
-        "expected_error_py": "Failed to deserialize a record after the first 5: Expecting value: line 1 column 1 (char 0)",
-        "expected_error_js": "Unbalanced closing curly bracket `}`",
+        "expected_error_py": "Failed to deserialize a record after the first 5 records: Expecting value: line 1 column 1 (char 0)",
+        "expected_error_js": "Failed to deserialize a record after the first 5 records: SyntaxError: Unexpected token ':', \":\" is not valid JSON",
         "query_js": "select *",
         "query_python": "select *"
     },

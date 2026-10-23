@@ -22,11 +22,11 @@ function test_basic_single_object() {
 
   // Test full object pushed at once
   balancing_iterator.add_fragment('{"foo": "bar"}');
-  test_common.assert_equal(balancing_iterator.get_current_blob(), '{"foo": "bar"}', true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), {"foo": "bar"}, true);
 
   // Erasing should leave nothing
   balancing_iterator.advance();
-  test_common.assert_equal(balancing_iterator.get_current_blob(), null, true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), undefined, true);
 }
 
 function test_chunked_data_stream() {
@@ -34,13 +34,13 @@ function test_chunked_data_stream() {
 
   // Partial object pushes
   balancing_iterator.add_fragment('  { "key": ');
-  test_common.assert_equal(balancing_iterator.get_current_blob(), null, true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), undefined, true);
 
   balancing_iterator.add_fragment('"val');
-  test_common.assert_equal(balancing_iterator.get_current_blob(), null, true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), undefined, true);
 
   balancing_iterator.add_fragment('ue" }');
-  test_common.assert_equal(balancing_iterator.get_current_blob(), '{ "key": "value" }', true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), { "key": "value" }, true);
 }
 
 function test_multiple_objects_and_erasing() {
@@ -50,19 +50,19 @@ function test_multiple_objects_and_erasing() {
   balancing_iterator.add_fragment('{"first": 1} {"second": 2} [1, 2, 3]');
 
   // First object
-  test_common.assert_equal(balancing_iterator.get_current_blob(), '{"first": 1}', true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), {"first": 1}, true);
 
   // Erase first and verify second object (with leading whitespace handled)
   balancing_iterator.advance();
-  test_common.assert_equal(balancing_iterator.get_current_blob(), '{"second": 2}', true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), {"second": 2}, true);
 
   // Erase second and verify third object (array)
   balancing_iterator.advance();
-  test_common.assert_equal(balancing_iterator.get_current_blob(), '[1, 2, 3]', true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), [1, 2, 3], true);
 
   // Erase final object
   balancing_iterator.advance();
-  test_common.assert_equal(balancing_iterator.get_current_blob(), null, true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), undefined, true);
 }
 
 function test_complex_nesting_and_strings() {
@@ -72,36 +72,26 @@ function test_complex_nesting_and_strings() {
   const complexJson = '{"text": "Bracket } inside \\" string { ", "nested": [1, {"a": true}]}';
   
   balancing_iterator.add_fragment(complexJson.slice(0, 20));
-  test_common.assert_equal(balancing_iterator.get_current_blob(), null, true);
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), undefined, true);
 
   balancing_iterator.add_fragment(complexJson.slice(20));
-  test_common.assert_equal(balancing_iterator.get_current_blob(), complexJson, true);
-
-  // Verify parsing the stringified object gives a valid JS structure
-  const parsed = JSON.parse(balancing_iterator.get_current_blob());
-  test_common.assert_objects_are_equal(
-    parsed,
-    { text: 'Bracket } inside " string { ', nested: [1, { a: true }] },
-    true
-  );
+  test_common.assert_objects_are_equal(balancing_iterator.get_current_object(), { text: 'Bracket } inside " string { ', nested: [1, { a: true }] }, true);
 }
 
 function test_invalid_prefix_exceptions() {
-  // Test non-JSON prefix - should parse OK
-  const balancing_iterator1 = new rbql_json.BalancingIterator();
-  balancing_iterator1.add_fragment('non_json_prefix {"a": 1}');
-  test_common.assert_equal(balancing_iterator1.get_current_blob(), "non_json_prefix", false);
-  balancing_iterator1.advance();
-  test_common.assert_equal(balancing_iterator1.get_current_blob(), '{"a": 1}', false);
-  balancing_iterator1.advance();
-  test_common.assert(balancing_iterator1.empty());
-  test_common.assert(!balancing_iterator1.has_trailing_data());
-  
-  // Test unexpected closing brace
-  const balancing_iterator2 = new rbql_json.BalancingIterator();
+  let balancing_iterator = new rbql_json.BalancingIterator();
   let caught = false;
   try {
-      balancing_iterator2.add_fragment('} {"a": 1}');
+      balancing_iterator.add_fragment('some bad data');
+  } catch (e) {
+      caught = true;
+  }
+  test_common.assert(caught, "Expected exception for invalid starting closing brace");
+
+  balancing_iterator = new rbql_json.BalancingIterator();
+  caught = false;
+  try {
+      balancing_iterator.add_fragment('} {"a": 1}');
   } catch (e) {
       caught = true;
   }

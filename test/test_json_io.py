@@ -184,7 +184,7 @@ class TestBalancingIterator(unittest.TestCase):
         with self.assertRaises(Exception) as cm:
             it.add_fragment('some garbage data')
         e = cm.exception
-        self.assertEqual(str(e), 'Failed to deserialize a record after the first 0: Expecting value: line 1 column 1 (char 0)')
+        self.assertEqual(str(e), 'Failed to deserialize a record after the first 0 records: Expecting value: line 1 column 1 (char 0)')
 
     def test_two_backslashes(self):
         it = rbql_json.BalancingIterator()

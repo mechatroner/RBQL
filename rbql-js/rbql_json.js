@@ -24,15 +24,15 @@ class UnparsedJsonBlob {
     }
 }
 
-// FIXME keep track of pre-parsed objects to be able to identify position where parsing failed.
 class BalancingIterator {
     constructor(unwrap_mode = false) {
         this.buf = '';
         this.unwrap_mode = unwrap_mode;
-        this.json_blobs = []; // There is no deque in JS so we use an array. Therefore `advance()` takes O(N).
+        this.parsed_objects = []; // There is no deque in JS so we use an array. Therefore `advance()` takes O(N).
         this.current = new UnparsedJsonBlob();
         this.open_bracket_skipped = this.unwrap_mode ? false : true;
         this.closing_bracket_skipped = false;
+        this.num_parsed = 0;
     }
 
     add_fragment(fragment) {
@@ -41,16 +41,16 @@ class BalancingIterator {
         this._parse_forward(seek_start_pos);
     }
 
-    get_current_blob() {
-        return this.json_blobs[0];
+    get_current_object() {
+        return this.parsed_objects[0];
     }
 
     advance() {
-        return this.json_blobs.shift(); // Equivalent to popleft(), but O(N)
+        return this.parsed_objects.shift(); // Equivalent to popleft(), but O(N)
     }
 
     empty() {
-        return this.json_blobs.length === 0;
+        return this.parsed_objects.length === 0;
     }
 
     has_trailing_data() {
@@ -70,7 +70,13 @@ class BalancingIterator {
     _consume_fragment(fragment) {
         fragment = fragment.trim();
         if (fragment.length > 0) {
-            this.json_blobs.push(fragment);
+            try {
+                this.parsed_objects.push(JSON.parse(fragment));
+            } catch (e) {
+                // FIXME ut this and other exceptions from the balancing iterator
+                throw new RbqlJsonParsingError(`Failed to deserialize a record after the first ${this.num_parsed} records: ${e}`);
+            }
+            this.num_parsed += 1;
             this.current = new UnparsedJsonBlob();
         }
     }
@@ -135,7 +141,7 @@ class BalancingIterator {
                 this.current.bracket_stack.push(this.buf[i]);
             } else if (this.buf[i] === '}') {
                 if (this.current.bracket_stack.length === 0 || this.current.bracket_stack.pop() !== '{') {
-                    throw new RbqlJsonParsingError("Unbalanced closing curly bracket `}`");
+                    throw new RbqlJsonParsingError(`Found an unbalanced closing curly bracket \`}\` after parsing the first ${this.num_parsed} records`);
                 }
                 object_can_end = true;
             } else if (this.buf[i] === ']') {
@@ -143,7 +149,7 @@ class BalancingIterator {
                     this.closing_bracket_skipped = true;
                     end_offset = 1;
                 } else if (this.current.bracket_stack.length === 0 || this.current.bracket_stack.pop() !== '[') {
-                    throw new RbqlJsonParsingError("Unbalanced closing square bracket `]`");
+                    throw new RbqlJsonParsingError(`Found an unbalanced closing square bracket \`]\` after parsing the first ${this.num_parsed} records`);
                 }
                 object_can_end = true;
             } else if (this.buf[i] === ',' && this.unwrap_mode) {
@@ -364,8 +370,6 @@ class JsonIterator extends rbql.RBQLInputIterator {
         this.input_exhausted = false;
         this.started = false;
 
-        this.record_number = 0;
-
         // Holds an external "resolve" function which is called when everything is fine.
         this.resolve_current_record = null;
         // Holds an external "reject" function which is called when error has occured.
@@ -459,16 +463,10 @@ class JsonIterator extends rbql.RBQLInputIterator {
         }
         while (!this.balancing_iterator.empty()) {
             try {
-                this.produced_records_queue.enqueue([JSON.parse(this.balancing_iterator.get_current_blob())]);
-                this.balancing_iterator.advance();
-                this.record_number += 1;
+                // FIXME ut this.
+                this.produced_records_queue.enqueue([this.balancing_iterator.advance()]);
             } catch (e) {
-                if (e instanceof SyntaxError) {
-                    // FIXME ut this
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to parse data as JSON (record number ${this.record_number}): ${e.message}"`));
-                } else {
-                    this.store_or_propagate_exception(e);
-                }
+                this.store_or_propagate_exception(e);
                 return;
             }
             this.try_resolve_next_record();
