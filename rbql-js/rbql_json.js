@@ -73,7 +73,6 @@ class BalancingIterator {
             try {
                 this.parsed_objects.push(JSON.parse(fragment));
             } catch (e) {
-                // FIXME ut this and other exceptions from the balancing iterator
                 throw new RbqlJsonParsingError(`Failed to deserialize a record after the first ${this.num_parsed} records: ${e}`);
             }
             this.num_parsed += 1;
@@ -463,7 +462,6 @@ class JsonIterator extends rbql.RBQLInputIterator {
         }
         while (!this.balancing_iterator.empty()) {
             try {
-                // FIXME ut this.
                 this.produced_records_queue.enqueue([this.balancing_iterator.advance()]);
             } catch (e) {
                 this.store_or_propagate_exception(e);
