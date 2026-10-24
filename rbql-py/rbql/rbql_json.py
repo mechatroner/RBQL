@@ -21,6 +21,12 @@ backslash_char = '\\'
 
 # TODO Consider if we want json parsing to finish without errors if we select e.g. top 10 records from a corrupted file and corruption occures at line 11.
 
+
+class DotDict(dict):
+    def __getattr__(self, key):
+        return self[key]
+
+
 class RbqlJsonParsingError(Exception):
     pass
 
@@ -68,7 +74,7 @@ class BalancingIterator:
         fragment = fragment.strip()
         if len(fragment):
             try:
-                self.parsed_objects.append(json.loads(fragment))
+                self.parsed_objects.append(json.loads(fragment, object_hook=lambda d: DotDict(d)))
             except json.JSONDecodeError as e:
                 raise rbql_engine.RbqlIOHandlingError('Failed to deserialize a record after the first {} records: {}'.format(self.num_parsed, e))
             self.num_parsed += 1

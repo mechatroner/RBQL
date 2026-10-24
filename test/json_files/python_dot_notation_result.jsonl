@@ -1,0 +1,10 @@
+{"name": "Alice Johnson", "address": {"street": "123 Maple Dr", "city": "Springfield", "zip_code": "62704", "country": "USA"}, "occupation_uc": "SOFTWARE ENGINEER"}
+{"name": "Robert Smith", "address": {"street": "45 Oak Ave", "city": "Shelbyville", "zip_code": "38034", "country": "USA"}, "occupation_uc": "MARKETING MANAGER"}
+{"name": "Emily Chen", "address": {"street": "7 Pine Ln", "city": "Capital City", "zip_code": "90210", "country": "USA"}, "occupation_uc": "DATA SCIENTIST"}
+{"name": "David Garcia", "address": {"street": "88 Cedar Blvd", "city": "North Haverbrook", "zip_code": "19104", "country": "USA"}, "occupation_uc": "FINANCIAL ANALYST"}
+{"name": "Sarah Miller", "address": {"street": "101 Elm St", "city": "New New York", "zip_code": "10001", "country": "USA"}, "occupation_uc": "GRAPHIC DESIGNER"}
+{"name": "Michael Brown", "address": {"street": "23 Birch Ct", "city": "Westview", "zip_code": "48197", "country": "USA"}, "occupation_uc": "OPERATIONS DIRECTOR"}
+{"name": "Jessica Lee", "address": {"street": "55 Poplar Way", "city": "Harmony Town", "zip_code": "98052", "country": "USA"}, "occupation_uc": "REGISTERED NURSE"}
+{"name": "Chris Wilson", "address": {"street": "99 Willow Dr", "city": "Oakhaven", "zip_code": "77024", "country": "USA"}, "occupation_uc": "REAL ESTATE AGENT"}
+{"name": "Megan Davis", "address": {"street": "14 Hazel Ave", "city": "Riverdale", "zip_code": "33139", "country": "USA"}, "occupation_uc": "STUDENT"}
+{"name": "James Taylor", "address": {"street": "67 Spruce Pl", "city": "Fairview", "zip_code": "02134", "country": "USA"}, "occupation_uc": "RETIRED TEACHER"}

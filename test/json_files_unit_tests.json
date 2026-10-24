@@ -48,6 +48,13 @@
         "query_python": "select a1['address']"
     },
     {
+        "test_name": "dot notation in Python",
+        "debug_mode": true,
+        "input_table_path": "json_files/nested_names_10.jsonl",
+        "expected_output_table_path": "json_files/python_dot_notation_result.jsonl",
+        "query_python": "select a.name, a.address, a.occupation.title.upper() as occupation_uc"
+    },
+    {
         "test_name": "select from nested multicomponent",
         "debug_mode": true,
         "input_table_path": "json_files/nested_names_10.jsonl",
