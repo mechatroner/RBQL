@@ -190,6 +190,14 @@
         "query_python": "select *"
     },
     {
+        "test_name": "unbalanced curly bracket",
+        "input_table_path": "json_files/stream_of_arrays_unbalanced_curly.jsonl",
+        "expected_error_py": "Found an unbalanced closing curly bracket `}` after parsing the first 6 records",
+        "expected_error_js": "Found an unbalanced closing curly bracket `}` after parsing the first 6 records",
+        "query_js": "select *",
+        "query_python": "select *"
+    },
+    {
         "test_name": "Test user error: querying 2d array without unwrap still works. Sometimes. And not exactly as expected",
         "debug_mode": true,
         "input_table_path": "json_files/names10.arrayobj.json",
