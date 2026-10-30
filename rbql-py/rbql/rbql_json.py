@@ -69,6 +69,8 @@ class BalancingIterator:
         if not self.current.inside_string and len(self.current.bracket_stack) == 0:
             self._consume_fragment(self.buf)
             self.buf = ''
+        if self.has_trailing_data():
+            raise RbqlJsonParsingError("Trailing data at the end of the stream")
 
     def _consume_fragment(self, fragment):
         fragment = fragment.strip()
@@ -282,11 +284,6 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
         # Returning "a1" as a column name instead of "a" would have a side effect because it would initialize a.a1 and a['a1'] values in rbql engine.
         return [self.variable_prefix]
     
-    def get_exhausted(self):
-        if self.balancing_iterator.has_trailing_data():
-            raise rbql_engine.RbqlIOHandlingError("Trailing data in {} stream that can't be parsed as JSON objects after record {}".format(self.table_name, self.balancing_iterator.num_parsed))
-        return None
-
     def get_and_advance(self):
         json_obj = self.balancing_iterator.advance()
         return [json_obj]
@@ -294,7 +291,7 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
     def get_record(self):
         while True:
             if self.exhausted:
-                return self.get_exhausted()
+                return None
             if not self.balancing_iterator.empty():
                 return self.get_and_advance()
             chunk = self.stream.read(self.chunk_size)

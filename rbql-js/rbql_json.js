@@ -65,6 +65,9 @@ class BalancingIterator {
             this._consume_fragment(this.buf);
             this.buf = '';
         }
+        if (this.has_trailing_data()) {
+            throw new RbqlJsonParsingError("Trailing data at the end of the stream");
+        }
     }
 
     _consume_fragment(fragment) {
@@ -478,9 +481,6 @@ class JsonIterator extends rbql.RBQLInputIterator {
             this.balancing_iterator.finish();
         } catch (e) {
             this.store_or_propagate_exception(e);
-        }
-        if (this.balancing_iterator.has_trailing_data()) {
-            this.store_or_propagate_exception(new RbqlIOHandlingError(`Trailing data in ${this.table_name} stream that can't be parsed as JSON objects`));
         }
         // This last call is needed so that null is dequeued from the queue which initiaties the query completion.
         this.try_resolve_next_record();
