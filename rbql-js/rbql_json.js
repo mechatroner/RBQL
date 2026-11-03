@@ -6,6 +6,7 @@ const util = require('util');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
+const utf_decoding_error = 'Unable to decode input as UTF-8';
 
 const backslashChar = '\\';
 
@@ -122,7 +123,7 @@ class BalancingIterator {
             }
             let object_can_end = false;
             let end_offset = 0; // This is to be able to drop trailing `,` or `]` in the unwrap mode.
-            
+
             if (this.current.inside_string) {
                 if (this.buf[i] === '"' && !this.current.backslash_escape_flag) {
                     this.current.inside_string = false;
@@ -161,9 +162,9 @@ class BalancingIterator {
             } else if (isSpace(this.buf[i])) {
                 object_can_end = true;
             }
-            
+
             i += 1;
-            
+
             if (object_can_end && this.current.bracket_stack.length === 0) {
                 const fragment = this.buf.slice(0, i - end_offset);
                 this.buf = this.buf.slice(i);
@@ -174,6 +175,7 @@ class BalancingIterator {
     }
 }
 
+
 // Helper function mimicking Python's str.isspace() for single characters
 function isSpace(ch) {
     return /\s/.test(ch);
@@ -181,6 +183,7 @@ function isSpace(ch) {
 
 
 class RbqlIOHandlingError extends Error {}
+class AssertionError extends Error {}
 
 
 function assert(condition, message=null) {
@@ -241,7 +244,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
         this.encoding = encoding;
         if (encoding)
             this.stream.setDefaultEncoding(encoding);
-        this.stream.on('error', (error_obj) => { this.store_first_error(error_obj); })
+        this.stream.on('error', (error_obj) => { this.store_first_error(error_obj); });
         this.line_separator = line_separator;
 
         this.close_stream_on_finish = close_stream_on_finish;
@@ -346,7 +349,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 
     handle_query_modifier(modifier) {
         if (modifier == 'wrap') {
-            assert(this.num_records_written == 0)
+            assert(this.num_records_written == 0);
             this.wrap_into_array = true;
         }
     }
@@ -503,11 +506,17 @@ class JsonIterator extends rbql.RBQLInputIterator {
 
     handle_query_modifier(modifier) {
         if (modifier == 'unwrap') {
-            assert(!this.started)
+            assert(!this.started);
             this.balancing_iterator = new BalancingIterator(/*unwrap_mode=*/true);
         }
     }
 }
+
+
+function read_user_init_code(rbql_init_source_path) {
+    return fs.readFileSync(rbql_init_source_path, 'utf-8');
+}
+
 
 async function query_json(query_text, input_path, output_path, output_warnings, params) {
     let user_init_code = params.hasOwnProperty('user_init_code') ? params['user_init_code'] : '';
@@ -521,7 +530,6 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     if (user_init_code == '' && fs.existsSync(default_init_source_path)) {
         user_init_code = read_user_init_code(default_init_source_path);
     }
-    let input_file_dir = input_path ? path.dirname(input_path) : null;
     let join_tables_registry = null;
 
     let input_iterator = new JsonIterator(input_stream, unwrap_array);
