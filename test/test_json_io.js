@@ -106,6 +106,20 @@ function run_all_json_balancing_iterator_tests() {
   test_invalid_prefix_exceptions();
 }
 
+async function test_json_iterator() {
+    let input_data = '{"col_1": "foo", "col_2": "bar"}';
+    let input_stream = stream.Readable.from([input_data]);
+    let input_iterator = new rbql_json.JsonIterator(input_stream, /*unwrap_input=*/false, /*encoding=*/null);
+    let records = [];
+    while (true) {
+        let record = await input_iterator.get_record();
+        if (!record) {
+            break;
+        }
+        records.push(record);
+    }
+    test_common.assert_objects_are_equal(records, [[{'col_1': 'foo', 'col_2': 'bar'}]]);
+}
 
 async function test_json_lines_writer() {
     let writer_stream = new test_common.PseudoWritable();
@@ -314,6 +328,7 @@ async function test_json_scenarios() {
 async function test_everything() {
     run_all_json_balancing_iterator_tests();
     await test_json_lines_writer();
+    await test_json_iterator();
     await test_json_array_object_writer();
     await test_json_lines_writer_write_error();
     await test_json_lines_writer_header_dups();
