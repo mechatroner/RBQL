@@ -144,6 +144,17 @@ if [ $run_unit_tests == "yes" ] && [ "$run_python_tests" == "yes" ] && [ "$run_n
 fi
 
 
+# Testing nonexisting init source file error
+if [ "$run_python_tests" == "yes" ]; then
+    output=$( python3 -m rbql --delim , --query "SELECT top 3 a1, foobarium(a2)" --input test/csv_files/countries.csv --init-source-file /this/file/does/not/exist 2>&1 )
+    rc=$?
+    if [ $rc != 1 ] || [[ $output != "Error [unexpected]: [Errno 2] No such file or directory: '/this/file/does/not/exist'" ]]; then
+        echo "rbql-py does not produce expected error. rc:$rc, output:$output "  1>&2
+        exit 1
+    fi
+fi
+
+
 # Testing cli tool json mode
 md5sum_expected=($(md5sum test/json_files/expected_result_1.jsonl))
 if [ "$run_python_tests" == "yes" ]; then
@@ -456,8 +467,6 @@ if [ "$run_python_tests" == "yes" ]; then
         exit 1
     fi
 fi
-
-
 
 
 cleanup_tmp_files

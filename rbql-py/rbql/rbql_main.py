@@ -73,11 +73,11 @@ def run_with_python_csv(args, is_interactive):
     args.output_delim, args.output_policy = (delim, policy) if args.out_format == 'input' else rbql_csv.interpret_named_csv_format(args.out_format)
     out_delim, out_policy = args.output_delim, args.output_policy
 
-    user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
 
     warnings = []
     error_type, error_msg = None, None
     try:
+        user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
         rbql_csv.query_csv(query, input_path, delim, policy, output_path, out_delim, out_policy, csv_encoding, warnings, with_headers, args.comment_prefix, user_init_code, args.color, strip_whitespaces=args.strip_spaces, comment_regex=args.comment_regex)
     except Exception as e:
         if args.debug_mode:
@@ -97,7 +97,6 @@ def run_with_python_csv(args, is_interactive):
 
 def run_with_python_sqlite(args, is_interactive):
     import sqlite3
-    user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
 
     warnings = []
     error_type, error_msg = None, None
@@ -106,6 +105,7 @@ def run_with_python_sqlite(args, is_interactive):
         db_connection = sqlite3.connect(args.database)
         if args.debug_mode:
             rbql_engine.set_debug_mode()
+        user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
         rbql_sqlite.query_sqlite_to_csv(args.query, db_connection, args.input, args.output, args.output_delim, args.output_policy, args.encoding, warnings, user_init_code, args.color)
     except Exception as e:
         if args.debug_mode:
@@ -430,13 +430,13 @@ def run_with_python_json(args):
     wrap = args.wrap
     output_pretty_indent = 4 if args.pretty_output else None
 
-    user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
     warnings = []
     error_type, error_msg = None, None
     if query is None:
         show_error('generic', 'Interactive mode is not supported for JSON input', is_interactive=False)
         return False
     try:
+        user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
         rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code)
     except Exception as e:
         if args.debug_mode:
