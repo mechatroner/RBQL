@@ -269,7 +269,6 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 
 
 # FIXME add unit tests, including json scenarios
-# FIXME this seems to be working but we can't use .attribute notation in the query. Figure out if there is a way to fix this.
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
     # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a', nested_table_path=None):
@@ -279,7 +278,7 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
         self.table_name = table_name
         self.variable_prefix = variable_prefix
         try:
-            self.json_object = json.load(self.stream)
+            self.json_object = json.load(self.stream, object_hook=lambda d: DotDict(d))
         except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         self.json_iteration_container = self.json_object
