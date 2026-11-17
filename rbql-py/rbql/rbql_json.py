@@ -21,6 +21,8 @@ backslash_char = '\\'
 
 # TODO Consider if we want json parsing to finish without errors if we select e.g. top 10 records from a corrupted file and corruption occures at line 11.
 
+# FIXME implement kv-iterator for dataset wrapped into parent (root?) object keys and values.
+# FIXME implement unwrap from path: e.g. if input is {dataset_name: "foo", version: "123", data: [{}, {}, {} ... ]} - we should be able to unwrap the `data` field by providing .data or something (maybe use jq syntax?)
 
 class DotDict(dict):
     def __getattr__(self, key):
