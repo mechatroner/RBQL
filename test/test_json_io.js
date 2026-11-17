@@ -109,7 +109,7 @@ function run_all_json_balancing_iterator_tests() {
 async function test_json_iterator() {
     let input_data = '{"col_1": "foo", "col_2": "bar"}';
     let input_stream = stream.Readable.from([input_data]);
-    let input_iterator = new rbql_json.JsonIterator(input_stream, /*unwrap_input=*/false, /*encoding=*/null);
+    let input_iterator = new rbql_json.StreamingJsonIterator(input_stream, /*unwrap_input=*/false, /*encoding=*/null);
     let records = [];
     while (true) {
         let record = await input_iterator.get_record();

@@ -357,7 +357,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 
 
 
-class SingleObjectRecordIterator extends rbql.RBQLInputIterator {
+class SingleObjectJsonIterator extends rbql.RBQLInputIterator {
     // TODO we can optimize this to process objects as they arrive if we have implementation for json-batches parser.
     // Json array would be almost similar format except that we have array object at root which can be easily skipped.
     // Another difference between this format and json batches would be commas at the end of each object but they can also be easily skipped.
@@ -512,8 +512,7 @@ class SingleObjectRecordIterator extends rbql.RBQLInputIterator {
 }
 
 
-// FIXME rename to StreamingJsonIterator
-class JsonIterator extends rbql.RBQLInputIterator {
+class StreamingJsonIterator extends rbql.RBQLInputIterator {
     // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
     constructor(stream, unwrap_mode=false, encoding='utf-8', table_name='input', variable_prefix='a') {
         super();
@@ -689,7 +688,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     }
     let join_tables_registry = null;
 
-    let input_iterator = new JsonIterator(input_stream, unwrap_array);
+    let input_iterator = new StreamingJsonIterator(input_stream, unwrap_array);
     let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_into_array=*/wrap_into_array);
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
@@ -700,6 +699,6 @@ module.exports.deduplicate_header_keys = deduplicate_header_keys;
 module.exports.stringify_json_line_python_style = stringify_json_line_python_style;
 module.exports.get_json_object_to_write = get_json_object_to_write;
 module.exports.JsonWriter = JsonWriter;
-module.exports.JsonIterator = JsonIterator;
+module.exports.StreamingJsonIterator = StreamingJsonIterator;
 module.exports.BalancingIterator = BalancingIterator;
 module.exports.query_json = query_json;
