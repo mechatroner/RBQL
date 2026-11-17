@@ -357,7 +357,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 
 
 
-class SingleObjectJsonIterator extends rbql.RBQLInputIterator {
+class NestedTableJsonIterator extends rbql.RBQLInputIterator {
     // TODO we can optimize this to process objects as they arrive if we have implementation for json-batches parser.
     // Json array would be almost similar format except that we have array object at root which can be easily skipped.
     // Another difference between this format and json batches would be commas at the end of each object but they can also be easily skipped.

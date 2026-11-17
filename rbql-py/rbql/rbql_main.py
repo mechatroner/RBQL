@@ -430,6 +430,15 @@ def run_with_python_json(args):
     wrap = args.wrap
     output_pretty_indent = 4 if args.pretty_output else None
 
+    nested_table_path_raw = args.nested_table_path
+    nested_table_path = None
+    if nested_table_path_raw:
+        if not nested_table_path_raw.startswith('.'):
+            show_error('generic', 'Nested table path must start with period `.` char', is_interactive=False)
+            return False
+        nested_table_path = nested_table_path_raw.split('.')[1:]
+        # FIXME convert array index components like `[1]` to integers (and remove the brackets).
+
     warnings = []
     error_type, error_msg = None, None
     if query is None:
@@ -437,7 +446,7 @@ def run_with_python_json(args):
         return False
     try:
         user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
-        rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code)
+        rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code, nested_table_path)
     except Exception as e:
         if args.debug_mode:
             raise
@@ -462,7 +471,8 @@ def json_main():
     parser.add_argument('--input', metavar='FILE', help='read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
-    parser.add_argument('--unwrap', action='store_true', help='Unwrap root json array and use its elements as input records')
+    parser.add_argument('--unwrap', action='store_true', help='Unwrap the root json array and use its elements as input records')
+    parser.add_argument('--nested-table-path', metavar='PATH', help='Path to the nested table (typically array) to iterate over if it is not at the root. E.g. `.records` or `.datasets.[0].data`. Single period `.` path is equivalent to the "unwrap" mode.') # FIXME add unit test for "single period" = "unwrap" equivalence.
     parser.add_argument('--wrap', action='store_true', help='Wrap output objects into root array')
     parser.add_argument('--pretty-output', action='store_true', help='Pretty-print output')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py

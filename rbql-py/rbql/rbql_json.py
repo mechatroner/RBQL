@@ -268,9 +268,11 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
             self.wrap_in_json_array = True
 
 
-class SingleObjectJsonIterator(rbql_engine.RBQLInputIterator):
+# FIXME add unit tests, including json scenarios
+# FIXME this seems to be working but we can't use .attribute notation in the query. Figure out if there is a way to fix this.
+class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
     # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
-    def __init__(self, stream, encoding, table_name='input', variable_prefix='a'):
+    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', nested_table_path=None):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
@@ -280,7 +282,11 @@ class SingleObjectJsonIterator(rbql_engine.RBQLInputIterator):
             self.json_object = json.load(self.stream)
         except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
-        if not isinstance(self.json_object, list):
+        self.json_iteration_container = self.json_object
+        if nested_table_path is not None:
+            for component in nested_table_path:
+                self.json_iteration_container = self.json_iteration_container[component]
+        if not isinstance(self.json_iteration_container, list):
             raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
         self.record_number = 0
         self.line_number = 1 # The object has to start at the first line so we just keep NL at 1.
@@ -290,10 +296,11 @@ class SingleObjectJsonIterator(rbql_engine.RBQLInputIterator):
         return [self.variable_prefix]
 
     def get_record(self):
-        if self.record_number >= len(self.json_object):
+        if self.record_number >= len(self.json_iteration_container):
             return None
+        record = self.json_iteration_container[self.record_number]
         self.record_number += 1
-        return [self.json_object[self.record_number - 1]]
+        return [record]
 
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
@@ -341,7 +348,7 @@ class StreamingJsonIterator(rbql_engine.RBQLInputIterator):
 
 
 # TODO we might want the output to optionally be CSV too. 
-def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code=''):
+def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code='', nested_table_path=None):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
@@ -353,7 +360,11 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
         if user_init_code == '' and os.path.exists(default_init_source_path):
             user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
 
-        input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, encoding='utf-8', table_name='input', variable_prefix='a')
+        input_iterator = None
+        if nested_table_path is None:
+            input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, encoding='utf-8', table_name='input', variable_prefix='a')
+        else:
+            input_iterator = NestedTableJsonIterator(input_stream, encoding='utf-8', table_name='input', variable_prefix='a', nested_table_path=nested_table_path)
         output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:
