@@ -5,6 +5,7 @@ import io
 import re
 
 from collections import deque
+from collections import defaultdict
 
 from . import rbql_engine
 from . import csv_utils
@@ -25,10 +26,12 @@ backslash_char = '\\'
 # FIXME add main dataset autodetection for the cli mode (we should be also able to use it in the extension).
 
 
-# FIXME consider also wrapping in defaultdict which would return None if key is missing - some datasets don't provide None keys so this would simplify their handling significantly
 class DotDict(dict):
     def __getattr__(self, key):
-        return self[key]
+        return self.get(key, None)
+
+    def __getitem__(self, key):
+        return self.get(key, None)
 
 
 class RbqlJsonParsingError(Exception):
@@ -202,7 +205,10 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
     # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
     def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=False):
         assert encoding in ['utf-8', 'latin-1', None]
-        self.stream = rbql_csv.encode_output_stream(stream, encoding)
+        # FIXME when we encode the stream here the output might be buffered even when we flush the stdout directly this could cause the execution error being shown before the output!
+        # FIXME figure out if we really need to incode the output stream or maybe there is a better way to handle this. Maybe even encode outside the writer if really needed? In that case we can flush it there on error, plus we wouldn't need that extra "encoding" param.
+        #self.stream = rbql_csv.encode_output_stream(stream, encoding)
+        self.stream = stream
         self.line_separator = line_separator
         self.close_stream_on_finish = close_stream_on_finish
         self.broken_pipe = False
