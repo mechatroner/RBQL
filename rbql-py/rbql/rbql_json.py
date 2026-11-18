@@ -22,8 +22,10 @@ backslash_char = '\\'
 # TODO Consider if we want json parsing to finish without errors if we select e.g. top 10 records from a corrupted file and corruption occures at line 11.
 
 # FIXME implement kv-iterator for dataset wrapped into parent (root?) object keys and values.
-# FIXME implement unwrap from path: e.g. if input is {dataset_name: "foo", version: "123", data: [{}, {}, {} ... ]} - we should be able to unwrap the `data` field by providing .data or something (maybe use jq syntax?)
+# FIXME add main dataset autodetection for the cli mode (we should be also able to use it in the extension).
 
+
+# FIXME consider also wrapping in defaultdict which would return None if key is missing - some datasets don't provide None keys so this would simplify their handling significantly
 class DotDict(dict):
     def __getattr__(self, key):
         return self[key]
@@ -277,29 +279,46 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
         self.stream = rbql_csv.encode_input_stream(stream, encoding)
         self.table_name = table_name
         self.variable_prefix = variable_prefix
+        self._dict_iter = None
         try:
             self.json_object = json.load(self.stream, object_hook=lambda d: DotDict(d))
         except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         self.json_iteration_container = self.json_object
         if nested_table_path is not None:
-            for component in nested_table_path:
-                self.json_iteration_container = self.json_iteration_container[component]
-        if not isinstance(self.json_iteration_container, list):
-            raise rbql_engine.RbqlIOHandlingError('Input JSON root node must be array in array iteration mode')
+            for i, component in enumerate(nested_table_path):
+                try:
+                    self.json_iteration_container = self.json_iteration_container[component]
+                except Exception:
+                    previous_path = '.' + '.'.join([str(v) for v in nested_table_path[:i]])
+                    raise rbql_engine.RbqlIOHandlingError('No "{}" key at {}'.format(component, previous_path))
+        if isinstance(self.json_iteration_container, list):
+            pass
+        elif isinstance(self.json_iteration_container, dict):
+            self._dict_iter = iter(self.json_iteration_container.items())
+        else:
+            raise rbql_engine.RbqlIOHandlingError('Target JSON table container node must be array or object')
         self.record_number = 0
-        self.line_number = 1 # The object has to start at the first line so we just keep NL at 1.
 
     def get_header(self):
-        # Returning "a1" as a column name instead of "a" would have a side effect because it would initialize a.a1 and a['a1'] values in rbql engine.
-        return [self.variable_prefix]
+        if self._dict_iter is None:
+            # Returning "a1" as a column name instead of "a" would have a side effect because it would initialize a.a1 and a['a1'] values in rbql engine.
+            return [self.variable_prefix]
+        else:
+            return ['key', 'val']
 
     def get_record(self):
-        if self.record_number >= len(self.json_iteration_container):
-            return None
-        record = self.json_iteration_container[self.record_number]
+        if self._dict_iter is None:
+            if self.record_number >= len(self.json_iteration_container):
+                return None
+            record = [self.json_iteration_container[self.record_number]]
+        else:
+            kv = next(self._dict_iter, None)
+            if kv is None:
+                return None
+            record = [kv[0], kv[1]]
         self.record_number += 1
-        return [record]
+        return record
 
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
