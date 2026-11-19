@@ -271,9 +271,9 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 
 
 # FIXME add unit tests, including json scenarios
+# FIXME add unit test for kv iteration
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
-    # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
-    def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path=None):
+    def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path_components=None):
         self.stream = stream
         self.table_name = table_name
         self.variable_prefix = variable_prefix
@@ -283,18 +283,20 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
         except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         self.json_iteration_container = self.json_object
-        if nested_table_path is not None:
-            for i, component in enumerate(nested_table_path):
+        if nested_table_path_components is not None:
+            for i, component in enumerate(nested_table_path_components):
                 try:
                     self.json_iteration_container = self.json_iteration_container[component]
                 except Exception:
-                    previous_path = '.' + '.'.join([str(v) for v in nested_table_path[:i]])
+                    # FIXME add unit test for this
+                    previous_path = '.' + '.'.join([str(v) for v in nested_table_path_components[:i]])
                     raise rbql_engine.RbqlIOHandlingError('No "{}" key at {}'.format(component, previous_path))
         if isinstance(self.json_iteration_container, list):
             pass
         elif isinstance(self.json_iteration_container, dict):
             self._dict_iter = iter(self.json_iteration_container.items())
         else:
+            # FIXME add unit test for this
             raise rbql_engine.RbqlIOHandlingError('Target JSON table container node must be array or object')
         self.record_number = 0
 
@@ -369,6 +371,13 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
+
+    nested_table_path_components = None
+    if nested_table_path:
+        if not nested_table_path.startswith('.'):
+            raise RbqlJsonParsingError("Nested table path must start with period `.` char")
+        # FIXME convert array index components like `[1]` to integers (and remove the brackets) and add unit test
+        nested_table_path_components = nested_table_path.split('.')[1:]
     try:
         # Unlike CSV version we just always open with utf-8 because it is the official encoding for JSONs.
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'w', encoding="utf-8"), True)
@@ -379,10 +388,10 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
             user_init_code = read_user_init_code(default_init_source_path)
 
         input_iterator = None
-        if nested_table_path is None:
+        if nested_table_path_components is None:
             input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, table_name='input', variable_prefix='a')
         else:
-            input_iterator = NestedTableJsonIterator(input_stream, table_name='input', variable_prefix='a', nested_table_path=nested_table_path)
+            input_iterator = NestedTableJsonIterator(input_stream, table_name='input', variable_prefix='a', nested_table_path_components=nested_table_path_components)
         output_writer = JsonWriter(output_stream, close_output_on_finish, pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:

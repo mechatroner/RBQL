@@ -80,6 +80,16 @@
         "query_python": "select a1['name'], a1['age'], NR"
     },
     {
+        "test_name": "select from nested",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10_table_not_root.json",
+        "expected_output_table_path": "json_files/expected_result_1.arrayobj.json",
+        "nested_table_path": ".nested_data",
+        "wrap_into_array": true,
+        "query_js": "select a.name, a.age, NR",
+        "query_python": "select a.name, a.age, NR"
+    },
+    {
         "test_name": "select utf8",
         "debug_mode": true,
         "input_table_path": "json_files/names_utf8.jsonl",

@@ -429,15 +429,7 @@ def run_with_python_json(args):
     unwrap = args.unwrap
     wrap = args.wrap
     output_pretty_indent = 4 if args.pretty_output else None
-
-    nested_table_path_raw = args.nested_table_path
-    nested_table_path = None
-    if nested_table_path_raw:
-        if not nested_table_path_raw.startswith('.'):
-            show_error('generic', 'Nested table path must start with period `.` char', is_interactive=False)
-            return False
-        nested_table_path = nested_table_path_raw.split('.')[1:]
-        # FIXME convert array index components like `[1]` to integers (and remove the brackets).
+    nested_table_path = args.nested_table_path
 
     warnings = []
     error_type, error_msg = None, None
