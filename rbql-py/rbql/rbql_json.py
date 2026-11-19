@@ -30,7 +30,6 @@ class DefaultDotDict(dict):
         return self.get(key, None)
 
     def __getitem__(self, key):
-        # FIXME add unit tests with some records that missing some attributes which we select e.g. 'SELECT a.foo' from [{"foo": 1}, {"bar": 2}, {"foo": 3}] - it should just produce null for the second record instead of failing.
         return self.get(key, None)
 
 class RbqlJsonParsingError(Exception):
