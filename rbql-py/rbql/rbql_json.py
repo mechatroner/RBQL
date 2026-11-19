@@ -22,15 +22,14 @@ backslash_char = '\\'
 
 # TODO Consider if we want json parsing to finish without errors if we select e.g. top 10 records from a corrupted file and corruption occures at line 11.
 
-# FIXME implement kv-iterator for dataset wrapped into parent (root?) object keys and values.
 # FIXME add main dataset autodetection for the cli mode (we should be also able to use it in the extension).
 
-
-class DotDict(dict):
+class DefaultDotDict(dict):
     def __getattr__(self, key):
         return self.get(key, None)
 
     def __getitem__(self, key):
+        # FIXME add unit tests with some records that missing some attributes which we select e.g. 'SELECT a.foo' from [{"foo": 1}, {"bar": 2}, {"foo": 3}] - it should just produce null for the second record instead of failing.
         return self.get(key, None)
 
 
@@ -83,7 +82,7 @@ class BalancingIterator:
         fragment = fragment.strip()
         if len(fragment):
             try:
-                self.parsed_objects.append(json.loads(fragment, object_hook=lambda d: DotDict(d)))
+                self.parsed_objects.append(json.loads(fragment, object_hook=lambda d: DefaultDotDict(d)))
             except json.JSONDecodeError as e:
                 raise rbql_engine.RbqlIOHandlingError('Failed to deserialize a record after the first {} records: {}'.format(self.num_parsed, e))
             self.num_parsed += 1
@@ -203,11 +202,8 @@ def deduplicate_header_keys(header):
 
 class JsonWriter(rbql_engine.RBQLOutputWriter):
     # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
-    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=False):
-        assert encoding in ['utf-8', 'latin-1', None]
+    def __init__(self, stream, close_stream_on_finish, line_separator='\n', pretty_indent=None, wrap_in_json_array=False):
         # FIXME when we encode the stream here the output might be buffered even when we flush the stdout directly this could cause the execution error being shown before the output!
-        # FIXME figure out if we really need to incode the output stream or maybe there is a better way to handle this. Maybe even encode outside the writer if really needed? In that case we can flush it there on error, plus we wouldn't need that extra "encoding" param.
-        #self.stream = rbql_csv.encode_output_stream(stream, encoding)
         self.stream = stream
         self.line_separator = line_separator
         self.close_stream_on_finish = close_stream_on_finish
@@ -279,6 +275,7 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 # FIXME add unit tests, including json scenarios
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
     # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
+    # FIXME figure out if we can get rid of the `encoding` arg here.
     def __init__(self, stream, encoding, table_name='input', variable_prefix='a', nested_table_path=None):
         assert encoding in ['utf-8', 'latin-1', None]
         self.encoding = encoding
@@ -287,7 +284,7 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
         self.variable_prefix = variable_prefix
         self._dict_iter = None
         try:
-            self.json_object = json.load(self.stream, object_hook=lambda d: DotDict(d))
+            self.json_object = json.load(self.stream, object_hook=lambda d: DefaultDotDict(d))
         except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         self.json_iteration_container = self.json_object
@@ -377,7 +374,7 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
     try:
-        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
+        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'w', encoding="utf-8"), True)
         input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
@@ -389,7 +386,7 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
             input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, encoding='utf-8', table_name='input', variable_prefix='a')
         else:
             input_iterator = NestedTableJsonIterator(input_stream, encoding='utf-8', table_name='input', variable_prefix='a', nested_table_path=nested_table_path)
-        output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
+        output_writer = JsonWriter(output_stream, close_output_on_finish, pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:
             rbql_engine.set_debug_mode()
