@@ -9,7 +9,6 @@ from collections import defaultdict
 
 from . import rbql_engine
 from . import csv_utils
-from . import rbql_csv
 
 debug_mode = False
 
@@ -24,6 +23,8 @@ backslash_char = '\\'
 
 # FIXME add main dataset autodetection for the cli mode (we should be also able to use it in the extension).
 
+# Returning None by default allows to handle records with incosistent set of keys more easily.
+# The downside is that if user specifies a wrong attribute by mistake it would be silently transfered as null to the output - unless it is a part of another operation that expects non-None.
 class DefaultDotDict(dict):
     def __getattr__(self, key):
         return self.get(key, None)
@@ -31,7 +32,6 @@ class DefaultDotDict(dict):
     def __getitem__(self, key):
         # FIXME add unit tests with some records that missing some attributes which we select e.g. 'SELECT a.foo' from [{"foo": 1}, {"bar": 2}, {"foo": 3}] - it should just produce null for the second record instead of failing.
         return self.get(key, None)
-
 
 class RbqlJsonParsingError(Exception):
     pass
@@ -203,7 +203,6 @@ def deduplicate_header_keys(header):
 class JsonWriter(rbql_engine.RBQLOutputWriter):
     # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
     def __init__(self, stream, close_stream_on_finish, line_separator='\n', pretty_indent=None, wrap_in_json_array=False):
-        # FIXME when we encode the stream here the output might be buffered even when we flush the stdout directly this could cause the execution error being shown before the output!
         self.stream = stream
         self.line_separator = line_separator
         self.close_stream_on_finish = close_stream_on_finish
@@ -275,11 +274,8 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 # FIXME add unit tests, including json scenarios
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
     # TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
-    # FIXME figure out if we can get rid of the `encoding` arg here.
-    def __init__(self, stream, encoding, table_name='input', variable_prefix='a', nested_table_path=None):
-        assert encoding in ['utf-8', 'latin-1', None]
-        self.encoding = encoding
-        self.stream = rbql_csv.encode_input_stream(stream, encoding)
+    def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path=None):
+        self.stream = stream
         self.table_name = table_name
         self.variable_prefix = variable_prefix
         self._dict_iter = None
@@ -326,10 +322,8 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
 
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
 class StreamingJsonIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, unwrap_mode=False, encoding='utf-8', table_name='input', variable_prefix='a', chunk_size=16384):
-        assert encoding in ['utf-8', 'latin-1', None]
-        self.encoding = encoding
-        self.stream = rbql_csv.encode_input_stream(stream, encoding)
+    def __init__(self, stream, unwrap_mode=False, table_name='input', variable_prefix='a', chunk_size=16384):
+        self.stream = stream
         self.table_name = table_name
         self.variable_prefix = variable_prefix
 
@@ -367,6 +361,9 @@ class StreamingJsonIterator(rbql_engine.RBQLInputIterator):
         if modifier_name == 'unwrap':
             self.balancing_iterator = BalancingIterator(unwrap_mode=True)
 
+def read_user_init_code(rbql_init_source_path):
+    with open(rbql_init_source_path, 'r', encoding="utf-8") as src:
+        return src.read()
 
 # TODO we might want the output to optionally be CSV too. 
 def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code='', nested_table_path=None):
@@ -374,18 +371,19 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
     try:
+        # Unlike CSV version we just always open with utf-8 because it is the official encoding for JSONs.
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'w', encoding="utf-8"), True)
-        input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
+        input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'r', encoding="utf-8"), True)
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):
-            user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
+            user_init_code = read_user_init_code(default_init_source_path)
 
         input_iterator = None
         if nested_table_path is None:
-            input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, encoding='utf-8', table_name='input', variable_prefix='a')
+            input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, table_name='input', variable_prefix='a')
         else:
-            input_iterator = NestedTableJsonIterator(input_stream, encoding='utf-8', table_name='input', variable_prefix='a', nested_table_path=nested_table_path)
+            input_iterator = NestedTableJsonIterator(input_stream, table_name='input', variable_prefix='a', nested_table_path=nested_table_path)
         output_writer = JsonWriter(output_stream, close_output_on_finish, pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:

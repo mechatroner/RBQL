@@ -688,6 +688,7 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     }
     let join_tables_registry = null;
 
+    // FIXME avoid passing utf-8 constructor instead figure out how to open file encoded just like we do in python version.
     let input_iterator = new StreamingJsonIterator(input_stream, unwrap_array);
     let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_into_array=*/wrap_into_array);
 
