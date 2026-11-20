@@ -270,8 +270,9 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
             self.wrap_in_json_array = True
 
 
-# FIXME add unit tests, including json scenarios
-# FIXME add unit test for kv iteration
+def path_component_to_path_format(json_path_component):
+    return '[{}]'.format(json_path_component) if isinstance(json_path_component, int) else json_path_component
+
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path_components=None):
         self.stream = stream
@@ -283,21 +284,21 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
         except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         self.json_iteration_container = self.json_object
+        current_path = '.'
         if nested_table_path_components is not None:
             for i, component in enumerate(nested_table_path_components):
                 try:
                     self.json_iteration_container = self.json_iteration_container[component]
+                    if not isinstance(self.json_iteration_container, list) and not isinstance(self.json_iteration_container, dict):
+                        # FIXME test this condition
+                        raise ValueError("Bad component")
                 except Exception:
-                    # FIXME add unit test for this
-                    previous_path = '.' + '.'.join([str(v) for v in nested_table_path_components[:i]])
-                    raise rbql_engine.RbqlIOHandlingError('No "{}" key at {}'.format(component, previous_path))
-        if isinstance(self.json_iteration_container, list):
-            pass
-        elif isinstance(self.json_iteration_container, dict):
+                    # FIXME test this condition
+                    raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(component, current_path))
+                current_path += path_component_to_path_format(component) + '.'
+
+        if isinstance(self.json_iteration_container, dict):
             self._dict_iter = iter(self.json_iteration_container.items())
-        else:
-            # FIXME add unit test for this
-            raise rbql_engine.RbqlIOHandlingError('Target JSON table container node must be array or object')
         self.record_number = 0
 
     def get_header(self):
@@ -366,21 +367,38 @@ def read_user_init_code(rbql_init_source_path):
     with open(rbql_init_source_path, 'r', encoding="utf-8") as src:
         return src.read()
 
+
+def parse_json_path_components(nested_path_string):
+    # FIXME add unit tests for this - this is a user-facing parsing contract so we can and should have unit tests for this. Unit tests for contracts are good.
+    # TODO make this more robust and make dots before and after square brackets indexing components optional so that we allow more "natural" js-like expressions like datasets[2].data.
+    nested_path_string = nested_path_string.strip('.')
+    components_raw = nested_path_string.split('.')
+    result = []
+    for component in components_raw:
+        component = component.strip()
+        if not(len(component)): # This allows to handle multiple consecutive periods (do we really need this?) and a single root period as an empty array.
+            continue
+        if component.startswith('['):
+            if not component.endswith(']'):
+                raise rbql_engine.RbqlParsingError('Bad integer subscript format in "{}"'.format(nested_path_string))
+            try:
+                result.append(int(component[1:-1]))
+            except ValueError:
+                raise rbql_engine.RbqlParsingError('Non-integer in subscript "{}"'.format(component))
+        else:
+            result.append(component)
+    return result
+
+
+
+
 # TODO we might want the output to optionally be CSV too. 
 def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code='', nested_table_path=None):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
 
-    nested_table_path_components = None
-    if nested_table_path:
-        if not nested_table_path.startswith('.'):
-            raise RbqlJsonParsingError("Nested table path must start with period `.` char")
-        # FIXME convert array index components like `[1]` to integers (and remove the brackets) and add unit test
-        nested_table_path_components = nested_table_path.split('.')[1:]
-        nested_table_path_components = [v.strip() for v in nested_table_path_components]
-        if nested_table_path_components[-1] == '':
-            nested_table_path_components = nested_table_path_components[:-1]
+    nested_table_path_components = None if not nested_table_path else parse_json_path_components(nested_table_path)
     try:
         # Unlike CSV version we just always open with utf-8 because it is the official encoding for JSONs.
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'w', encoding="utf-8"), True)
