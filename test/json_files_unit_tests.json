@@ -90,6 +90,15 @@
         "query_python": "select a.name, a.age, NR"
     },
     {
+        "test_name": "select from key-value kv object dataset",
+        "debug_mode": true,
+        "input_table_path": "json_files/root_kv_dataset.json",
+        "expected_output_table_path": "json_files/expected_result_kv_1.json",
+        "nested_table_path": ".",
+        "query_js": "select a.key, a.val.age, NR",
+        "query_python": "select a.key, a.val.age, NR"
+    },
+    {
         "test_name": "select utf8",
         "debug_mode": true,
         "input_table_path": "json_files/names_utf8.jsonl",

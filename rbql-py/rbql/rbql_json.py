@@ -378,6 +378,9 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
             raise RbqlJsonParsingError("Nested table path must start with period `.` char")
         # FIXME convert array index components like `[1]` to integers (and remove the brackets) and add unit test
         nested_table_path_components = nested_table_path.split('.')[1:]
+        nested_table_path_components = [v.strip() for v in nested_table_path_components]
+        if nested_table_path_components[-1] == '':
+            nested_table_path_components = nested_table_path_components[:-1]
     try:
         # Unlike CSV version we just always open with utf-8 because it is the official encoding for JSONs.
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'w', encoding="utf-8"), True)
