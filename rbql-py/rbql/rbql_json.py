@@ -270,21 +270,17 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
             self.wrap_in_json_array = True
 
 
-def path_part_to_path_format(json_path_part):
-    return '[{}]'.format(json_path_part) if isinstance(json_path_part, int) else json_path_part
-
-
 def descend_into_nested_container(root_object, nested_table_path_parts):
     target_container = root_object
-    current_path = '.'
+    current_path_descriptor = '.'
     for part in nested_table_path_parts:
         try:
             target_container = target_container[part]
             if not isinstance(target_container, list) and not isinstance(target_container, dict):
                 raise ValueError("Bad part")
         except Exception:
-            raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(part, current_path))
-        current_path += path_part_to_path_format(part) + '.'
+            raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(part, current_path_descriptor))
+        current_path_descriptor += '{}.'.format(part)
     return target_container
 
 
