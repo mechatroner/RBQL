@@ -273,6 +273,21 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
 def path_part_to_path_format(json_path_part):
     return '[{}]'.format(json_path_part) if isinstance(json_path_part, int) else json_path_part
 
+
+def descend_into_nested_container(root_object, nested_table_path_parts):
+    target_container = root_object
+    current_path = '.'
+    for part in nested_table_path_parts:
+        try:
+            target_container = target_container[part]
+            if not isinstance(target_container, list) and not isinstance(target_container, dict):
+                raise ValueError("Bad part")
+        except Exception:
+            raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(part, current_path))
+        current_path += path_part_to_path_format(part) + '.'
+    return target_container
+
+
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path_parts=None):
         self.stream = stream
@@ -280,24 +295,14 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
         self.variable_prefix = variable_prefix
         self._dict_iter = None
         try:
-            self.json_object = json.load(self.stream, object_hook=lambda d: DefaultDotDict(d))
+            json_root_object = json.load(self.stream, object_hook=lambda d: DefaultDotDict(d))
         except json.JSONDecodeError as e:
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
-        self.json_iteration_container = self.json_object
-        current_path = '.'
-        if nested_table_path_parts is not None:
-            for i, part in enumerate(nested_table_path_parts):
-                try:
-                    self.json_iteration_container = self.json_iteration_container[part]
-                    if not isinstance(self.json_iteration_container, list) and not isinstance(self.json_iteration_container, dict):
-                        raise ValueError("Bad part")
-                except Exception:
-                    raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(part, current_path))
-                current_path += path_part_to_path_format(part) + '.'
-
+        self.json_iteration_container = descend_into_nested_container(json_root_object, nested_table_path_parts) if nested_table_path_parts is not None else json_root_object
         if isinstance(self.json_iteration_container, dict):
             self._dict_iter = iter(self.json_iteration_container.items())
         self.record_number = 0
+
 
     def get_header(self):
         if self._dict_iter is None:
