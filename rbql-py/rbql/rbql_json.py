@@ -290,10 +290,8 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
                 try:
                     self.json_iteration_container = self.json_iteration_container[part]
                     if not isinstance(self.json_iteration_container, list) and not isinstance(self.json_iteration_container, dict):
-                        # FIXME test this condition
                         raise ValueError("Bad part")
                 except Exception:
-                    # FIXME test this condition
                     raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(part, current_path))
                 current_path += path_part_to_path_format(part) + '.'
 
