@@ -447,7 +447,7 @@ class TestRBQLWithJSON(unittest.TestCase):
         if query is None:
             return
         unwrap_array = test_case.get('unwrap_array', False)
-        nested_table_path = test_case.get('nested_table_path', None)
+        nested_table_path_parts = test_case.get('nested_table_path_parts', None)
         pretty_indent = test_case.get('pretty_indent', None)
         wrap_into_array = test_case.get('wrap_into_array', unwrap_array)
         input_table_path = test_case['input_table_path']
@@ -473,7 +473,7 @@ class TestRBQLWithJSON(unittest.TestCase):
         warnings = []
         error_type, error_msg = None, None
         try:
-            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, unwrap_array=unwrap_array, wrap_into_array=wrap_into_array, pretty_indent=pretty_indent, nested_table_path=nested_table_path)
+            rbql_json.query_json(query, input_table_path, actual_output_table_path, warnings, unwrap_array=unwrap_array, wrap_into_array=wrap_into_array, pretty_indent=pretty_indent, nested_table_path_parts=nested_table_path_parts)
         except Exception as e:
             if debug_mode:
                 raise

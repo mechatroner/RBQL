@@ -420,6 +420,29 @@ def csv_main():
             sys.exit(1)
 
 
+def parse_json_path_parts_best_effort(nested_path_string):
+    # TODO add unit tests for this - this is a user-facing parsing contract so we can and should have unit tests for this. Unit tests for contracts are good.
+    # TODO make this more robust and make dots before and after square brackets indexing parts optional so that we allow more "natural" js-like expressions like datasets[2].data.
+    nested_path_string = nested_path_string.strip('.')
+    parts_raw = nested_path_string.split('.')
+    result = []
+    for part in parts_raw:
+        part = part.strip()
+        if not(len(part)): # This allows to handle multiple consecutive periods (do we really need this?) and a single root period as an empty array.
+            continue
+        if part.startswith('['):
+            if not part.endswith(']'):
+                raise rbql_engine.RbqlParsingError('Bad integer subscript format in "{}"'.format(nested_path_string))
+            try:
+                result.append(int(part[1:-1]))
+            except ValueError:
+                raise rbql_engine.RbqlParsingError('Non-integer in subscript "{}"'.format(part))
+        else:
+            result.append(part)
+    return result
+
+
+
 def run_with_python_json(args):
     if args.debug_mode:
         rbql_json.set_debug_mode()    
@@ -438,7 +461,8 @@ def run_with_python_json(args):
         return False
     try:
         user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
-        rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code, nested_table_path)
+        nested_table_path_parts = None if not nested_table_path else parse_json_path_parts_best_effort(nested_table_path)
+        rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code, nested_table_path_parts)
     except Exception as e:
         if args.debug_mode:
             raise

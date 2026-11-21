@@ -84,7 +84,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10_table_not_root.json",
         "expected_output_table_path": "json_files/expected_result_1.arrayobj.json",
-        "nested_table_path": ".nested_data",
+        "nested_table_path_parts": ["nested_data"],
         "wrap_into_array": true,
         "query_js": "select a.name, a.age, NR",
         "query_python": "select a.name, a.age, NR"
@@ -94,7 +94,7 @@
         "input_table_path": "json_files/names10_table_not_root.json",
         "expected_error_py": "Unable to descend into \"nonexisting\" node from .nested_data. node",
         "expected_error_js": "Unable to descend into \"nonexisting\" node from .nested_data. node",
-        "nested_table_path": ".nested_data.nonexisting",
+        "nested_table_path_parts": ["nested_data", "nonexisting"],
         "query_js": "select a.name, a.age, NR",
         "query_python": "select a.name, a.age, NR"
     },
@@ -103,7 +103,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/names10_table_not_root.json",
         "expected_output_table_path": "json_files/expected_result_kv_silly.json",
-        "nested_table_path": "nested_data.[2]",
+        "nested_table_path_parts": ["nested_data", 2],
         "wrap_into_array": true,
         "query_js": "select a.key, a.val, NR",
         "query_python": "select a.key, a.val, NR"
@@ -113,7 +113,7 @@
         "debug_mode": true,
         "input_table_path": "json_files/root_kv_dataset.json",
         "expected_output_table_path": "json_files/expected_result_kv_1.json",
-        "nested_table_path": ".",
+        "nested_table_path_parts": [],
         "query_js": "select a.key, a.val.age, NR",
         "query_python": "select a.key, a.val.age, NR"
     },

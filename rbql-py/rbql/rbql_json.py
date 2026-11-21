@@ -270,11 +270,11 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
             self.wrap_in_json_array = True
 
 
-def path_component_to_path_format(json_path_component):
-    return '[{}]'.format(json_path_component) if isinstance(json_path_component, int) else json_path_component
+def path_part_to_path_format(json_path_part):
+    return '[{}]'.format(json_path_part) if isinstance(json_path_part, int) else json_path_part
 
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path_components=None):
+    def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path_parts=None):
         self.stream = stream
         self.table_name = table_name
         self.variable_prefix = variable_prefix
@@ -285,17 +285,17 @@ class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
             raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
         self.json_iteration_container = self.json_object
         current_path = '.'
-        if nested_table_path_components is not None:
-            for i, component in enumerate(nested_table_path_components):
+        if nested_table_path_parts is not None:
+            for i, part in enumerate(nested_table_path_parts):
                 try:
-                    self.json_iteration_container = self.json_iteration_container[component]
+                    self.json_iteration_container = self.json_iteration_container[part]
                     if not isinstance(self.json_iteration_container, list) and not isinstance(self.json_iteration_container, dict):
                         # FIXME test this condition
-                        raise ValueError("Bad component")
+                        raise ValueError("Bad part")
                 except Exception:
                     # FIXME test this condition
-                    raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(component, current_path))
-                current_path += path_component_to_path_format(component) + '.'
+                    raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(part, current_path))
+                current_path += path_part_to_path_format(part) + '.'
 
         if isinstance(self.json_iteration_container, dict):
             self._dict_iter = iter(self.json_iteration_container.items())
@@ -368,37 +368,13 @@ def read_user_init_code(rbql_init_source_path):
         return src.read()
 
 
-def parse_json_path_components(nested_path_string):
-    # FIXME add unit tests for this - this is a user-facing parsing contract so we can and should have unit tests for this. Unit tests for contracts are good.
-    # TODO make this more robust and make dots before and after square brackets indexing components optional so that we allow more "natural" js-like expressions like datasets[2].data.
-    nested_path_string = nested_path_string.strip('.')
-    components_raw = nested_path_string.split('.')
-    result = []
-    for component in components_raw:
-        component = component.strip()
-        if not(len(component)): # This allows to handle multiple consecutive periods (do we really need this?) and a single root period as an empty array.
-            continue
-        if component.startswith('['):
-            if not component.endswith(']'):
-                raise rbql_engine.RbqlParsingError('Bad integer subscript format in "{}"'.format(nested_path_string))
-            try:
-                result.append(int(component[1:-1]))
-            except ValueError:
-                raise rbql_engine.RbqlParsingError('Non-integer in subscript "{}"'.format(component))
-        else:
-            result.append(component)
-    return result
-
-
-
-
 # TODO we might want the output to optionally be CSV too. 
-def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code='', nested_table_path=None):
+# TODO consider if we should rename `unwrap_array` into `unwrap` so that we can unwrap both key-value pairs and array elements.
+def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code='', nested_table_path_parts=None):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
 
-    nested_table_path_components = None if not nested_table_path else parse_json_path_components(nested_table_path)
     try:
         # Unlike CSV version we just always open with utf-8 because it is the official encoding for JSONs.
         output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'w', encoding="utf-8"), True)
@@ -409,10 +385,13 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
             user_init_code = read_user_init_code(default_init_source_path)
 
         input_iterator = None
-        if nested_table_path_components is None:
+        if nested_table_path_parts is None:
             input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, table_name='input', variable_prefix='a')
         else:
-            input_iterator = NestedTableJsonIterator(input_stream, table_name='input', variable_prefix='a', nested_table_path_components=nested_table_path_components)
+            # We pass nested_table_path_parts as list because:
+            # 1. Parsing is best effor so we don't want to have it on the library level. 
+            # 2. Many callers would autodetect the nested path as a list of parts so it is much more convenient to pass it that way rather than serializing and then deserializing.
+            input_iterator = NestedTableJsonIterator(input_stream, table_name='input', variable_prefix='a', nested_table_path_parts=nested_table_path_parts)
         output_writer = JsonWriter(output_stream, close_output_on_finish, pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:
