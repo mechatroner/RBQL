@@ -279,13 +279,13 @@ def descend_into_nested_container(root_object, nested_table_path_parts):
             if not isinstance(target_container, list) and not isinstance(target_container, dict):
                 raise ValueError("Bad part")
         except Exception:
-            raise rbql_engine.RbqlIOHandlingError('Unable to descend into "{}" node from {} node'.format(part, current_path_descriptor))
+            raise rbql_engine.RbqlParsingError('Unable to descend into "{}" node from {} node'.format(part, current_path_descriptor))
         current_path_descriptor += '{}.'.format(part)
     return target_container
 
 
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, table_name='input', variable_prefix='a', nested_table_path_parts=None):
+    def __init__(self, stream, nested_table_path_parts=None, table_name='input', variable_prefix='a'):
         self.stream = stream
         self.table_name = table_name
         self.variable_prefix = variable_prefix
@@ -390,7 +390,7 @@ def query_json(query_text, input_path, output_path, output_warnings, unwrap_arra
             # We pass nested_table_path_parts as list because:
             # 1. Parsing is best effor so we don't want to have it on the library level. 
             # 2. Many callers would autodetect the nested path as a list of parts so it is much more convenient to pass it that way rather than serializing and then deserializing.
-            input_iterator = NestedTableJsonIterator(input_stream, table_name='input', variable_prefix='a', nested_table_path_parts=nested_table_path_parts)
+            input_iterator = NestedTableJsonIterator(input_stream, nested_table_path_parts=nested_table_path_parts, table_name='input', variable_prefix='a')
         output_writer = JsonWriter(output_stream, close_output_on_finish, pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:
