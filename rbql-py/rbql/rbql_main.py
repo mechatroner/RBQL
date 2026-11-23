@@ -488,7 +488,8 @@ def json_main():
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
     parser.add_argument('--unwrap', action='store_true', help='Unwrap the root json array and use its elements as input records')
-    parser.add_argument('--nested-table-path', metavar='PATH', help='Path to the nested table (typically array) to iterate over if it is not at the root. E.g. `.records` or `.datasets.[0].data`. Single period `.` path is equivalent to the "unwrap" mode.') # FIXME add unit test for "single period" = "unwrap" equivalence.
+    # FIXME replace with nested table components json array to simplify things a bit.
+    parser.add_argument('--nested-table-path', metavar='PATH', help='Path to the nested table (typically array) to iterate over if it is not at the root. E.g. `.records` or `.datasets.[0].data`. Single period `.` path is equivalent to the "unwrap" mode.')
     parser.add_argument('--wrap', action='store_true', help='Wrap output objects into root array')
     parser.add_argument('--pretty-output', action='store_true', help='Pretty-print output')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py

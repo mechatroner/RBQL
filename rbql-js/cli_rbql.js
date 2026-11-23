@@ -383,6 +383,11 @@ async function run_with_js_json_mode(args) {
     let init_source_file = get_default(args, 'init-source-file', null);
     let pretty_output = args['pretty-output'];
     let unwrap_array = args['unwrap'] ? true : false;
+    let nested_table_path_parts_json_str = get_default(args, 'nested-table-path-parts', null);
+    nested_table_path_parts = null;
+    if (nested_table_path_parts_json_str) {
+        nested_table_path_parts = JSON.parse(nested_table_path_parts_json_str);
+    }
     // TODO consider adding error-mode arg
     let user_init_code = '';
     if (init_source_file !== null)
@@ -390,7 +395,7 @@ async function run_with_js_json_mode(args) {
     let pretty_indent = pretty_output ? 4 : null;
     try {
         let warnings = [];
-        let params = {'user_init_code': user_init_code, 'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array};
+        let params = {'user_init_code': user_init_code, 'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array, 'nested_table_path_parts': nested_table_path_parts};
         await rbql_json.query_json(query, input_path, output_path, warnings, params);
         if (warnings !== null) {
             for (let i = 0; i < warnings.length; i++) {
@@ -440,6 +445,7 @@ function run_json_mode(args) {
         '--input': {'help': 'Read csv table from FILE instead of stdin. Required in interactive mode', 'metavar': 'FILE'},
         '--query': {'help': 'Query string in rbql. Run in interactive mode if empty', 'metavar': 'QUERY'},
         '--output': {'help': 'Write output table to FILE instead of stdout', 'metavar': 'FILE'},
+        '--nested-table-path-parts': {'help': 'JSON array which encodes the path to the nested dataset', 'metavar': 'PARTS'},
         '--unwrap': {'boolean': true, 'help': 'Unwrap root json array and use its elements as input records'},
         '--pretty-output': {'boolean': true, 'help': 'Pretty-print output'},
         '--init-source-file': {'help': 'Path to init source file to use instead of ~/.rbql_init_source.js', 'hidden': true}

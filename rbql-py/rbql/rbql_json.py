@@ -284,6 +284,7 @@ def descend_into_nested_container(root_object, nested_table_path_parts):
     return target_container
 
 
+# FIXME add unit test that shows the equivalence of unwrap and empty array unnest approaches.
 class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
     def __init__(self, stream, nested_table_path_parts=None, table_name='input', variable_prefix='a'):
         self.stream = stream
