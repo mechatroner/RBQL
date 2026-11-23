@@ -235,12 +235,19 @@ function get_json_object_to_write(header, fields) {
     return result;
 }
 
+function json_stringify_null_replacer(key, val) {
+    // JSON stringify omits (k, v) pairs with undefined values. At the same time it keeps undefined inside arrays (and converts them to null).
+    // Preserving undefined keys makes the behaviour of this function similar in some context to that of python version (e.g. for missing keys scenario we generate Null vals and then serialize them as null in py)
+    // Going forward we can make this behaviour optional (but we would also need to adjust Python version to skip Nulls - although this still wouldn't be equiavalent because Python doesn't distinguish between null and undefined).
+    return val === undefined ? null : val;
+}
+
 
 function stringify_json_line_python_style(obj) {
     // The default JSON.stringify() unfortunatelly doesn't produce pretty json lines like in json lines examples here: https://jsonlines.org/examples/
     // Python by default stringifies with extra readability whitespaces e.g. `{'foo':1,'bar':2}` becomes `{"foo": 1, "bar": 2}`.
     // The third `spaces` arg in `JSON.stringify` makes it pretty print the whole thing with newlines, so we post-format it via this hack.
-    return JSON.stringify(obj, null, 1).replace(/^ +/gm, "").replace(/,\n/g, ", \n").replace(/\n/g, "");
+    return JSON.stringify(obj, json_stringify_null_replacer, 1).replace(/^ +/gm, "").replace(/,\n/g, ", \n").replace(/\n/g, "");
 }
 
 
@@ -332,7 +339,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
         if (this.pretty_indent === null) {
             this.stream.write(stringify_json_line_python_style(object_to_write));
         } else {
-            this.stream.write(JSON.stringify(object_to_write, null, this.pretty_indent));
+            this.stream.write(JSON.stringify(object_to_write, json_stringify_null_replacer, this.pretty_indent));
         }
         this.num_records_written += 1;
         let writer_error = this.first_error;

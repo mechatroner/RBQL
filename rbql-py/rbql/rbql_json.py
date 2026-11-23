@@ -23,6 +23,8 @@ backslash_char = '\\'
 
 # FIXME add main dataset autodetection for the cli mode (we should be also able to use it in the extension).
 
+# TODO consider adding a writer param to skip keys with Null vals - similar behaviour to skipping "undfined" val key in JSON.stringify in JS (although we can't really distinguish in py between null and undefined).
+
 # Returning None by default allows to handle records with incosistent set of keys more easily.
 # The downside is that if user specifies a wrong attribute by mistake it would be silently transfered as null to the output - unless it is a part of another operation that expects non-None.
 class DefaultDotDict(dict):

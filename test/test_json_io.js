@@ -265,7 +265,8 @@ async function process_test_case(tmp_tests_dir, test_case) {
     let unwrap_array = test_common.get_default(test_case, 'unwrap_array', false);
     let wrap_into_array = test_common.get_default(test_case, 'wrap_into_array', unwrap_array);
     let pretty_indent = test_common.get_default(test_case, 'pretty_indent', null);
-    let params = {'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array, 'wrap_into_array': wrap_into_array};
+    let nested_table_path_parts = test_common.get_default(test_case, 'nested_table_path_parts', null);
+    let params = {'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array, 'wrap_into_array': wrap_into_array, 'nested_table_path_parts': nested_table_path_parts};
     let expected_md5 = null;
     let actual_output_table_path = null;
     if (expected_output_table_path !== null) {
