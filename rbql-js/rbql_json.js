@@ -6,8 +6,6 @@ const util = require('util');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
-const utf_decoding_error = 'Unable to decode input as UTF-8';
-
 const backslashChar = '\\';
 
 class RbqlJsonParsingError extends Error {
@@ -253,6 +251,7 @@ function stringify_json_line_python_style(obj) {
 
 class JsonWriter extends rbql.RBQLOutputWriter {
     constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null, wrap_into_array=false) {
+        // FIXME get rid of encoding logic here
         super();
         this.stream = stream;
         this.encoding = encoding;
@@ -378,18 +377,9 @@ class NestedTableJsonIterator extends rbql.RBQLInputIterator {
     constructor(stream, nested_table_path_parts=null, table_name='input', variable_prefix='a') {
         super();
         this.stream = stream;
-        // FIXME get rid of this pointless encoding logic.
-        this.encoding = 'utf-8';
         this.table_name = table_name;
         this.variable_prefix = variable_prefix;
         this.nested_table_path_parts = nested_table_path_parts;
-
-
-        this.decoder = null;
-        if (this.encoding == 'utf-8') {
-            // This was copied from the csv impl, see comments there.
-            this.decoder = new util.TextDecoder(this.encoding, {fatal: true, stream: true});
-        }
 
         this.input_exhausted = false;
         this.started = false;
@@ -501,23 +491,8 @@ class NestedTableJsonIterator extends rbql.RBQLInputIterator {
     };
 
 
-    process_data_stream_chunk(data_chunk) {
-        let decoded_string = null;
-        if (this.decoder) {
-            try {
-                decoded_string = this.decoder.decode(data_chunk);
-            } catch (e) {
-                if (e instanceof TypeError) {
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(utf_decoding_error));
-                } else {
-                    this.store_or_propagate_exception(e);
-                }
-                return;
-            }
-        } else {
-            decoded_string = data_chunk.toString(this.encoding);
-        }
-        this.input_data_chunks.push(decoded_string);
+    process_data_stream_chunk(string_chunk) {
+        this.input_data_chunks.push(string_chunk);
     };
 
 
@@ -567,7 +542,7 @@ class NestedTableJsonIterator extends rbql.RBQLInputIterator {
         if (this.started)
             return;
         this.started = true;
-        this.stream.on('data', (data_chunk) => { this.process_data_stream_chunk(data_chunk); });
+        this.stream.on('data', (string_chunk) => { this.process_data_stream_chunk(string_chunk); });
         this.stream.on('end', () => { this.process_data_stream_end(); });
     };
 }
@@ -592,19 +567,11 @@ function descend_into_nested_container(root_object, nested_table_path_parts) {
 
 class StreamingJsonIterator extends rbql.RBQLInputIterator {
     // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
-    constructor(stream, unwrap_mode=false, encoding='utf-8', table_name='input', variable_prefix='a') {
+    constructor(stream, unwrap_mode=false, table_name='input', variable_prefix='a') {
         super();
         this.stream = stream;
-        this.encoding = encoding;
         this.table_name = table_name;
         this.variable_prefix = variable_prefix;
-
-
-        this.decoder = null;
-        if (encoding == 'utf-8') {
-            // This was copied from the csv impl, see comments there.
-            this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
-        }
 
         this.input_exhausted = false;
         this.started = false;
@@ -679,24 +646,9 @@ class StreamingJsonIterator extends rbql.RBQLInputIterator {
         return current_record_promise;
     };
 
-    process_data_stream_chunk(data_chunk) {
-        let decoded_string = null;
-        if (this.decoder) {
-            try {
-                decoded_string = this.decoder.decode(data_chunk);
-            } catch (e) {
-                if (e instanceof TypeError) {
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(utf_decoding_error));
-                } else {
-                    this.store_or_propagate_exception(e);
-                }
-                return;
-            }
-        } else {
-            decoded_string = data_chunk.toString(this.encoding);
-        }
+    process_data_stream_chunk(string_chunk) {
         try {
-            this.balancing_iterator.add_fragment(decoded_string);
+            this.balancing_iterator.add_fragment(string_chunk);
         } catch (e) {
             this.store_or_propagate_exception(e);
         }
@@ -734,7 +686,7 @@ class StreamingJsonIterator extends rbql.RBQLInputIterator {
         if (this.started)
             return;
         this.started = true;
-        this.stream.on('data', (data_chunk) => { this.process_data_stream_chunk(data_chunk); });
+        this.stream.on('data', (string_chunk) => { this.process_data_stream_chunk(string_chunk); });
         this.stream.on('end', () => { this.process_data_stream_end(); });
     };
 
@@ -758,7 +710,13 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     let unwrap_array = params.hasOwnProperty('unwrap_array') ? params['unwrap_array'] : false;
     let wrap_into_array = params.hasOwnProperty('wrap_into_array') ? params['wrap_into_array'] : false;
     let nested_table_path_parts = params.hasOwnProperty('nested_table_path_parts') ? params['nested_table_path_parts'] : null;
-    let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
+    let input_stream = null;
+    if (input_path === null) {
+        process.stdin.setEncoding('utf8')
+        input_stream = process.stdin;
+    } else {
+        input_stream = fs.createReadStream(input_path, { encoding: 'utf8' });
+    }
     let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
 
     let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
