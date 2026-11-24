@@ -80,6 +80,15 @@
         "query_python": "select a1['name'], a1['age'], NR"
     },
     {
+        "test_name": "select a1 but nested path instead of unwrap - nested path - unwrap equivalence test",
+        "input_table_path": "json_files/names10.arrayobj.json",
+        "expected_output_table_path": "json_files/expected_result_1.arrayobj.json",
+        "nested_table_path_parts": [],
+        "wrap_into_array": true,
+        "query_js": "select a1['name'], a1['age'], NR",
+        "query_python": "select a1['name'], a1['age'], NR"
+    },
+    {
         "test_name": "select from nested",
         "debug_mode": true,
         "input_table_path": "json_files/names10_table_not_root.json",
