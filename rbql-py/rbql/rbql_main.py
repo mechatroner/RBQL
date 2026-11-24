@@ -3,6 +3,7 @@
 import sys
 import os
 import argparse
+import json
 
 from . import csv_utils
 from . import rbql_csv
@@ -452,7 +453,7 @@ def run_with_python_json(args):
     unwrap = args.unwrap
     wrap = args.wrap
     output_pretty_indent = 4 if args.pretty_output else None
-    nested_table_path = args.nested_table_path
+    nested_table_path_parts_json_str = args.nested_table_path_parts
 
     warnings = []
     error_type, error_msg = None, None
@@ -461,7 +462,7 @@ def run_with_python_json(args):
         return False
     try:
         user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
-        nested_table_path_parts = None if not nested_table_path else parse_json_path_parts_best_effort(nested_table_path)
+        nested_table_path_parts = None if not nested_table_path_parts_json_str else json.loads(nested_table_path_parts_json_str)
         rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code, nested_table_path_parts)
     except Exception as e:
         if args.debug_mode:
@@ -488,8 +489,7 @@ def json_main():
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
     parser.add_argument('--unwrap', action='store_true', help='Unwrap the root json array and use its elements as input records')
-    # FIXME replace with nested table components json array to simplify things a bit.
-    parser.add_argument('--nested-table-path', metavar='PATH', help='Path to the nested table (typically array) to iterate over if it is not at the root. E.g. `.records` or `.datasets.[0].data`. Single period `.` path is equivalent to the "unwrap" mode.')
+    parser.add_argument('--nested-table-path-parts', metavar='PARTS', help='JSON array that encodes the path to the nested dataset e.g. ["dataset", "records"]')
     parser.add_argument('--wrap', action='store_true', help='Wrap output objects into root array')
     parser.add_argument('--pretty-output', action='store_true', help='Pretty-print output')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py
