@@ -250,13 +250,9 @@ function stringify_json_line_python_style(obj) {
 
 
 class JsonWriter extends rbql.RBQLOutputWriter {
-    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null, wrap_into_array=false) {
-        // FIXME get rid of encoding logic here
+    constructor(stream, close_stream_on_finish, line_separator='\n', pretty_indent=null, wrap_into_array=false) {
         super();
         this.stream = stream;
-        this.encoding = encoding;
-        if (encoding)
-            this.stream.setDefaultEncoding(encoding);
         this.stream.on('error', (error_obj) => { this.store_first_error(error_obj); });
         this.line_separator = line_separator;
 
@@ -298,14 +294,13 @@ class JsonWriter extends rbql.RBQLOutputWriter {
         }
         let close_stream_on_finish = this.close_stream_on_finish;
         let output_stream = this.stream;
-        let output_encoding = this.encoding;
         let writer_error = this.first_error;
         let finish_promise = new Promise(function(resolve, reject) {
             if (writer_error !== null) {
                 reject(writer_error);
             }
             if (close_stream_on_finish) {
-                output_stream.end('', output_encoding, () => { resolve(); });
+                output_stream.end('', /* encoding here is required for the last (empty) chunk */'utf8', () => { resolve(); });
             } else {
                 setTimeout(() => { resolve(); }, 0);
             }
@@ -700,7 +695,7 @@ class StreamingJsonIterator extends rbql.RBQLInputIterator {
 
 
 function read_user_init_code(rbql_init_source_path) {
-    return fs.readFileSync(rbql_init_source_path, 'utf-8');
+    return fs.readFileSync(rbql_init_source_path, 'utf8');
 }
 
 
@@ -717,7 +712,15 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     } else {
         input_stream = fs.createReadStream(input_path, { encoding: 'utf8' });
     }
-    let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
+    let output_stream = null;
+    let close_output_on_finish = false;
+    if (output_path === null) {
+        process.stdout.setDefaultEncoding('utf8');
+        output_stream = process.stdout;
+    } else {
+        close_output_on_finish = true;
+        output_stream = fs.createWriteStream(output_path, { encoding: 'utf8' });
+    }
 
     let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
     if (user_init_code == '' && fs.existsSync(default_init_source_path)) {
@@ -725,14 +728,13 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     }
     let join_tables_registry = null;
 
-    // FIXME avoid passing utf-8 constructor instead figure out how to open file encoded just like we do in python version.
     let input_iterator = null;
     if (nested_table_path_parts === null) {
         input_iterator = new StreamingJsonIterator(input_stream, unwrap_array);
     } else {
         input_iterator = new NestedTableJsonIterator(input_stream, nested_table_path_parts);
     }
-    let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_into_array=*/wrap_into_array);
+    let output_writer = new JsonWriter(output_stream, close_output_on_finish, '\n', /*pretty_indent=*/pretty_indent, /*wrap_into_array=*/wrap_into_array);
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }

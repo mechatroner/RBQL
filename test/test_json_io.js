@@ -124,7 +124,7 @@ async function test_json_iterator() {
 async function test_json_lines_writer() {
     let writer_stream = new test_common.PseudoWritable();
     let close_stream_on_finish = false;
-    let writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, 'utf-8', '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
+    let writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
     await writer.write(['foo', 'bar']);
     await writer.finish();
     let data_text = writer_stream.get_text();
@@ -143,7 +143,7 @@ async function test_json_array_object_writer() {
 
     writer_stream = new test_common.PseudoWritable();
     close_stream_on_finish = false;
-    writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, 'utf-8', line_separator, /*pretty_indent=*/null, /*wrap_in_json_array=*/true);
+    writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, line_separator, /*pretty_indent=*/null, /*wrap_in_json_array=*/true);
     await writer.write(['foo', 'bar']);
     await writer.finish();
     data_text = writer_stream.get_text();
@@ -152,7 +152,7 @@ async function test_json_array_object_writer() {
     writer_stream = new test_common.PseudoWritable();
     close_stream_on_finish = false;
     wrap_in_json_array = false;
-    writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, 'utf-8', line_separator, pretty_indent, wrap_in_json_array);
+    writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, line_separator, pretty_indent, wrap_in_json_array);
     await writer.write(['foo', 'bar']);
     await writer.finish();
     data_text = writer_stream.get_text();
@@ -163,7 +163,7 @@ async function test_json_array_object_writer() {
 async function test_json_lines_writer_write_error() {
     let writer_stream = new test_common.PseudoWritable();
     let close_stream_on_finish = false;
-    let writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, 'utf-8', '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
+    let writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
     await writer.write(['foo', 'bar']);
     writer_stream.emulate_error(new Error('fake barbaz write error'));
     try {
@@ -179,7 +179,7 @@ async function test_json_lines_writer_write_error() {
 async function test_json_lines_writer_header_dups() {
     let writer_stream = new test_common.PseudoWritable();
     let close_stream_on_finish = false;
-    let writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, 'utf-8', '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
+    let writer = new rbql_json.JsonWriter(writer_stream, close_stream_on_finish, '\n', /*pretty_indent=*/null, /*wrap_in_json_array=*/false);
     writer.set_header(['foo', 'bar', 'foo']);
     let warnings = writer.get_warnings();
     test_common.assert_arrays_are_equal(['Deduplicated output json keys to avoid data loss: "foo"'], warnings);
@@ -306,7 +306,7 @@ async function process_test_case(tmp_tests_dir, test_case) {
 
 async function test_json_scenarios() {
     let tests_file_path = 'json_files_unit_tests.json';
-    let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf-8'));
+    let tests = JSON.parse(fs.readFileSync(tests_file_path, 'utf8'));
     let filtered_tests = tests.filter(t => test_common.get_default(t, 'skip_others', false));
     if (filtered_tests.length) {
         console.log('Using filtered tests');
