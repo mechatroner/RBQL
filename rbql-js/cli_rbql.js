@@ -395,8 +395,8 @@ async function run_with_js_json_mode(args) {
     let pretty_indent = pretty_output ? 4 : null;
     try {
         let warnings = [];
-        let params = {'user_init_code': user_init_code, 'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array, 'nested_table_path_parts': nested_table_path_parts};
-        await rbql_json.query_json(query, input_path, output_path, warnings, params);
+        let options = {'user_init_code': user_init_code, 'pretty_indent': pretty_indent, 'unwrap_array': unwrap_array, 'nested_table_path_parts': nested_table_path_parts};
+        await rbql_json.query_json(query, input_path, output_path, warnings, options);
         if (warnings !== null) {
             for (let i = 0; i < warnings.length; i++) {
                 show_warning(warnings[i]);

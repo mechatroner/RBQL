@@ -699,12 +699,12 @@ function read_user_init_code(rbql_init_source_path) {
 }
 
 
-async function query_json(query_text, input_path, output_path, output_warnings, params) {
-    let user_init_code = params.hasOwnProperty('user_init_code') ? params['user_init_code'] : '';
-    let pretty_indent = params.hasOwnProperty('pretty_indent') ? params['pretty_indent'] : null;
-    let unwrap_array = params.hasOwnProperty('unwrap_array') ? params['unwrap_array'] : false;
-    let wrap_into_array = params.hasOwnProperty('wrap_into_array') ? params['wrap_into_array'] : false;
-    let nested_table_path_parts = params.hasOwnProperty('nested_table_path_parts') ? params['nested_table_path_parts'] : null;
+async function query_json(query_text, input_path, output_path, output_warnings, options) {
+    let user_init_code = options.hasOwnProperty('user_init_code') ? options['user_init_code'] : '';
+    let pretty_indent = options.hasOwnProperty('pretty_indent') ? options['pretty_indent'] : null;
+    let unwrap_array = options.hasOwnProperty('unwrap_array') ? options['unwrap_array'] : false;
+    let wrap_into_array = options.hasOwnProperty('wrap_into_array') ? options['wrap_into_array'] : false;
+    let nested_table_path_parts = options.hasOwnProperty('nested_table_path_parts') ? options['nested_table_path_parts'] : null;
     let input_stream = null;
     if (input_path === null) {
         process.stdin.setEncoding('utf8')
