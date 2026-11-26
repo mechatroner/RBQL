@@ -1223,7 +1223,7 @@ function resolve_join_variables(input_variables_map, join_variables_map, variabl
             throw new RbqlParsingError(`Unable to parse JOIN expression: Join table does not have field "${join_var_2}"\n${valid_join_syntax_msg}`);
         }
 
-        let lhs_join_var_expression = lhs_key_index == -1 ? 'NR' : `safe_join_get(record_a, ${lhs_key_index})`;
+        let lhs_join_var_expression = lhs_key_index == -1 ? 'String(NR)' : `safe_join_get(record_a, ${lhs_key_index})`;
         rhs_indices.push(rhs_key_index);
         lhs_variables.push(lhs_join_var_expression);
     }
@@ -1536,7 +1536,7 @@ class HashJoinMap {
     get_single_key(nr, fields) {
         if (this.key_index >= fields.length)
             throw new RbqlRuntimeError(`No field with index ${this.key_index + 1} at record ${this.nr} in "B" table`);
-        return this.key_index === -1 ? this.nr : fields[this.key_index];
+        return this.key_index === -1 ? String(this.nr) : fields[this.key_index];
     };
 
     get_multi_key(nr, fields) {
@@ -1544,7 +1544,7 @@ class HashJoinMap {
         for (let ki of this.key_indices) {
             if (ki >= fields.length)
                 throw new RbqlRuntimeError(`No field with index ${ki + 1} at record ${this.nr} in "B" table`);
-            result.push(ki === -1 ? this.nr : fields[ki]);
+            result.push(ki === -1 ? String(this.nr) : fields[ki]);
         }
         return JSON.stringify(result);
     };

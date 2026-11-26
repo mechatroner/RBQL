@@ -324,6 +324,25 @@
         "query_js": "select top 3 * except a2, a4, a.mysterious_field order by a1 desc"
     },
     {
+        "test_name": "join input row number against numeric strings",
+        "randomly_replace_var_names": false,
+        "input_table": [
+            ["a-one"],
+            ["a-two"],
+            ["a-three"]
+        ],
+        "join_table": [
+            ["1", "b-one"],
+            ["2", "b-two"]
+        ],
+        "expected_output_table": [
+            ["a-one", "b-one"],
+            ["a-two", "b-two"]
+        ],
+        "query_python": "select a1, b2 join b on aNR == b1",
+        "query_js": "select a1, b2 join b on aNR == b1"
+    },
+    {
         "test_name": "except with join",
         "input_table": [
             ["5", "car", "lada"],

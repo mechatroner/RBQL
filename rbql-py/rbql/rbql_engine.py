@@ -1045,7 +1045,7 @@ def resolve_join_variables(input_variables_map, join_variables_map, variable_pai
             rhs_key_index = join_variables_map.get(join_var_2).index
         else:
             raise RbqlParsingError('Unable to parse JOIN expression: Join table does not have field "{}"\n{}'.format(join_var_2, valid_join_syntax_msg)) # UT JSON
-        lhs_join_var_expression = 'NR' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
+        lhs_join_var_expression = 'str(NR)' if lhs_key_index == -1 else 'safe_join_get(record_a, {})'.format(lhs_key_index)
         rhs_indices.append(rhs_key_index)
         lhs_variables.append(lhs_join_var_expression)
     return (lhs_variables, rhs_indices)
@@ -1378,7 +1378,7 @@ class HashJoinMap:
     def get_single_key(self, nr, fields):
         if self.key_index >= len(fields):
             raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(self.key_index + 1, nr))
-        return nr if self.key_index == -1 else fields[self.key_index]
+        return str(nr) if self.key_index == -1 else fields[self.key_index]
 
 
     def get_multi_key(self, nr, fields):
@@ -1386,7 +1386,7 @@ class HashJoinMap:
         for ki in self.key_indices:
             if ki >= len(fields):
                 raise RbqlRuntimeError('No field with index {} at record {} in "B" table'.format(ki + 1, nr))
-            result.append(nr if ki == -1 else fields[ki])
+            result.append(str(nr) if ki == -1 else fields[ki])
         return tuple(result)
 
 
