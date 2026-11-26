@@ -24,6 +24,14 @@
         "query_python": "select a1['name'], a1['age'], NR"
     },
     {
+        "test_name": "keys are missing in some records",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10_missing_keys.jsonl",
+        "expected_output_table_path": "json_files/expected_result_missing_keys_1.jsonl",
+        "query_js": "select a.name, a.age, NR",
+        "query_python": "select a.name, a.age, NR"
+    },
+    {
         "test_name": "simple test with 'a' column name",
         "debug_mode": true,
         "input_table_path": "json_files/names10.jsonl",
@@ -70,6 +78,62 @@
         "unwrap_array": true,
         "query_js": "select a1['name'], a1['age'], NR",
         "query_python": "select a1['name'], a1['age'], NR"
+    },
+    {
+        "test_name": "select a1 but nested path instead of unwrap - nested path - unwrap equivalence test",
+        "input_table_path": "json_files/names10.arrayobj.json",
+        "expected_output_table_path": "json_files/expected_result_1.arrayobj.json",
+        "nested_table_path_parts": [],
+        "wrap_into_array": true,
+        "query_js": "select a1['name'], a1['age'], NR",
+        "query_python": "select a1['name'], a1['age'], NR"
+    },
+    {
+        "test_name": "select from nested",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10_table_not_root.json",
+        "expected_output_table_path": "json_files/expected_result_1.arrayobj.json",
+        "nested_table_path_parts": ["nested_data"],
+        "wrap_into_array": true,
+        "query_js": "select a.name, a.age, NR",
+        "query_python": "select a.name, a.age, NR"
+    },
+    {
+        "test_name": "select from bad nested path",
+        "input_table_path": "json_files/names10_table_not_root.json",
+        "expected_error_py": "Unable to descend into \"nonexisting\" node from .nested_data. node",
+        "expected_error_js": "Unable to descend into \"nonexisting\" node from .nested_data. node",
+        "nested_table_path_parts": ["nested_data", "nonexisting"],
+        "query_js": "select a.name, a.age, NR",
+        "query_python": "select a.name, a.age, NR"
+    },
+    {
+        "test_name": "select from non-container nested path",
+        "input_table_path": "json_files/names10_table_not_root.json",
+        "expected_error_py": "Unable to descend into \"dataset_name\" node from . node",
+        "expected_error_js": "Unable to descend into \"dataset_name\" node from . node",
+        "nested_table_path_parts": ["dataset_name"],
+        "query_js": "select a.name, a.age, NR",
+        "query_python": "select a.name, a.age, NR"
+    },
+    {
+        "test_name": "select from nested record - silly interpret it as a dataset - should still work",
+        "debug_mode": true,
+        "input_table_path": "json_files/names10_table_not_root.json",
+        "expected_output_table_path": "json_files/expected_result_kv_silly.json",
+        "nested_table_path_parts": ["nested_data", 2],
+        "wrap_into_array": true,
+        "query_js": "select a.key, a.val, NR",
+        "query_python": "select a.key, a.val, NR"
+    },
+    {
+        "test_name": "select from key-value kv object dataset",
+        "debug_mode": true,
+        "input_table_path": "json_files/root_kv_dataset.json",
+        "expected_output_table_path": "json_files/expected_result_kv_1.json",
+        "nested_table_path_parts": [],
+        "query_js": "select a.key, a.val.age, NR",
+        "query_python": "select a.key, a.val.age, NR"
     },
     {
         "test_name": "select utf8",

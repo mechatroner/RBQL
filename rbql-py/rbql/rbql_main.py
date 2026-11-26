@@ -3,6 +3,7 @@
 import sys
 import os
 import argparse
+import json
 
 from . import csv_utils
 from . import rbql_csv
@@ -420,6 +421,29 @@ def csv_main():
             sys.exit(1)
 
 
+def parse_json_path_parts_best_effort(nested_path_string):
+    # TODO add unit tests for this - this is a user-facing parsing contract so we can and should have unit tests for this. Unit tests for contracts are good.
+    # TODO make this more robust and make dots before and after square brackets indexing parts optional so that we allow more "natural" js-like expressions like datasets[2].data.
+    nested_path_string = nested_path_string.strip('.')
+    parts_raw = nested_path_string.split('.')
+    result = []
+    for part in parts_raw:
+        part = part.strip()
+        if not(len(part)): # This allows to handle multiple consecutive periods (do we really need this?) and a single root period as an empty array.
+            continue
+        if part.startswith('['):
+            if not part.endswith(']'):
+                raise rbql_engine.RbqlParsingError('Bad integer subscript format in "{}"'.format(nested_path_string))
+            try:
+                result.append(int(part[1:-1]))
+            except ValueError:
+                raise rbql_engine.RbqlParsingError('Non-integer in subscript "{}"'.format(part))
+        else:
+            result.append(part)
+    return result
+
+
+
 def run_with_python_json(args):
     if args.debug_mode:
         rbql_json.set_debug_mode()    
@@ -429,6 +453,7 @@ def run_with_python_json(args):
     unwrap = args.unwrap
     wrap = args.wrap
     output_pretty_indent = 4 if args.pretty_output else None
+    nested_table_path_parts_json_str = args.nested_table_path_parts
 
     warnings = []
     error_type, error_msg = None, None
@@ -437,7 +462,8 @@ def run_with_python_json(args):
         return False
     try:
         user_init_code = rbql_csv.read_user_init_code(args.init_source_file) if args.init_source_file is not None else ''
-        rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code)
+        nested_table_path_parts = None if not nested_table_path_parts_json_str else json.loads(nested_table_path_parts_json_str)
+        rbql_json.query_json(query, input_path, output_path, warnings, unwrap, wrap, output_pretty_indent, user_init_code, nested_table_path_parts)
     except Exception as e:
         if args.debug_mode:
             raise
@@ -462,7 +488,8 @@ def json_main():
     parser.add_argument('--input', metavar='FILE', help='read csv table from FILE instead of stdin. Required in interactive mode')
     parser.add_argument('--query', help='query string in rbql. Run in interactive mode if empty')
     parser.add_argument('--output', metavar='FILE', help='write output table to FILE instead of stdout')
-    parser.add_argument('--unwrap', action='store_true', help='Unwrap root json array and use its elements as input records')
+    parser.add_argument('--unwrap', action='store_true', help='Unwrap the root json array and use its elements as input records')
+    parser.add_argument('--nested-table-path-parts', metavar='PARTS', help='JSON array that encodes the path to the nested dataset e.g. ["dataset", "records"]')
     parser.add_argument('--wrap', action='store_true', help='Wrap output objects into root array')
     parser.add_argument('--pretty-output', action='store_true', help='Pretty-print output')
     parser.add_argument('--init-source-file', metavar='FILE', help=argparse.SUPPRESS) # Path to init source file to use instead of ~/.rbql_init_source.py

@@ -6,14 +6,19 @@ const util = require('util');
 const rbql = require('./rbql.js');
 const csv_utils = require('./csv_utils.js');
 
-const utf_decoding_error = 'Unable to decode input as UTF-8';
-
 const backslashChar = '\\';
 
 class RbqlJsonParsingError extends Error {
     constructor(message) {
         super(message);
         this.name = 'RbqlJsonParsingError';
+    }
+}
+
+class RbqlQueryParsingError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'RbqlQueryParsingError';
     }
 }
 
@@ -228,22 +233,26 @@ function get_json_object_to_write(header, fields) {
     return result;
 }
 
+function json_stringify_null_replacer(key, val) {
+    // JSON stringify omits (k, v) pairs with undefined values. At the same time it keeps undefined inside arrays (and converts them to null).
+    // Preserving undefined keys makes the behaviour of this function similar in some context to that of python version (e.g. for missing keys scenario we generate Null vals and then serialize them as null in py)
+    // Going forward we can make this behaviour optional (but we would also need to adjust Python version to skip Nulls - although this still wouldn't be equiavalent because Python doesn't distinguish between null and undefined).
+    return val === undefined ? null : val;
+}
+
 
 function stringify_json_line_python_style(obj) {
     // The default JSON.stringify() unfortunatelly doesn't produce pretty json lines like in json lines examples here: https://jsonlines.org/examples/
     // Python by default stringifies with extra readability whitespaces e.g. `{'foo':1,'bar':2}` becomes `{"foo": 1, "bar": 2}`.
     // The third `spaces` arg in `JSON.stringify` makes it pretty print the whole thing with newlines, so we post-format it via this hack.
-    return JSON.stringify(obj, null, 1).replace(/^ +/gm, "").replace(/,\n/g, ", \n").replace(/\n/g, "");
+    return JSON.stringify(obj, json_stringify_null_replacer, 1).replace(/^ +/gm, "").replace(/,\n/g, ", \n").replace(/\n/g, "");
 }
 
 
 class JsonWriter extends rbql.RBQLOutputWriter {
-    constructor(stream, close_stream_on_finish, encoding='utf-8', line_separator='\n', pretty_indent=null, wrap_into_array=false) {
+    constructor(stream, close_stream_on_finish, line_separator='\n', pretty_indent=null, wrap_into_array=false) {
         super();
         this.stream = stream;
-        this.encoding = encoding;
-        if (encoding)
-            this.stream.setDefaultEncoding(encoding);
         this.stream.on('error', (error_obj) => { this.store_first_error(error_obj); });
         this.line_separator = line_separator;
 
@@ -285,14 +294,13 @@ class JsonWriter extends rbql.RBQLOutputWriter {
         }
         let close_stream_on_finish = this.close_stream_on_finish;
         let output_stream = this.stream;
-        let output_encoding = this.encoding;
         let writer_error = this.first_error;
         let finish_promise = new Promise(function(resolve, reject) {
             if (writer_error !== null) {
                 reject(writer_error);
             }
             if (close_stream_on_finish) {
-                output_stream.end('', output_encoding, () => { resolve(); });
+                output_stream.end('', /* encoding here is required for the last (empty) chunk */'utf8', () => { resolve(); });
             } else {
                 setTimeout(() => { resolve(); }, 0);
             }
@@ -325,7 +333,7 @@ class JsonWriter extends rbql.RBQLOutputWriter {
         if (this.pretty_indent === null) {
             this.stream.write(stringify_json_line_python_style(object_to_write));
         } else {
-            this.stream.write(JSON.stringify(object_to_write, null, this.pretty_indent));
+            this.stream.write(JSON.stringify(object_to_write, json_stringify_null_replacer, this.pretty_indent));
         }
         this.num_records_written += 1;
         let writer_error = this.first_error;
@@ -356,21 +364,209 @@ class JsonWriter extends rbql.RBQLOutputWriter {
 }
 
 
-class JsonIterator extends rbql.RBQLInputIterator {
-    // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
-    constructor(stream, unwrap_mode=false, encoding='utf-8', table_name='input', variable_prefix='a') {
+
+class NestedTableJsonIterator extends rbql.RBQLInputIterator {
+    // TODO we can optimize this to process objects as they arrive if we have implementation for json-batches parser.
+    // Json array would be almost similar format except that we have array object at root which can be easily skipped.
+    // Another difference between this format and json batches would be commas at the end of each object but they can also be easily skipped.
+    constructor(stream, nested_table_path_parts=null, table_name='input', variable_prefix='a') {
         super();
         this.stream = stream;
-        this.encoding = encoding;
         this.table_name = table_name;
         this.variable_prefix = variable_prefix;
+        this.nested_table_path_parts = nested_table_path_parts;
 
+        this.input_exhausted = false;
+        this.started = false;
 
-        this.decoder = null;
-        if (encoding == 'utf-8') {
-            // This was copied from the csv impl, see comments there.
-            this.decoder = new util.TextDecoder(encoding, {fatal: true, stream: true});
+        // Holds an external "resolve" function which is called when everything is fine.
+        this.resolve_current_record = null;
+        // Holds an external "reject" function which is called when error has occured.
+        this.reject_current_record = null;
+        // Holds an external "resolve" function which is called when everything is fine.
+        this.resolve_header = null;
+        // Holds an external "reject" function which is called when error has occured.
+        this.reject_header = null;
+        // Holds last exception if we don't have any reject callbacks from clients yet.
+        this.current_exception = null;
+
+        this.produced_records_queue = new csv_utils.RecordQueue();
+        this.record_number = 0;
+        this.input_data_chunks = [];
+    }
+
+    async get_header() {
+        if (!this.started)
+            await this.start();
+        if (this.stream && this.stream.isPaused())
+            this.stream.resume();
+        let parent_iterator = this;
+        let header_promise = new Promise(function(resolve, reject) {
+            parent_iterator.resolve_header = resolve;
+            parent_iterator.reject_header = reject;
+        });
+        return header_promise;
+    }
+
+    reset_external_record_callbacks() {
+        // Drop external callbacks simultaneously since promises can only resolve once, see: https://stackoverflow.com/a/18218542/2898283
+        this.reject_current_record = null;
+        this.resolve_current_record = null;
+    }
+
+    reset_external_header_callbacks() {
+        // Drop external callbacks simultaneously since promises can only resolve once, see: https://stackoverflow.com/a/18218542/2898283
+        this.resolve_header = null;
+        this.reject_header = null;
+    }
+
+    try_propagate_exception() {
+        if (this.current_exception) {
+            let reject = null;
+            if (this.reject_header) {
+                reject = this.reject_header;
+                this.reset_external_header_callbacks();
+            } else if (this.reject_current_record) {
+                reject = this.reject_current_record;
+                this.reset_external_record_callbacks();
+            } else {
+                return;
+            }
+            let exception = this.current_exception;
+            this.current_exception = null;
+            reject(exception);
         }
+    }
+
+
+    store_or_propagate_exception(exception) {
+        if (this.current_exception === null)
+            // Ignore subsequent exceptions if we already have an unreported error. This way we prioritize earlier errors over the more recent ones.
+            this.current_exception = exception;
+        this.try_propagate_exception();
+    }
+
+    try_resolve_header(header) {
+        // No need to call `try_propagate_exception` here because it would be handled by previous calls to store_or_propagate_exception anyway.
+        if (this.resolve_header) {
+            let resolve = this.resolve_header;
+            this.reset_external_header_callbacks();
+            resolve(header);
+        }
+    }
+
+    try_resolve_next_record() {
+        this.try_propagate_exception();
+        if (this.resolve_current_record === null)
+            return;
+
+        let record = this.produced_records_queue.dequeue();
+        if (record === null && !this.input_exhausted)
+            return;
+        let resolve = this.resolve_current_record;
+        this.reset_external_record_callbacks();
+        this.record_number += 1;
+        resolve(record);
+    };
+
+
+    async get_record() {
+        if (!this.started)
+            await this.start();
+        if (this.stream && this.stream.isPaused())
+            this.stream.resume();
+
+        let parent_iterator = this;
+        let current_record_promise = new Promise(function(resolve, reject) {
+            parent_iterator.resolve_current_record = resolve;
+            parent_iterator.reject_current_record = reject;
+        });
+        this.try_resolve_next_record();
+        return current_record_promise;
+    };
+
+
+    process_data_stream_chunk(string_chunk) {
+        this.input_data_chunks.push(string_chunk);
+    };
+
+
+    process_data_stream_end() {
+        this.input_exhausted = true;
+        let input_data_string = this.input_data_chunks.join('');
+        let root_object = null;
+        try {
+            root_object = JSON.parse(input_data_string);
+        } catch (e) {
+            if (e instanceof SyntaxError) {
+                this.store_or_propagate_exception(new RbqlIOHandlingError(`Unable to parse input stream as JSON: ${e.message}`));
+            } else {
+                this.store_or_propagate_exception(e);
+            }
+            return;
+        }
+        if (this.nested_table_path_parts) {
+            try {
+                root_object = descend_into_nested_container(root_object, this.nested_table_path_parts);
+            } catch (e) {
+                this.store_or_propagate_exception(e);
+            }
+        }
+        if (Array.isArray(root_object)) {
+            this.try_resolve_header([this.variable_prefix]);
+            for (let record of root_object) {
+                this.produced_records_queue.enqueue([record]);
+            }
+        } else {
+            this.try_resolve_header(['key', 'val']);
+            for (let [key, val] of Object.entries(root_object)) {
+                this.produced_records_queue.enqueue([key, val]);
+            }
+        }
+        this.try_resolve_next_record();
+    };
+
+
+    stop() {
+        if (this.stream)
+            this.stream.destroy(); // TODO consider using pause() instead
+    };
+
+
+    async start() {
+        if (this.started)
+            return;
+        this.started = true;
+        this.stream.on('data', (string_chunk) => { this.process_data_stream_chunk(string_chunk); });
+        this.stream.on('end', () => { this.process_data_stream_end(); });
+    };
+}
+
+
+function is_primitive(target) {
+    return target !== Object(target);
+}
+
+function descend_into_nested_container(root_object, nested_table_path_parts) {
+    let current_path_descriptor = '.';
+    for (let part of nested_table_path_parts) {
+        root_object = root_object[part];
+        if (is_primitive(root_object)) {
+            throw new RbqlQueryParsingError(`Unable to descend into "${part}" node from ${current_path_descriptor} node`);
+        }
+        current_path_descriptor += `${part}.`;
+    }
+    return root_object;
+}
+
+
+class StreamingJsonIterator extends rbql.RBQLInputIterator {
+    // TODO add query modifier with "noheaders" this would name keys as `a1`, `a2`, etc.
+    constructor(stream, unwrap_mode=false, table_name='input', variable_prefix='a') {
+        super();
+        this.stream = stream;
+        this.table_name = table_name;
+        this.variable_prefix = variable_prefix;
 
         this.input_exhausted = false;
         this.started = false;
@@ -386,7 +582,7 @@ class JsonIterator extends rbql.RBQLInputIterator {
         this.produced_records_queue = new csv_utils.RecordQueue();
     }
 
-    get_header() {
+    async get_header() {
         // Returning "a1" as a column name actually has a side effect because it would try to initialize a.a1 and a['a1'] values in rbql engine.
         return [this.variable_prefix];
     }
@@ -445,24 +641,9 @@ class JsonIterator extends rbql.RBQLInputIterator {
         return current_record_promise;
     };
 
-    process_data_stream_chunk(data_chunk) {
-        let decoded_string = null;
-        if (this.decoder) {
-            try {
-                decoded_string = this.decoder.decode(data_chunk);
-            } catch (e) {
-                if (e instanceof TypeError) {
-                    this.store_or_propagate_exception(new RbqlIOHandlingError(utf_decoding_error));
-                } else {
-                    this.store_or_propagate_exception(e);
-                }
-                return;
-            }
-        } else {
-            decoded_string = data_chunk.toString(this.encoding);
-        }
+    process_data_stream_chunk(string_chunk) {
         try {
-            this.balancing_iterator.add_fragment(decoded_string);
+            this.balancing_iterator.add_fragment(string_chunk);
         } catch (e) {
             this.store_or_propagate_exception(e);
         }
@@ -500,7 +681,7 @@ class JsonIterator extends rbql.RBQLInputIterator {
         if (this.started)
             return;
         this.started = true;
-        this.stream.on('data', (data_chunk) => { this.process_data_stream_chunk(data_chunk); });
+        this.stream.on('data', (string_chunk) => { this.process_data_stream_chunk(string_chunk); });
         this.stream.on('end', () => { this.process_data_stream_end(); });
     };
 
@@ -514,17 +695,32 @@ class JsonIterator extends rbql.RBQLInputIterator {
 
 
 function read_user_init_code(rbql_init_source_path) {
-    return fs.readFileSync(rbql_init_source_path, 'utf-8');
+    return fs.readFileSync(rbql_init_source_path, 'utf8');
 }
 
 
-async function query_json(query_text, input_path, output_path, output_warnings, params) {
-    let user_init_code = params.hasOwnProperty('user_init_code') ? params['user_init_code'] : '';
-    let pretty_indent = params.hasOwnProperty('pretty_indent') ? params['pretty_indent'] : null;
-    let unwrap_array = params.hasOwnProperty('unwrap_array') ? params['unwrap_array'] : false;
-    let wrap_into_array = params.hasOwnProperty('wrap_into_array') ? params['wrap_into_array'] : false;
-    let input_stream = input_path === null ? process.stdin : fs.createReadStream(input_path);
-    let [output_stream, close_output_on_finish] = output_path === null ? [process.stdout, false] : [fs.createWriteStream(output_path), true];
+async function query_json(query_text, input_path, output_path, output_warnings, options) {
+    let user_init_code = options.hasOwnProperty('user_init_code') ? options['user_init_code'] : '';
+    let pretty_indent = options.hasOwnProperty('pretty_indent') ? options['pretty_indent'] : null;
+    let unwrap_array = options.hasOwnProperty('unwrap_array') ? options['unwrap_array'] : false;
+    let wrap_into_array = options.hasOwnProperty('wrap_into_array') ? options['wrap_into_array'] : false;
+    let nested_table_path_parts = options.hasOwnProperty('nested_table_path_parts') ? options['nested_table_path_parts'] : null;
+    let input_stream = null;
+    if (input_path === null) {
+        process.stdin.setEncoding('utf8')
+        input_stream = process.stdin;
+    } else {
+        input_stream = fs.createReadStream(input_path, { encoding: 'utf8' });
+    }
+    let output_stream = null;
+    let close_output_on_finish = false;
+    if (output_path === null) {
+        process.stdout.setDefaultEncoding('utf8');
+        output_stream = process.stdout;
+    } else {
+        close_output_on_finish = true;
+        output_stream = fs.createWriteStream(output_path, { encoding: 'utf8' });
+    }
 
     let default_init_source_path = path.join(os.homedir(), '.rbql_init_source.js');
     if (user_init_code == '' && fs.existsSync(default_init_source_path)) {
@@ -532,8 +728,13 @@ async function query_json(query_text, input_path, output_path, output_warnings, 
     }
     let join_tables_registry = null;
 
-    let input_iterator = new JsonIterator(input_stream, unwrap_array);
-    let output_writer = new JsonWriter(output_stream, close_output_on_finish, 'utf-8', '\n', /*pretty_indent=*/pretty_indent, /*wrap_into_array=*/wrap_into_array);
+    let input_iterator = null;
+    if (nested_table_path_parts === null) {
+        input_iterator = new StreamingJsonIterator(input_stream, unwrap_array);
+    } else {
+        input_iterator = new NestedTableJsonIterator(input_stream, nested_table_path_parts);
+    }
+    let output_writer = new JsonWriter(output_stream, close_output_on_finish, '\n', /*pretty_indent=*/pretty_indent, /*wrap_into_array=*/wrap_into_array);
 
     await rbql.query(query_text, input_iterator, output_writer, output_warnings, join_tables_registry, user_init_code);
 }
@@ -543,6 +744,6 @@ module.exports.deduplicate_header_keys = deduplicate_header_keys;
 module.exports.stringify_json_line_python_style = stringify_json_line_python_style;
 module.exports.get_json_object_to_write = get_json_object_to_write;
 module.exports.JsonWriter = JsonWriter;
-module.exports.JsonIterator = JsonIterator;
+module.exports.StreamingJsonIterator = StreamingJsonIterator;
 module.exports.BalancingIterator = BalancingIterator;
 module.exports.query_json = query_json;

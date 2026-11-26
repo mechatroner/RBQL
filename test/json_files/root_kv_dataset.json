@@ -1,0 +1,112 @@
+{
+  "John Doe": {
+    "age": 34,
+    "occupation": "Software Engineer",
+    "address": {
+      "street name": "Maple Avenue",
+      "house number": 142,
+      "state": "CO",
+      "town": "Boulder",
+      "zipcode": "80302"
+    }
+  },
+  "Elena Vance": {
+    "age": 28,
+    "occupation": "Graphic Designer",
+    "address": {
+      "street name": "Cedar Lane",
+      "house number": 89,
+      "state": "OR",
+      "town": "Portland",
+      "zipcode": "97205"
+    }
+  },
+  "Marcus Thorne": {
+    "age": 45,
+    "occupation": "Architect",
+    "address": {
+      "street name": "Oakwood Drive",
+      "house number": 1024,
+      "state": "IL",
+      "town": "Evanston",
+      "zipcode": "60201"
+    }
+  },
+  "Priya Patel": {
+    "age": 31,
+    "occupation": "Pharmacist",
+    "address": {
+      "street name": "Birch Street",
+      "house number": 516,
+      "state": "NC",
+      "town": "Durham",
+      "zipcode": "27701"
+    }
+  },
+  "Liam O'Connor": {
+    "age": 52,
+    "occupation": "High School Teacher",
+    "address": {
+      "street name": "Pinecrest Road",
+      "house number": 73,
+      "state": "MA",
+      "town": "Brookline",
+      "zipcode": "02445"
+    }
+  },
+  "Sofia Alvarez": {
+    "age": 26,
+    "occupation": "Veterinary Technician",
+    "address": {
+      "street name": "Sunset Boulevard",
+      "house number": 308,
+      "state": "NM",
+      "town": "Santa Fe",
+      "zipcode": "87501"
+    }
+  },
+  "Caleb Sterling": {
+    "age": 39,
+    "occupation": "Chef",
+    "address": {
+      "street name": "Harbor View",
+      "house number": 219,
+      "state": "WA",
+      "town": "Bellingham",
+      "zipcode": "98225"
+    }
+  },
+  "Hannah Lindqvist": {
+    "age": 41,
+    "occupation": "Physical Therapist",
+    "address": {
+      "street name": "Meadowbrook Way",
+      "house number": 645,
+      "state": "MN",
+      "town": "Duluth",
+      "zipcode": "55802"
+    }
+  },
+  "Darius Brooks": {
+    "age": 23,
+    "occupation": "Audio Engineer",
+    "address": {
+      "street name": " Magnolia Court",
+      "house number": 18,
+      "state": "GA",
+      "town": "Savannah",
+      "zipcode": "31401"
+    }
+  },
+  "Nadia Kowalski": {
+    "age": 36,
+    "occupation": "Civil Engineer",
+    "address": {
+      "street name": "Willow Creek",
+      "house number": 872,
+      "state": "MI",
+      "town": "Ann Arbor",
+      "zipcode": "48104"
+    }
+  }
+}

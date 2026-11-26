@@ -5,10 +5,10 @@ import io
 import re
 
 from collections import deque
+from collections import defaultdict
 
 from . import rbql_engine
 from . import csv_utils
-from . import rbql_csv
 
 debug_mode = False
 
@@ -21,11 +21,18 @@ backslash_char = '\\'
 
 # TODO Consider if we want json parsing to finish without errors if we select e.g. top 10 records from a corrupted file and corruption occures at line 11.
 
+# FIXME add main dataset autodetection for the cli mode (we should be also able to use it in the extension).
 
-class DotDict(dict):
+# TODO consider adding a writer param to skip keys with Null vals - similar behaviour to skipping "undfined" val key in JSON.stringify in JS (although we can't really distinguish in py between null and undefined).
+
+# Returning None by default allows to handle records with incosistent set of keys more easily.
+# The downside is that if user specifies a wrong attribute by mistake it would be silently transfered as null to the output - unless it is a part of another operation that expects non-None.
+class DefaultDotDict(dict):
     def __getattr__(self, key):
-        return self[key]
+        return self.get(key, None)
 
+    def __getitem__(self, key):
+        return self.get(key, None)
 
 class RbqlJsonParsingError(Exception):
     pass
@@ -76,7 +83,7 @@ class BalancingIterator:
         fragment = fragment.strip()
         if len(fragment):
             try:
-                self.parsed_objects.append(json.loads(fragment, object_hook=lambda d: DotDict(d)))
+                self.parsed_objects.append(json.loads(fragment, object_hook=lambda d: DefaultDotDict(d)))
             except json.JSONDecodeError as e:
                 raise rbql_engine.RbqlIOHandlingError('Failed to deserialize a record after the first {} records: {}'.format(self.num_parsed, e))
             self.num_parsed += 1
@@ -196,9 +203,8 @@ def deduplicate_header_keys(header):
 
 class JsonWriter(rbql_engine.RBQLOutputWriter):
     # By setting `wrap_in_json_array` to false (and pretty_indent) we get json-stream writer
-    def __init__(self, stream, close_stream_on_finish, encoding, line_separator='\n', pretty_indent=None, wrap_in_json_array=False):
-        assert encoding in ['utf-8', 'latin-1', None]
-        self.stream = rbql_csv.encode_output_stream(stream, encoding)
+    def __init__(self, stream, close_stream_on_finish, line_separator='\n', pretty_indent=None, wrap_in_json_array=False):
+        self.stream = stream
         self.line_separator = line_separator
         self.close_stream_on_finish = close_stream_on_finish
         self.broken_pipe = False
@@ -266,12 +272,61 @@ class JsonWriter(rbql_engine.RBQLOutputWriter):
             self.wrap_in_json_array = True
 
 
+def descend_into_nested_container(root_object, nested_table_path_parts):
+    target_container = root_object
+    current_path_descriptor = '.'
+    for part in nested_table_path_parts:
+        try:
+            target_container = target_container[part]
+            if not isinstance(target_container, list) and not isinstance(target_container, dict):
+                raise ValueError("Bad part")
+        except Exception:
+            raise rbql_engine.RbqlParsingError('Unable to descend into "{}" node from {} node'.format(part, current_path_descriptor))
+        current_path_descriptor += '{}.'.format(part)
+    return target_container
+
+
+class NestedTableJsonIterator(rbql_engine.RBQLInputIterator):
+    def __init__(self, stream, nested_table_path_parts=None, table_name='input', variable_prefix='a'):
+        self.stream = stream
+        self.table_name = table_name
+        self.variable_prefix = variable_prefix
+        self._dict_iter = None
+        try:
+            json_root_object = json.load(self.stream, object_hook=lambda d: DefaultDotDict(d))
+        except json.JSONDecodeError as e:
+            raise rbql_engine.RbqlIOHandlingError('Unable to parse input as JSON: {}'.format(e))
+        self.json_iteration_container = descend_into_nested_container(json_root_object, nested_table_path_parts) if nested_table_path_parts is not None else json_root_object
+        if isinstance(self.json_iteration_container, dict):
+            self._dict_iter = iter(self.json_iteration_container.items())
+        self.record_number = 0
+
+
+    def get_header(self):
+        if self._dict_iter is None:
+            # Returning "a1" as a column name instead of "a" would have a side effect because it would initialize a.a1 and a['a1'] values in rbql engine.
+            return [self.variable_prefix]
+        else:
+            return ['key', 'val']
+
+    def get_record(self):
+        if self._dict_iter is None:
+            if self.record_number >= len(self.json_iteration_container):
+                return None
+            record = [self.json_iteration_container[self.record_number]]
+        else:
+            kv = next(self._dict_iter, None)
+            if kv is None:
+                return None
+            record = [kv[0], kv[1]]
+        self.record_number += 1
+        return record
+
+
 # NOTE: using json lines format as input is essentially equivalent to `select json.loads(a1) | select a1['name']` type of query.
-class JsonIterator(rbql_engine.RBQLInputIterator):
-    def __init__(self, stream, unwrap_mode=False, encoding='utf-8', table_name='input', variable_prefix='a', chunk_size=16384):
-        assert encoding in ['utf-8', 'latin-1', None]
-        self.encoding = encoding
-        self.stream = rbql_csv.encode_input_stream(stream, encoding)
+class StreamingJsonIterator(rbql_engine.RBQLInputIterator):
+    def __init__(self, stream, unwrap_mode=False, table_name='input', variable_prefix='a', chunk_size=16384):
+        self.stream = stream
         self.table_name = table_name
         self.variable_prefix = variable_prefix
 
@@ -309,22 +364,36 @@ class JsonIterator(rbql_engine.RBQLInputIterator):
         if modifier_name == 'unwrap':
             self.balancing_iterator = BalancingIterator(unwrap_mode=True)
 
+def read_user_init_code(rbql_init_source_path):
+    with open(rbql_init_source_path, 'r', encoding="utf-8") as src:
+        return src.read()
+
 
 # TODO we might want the output to optionally be CSV too. 
-def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code=''):
+# TODO consider if we should rename `unwrap_array` into `unwrap` so that we can unwrap both key-value pairs and array elements.
+def query_json(query_text, input_path, output_path, output_warnings, unwrap_array=False, wrap_into_array=False, pretty_indent=None, user_init_code='', nested_table_path_parts=None):
     output_stream, close_output_on_finish = (None, False)
     input_stream, close_input_on_finish = (None, False)
     join_tables_registry = None
+
     try:
-        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'wb'), True)
-        input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'rb'), True)
+        # Unlike CSV version we just always open with utf-8 because it is the official encoding for JSONs.
+        output_stream, close_output_on_finish = (sys.stdout, False) if output_path is None else (open(output_path, 'w', encoding="utf-8"), True)
+        input_stream, close_input_on_finish = (sys.stdin, False) if input_path is None else (open(input_path, 'r', encoding="utf-8"), True)
 
         default_init_source_path = os.path.join(os.path.expanduser('~'), '.rbql_init_source.py')
         if user_init_code == '' and os.path.exists(default_init_source_path):
-            user_init_code = rbql_csv.read_user_init_code(default_init_source_path)
+            user_init_code = read_user_init_code(default_init_source_path)
 
-        input_iterator = JsonIterator(input_stream, unwrap_mode=unwrap_array, encoding='utf-8', table_name='input', variable_prefix='a')
-        output_writer = JsonWriter(output_stream, close_output_on_finish, 'utf-8', pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
+        input_iterator = None
+        if nested_table_path_parts is None:
+            input_iterator = StreamingJsonIterator(input_stream, unwrap_mode=unwrap_array, table_name='input', variable_prefix='a')
+        else:
+            # We pass nested_table_path_parts as list because:
+            # 1. Parsing is best effor so we don't want to have it on the library level. 
+            # 2. Many callers would autodetect the nested path as a list of parts so it is much more convenient to pass it that way rather than serializing and then deserializing.
+            input_iterator = NestedTableJsonIterator(input_stream, nested_table_path_parts=nested_table_path_parts, table_name='input', variable_prefix='a')
+        output_writer = JsonWriter(output_stream, close_output_on_finish, pretty_indent=pretty_indent, wrap_in_json_array=wrap_into_array)
 
         if debug_mode:
             rbql_engine.set_debug_mode()
